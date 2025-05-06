@@ -2,17 +2,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils'; // assuming shadcn setup
-// import LogoutButton from './logout-button';
-import { ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
-// import { useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { ArrowLeftToLine, ArrowRightToLine, UserIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface SideNavProps {
   items: {
     header: string;
     items: {
       label: string;
-      href: string;
+      href: string[];
       icon: React.ReactNode;
     }[];
   }[];
@@ -20,82 +18,111 @@ interface SideNavProps {
 
 export default function SideNav({ items }: SideNavProps) {
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [subSectionCollapsed, setSubSectionCollapsed] = useState<boolean[]>(Array(items.length).fill(false));
-
+  const [language, setLanguage] = useState('en');
   const pathname = usePathname();
 
   return (
-    <aside className={`h-screen bg-gray-50 p-1 space-y-2 transition-all duration-300 ease-in-out ${navCollapsed ? 'w-16' : 'w-64'}`}>
-      {!navCollapsed ? (
-        <div className="flex items-center justify-between w-full hover:bg-gray-100 rounded-md px-2 py-1 cursor-pointer ">
-        <p className="text-sm text-gray-500">User</p>
-        <button 
-          onClick={() => setNavCollapsed(!navCollapsed)} 
-          className="bg-transparent text-gray-500 hover:bg-gray-200 rounded-md p-2 transition-all duration-300 ease-in-out cursor-pointer"
-        >
-            <ArrowLeftToLine className="w-4 h-4" />
-        </button>
+    <aside className={`h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${navCollapsed ? 'w-16' : 'w-64'}`}>
+      {/* Top section with user and controls */}
+      <div className="border-b border-gray-200 py-4 px-4">
+        {!navCollapsed ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-gray-600" />   
+              <p className="text-sm font-medium text-gray-600">User</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
+                onClick={() => {language === 'en' ? setLanguage('cn') : setLanguage('en')}}
+              >
+                {language === 'en' ? '中文' : 'English'}
+              </button>  
+              <button 
+                onClick={() => setNavCollapsed(!navCollapsed)} 
+                className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
+              >
+                <ArrowLeftToLine className="w-4 h-4" />
+              </button>
+           </div>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <button 
+              onClick={() => setNavCollapsed(!navCollapsed)} 
+              className="text-gray-500 hover:bg-blue-50 transition-colors p-2 rounded-md cursor-pointer"
+            >
+              <ArrowRightToLine className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
-      ) : (
-        <div className="flex items-center justify-center w-full hover:bg-gray-100 rounded-md px-2 py-1 cursor-pointer ">
-          <button 
-            onClick={() => setNavCollapsed(!navCollapsed)} 
-            className="bg-transparent text-gray-500 hover:bg-gray-200 rounded-md p-2 transition-all duration-300 ease-in-out cursor-pointer"
-          >
-            <ArrowRightToLine className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-      {!navCollapsed ? (
-      <nav className="space-y-8">
-          {items.map((item, index) => (
-            <div key={item.header}>
-              <div className="flex justify-start">
-                <button 
-                  onClick={() => setSubSectionCollapsed([...subSectionCollapsed, !subSectionCollapsed[index]])} 
-                  className="cursor-pointer text-sm text-gray-300 font-light hover:bg-gray-100 rounded-sm px-2 py-[.35rem] w-full text-left"
-                >
+
+      {/* Navigation items */}
+      <div className="py-4">
+        {!navCollapsed ? (
+          <nav className="px-2 space-y-6">
+            {items.map((item, index) => (
+              <div key={`expanded-${item.header}-${index}`} className="space-y-1">
+                <p className="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
                   {item.header}
-                </button>
-              </div>
-              {!subSectionCollapsed[index] && (
-                <div className="">
-                  {item.items.map((section) => (
+                </p>
+                <div className="space-y-1">
+                  {item.items.map((section, sectionIndex) => (
                     <Link 
-                      key={section.href} 
-                      href={section.href}
+                      key={`expanded-${section.href}-${sectionIndex}`} 
+                      href={section.href[0]}
                       className={cn(
-                        'px-3 py-[.35rem] flex items-center gap-2 block text-gray-500 rounded-sm text-sm font-medium transition-colors',
-                        pathname === section.href
-                          ? 'bg-blue-500 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                        'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        section.href.includes(pathname)
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-gray-600 hover:bg-blue-100 hover:text-blue-700'
                       )}
                     >
-                    <div className="flex items-center gap-2">
-                      {section.icon}
-                      <p className="text-gray-500">{section.label}</p>
-                    </div>
+                      <div className="flex-shrink-0" style={{
+                        color: section.href.includes(pathname)
+                          ? '#2563eb' // blue-600
+                          : '#9ca3af' // gray-400
+                      }}>
+                        {section.icon}
+                      </div>
+                      <span>{section.label}</span>
                     </Link>
                   ))}
                 </div>
-              )}
-            </div>
-          ))}
-        </nav>
+              </div>
+            ))}
+          </nav>
         ) : (
-          <nav className="bg-gray-200 w-1/2 h-px space-y-8">
+          <nav className="flex flex-col items-center space-y-6 px-2">
             {items.map((item, index) => (
-              <div key={item.header}>
-                {item.items.map((section) => (
-                  <Link key={section.href} href={section.href}>
-                    {section.icon}
+              <div key={`collapsed-${item.header}-${index}`} className="space-y-3 w-full">
+                {index !== 0 && <div className="h-px bg-gray-200 w-full"/>}
+                {item.items.map((section, sectionIndex) => (
+                  <Link 
+                    key={`collapsed-${section.href}-${sectionIndex}`} 
+                    href={section.href[0]}
+                    className={
+                      section.href.includes(pathname)
+                        ? 'flex justify-center py-2 rounded-md transition-colors bg-blue-50'
+                        : 'flex justify-center py-2 rounded-md transition-colors hover:bg-blue-100'
+                    }
+                    title={section.label}
+                  >
+                    <div style={{
+                      color: section.href.includes(pathname)
+                        ? '#2563eb' // blue-600
+                        : '#9ca3af' // gray-400
+                    }}>
+                      {section.icon}
+                    </div>
                   </Link>
                 ))}
               </div>
             ))}
           </nav>
-
         )}
+      </div>
     </aside>
   );
 }
