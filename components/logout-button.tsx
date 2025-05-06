@@ -1,8 +1,11 @@
 import { logout } from "@/app/lib/actions";
 import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
 
 export default function LogoutButton() {
     return (
-        <Button onClick={logout}>Logout</Button>
+        <button onClick={logout} className="flex items-center justify-center">
+            <LogOut className="w-4 h-4 text-gray-500" />
+        </button>
     )
 }
