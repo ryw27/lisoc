@@ -5,6 +5,7 @@ import SideNav from '@/components/sidenav';
 import { Home, User, Users, School, CreditCard, Settings } from 'lucide-react';
 import LogoutButton from '@/components/logout-button';
 import { FaChalkboardTeacher } from 'react-icons/fa';
+import Header from '@/components/header';
 
 
 const navItems = [
@@ -23,7 +24,7 @@ const navItems = [
             },
             {
                 label: "Class View",
-                href: ["/admintest/dashboard/classes", "/admintest/dashboard/classes/classrooms"],
+                href: ["/admintest/dashboard/classes", "/admintest/dashboard/classrooms"],
                 icon: <School className="w-4 h-4 text-gray-500" />
             },
             {
@@ -65,12 +66,15 @@ const navItems = [
     }, 
 ]
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex h-screen">
-      <SideNav items={navItems} />
-      <div className="flex-1 overflow-auto p-6 bg-white">
-        {children}
-      </div>
-    </div>
-  );
+    return (
+        <div className="flex h-screen">
+            <SideNav items={navItems} />
+            <div className="flex flex-col flex-1 overflow-hidden">
+                <Header />
+                <main className="flex-1 overflow-auto p-6 bg-white">
+                    {children}
+                </main>
+            </div>
+        </div>
+    );
 } 
