@@ -15,10 +15,10 @@ export function formatDate(date: Date) {
 }
 //Filter types
 export type filterTypes = 
-    | {type: 'text'}
-    | {type: 'enum'; options: readonly string[]}
-    | {type: 'number'; mode: ['equals', 'gte', 'lte', 'between']}
-    | {type: 'date'; mode: ['equals', 'gte', 'lte', 'between']}
+    | {type: 'text'; mode: ['is equal to ']}
+    | {type: 'enum'; mode: ['is', 'is not'], options: readonly string[]}
+    | {type: 'number'; mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between']}
+    | {type: 'date'; mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years']}
 
 export interface ColumnMetaFilter {
     filter?: filterTypes;
@@ -43,47 +43,47 @@ export const classColumns: ColumnDef<Class>[] = [
     {
         header: "ID",
         accessorKey: "id",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
     },
     {
         header: "Class Name (CN)",
         accessorKey: "class_name_cn",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Class Name (EN)",
         accessorKey: "class_name_en",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Upgrade Class",
         accessorKey: "upgrade_class",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Class Level",
         accessorKey: "class_level",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Update By",
         accessorKey: "update_by",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Update At",
         accessorKey: "formatted_update_at",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },    
     {
         header: "Description",
         accessorKey: "description",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
 
@@ -100,32 +100,32 @@ export const reducedClassColumns: ColumnDef<ReducedClass>[] = [
     {
         header: "ID",
         accessorKey: "id",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to'] } },
     },
     {
         header: "Class Name (CN)",
         accessorKey: "class_name_cn",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Class Name (EN)",
         accessorKey: "class_name_en",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Class Level",
         accessorKey: "class_level",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Updated At",
         accessorKey: "formatted_update_at",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
 ];
 
@@ -145,37 +145,37 @@ export const teacherColumns: ColumnDef<Teacher>[] = [
     {
         header: "Name",
         accessorKey: "name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Num Classes",
         accessorKey: "num_classes",
-        meta: { filter: { type: 'number', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Email",
         accessorKey: "email",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Last Login",
         accessorKey: "formatted_last_login",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
     {
         header: "User Name",
         accessorKey: "user_name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
 
@@ -196,37 +196,37 @@ export const parentColumns: ColumnDef<Parent>[] = [
     {
         header: "Name",
         accessorKey: "name_en",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Email",
         accessorKey: "email",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "City",
         accessorKey: "city",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Zip",
         accessorKey: "zip",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Last Login",
         accessorKey: "formatted_last_login",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
 ];
 
@@ -252,72 +252,72 @@ export const studentColumns: ColumnDef<Student>[] = [
     {
         header: "Family ID",
         accessorKey: "family_id",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to'] } },
     },
     {
         header: "Registration Number",
         accessorKey: "registration_number",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to'] } },
     },
     {
         header: "Name (EN)",
         accessorKey: "name_en",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Name (CN)",
         accessorKey: "name_cn",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Gender",
         accessorKey: "gender",
-        meta: { filter: { type: 'enum', options: ['Male', 'Female', 'Other'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Male', 'Female', 'Other'] } },
     },
     {
         header: "Age",
         accessorKey: "age",
-        meta: { filter: { type: 'number', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
     },
     {
         header: "DOB",
         accessorKey: "formatted_dob",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
     {
         header: "Semester",
         accessorKey: "semester",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Teacher",
         accessorKey: "teacher",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Period",
         accessorKey: "period",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Course",
         accessorKey: "course",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Email",
         accessorKey: "email",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
 
@@ -333,27 +333,27 @@ export const classroomColumns: ColumnDef<Classroom>[] = [
     {
         header: "Room ID",
         accessorKey: "room_id",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to'] } },
     },
     {
         header: "Classroom Name",
         accessorKey: "classroom_name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Seats",
         accessorKey: "seats",
-        meta: { filter: { type: 'number', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Notes",
         accessorKey: "notes",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
 
@@ -372,27 +372,27 @@ export const feedbackColumns: ColumnDef<Feedback>[] = [
     {
         header: "Name",
         accessorKey: "name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Email",
         accessorKey: "email",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Date",
         accessorKey: "formatted_date",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
     {
         header: "Feedback",
         accessorKey: "feedback",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
 
@@ -414,46 +414,46 @@ export const transactionsColumns: ColumnDef<Transactions>[] = [
     {
         header: "Father Name",
         accessorKey: "father_name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Mother Name",
         accessorKey: "mother_name",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Amount",
         accessorKey: "amount",
-        meta: { filter: { type: 'number', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
     },
     {
         header: "Issued Date",
         accessorKey: "formatted_issued_date",
-        meta: { filter: { type: 'date', mode: ['equals', 'gte', 'lte', 'between'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
     {
         header: "Issued By",
         accessorKey: "issued_by",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', options: ['Completed', 'Pending', 'Cancelled'] } },
+        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Completed', 'Pending', 'Cancelled'] } },
     },
     {
         header: "Balance ID",
         accessorKey: "balanceid",
-        meta: { filter: { type: 'number', mode: ['equals'] } },
+        meta: { filter: { type: 'number', mode: ['is equal to'] } },
     },
     {
         header: "Memo",
         accessorKey: "memo",
-        meta: { filter: { type: 'text' } },
+        meta: { filter: { type: 'text', mode: ['is equal to'] } },
     },
 ];
