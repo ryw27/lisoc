@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils'; // assuming shadcn setup
-import { ArrowLeftToLine, ArrowRightToLine, UserIcon } from 'lucide-react';
+import { ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 interface SideNavProps {
   items: {
@@ -28,19 +29,19 @@ export default function SideNav({ items }: SideNavProps) {
         {!navCollapsed ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <UserIcon className="w-4 h-4 text-gray-600" />   
-              <p className="text-sm font-medium text-gray-600">User</p>
+              <Image src="/lisoc.png" alt="LISOC Logo" width={48} height={48} className="w-8 h-8" />   
+              <p className="text-sm font-bold text-gray-600">长岛中文学校</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
-                className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
+              {/* <button 
+                className="text-xs text-gray-500 hover:text-blue-600 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
                 onClick={() => {language === 'en' ? setLanguage('cn') : setLanguage('en')}}
               >
-                {language === 'en' ? '中文' : 'English'}
-              </button>  
+                <Globe className="w-4 h-4" />
+              </button>   */}
               <button 
                 onClick={() => setNavCollapsed(!navCollapsed)} 
-                className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
+                className="text-gray-500 hover:text-blue-600 transition-colors cursor-pointer hover:bg-blue-50 p-2 rounded-md"
               >
                 <ArrowLeftToLine className="w-4 h-4" />
               </button>
@@ -50,7 +51,7 @@ export default function SideNav({ items }: SideNavProps) {
           <div className="flex justify-center">
             <button 
               onClick={() => setNavCollapsed(!navCollapsed)} 
-              className="text-gray-500 hover:bg-blue-50 transition-colors p-2 rounded-md cursor-pointer"
+              className="text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors p-2 rounded-md cursor-pointer"
             >
               <ArrowRightToLine className="w-4 h-4" />
             </button>
