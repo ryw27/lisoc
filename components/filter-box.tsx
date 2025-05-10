@@ -4,34 +4,35 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dro
 import { ChevronDown, XIcon } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
-import { ColumnMetaFilter } from "@/app/admintest/components/columns/column-types";
+import { ColumnMetaFilter, FilterableColumn } from "@/app/admintest/components/columns/column-types";
 
+type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
 //type definition that matches how columns are structured
 type FilterBoxProps<TData> = {
-    column_id: string;
-    value: string;
-    columns: (ColumnDef<TData> & { 
-        meta?: ColumnMetaFilter,
-        accessorKey?: string 
-    })[] //For dropdown, contains all columns to display and how to filter them, which allows you to disply mode + value dropdown/inputs
+    entry: filterEntry;
+    columns: FilterableColumn<TData>[] //For dropdown, contains all columns to display and how to filter them, which allows you to disply mode + value dropdown/inputs
     onChange: (col_id: string, mode: string, val: string) => void;
     onDelete: () => void;
 }
 
 //filter dropdowns in the filter box
-export default function FilterBox<TData>({ column_id, value, columns, onChange, onDelete }: FilterBoxProps<TData>) {
-    const [selectedColumn, setSelectedColumn] = useState<string>(column_id); //once this is set, you can set mode + value
+export default function FilterBox<TData>({ entry, columns, onChange, onDelete }: FilterBoxProps<TData>) {
+    const [selectedColumn, setSelectedColumn] = useState<FilterableColumn<TData> | null>(null); //once this is set, you can set mode + value
     const [selectedMode, setSelectedMode] = useState<string | null>(null); //once this is set, you can set value, conditional rendering
     const [selectedValue, setSelectedValue] = useState<string | null>(null); 
 
-
+    // Sync state with entry when it changes
     useEffect(() => {
+        if (!entry) return;
+        const col = columns.find(c => c.id === entry.col_id);
+        if (col) setSelectedColumn(col);
+        setSelectedMode(entry.mode || null);
+        setSelectedValue(entry.val || null);
+    }, [entry, columns]);
 
-    }, [selectedValue])
-
-    const getColumn = () => {
-        return selectedColumn || "Select Column";
-    } 
+    const getColumnHeader = () => {
+        return selectedColumn?.header as string || "Select Column";
+    }
 
     const getMode = () => {
         return selectedMode || "Select Modes";
@@ -42,25 +43,21 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
     }
 
     const getModes = () => {
-        const column = columns.find(col => col.id === column_id);
-        if (!column?.meta?.filter) return [];
-        if (!selectedMode) return [];
-        return column.meta.filter.mode;
+        if (!selectedColumn?.meta?.filter) return [];
+        return selectedColumn.meta.filter.mode;
     }
 
     const getFilterType = () => {
-        const column = columns.find(col => col.id === column_id);
-        if (!column?.meta?.filter) return '';
+        if (!selectedColumn?.meta?.filter) return '';
         if (!selectedMode) return '';
-        return column.meta.filter.type;
+        return selectedColumn.meta.filter.type;
     }
 
     const getOptions = () => {
-        const column = columns.find(col => col.id === column_id);
-        if (!column?.meta?.filter) return [];
+        if (!selectedColumn?.meta?.filter) return [];
         if (!selectedMode) return [];
-        if ('options' in column.meta.filter) {
-            return column.meta.filter.options;
+        if ('options' in selectedColumn.meta.filter) {
+            return selectedColumn.meta.filter.options;
         }
         return [];
     }
@@ -76,7 +73,7 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                         "hover:bg-gray-50 focus:outline-none",
                         "flex items-center justify-between cursor-pointer"
                     )}>
-                        <span>{getColumn()}</span>
+                        <span>{getColumnHeader()}</span>
                         <ChevronDown className="w-4 h-4 text-gray-500" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-48 p-1">
@@ -85,13 +82,14 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                 key={index}
                                 className="px-2 py-1 text-sm hover:bg-gray-100 rounded-md"
                                 onClick={() => {
-                                    console.log(column);
-                                    // Use accessorKey as the ID if available
-                                    const columnId = column.accessorKey as string || column.id;
-                                    if (!columnId) throw new Error("Wrong column");
-                                    setSelectedColumn(columnId);
+                                    // Use id as the identifier
+                                    const columnId = column.id;
+                                    if (!columnId) throw new Error("Column has no identifier");
+                                    setSelectedColumn(column);
                                     setSelectedMode(null);
                                     setSelectedValue(null);
+                                    // Inform parent about column change without mode/value yet
+                                    onChange(columnId, '', '');
                                 }}
                             >
                                 {typeof column.header === 'string' ? column.header : 'Column'}
@@ -117,10 +115,12 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                 onClick={() => {
                                     setSelectedMode(filterMode);
                                     setSelectedValue(null);
+                                    // Inform parent about mode selection without value yet
+                                    if (selectedColumn)
+                                        onChange(selectedColumn.id, filterMode, '');
                                 }}
                             >
                                 {filterMode}
-                                {/* {typeof column.header === 'string' ? column.header : 'Column'} */}
                             </div>
                         ))}  
                     </DropdownMenuContent>
@@ -144,7 +144,7 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                     className="p-2 hover:bg-gray-100 cursor-pointer rounded-md" 
                                     onClick={() => {
                                         setSelectedValue(mode);
-                                        onChange(selectedColumn, selectedMode as string, mode);
+                                        onChange(selectedColumn?.id as string, selectedMode as string, mode);
                                     }}
                                 >
                                     {mode}
@@ -157,7 +157,7 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                 placeholder="Enter value"
                                 onChange={(e) => {
                                     setSelectedValue(e.target.value);
-                                    onChange(selectedColumn, selectedMode as string, e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
                                 }}
                             />
                         )}
@@ -170,7 +170,10 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                 type="text" 
                                 className="px-4 py-2 w-[200px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text border-r border-gray-300 text-sm" 
                                 placeholder="Enter Value"
-                                onChange={(e) => setSelectedValue(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedValue(e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                                }}
                             />
                             <DropdownMenu>
                                 <DropdownMenuTrigger className="min-w-[80px] flex items-center justify-center hover:bg-gray-50 hover:text-gray-700 rounded-md focus:outline-none">
@@ -179,7 +182,10 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="p-1">
                                     {getOptions().map((option: string, index: number) => (
-                                        <div key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded-md" onClick={() => setSelectedValue(selectedValue + " " + option)}>
+                                        <div key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded-md" onClick={() => {
+                                            setSelectedValue(selectedValue + " " + option);
+                                            onChange(selectedColumn?.id as string, selectedMode as string, selectedValue + " " + option);
+                                        }}>
                                             {option}
                                         </div>
                                     ))}
@@ -192,17 +198,31 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                             <input 
                                 type="date" 
                                 className="px-2 py-2 w-[140px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text border-r border-gray-300 text-sm"
+                                placeholder="Select date"
+                                onChange={(e) => {
+                                    setSelectedValue(e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                                }}
                             />
                             <input 
                                 type="date" 
                                 className="px-2 py-2 w-[140px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text text-sm"
+                                placeholder="Select date"
+                                onChange={(e) => {
+                                    setSelectedValue(e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                                }}
                             />
                         </div>
                         ) : (
                             <input 
                                 type="date" 
                                 className="px-4 py-2 w-[280px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text text-sm" 
-                                placeholder="Select date"
+                                placeholder="Enter value"
+                                onChange={(e) => {
+                                    setSelectedValue(e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                                }}
                             />
                         )
                     )
@@ -211,6 +231,10 @@ export default function FilterBox<TData>({ column_id, value, columns, onChange, 
                         type="text" 
                         className="px-4 py-2 min-w-[280px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text text-sm" 
                         placeholder="Enter value"
+                        onChange={(e) => {
+                            setSelectedValue(e.target.value);
+                            onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                        }}
                     />
                 )}
                 

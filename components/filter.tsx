@@ -11,15 +11,30 @@ import FilterBox from "./filter-box";
 
 
 //Type is the columns available to filter by, and how to filter them
-type FilterableColumns<TData> = ColumnDef<TData> & { meta?: ColumnMetaFilter }
-
-
-type filterProps<TData> = {
-    columns: FilterableColumns<TData>[]
+export type FilterableColumn<TData> =
+  ColumnDef<TData, unknown>   // TanStack's generic column
+  & { id: string           // force this to exist
+      meta?: ColumnMetaFilter,
+      accessorKey?: string
 }
+
+export type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
+
+
 //GOAL: Filter data based on column and specifications, then push as search params to force a re-render
 //DONT FILTER HERE, FILTER IN THE MAIN PAGE, JUST PUSH THE FILTERS TO THE URL
-export default function Filter<TData>({ columns }: filterProps<TData>) {
+export default function Filter<TData>({ columns }: { columns: FilterableColumn<TData>[] }) {
+    // Ensure every column has a stable id (fall back to accessorKey)
+    const normalizedColumns: FilterableColumn<TData>[] = columns.map((c, idx) => {
+        if (c.id && c.id.length > 0) return c;
+        if (c.accessorKey && typeof c.accessorKey === 'string') {
+            console.log(c);
+            return { ...c, id: c.accessorKey } as FilterableColumn<TData>;
+        }
+        // final fallback – generate predictable id
+        return { ...c, id: `col_${idx}` } as FilterableColumn<TData>;
+    });
+
     const [isOpen, setIsOpen] = useState(false);
 
     const searchParams = useSearchParams(); //where the real filtering happens
@@ -33,12 +48,12 @@ export default function Filter<TData>({ columns }: filterProps<TData>) {
     //mode = ['[gte]', '[lte]', '[gt]', '[lt]', '=']
     //val = ['some number', 'some Date object to string', 'false', 'true', 'user value']
     const ALL_MODES = ["[gte]", "[lte]", "[gt]", "[lt]"];
-    type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
+
     const [drafts, setDrafts] = useState<filterEntry[]>(() => {
         const objects: filterEntry[] = [];
-        searchParams.forEach((column: string, filtervalue: string) => {
+        searchParams.forEach((filtervalue: string, column: string) => {
             //check which column this is 
-            const filteredColumn = columns.find(col => col.id === column);
+            const filteredColumn = normalizedColumns.find(col => col.id === column);
             if (!filteredColumn) throw new Error(`Column ${column} not found`);
 
             //get the val and mode
@@ -69,7 +84,7 @@ export default function Filter<TData>({ columns }: filterProps<TData>) {
 
     //handling adding filter to drafts - just to drafts, possibly to be applied.
     const handleAddFilter = ({ id, col_id, mode, val }: filterEntry) => {
-        const column = columns.find(col => (col.id) === col_id)
+        const column = normalizedColumns.find(col => col.id === col_id);
         if (!column) throw new Error("Column names are wrong"); //skip if column not found
         
         setDrafts(prev => {
@@ -89,12 +104,67 @@ export default function Filter<TData>({ columns }: filterProps<TData>) {
     //apply filters when you're done choosing
     const handleApply = () => {
         const newParams = new URLSearchParams(); //clear the filters
-        //these should be set correctly, following the delineated ALL_MODES and values
+
+        // helper to convert user-friendly mode to URL suffix
+        const modeToSuffix = (mode?: string, val?: string) => {
+            // Handle date modes
+            if (mode?.startsWith('in the last')) {
+                const [amount, unit] = val?.split(' ') || [];
+                const date = new Date();
+                switch(unit) {
+                    case 'hours': date.setHours(date.getHours() - parseInt(amount)); break;
+                    case 'days': date.setDate(date.getDate() - parseInt(amount)); break;
+                    case 'months': date.setMonth(date.getMonth() - parseInt(amount)); break;
+                    case 'years': date.setFullYear(date.getFullYear() - parseInt(amount)); break;
+                }
+                return { suffix: '[gte]', value: date.toISOString().split('T')[0] };
+            }
+            
+            if (mode === 'is between') {
+                const [start, end] = val?.split(' ') || [];
+                return { 
+                    suffix: '[gte]', 
+                    value: start,
+                    additional: { suffix: '[lte]', value: end }
+                };
+            }
+
+            if (mode === 'is on or after') {
+                return { suffix: '[gte]', value: val };
+            }
+
+            if (mode === 'is before or on') {
+                return { suffix: '[lte]', value: val };
+            }
+
+            // Handle non-date modes
+            const map: Record<string, string> = {
+                'is greater than': '[gt]',
+                'is less than': '[lt]',
+                'is greater than or equal to': '[gte]',
+                'is less than or equal to': '[lte]',
+            };
+            
+            if (!mode || mode === 'is equal to' || mode === 'is') {
+                return { suffix: '', value: val };
+            }
+            
+            return { suffix: map[mode] || '', value: val };
+        };
+
         drafts.forEach(filter => {
-            const filteredColumn = columns.find(column => column.id === filter.id)
-            if (!filteredColumn) throw new Error(`Column is somehow not found: inconsistency with naming`);
-            newParams.set(filter.col_id, filter.val as string);
-        })
+            if (!filter.val) return; // skip incomplete filters
+            
+            const result = modeToSuffix(filter.mode, filter.val);
+            const key = result.suffix ? `${filter.col_id}${result.suffix}` : filter.col_id;
+            newParams.set(key, result.value || '');
+
+            // Handle additional parameter for 'is between'
+            if (result.additional) {
+                const additionalKey = `${filter.col_id}${result.additional.suffix}`;
+                newParams.set(additionalKey, result.additional.value);
+            }
+        });
  
         //delete page to avoid confusion - i.e. if filter compresses rows and the page is empty - thus need to go to page 1
         newParams.delete('page'); 
@@ -166,27 +236,18 @@ export default function Filter<TData>({ columns }: filterProps<TData>) {
                     <div className="flex flex-col gap-2 mt-2">
                         {drafts.map((filter, index) => (
                             <FilterBox 
-                                key={`${filter.col_id}-${filter.val}-${index}`} 
-                                column_id={filter.col_id} 
-                                values={filter.val || ''} 
-                                columns={columns}
-                                onChange={(col_id, val, mode) => handleAddFilter({
-                                    id: crypto.randomUUID(),
-                                    col_id: col_id,
-                                    val: val,
-                                    mode: mode
-                                })} 
-                                onDelete={() => handleFilterDeletion({
-                                    id: filter.id,
-                                    col_id: filter.id,
-                                    val: filter.val,
-                                    mode: filter.mode
-                                })} 
+                                key={filter.id}
+                                entry={filter}
+                                columns={normalizedColumns}
+                                onChange={(col_id, mode, val) =>
+                                    setDrafts(prev => prev.map(d => d.id === filter.id ? { ...d, col_id, mode, val } : d))
+                                } 
+                                onDelete={() => handleFilterDeletion(filter)} 
                             />
                         ))}
                         <div className="flex justify-between items-center">
                             <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" onClick={() => {
-                                const firstColumnId = columns[0].id as string;
+                                const firstColumnId = normalizedColumns[0].id as string;
                                 handleAddFilter({
                                     id: crypto.randomUUID(),
                                     col_id: firstColumnId,
