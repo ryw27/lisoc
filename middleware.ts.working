@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+// This is the minimal middleware that should work
+export function middleware(request: NextRequest) {
+  // Log to confirm middleware is running
+  console.log('Minimal middleware running on:', request.nextUrl.pathname);
+  
+  // Just pass through all requests
+  return NextResponse.next();
+}
+
+// Only match dashboard and admin routes
+export const config = {
+  matcher: ['/dashboard/:path*', '/admin/:path*'],
+}; 

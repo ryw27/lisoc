@@ -5,18 +5,9 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ColumnDef } from "@tanstack/react-table";
-import { ColumnMetaFilter } from "@/app/admintest/components/columns/column-types";
 import FilterBox from "./filter-box";
+import { FilterableColumn } from "@/app/admintest/components/columns/column-types";
 
-
-//Type is the columns available to filter by, and how to filter them
-export type FilterableColumn<TData> =
-  ColumnDef<TData, unknown>   // TanStack's generic column
-  & { id: string           // force this to exist
-      meta?: ColumnMetaFilter,
-      accessorKey?: string
-}
 
 export type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
 
@@ -24,16 +15,6 @@ export type filterEntry = { id: string, col_id: string, mode?: string, val?:stri
 //GOAL: Filter data based on column and specifications, then push as search params to force a re-render
 //DONT FILTER HERE, FILTER IN THE MAIN PAGE, JUST PUSH THE FILTERS TO THE URL
 export default function Filter<TData>({ columns }: { columns: FilterableColumn<TData>[] }) {
-    // Ensure every column has a stable id (fall back to accessorKey)
-    const normalizedColumns: FilterableColumn<TData>[] = columns.map((c, idx) => {
-        if (c.id && c.id.length > 0) return c;
-        if (c.accessorKey && typeof c.accessorKey === 'string') {
-            console.log(c);
-            return { ...c, id: c.accessorKey } as FilterableColumn<TData>;
-        }
-        // final fallback – generate predictable id
-        return { ...c, id: `col_${idx}` } as FilterableColumn<TData>;
-    });
 
     const [isOpen, setIsOpen] = useState(false);
 
@@ -53,7 +34,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
         const objects: filterEntry[] = [];
         searchParams.forEach((filtervalue: string, column: string) => {
             //check which column this is 
-            const filteredColumn = normalizedColumns.find(col => col.id === column);
+            const filteredColumn = columns.find(col => col.id === column);
             if (!filteredColumn) throw new Error(`Column ${column} not found`);
 
             //get the val and mode
@@ -84,7 +65,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
 
     //handling adding filter to drafts - just to drafts, possibly to be applied.
     const handleAddFilter = ({ id, col_id, mode, val }: filterEntry) => {
-        const column = normalizedColumns.find(col => col.id === col_id);
+        const column = columns.find(col => col.id === col_id);
         if (!column) throw new Error("Column names are wrong"); //skip if column not found
         
         setDrafts(prev => {
@@ -120,32 +101,35 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                 return { suffix: '[gte]', value: date.toISOString().split('T')[0] };
             }
             
-            if (mode === 'is between') {
+            if (mode === 'between') {
                 const [start, end] = val?.split(' ') || [];
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+
                 return { 
                     suffix: '[gte]', 
-                    value: start,
-                    additional: { suffix: '[lte]', value: end }
+                    value: startDate.toISOString().split('T')[0],
+                    additional: { suffix: '[lte]', value: endDate.toISOString().split('T')[0] }
                 };
             }
 
-            if (mode === 'is on or after') {
+            if (mode === 'on or after') {
                 return { suffix: '[gte]', value: val };
             }
 
-            if (mode === 'is before or on') {
-                return { suffix: '[lte]', value: val };
+            if (mode === 'before or on') {
+                return { suffix: '[lte]', value: val }
             }
 
             // Handle non-date modes
             const map: Record<string, string> = {
-                'is greater than': '[gt]',
-                'is less than': '[lt]',
-                'is greater than or equal to': '[gte]',
-                'is less than or equal to': '[lte]',
+                '>': '[gt]',
+                '<': '[lt]',
+                '>=': '[gte]',
+                '<=': '[lte]',
             };
             
-            if (!mode || mode === 'is equal to' || mode === 'is') {
+            if (!mode || mode === '=' || mode === '≠') {
                 return { suffix: '', value: val };
             }
             
@@ -238,7 +222,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                             <FilterBox 
                                 key={filter.id}
                                 entry={filter}
-                                columns={normalizedColumns}
+                                columns={columns}
                                 onChange={(col_id, mode, val) =>
                                     setDrafts(prev => prev.map(d => d.id === filter.id ? { ...d, col_id, mode, val } : d))
                                 } 
@@ -247,7 +231,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                         ))}
                         <div className="flex justify-between items-center">
                             <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" onClick={() => {
-                                const firstColumnId = normalizedColumns[0].id as string;
+                                const firstColumnId = columns[0].id as string;
                                 handleAddFilter({
                                     id: crypto.randomUUID(),
                                     col_id: firstColumnId,

@@ -1,9 +1,9 @@
-import { reducedClassColumns, ReducedClass} from "@/app/admintest/components/columns/column-types";
 import { getAllClasses } from '@/app/lib/data-actions'
 import DataTable from "@/app/admintest/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { DownloadIcon, PlusIcon, UploadIcon, ColumnsIcon } from "lucide-react";
 import Filter from "@/components/filter";
+import { classColumns, Class } from "@/app/admintest/components/columns/column-types";
 
 type searchParams = {
     page: string;
@@ -49,7 +49,7 @@ export default async function ClassesPage({
                 <div className="flex gap-2">
                     <button className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1 hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"> <ColumnsIcon className="w-4 h-4" /> Select Columns</button>
                     {/* <button className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1 hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"> <FilterIcon className="w-4 h-4" /> Filters</button> */}
-                    <Filter columns={reducedClassColumns} />
+                    <Filter columns={classColumns} />
                 </div>
                 <div className="flex gap-2">        
                     <button className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1 hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"> <UploadIcon className="w-4 h-4" /> Import</button>
@@ -58,8 +58,8 @@ export default async function ClassesPage({
                 </div>
             </div>
             <DataTable 
-                data={classes as ReducedClass[]} 
-                columns={reducedClassColumns as ColumnDef<ReducedClass>[]}
+                data={classes as Class[]} 
+                columns={classColumns as ColumnDef<Class>[]}
                 pageCount={Math.ceil(totalCount / pageSize)}
                 currentPage={parseInt(page) || 1}
             />

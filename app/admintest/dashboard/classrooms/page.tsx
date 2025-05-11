@@ -51,7 +51,7 @@ export default function ClassroomsPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <h1 className="text-2xl font-bold">Classrooms</h1>
+            <h1 className="text-3xl font-bold">Class Management</h1>
             <HorizontalNav tabs={tabs} selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
             <DataTable data={mockClassrooms} columns={classroomColumns as ColumnDef<Classroom>[]} />
         </div>

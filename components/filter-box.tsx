@@ -2,9 +2,8 @@
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ChevronDown, XIcon } from "lucide-react";
-import { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
-import { ColumnMetaFilter, FilterableColumn } from "@/app/admintest/components/columns/column-types";
+import { FilterableColumn } from "@/app/admintest/components/columns/column-types";
 
 type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
 //type definition that matches how columns are structured
@@ -20,6 +19,7 @@ export default function FilterBox<TData>({ entry, columns, onChange, onDelete }:
     const [selectedColumn, setSelectedColumn] = useState<FilterableColumn<TData> | null>(null); //once this is set, you can set mode + value
     const [selectedMode, setSelectedMode] = useState<string | null>(null); //once this is set, you can set value, conditional rendering
     const [selectedValue, setSelectedValue] = useState<string | null>(null); 
+    const [secondValue, setSecondValue] = useState<string | null>(null);
 
     // Sync state with entry when it changes
     useEffect(() => {
@@ -39,7 +39,7 @@ export default function FilterBox<TData>({ entry, columns, onChange, onDelete }:
     }
 
     const getValue = () => {
-        return selectedValue || "Enter Value"
+        return selectedValue || "Enter Value";
     }
 
     const getModes = () => {
@@ -177,14 +177,14 @@ export default function FilterBox<TData>({ entry, columns, onChange, onDelete }:
                             />
                             <DropdownMenu>
                                 <DropdownMenuTrigger className="min-w-[80px] flex items-center justify-center hover:bg-gray-50 hover:text-gray-700 rounded-md focus:outline-none">
-                                    <span>{selectedValue || "Select"}</span>
+                                    <span>{secondValue || "Select"}</span>
                                     <ChevronDown className="w-4 h-4 text-gray-500" />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="p-1">
                                     {getOptions().map((option: string, index: number) => (
                                         <div key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded-md" onClick={() => {
-                                            setSelectedValue(selectedValue + " " + option);
-                                            onChange(selectedColumn?.id as string, selectedMode as string, selectedValue + " " + option);
+                                            setSecondValue(option);
+                                            onChange(selectedColumn?.id as string, selectedMode as string, option);
                                         }}>
                                             {option}
                                         </div>
@@ -193,7 +193,7 @@ export default function FilterBox<TData>({ entry, columns, onChange, onDelete }:
                             </DropdownMenu>
                         </div>
                     ) : (
-                        getMode() === "is between" ? (
+                        getMode() === "between" ? (
                         <div className="flex items-stretch w-[280px]">
                             <input 
                                 type="date" 
@@ -209,8 +209,8 @@ export default function FilterBox<TData>({ entry, columns, onChange, onDelete }:
                                 className="px-2 py-2 w-[140px] text-gray-700 font-medium hover:bg-gray-50 focus:outline-none flex items-center justify-between cursor-text text-sm"
                                 placeholder="Select date"
                                 onChange={(e) => {
-                                    setSelectedValue(e.target.value);
-                                    onChange(selectedColumn?.id as string, selectedMode as string, e.target.value);
+                                    setSecondValue(e.target.value);
+                                    onChange(selectedColumn?.id as string, selectedMode as string, selectedValue + " " + e.target.value);
                                 }}
                             />
                         </div>

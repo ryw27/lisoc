@@ -15,14 +15,22 @@ export function formatDate(date: Date) {
 }
 //Filter types
 export type filterTypes = 
-    | {type: 'text'; mode: ['is equal to ']}
-    | {type: 'enum'; mode: ['is', 'is not'], options: readonly string[]}
-    | {type: 'number'; mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between']}
-    | {type: 'date'; mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years']}
+    | {type: 'text'; mode: ['=']}
+    | {type: 'enum'; mode: ['=', '≠'], options: readonly string[]}
+    | {type: 'number'; mode: ['=', '!=', '>', '<', '>=', '<=', 'between']}
+    | {type: 'date'; mode: ['in the last', '=', 'between', 'on or after', 'before or on'], options: ['hours', 'days', 'months', 'years']}
 
 export interface ColumnMetaFilter {
     filter?: filterTypes;
 }
+
+export type FilterableColumn<TData> =
+  ColumnDef<TData, unknown>   // TanStack's generic column
+  & { id: string           // force this to exist
+      meta: ColumnMetaFilter,
+}
+
+
 
 // Type definitions with their column definitions
 export type Class = {
@@ -39,95 +47,72 @@ export type Class = {
     formatted_update_at?: string;
 };
 
-export const classColumns: ColumnDef<Class>[] = [
+//Type definition for class columns. Check Tanstack docs for info on ColumnDef
+//ColumnMetaFilter added for type safety. technically not necessary, but good practice
+export const classColumns: FilterableColumn<Class>[] = [
     {
+        id: "id",
         header: "ID",
         accessorKey: "id",
-        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
+        meta: { filter: { type: 'number', mode: ['=', '!=', '>', '<', '>=', '<=', 'between'] } },
     },
     {
+        id: "class_name_cn",
         header: "Class Name (CN)",
         accessorKey: "class_name_cn",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
+        id: "class_name_en",
         header: "Class Name (EN)",
         accessorKey: "class_name_en",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
+        id: "upgrade_class",
         header: "Upgrade Class",
         accessorKey: "upgrade_class",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
+        id: "class_level",
         header: "Class Level",
         accessorKey: "class_level",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
+        id: "class_type",
+        header: "Class Type",
+        accessorKey: "class_type",
+        meta: { filter: { type: 'text', mode: ['='] } },
+    },
+    {
+        id: "status",
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['=', '≠'], options: ['Active', 'Inactive'] } },
     },
     {
+        id: "update_by",
         header: "Update By",
         accessorKey: "update_by",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
+        id: "formatted_update_at",
         header: "Update At",
         accessorKey: "formatted_update_at",
-        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', '=', 'between', 'on or after', 'before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },    
     {
+        id: "description",
         header: "Description",
         accessorKey: "description",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
 ];
 
-export type ReducedClass = {
-    id: number;
-    class_name_cn: string;
-    class_name_en: string;
-    class_level: string;
-    status: string;
-    formatted_update_at?: string;
-};
 
-export const reducedClassColumns: ColumnDef<ReducedClass>[] = [
-    {
-        header: "ID",
-        accessorKey: "id",
-        meta: { filter: { type: 'number', mode: ['is equal to'] } },
-    },
-    {
-        header: "Class Name (CN)",
-        accessorKey: "class_name_cn",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
-    },
-    {
-        header: "Class Name (EN)",
-        accessorKey: "class_name_en",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
-    },
-    {
-        header: "Class Level",
-        accessorKey: "class_level",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
-    },
-    {
-        header: "Status",
-        accessorKey: "status",
-        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
-    },
-    {
-        header: "Updated At",
-        accessorKey: "formatted_update_at",
-        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
-    },
-];
 
 export type Teacher = {
     teacher_id: number;
@@ -145,37 +130,37 @@ export const teacherColumns: ColumnDef<Teacher>[] = [
     {
         header: "Name",
         accessorKey: "name",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
         header: "Status",
         accessorKey: "status",
-        meta: { filter: { type: 'enum', mode: ['is', 'is not'], options: ['Active', 'Inactive'] } },
+        meta: { filter: { type: 'enum', mode: ['=', '≠'], options: ['Active', 'Inactive'] } },
     },
     {
         header: "Num Classes",
         accessorKey: "num_classes",
-        meta: { filter: { type: 'number', mode: ['is equal to', 'is not equal to', 'is greater than', 'is less than', 'is greater than or equal to', 'is less than or equal to', 'is between'] } },
+        meta: { filter: { type: 'number', mode: ['=', '!=', '>', '<', '>=', '<=', 'between'] } },
     },
     {
         header: "Phone",
         accessorKey: "phone",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
         header: "Email",
         accessorKey: "email",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
     {
         header: "Last Login",
         accessorKey: "formatted_last_login",
-        meta: { filter: { type: 'date', mode: ['in the last', 'is equal to', 'is between', 'is on or after', 'is before or on'], options: ['hours', 'days', 'months', 'years'] } },
+        meta: { filter: { type: 'date', mode: ['in the last', '=', 'between', 'on or after', 'before or on'], options: ['hours', 'days', 'months', 'years'] } },
     },
     {
         header: "User Name",
         accessorKey: "user_name",
-        meta: { filter: { type: 'text', mode: ['is equal to'] } },
+        meta: { filter: { type: 'text', mode: ['='] } },
     },
 ];
 
