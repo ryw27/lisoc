@@ -2,177 +2,246 @@
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import { FilterIcon, PlusIcon } from "lucide-react";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import FilterBox from "./filter-box";
 import { FilterableColumn } from "@/app/admintest/components/columns/column-types";
+import React, { useMemo, useReducer, useState, useRef, useEffect } from 'react';
+import { startOfToday, sub, formatISO, Duration, parseISO, isValid } from 'date-fns';
+import crypto from 'crypto';
+
+// ------------------------------------------------------------
+// TYPES AND HELPER FUNCTIONS 
+// ------------------------------------------------------------
+export type filterMode =
+  | '='
+  | '≠'
+  | '>'
+  | '>='
+  | '<'
+  | '<='
+  | 'between'
+  | 'in the last';
+
+export interface filterEntry { 
+    id: string, 
+    col_id: string, 
+    mode: filterMode, 
+    val:string, 
+    aux?: string 
+}
+// id - unique identifier for the filter, randomly generated UUID
+// col_id - the column id of the column being filtered - found in column-types.ts
+// mode - the mode of the filter - >=, <=, >, <, =, ≠
+// val - the value of the filter - the value you want to filter by
+// aux - the auxiliary/secondary value of the filter - used for between, in the last, etc.
+
+const modeToSuffix = (
+    mode: filterMode,
+): string | undefined => {
+    const map: Record<filterMode, string | undefined> = {
+        '=': undefined,
+        '≠': undefined, // handled by negate flag higher up the stack
+        '>': '[gt]',
+        '>=': '[gte]',
+        '<': '[lt]',
+        '<=': '[lte]',
+        between: undefined, // two params generated separately
+        'in the last': '[gte]' // relative, value will be computed
+    } as const;
+
+    return map[mode];
+}
+
+// Utility to ensure we never accidentally create an SSR mismatch via crypto.uuid
+const uuid = (() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID : () => Math.random().toString(36).slice(2, 11)))();
+
+// ---------- validation ----------
+const unitOptions = ['hours', 'days', 'months', 'years'] as const;
+
+function validateEntry(entry: filterEntry, colType: 'text' | 'enum' | 'number' | 'date'): string | null {
+  // empty rows allowed (treated as draft)
+  if (entry.val === '' && !entry.aux) return null;
+
+  switch (entry.mode) {
+    case 'between': {
+      const { val: from, aux: to } = entry;
+      if (!from || !to) return 'Both dates required';
+      const start = parseISO(from);
+      const end = parseISO(to);
+      if (!isValid(start) || !isValid(end)) return 'Invalid date(s)';
+      if (start > end) return 'Start date must precede end date';
+      return null;
+    }
+
+    case 'in the last': {
+      const n = Number(entry.val);
+      if (!n || n <= 0) return 'Positive number required';
+      if (!entry.aux || !unitOptions.includes(entry.aux as any)) return 'Unit missing';
+      return null;
+    }
+
+    default: {
+      if (entry.val === '') return 'Value required';
+      if (colType === 'number' && Number.isNaN(Number(entry.val))) return 'Not a number';
+      if (colType === 'date' && !isValid(parseISO(entry.val))) return 'Invalid date';
+      return null;
+    }
+  }
+}
 
 
-export type filterEntry = { id: string, col_id: string, mode?: string, val?:string}
+// ------------------------------------------------------------
+// DRAFT REDUCER
+// ------------------------------------------------------------
+type draftAction =
+  | { type: 'add'; col_id: string }
+  | { type: 'update'; id: string; payload: Partial<Omit<filterEntry, 'id'>> }
+  | { type: 'remove'; id: string }
+  | { type: 'reset'; entries: filterEntry[] };
 
-
-//GOAL: Filter data based on column and specifications, then push as search params to force a re-render
-//DONT FILTER HERE, FILTER IN THE MAIN PAGE, JUST PUSH THE FILTERS TO THE URL
+// Helper function for handling actions to draft of filters
+function draftsReducer(state: filterEntry[], action: draftAction): filterEntry[] {
+  switch (action.type) {
+    case 'add':
+      return [...state, { id: uuid(), col_id: action.col_id, mode: '=', val: '' }];
+    case 'update':
+      return state.map((e) => (e.id === action.id ? { ...e, ...action.payload } : e));
+    case 'remove':
+      return state.filter((e) => e.id !== action.id);
+    case 'reset':
+      return action.entries;
+    default:
+      return state;
+  }
+}
+  
+// GOAL: Filter data based on column and specifications, then push as search params to force a re-render
+// DONT FILTER HERE, FILTER IN THE MAIN PAGE, JUST PUSH THE FILTERS TO THE URL
 export default function Filter<TData>({ columns }: { columns: FilterableColumn<TData>[] }) {
-
+    const router = useRouter(); // Set paths
+    const searchParams = useSearchParams(); // Where the real filtering happens
+    const pathname = usePathname(); // To set back to original path when cleared
+    const [matchStrategy, setMatchStrategy] = useState<'all' | 'any'>('all');
     const [isOpen, setIsOpen] = useState(false);
-
-    const searchParams = useSearchParams(); //where the real filtering happens
-    const router = useRouter(); //set paths
-    const pathname = usePathname(); //to set back to original path when cleared
     
 
-    //this represents the DRAFTED filters - the real filters are in the searchParams
-    //You want each draft to carry which column is being filtered, what the mode of the filter is, what the value of the filter is,
-    //and the other possible options for the filter
-    //mode = ['[gte]', '[lte]', '[gt]', '[lt]', '=']
-    //val = ['some number', 'some Date object to string', 'false', 'true', 'user value']
-    const ALL_MODES = ["[gte]", "[lte]", "[gt]", "[lt]"];
 
-    const [drafts, setDrafts] = useState<filterEntry[]>(() => {
-        const objects: filterEntry[] = [];
-        searchParams.forEach((filtervalue: string, column: string) => {
-            //check which column this is 
-            const filteredColumn = columns.find(col => col.id === column);
-            if (!filteredColumn) throw new Error(`Column ${column} not found`);
-
-            //get the val and mode
-            const { curMode, curVal } = (() => {
-                for (const mode of ALL_MODES) {
-                    if (column.endsWith(mode)) {
-                        return {curMode: mode, curVal: filtervalue}
-                    }
+    // This represents the DRAFTED filters - the real filters are in the searchParams
+    // You want each draft to carry which column is being filtered, what the mode of the filter is, what the value of the filter is,
+    // and the other possible options for the filter
+    // mode = ['[gte]', '[lte]', '[gt]', '[lt]', '=']
+    // val = ['some number', 'some Date object to string', 'false', 'true', 'user value']
+    const initialDrafts = useMemo<filterEntry[]>(() => {
+        const result: filterEntry[] = [];
+        searchParams.forEach((rawVal, rawKey) => {
+            const match = rawKey.match(/^(.*?)(\[(?:gte|lte|gt|lt)\])?$/); // remove the suffixes if exists
+            if (!match) console.error("No matching column found from search paramter parsing");
+            let [, baseCol, suffix] = match as [string, string, string];
+            if (rawVal === 'false' || rawVal === 'true') {
+                const boolMatch = rawKey.split('_')[0];
+                if (!boolMatch) {
+                    console.error("No matching column found from boolean search parameter parsing");
+                    return;
                 }
-                //if it's none of the ALL_MODES, it's = (you don't have access to this in searchParams)
-                return {curMode: "=", curVal: filtervalue} 
-            })();
-            
-            objects.push({
-                id: crypto.randomUUID(),
-                col_id: column,
-                mode: curMode,
-                val: curVal 
-            });
-        });
-        return objects;
-    });
+                baseCol = boolMatch;
+                suffix = '';
+                rawVal = rawKey.split('_')[1];
+            }
+            if (baseCol === 'match' || baseCol === 'page') return;
+
+            const col = columns.find((c) => c.id === baseCol);
+            if (!col) console.error("No matching column id found while parsing search paramters");
+            const mode = (() => {
+                switch (suffix) {
+                case '[gt]':
+                    return '>';
+                case '[gte]':
+                    return '>=';
+                case '[lt]':
+                    return '<';
+                case '[lte]':
+                    return '<=';
+                default:
+                    return '=';
+                }
+            })() as filterMode;
+
+            result.push({ id: uuid(), col_id: baseCol, mode, val: rawVal });
+        })
+        return result;
+    }, [])
+
+    const [drafts, dispatch] = useReducer(draftsReducer, initialDrafts);
 
     //satisfy all filters or at least one of them: any or all?
-    const [selectedOption, setSelectedOption] = useState("all");
 
-    
+    // only have one date filter - simplifies logic
+    const dateFilterPresent = useMemo(() => drafts.some((d) => columns.find((c) => c.id === d.col_id)?.meta?.filter?.type === 'date'), [drafts, columns]);
 
-    //handling adding filter to drafts - just to drafts, possibly to be applied.
-    const handleAddFilter = ({ id, col_id, mode, val }: filterEntry) => {
-        const column = columns.find(col => col.id === col_id);
-        if (!column) throw new Error("Column names are wrong"); //skip if column not found
-        
-        setDrafts(prev => {
-            //check if filter with same properties already exists
-            const exists = prev.some(entry => 
-                entry.col_id === col_id && 
-                entry.val === val && 
-                entry.mode === mode
-            );
-            if (exists) return prev;
-            //no duplicates
-            return [...prev, { id, col_id, mode, val }];
-        });
-    }
+    const errors: string[] = useMemo(() => {
+        return drafts.map((d) => validateEntry(d, columns.find((c) => c.id === d.col_id)?.meta?.filter?.type || 'text')).filter(Boolean) as string[];
+    }, [drafts, columns]);
 
-
-    //apply filters when you're done choosing
+    // apply filters when you're done choosing
     const handleApply = () => {
-        const newParams = new URLSearchParams(); //clear the filters
+        if (errors.length > 0) return;
+        const params = new URLSearchParams();
 
-        // helper to convert user-friendly mode to URL suffix
-        const modeToSuffix = (mode?: string, val?: string) => {
-            // Handle date modes
-            if (mode?.startsWith('in the last')) {
-                const [amount, unit] = val?.split(' ') || [];
-                const date = new Date();
-                switch(unit) {
-                    case 'hours': date.setHours(date.getHours() - parseInt(amount)); break;
-                    case 'days': date.setDate(date.getDate() - parseInt(amount)); break;
-                    case 'months': date.setMonth(date.getMonth() - parseInt(amount)); break;
-                    case 'years': date.setFullYear(date.getFullYear() - parseInt(amount)); break;
-                }
-                return { suffix: '[gte]', value: date.toISOString().split('T')[0] };
-            }
-            
-            if (mode === 'between') {
-                const [start, end] = val?.split(' ') || [];
-                const startDate = new Date(start);
-                const endDate = new Date(end);
+        drafts.forEach((filter) => {
+            const col = columns.find((c) => c.id === filter.col_id);
+            if (!col) console.error("Column id not found upon applying filters");
+            if (validateEntry(filter, col?.meta?.filter?.type || 'text') !== null) return; // skip invalid filters
+            if (!filter.val)   return; // skip unfinished filters
 
-                return { 
-                    suffix: '[gte]', 
-                    value: startDate.toISOString().split('T')[0],
-                    additional: { suffix: '[lte]', value: endDate.toISOString().split('T')[0] }
-                };
+
+            if (filter.mode === 'in the last') {
+                const amount = Number(filter.val);
+                if (Number.isNaN(amount)) return ; // invalid value
+                const date = sub(startOfToday(), { [filter.aux as keyof Duration ]: amount}); // subtract right now from amount
+                params.set(`${filter.col_id}[gte]`, formatISO(date, { representation: 'date' }));
+                return;
             }
 
-            if (mode === 'on or after') {
-                return { suffix: '[gte]', value: val };
+            if (filter.mode === 'between') {
+                if (filter.val) params.set(`${filter.col_id}[gte]`, filter.val);
+                if (filter.aux) params.set(`${filter.col_id}[lte]`, filter.aux);
+                return ;   
+            } 
+
+            if (filter.mode === '≠' && col?.meta?.filter?.type === 'number') {
+                if (Number.isNaN(Number(filter.val))) return;
+                params.set(`${filter.col_id}[gte]`, (Number(filter.val) + 1).toString());
+                params.set(`${filter.col_id}[lte]`, (Number(filter.val) - 1).toString());
+                return;
             }
 
-            if (mode === 'before or on') {
-                return { suffix: '[lte]', value: val }
+            if (filter.mode === '≠' && col?.meta?.filter?.type === 'enum') {
+                if (col?.meta?.filter?.options.includes(filter.val)) return;
+                params.set(`${filter.col_id}_${filter.val}`, 'false');
+                return;
             }
 
-            // Handle non-date modes
-            const map: Record<string, string> = {
-                '>': '[gt]',
-                '<': '[lt]',
-                '>=': '[gte]',
-                '<=': '[lte]',
-            };
-            
-            if (!mode || mode === '=' || mode === '≠') {
-                return { suffix: '', value: val };
+            if (filter.mode === '=' && col?.meta?.filter?.type === 'enum') {
+                if (!col?.meta?.filter?.options.includes(filter.val)) return;
+                params.set(`${filter.col_id}_${filter.val}`, 'true');
+                return;
             }
-            
-            return { suffix: map[mode] || '', value: val };
-        };
 
-        drafts.forEach(filter => {
-            if (!filter.val) return; // skip incomplete filters
-            
-            const result = modeToSuffix(filter.mode, filter.val);
-            const key = result.suffix ? `${filter.col_id}${result.suffix}` : filter.col_id;
-            newParams.set(key, result.value || '');
-
-            // Handle additional parameter for 'is between'
-            if (result.additional) {
-                const additionalKey = `${filter.col_id}${result.additional.suffix}`;
-                newParams.set(additionalKey, result.additional.value);
-            }
+            const key = modeToSuffix(filter.mode) ? `${filter.col_id}${modeToSuffix(filter.mode)}` : filter.col_id;
+            params.set(key, filter.val);
         });
- 
-        //delete page to avoid confusion - i.e. if filter compresses rows and the page is empty - thus need to go to page 1
-        newParams.delete('page'); 
-        router.replace('?' + newParams.toString());
-    }
 
-    //key here should be the column id, while val should be the value of the filter you are trying to remove
-    //this deletes individual filters
-    const handleFilterDeletion = ({ id, col_id, mode, val }: filterEntry) => {
-        setDrafts(prev => (
-            prev.filter(entry => !(entry.id === id || 
-                (entry.col_id === col_id && entry.val === val && entry.mode === mode)))
-        )); 
-        
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.delete(col_id, val);
-        newParams.delete('page');
-        router.replace('?' + newParams.toString());
-    }
+        if (params.size) params.set('match', matchStrategy);
+        params.delete('page');
+        router.replace(`?${params.toString()}`); //router.replace
+    } 
+
 
     //clear all filters
-    const handleClearAll = () => {
+    const handleClear = () => {
         router.replace(pathname);
-        setDrafts([]);
+        dispatch({ type: 'reset', entries: [] });
     }
 
     return (
@@ -180,7 +249,8 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
             <button 
                 className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1 hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"
                 onClick={() => setIsOpen(!isOpen)}
-            > <FilterIcon className="w-4 h-4" /> Filters
+            > 
+                <FilterIcon className="w-4 h-4" /> Filters
             </button>
             {isOpen && (
                 <div className="absolute left-0 mt-2 rounded-md border border-gray-300 bg-white p-4 shadow-lg w-max">
@@ -191,9 +261,9 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                             <DropdownMenuTrigger className={cn(
                                 "inline-flex items-center pl-1",
                                 "text-sm font-medium text-blue-600 hover:text-blue-700",
-                                "bg-white ",
+                                "bg-white cursor-pointer ",
                             )}>
-                                {selectedOption}
+                                {matchStrategy}
                                 <ChevronDown className="w-4 h-4 text-gray-500" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-32 p-1">
@@ -201,14 +271,14 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                                     <DropdownMenuRadioItem 
                                         value="all" 
                                         className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => setSelectedOption("all")}
+                                        onClick={() => setMatchStrategy("all")}
                                     >
                                         All
                                     </DropdownMenuRadioItem>
                                     <DropdownMenuRadioItem 
                                         value="any" 
                                         className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => setSelectedOption("any")}
+                                        onClick={() => setMatchStrategy("any")}
                                     >
                                         Any
                                     </DropdownMenuRadioItem>
@@ -218,41 +288,47 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                         <p className="text-sm font-medium text-gray-500">of these conditions:</p>
                     </div>
                     <div className="flex flex-col gap-2 mt-2">
-                        {drafts.map((filter, index) => (
+                        {drafts.map((filter) => (
                             <FilterBox 
                                 key={filter.id}
                                 entry={filter}
                                 columns={columns}
-                                onChange={(col_id, mode, val) =>
-                                    setDrafts(prev => prev.map(d => d.id === filter.id ? { ...d, col_id, mode, val } : d))
-                                } 
-                                onDelete={() => handleFilterDeletion(filter)} 
+                                dateExists={dateFilterPresent && columns.find((c) => c.id === filter.col_id)?.meta?.filter?.type !== 'date'}
+                                onChange={(payload) => dispatch({ type: 'update', id: filter.id, payload })} 
+                                onDelete={() => dispatch({ type: 'remove', id: filter.id })} 
                             />
                         ))}
+                        {/* actions */}
                         <div className="flex justify-between items-center">
-                            <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" onClick={() => {
-                                const firstColumnId = columns[0].id as string;
-                                handleAddFilter({
-                                    id: crypto.randomUUID(),
-                                    col_id: firstColumnId,
-                                    val: '',
-                                    mode: '='
-                                });
-                            }}>
+                            <button 
+                                type="button"
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                onClick={() => {
+                                    dispatch({ type: 'add', col_id: columns[0].id as string});
+                                }}
+                            >
                                 <PlusIcon className="w-4 h-4" /> Add Filter
                             </button>
                             <div className="flex items-center gap-2 mr-13">
-                                <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" onClick={handleApply}>
+                                <button 
+                                    type="button"
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                    disabled={errors.length > 0}
+                                    onClick={handleApply}
+                                >
                                     Apply
                                 </button>
-                                <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" onClick={handleClearAll}>
+                                <button 
+                                    type="button"
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                    onClick={handleClear}
+                                >
                                     Clear
                                 </button>
                             </div>
                         </div>
+                        {errors.length > 0 && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
                     </div>
-
-
                 </div>
             )}
         </div>
