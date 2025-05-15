@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import FilterBox from "./filter-box";
 import { FilterableColumn } from "@/app/admintest/components/columns/column-types";
-import React, { useMemo, useReducer, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useReducer, useState } from 'react';
 import { startOfToday, sub, formatISO, Duration, parseISO, isValid } from 'date-fns';
-import crypto from 'crypto';
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 // ------------------------------------------------------------
 // TYPES AND HELPER FUNCTIONS 
@@ -53,8 +53,15 @@ const modeToSuffix = (
     return map[mode];
 }
 
-// Utility to ensure we never accidentally create an SSR mismatch via crypto.uuid
-const uuid = (() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID : () => Math.random().toString(36).slice(2, 11)))();
+// Add browser-compatible UUID generation
+function generateUUID() {
+  if (typeof window !== 'undefined' && window.crypto) {
+    return window.crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 11);
+}
+
+
 
 // ---------- validation ----------
 const unitOptions = ['hours', 'days', 'months', 'years'] as const;
@@ -104,7 +111,7 @@ type draftAction =
 function draftsReducer(state: filterEntry[], action: draftAction): filterEntry[] {
   switch (action.type) {
     case 'add':
-      return [...state, { id: uuid(), col_id: action.col_id, mode: '=', val: '' }];
+      return [...state, { id: generateUUID(), col_id: action.col_id, mode: '=', val: '' }];
     case 'update':
       return state.map((e) => (e.id === action.id ? { ...e, ...action.payload } : e));
     case 'remove':
@@ -122,11 +129,8 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
     const router = useRouter(); // Set paths
     const searchParams = useSearchParams(); // Where the real filtering happens
     const pathname = usePathname(); // To set back to original path when cleared
-    const [matchStrategy, setMatchStrategy] = useState<'all' | 'any'>('all');
-    const [isOpen, setIsOpen] = useState(false);
+    const [matchStrategy, setMatchStrategy] = useState<'all' | 'any'>('all'); //satisfy all filters or at least one of them: any or all?
     
-
-
     // This represents the DRAFTED filters - the real filters are in the searchParams
     // You want each draft to carry which column is being filtered, what the mode of the filter is, what the value of the filter is,
     // and the other possible options for the filter
@@ -148,7 +152,8 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                 suffix = '';
                 rawVal = rawKey.split('_')[1];
             }
-            if (baseCol === 'match' || baseCol === 'page') return;
+            if (baseCol === 'match' || baseCol === 'page' 
+                || baseCol == 'pageSize' || baseCol == 'sortBy' || baseCol == 'sortOrder') return;
 
             const col = columns.find((c) => c.id === baseCol);
             if (!col) console.error("No matching column id found while parsing search paramters");
@@ -167,14 +172,13 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                 }
             })() as filterMode;
 
-            result.push({ id: uuid(), col_id: baseCol, mode, val: rawVal });
+            result.push({ id: generateUUID(), col_id: baseCol, mode, val: rawVal });
         })
         return result;
     }, [])
 
     const [drafts, dispatch] = useReducer(draftsReducer, initialDrafts);
 
-    //satisfy all filters or at least one of them: any or all?
 
     // only have one date filter - simplifies logic
     const dateFilterPresent = useMemo(() => drafts.some((d) => columns.find((c) => c.id === d.col_id)?.meta?.filter?.type === 'date'), [drafts, columns]);
@@ -245,92 +249,100 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
     }
 
     return (
-        <div className="relative z-10">
-            <button 
-                className="flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1 hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"
-                onClick={() => setIsOpen(!isOpen)}
-            > 
+        <Popover>
+            <PopoverTrigger className={cn(
+                "flex items-center gap-2 text-sm text-gray-500 bg-white border border-gray-300 rounded-md px-2 py-1",
+                "hover:bg-blue-600 hover:text-white transition-colors duration-200 cursor-pointer"
+            )}> 
                 <FilterIcon className="w-4 h-4" /> Filters
-            </button>
-            {isOpen && (
-                <div className="absolute left-0 mt-2 rounded-md border border-gray-300 bg-white p-4 shadow-lg w-max">
-                    <div className="absolute -top-2 left-4 w-3 h-3 bg-white rotate-45 border-l border-gray-200"></div>
-                    <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-500"> Show rows that match </p>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className={cn(
-                                "inline-flex items-center pl-1",
-                                "text-sm font-medium text-blue-600 hover:text-blue-700",
-                                "bg-white cursor-pointer ",
-                            )}>
-                                {matchStrategy}
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-32 p-1">
-                                <DropdownMenuRadioGroup>
-                                    <DropdownMenuRadioItem 
-                                        value="all" 
-                                        className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => setMatchStrategy("all")}
-                                    >
-                                        All
-                                    </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem 
-                                        value="any" 
-                                        className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => setMatchStrategy("any")}
-                                    >
-                                        Any
-                                    </DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <p className="text-sm font-medium text-gray-500">of these conditions:</p>
-                    </div>
-                    <div className="flex flex-col gap-2 mt-2">
-                        {drafts.map((filter) => (
-                            <FilterBox 
-                                key={filter.id}
-                                entry={filter}
-                                columns={columns}
-                                dateExists={dateFilterPresent && columns.find((c) => c.id === filter.col_id)?.meta?.filter?.type !== 'date'}
-                                onChange={(payload) => dispatch({ type: 'update', id: filter.id, payload })} 
-                                onDelete={() => dispatch({ type: 'remove', id: filter.id })} 
-                            />
-                        ))}
-                        {/* actions */}
-                        <div className="flex justify-between items-center">
+            </PopoverTrigger>
+            <PopoverContent 
+                className="mt-2 rounded-md border border-gray-300 bg-white p-4 shadow-lg w-max relative" 
+                align="start"
+                alignOffset={0}
+                side="bottom"
+                sideOffset={5}
+            >
+                {/* Custom arrow that's properly attached to the popover */}
+                <div className="absolute -top-[10px] left-[10px] h-0 w-0 border-x-8 border-x-transparent border-b-[10px] border-b-white z-30"></div>
+                {/* Border for the arrow */}
+                <div className="absolute -top-[11px] left-[10px] h-0 w-0 border-x-8 border-x-transparent border-b-[10px] border-b-gray-300 z-20"></div>
+                
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-500"> Show rows that match </p>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger className={cn(
+                            "inline-flex items-center pl-1",
+                            "text-sm font-medium text-blue-600 hover:text-blue-700",
+                            "bg-white cursor-pointer ",
+                        )}>
+                            {matchStrategy}
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-32 p-1">
+                            <DropdownMenuRadioGroup>
+                                <DropdownMenuRadioItem 
+                                    value="all" 
+                                    className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => setMatchStrategy("all")}
+                                >
+                                    All
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem 
+                                    value="any" 
+                                    className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => setMatchStrategy("any")}
+                                >
+                                    Any
+                                </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <p className="text-sm font-medium text-gray-500">of these conditions:</p>
+                </div>
+                <div className="flex flex-col gap-2 mt-2">
+                    {drafts.map((filter) => (
+                        <FilterBox 
+                            key={filter.id}
+                            entry={filter}
+                            columns={columns}
+                            dateExists={dateFilterPresent && columns.find((c) => c.id === filter.col_id)?.meta?.filter?.type !== 'date'}
+                            onChange={(payload) => dispatch({ type: 'update', id: filter.id, payload })} 
+                            onDelete={() => dispatch({ type: 'remove', id: filter.id })} 
+                        />
+                    ))}
+                    {/* actions */}
+                    <div className="flex justify-between items-center">
+                        <button 
+                            type="button"
+                            className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                            onClick={() => {
+                                dispatch({ type: 'add', col_id: columns[0].id as string});
+                            }}
+                        >
+                            <PlusIcon className="w-4 h-4" /> Add Filter
+                        </button>
+                        <div className="flex items-center gap-2 mr-13">
                             <button 
                                 type="button"
                                 className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                                onClick={() => {
-                                    dispatch({ type: 'add', col_id: columns[0].id as string});
-                                }}
+                                disabled={errors.length > 0}
+                                onClick={handleApply}
                             >
-                                <PlusIcon className="w-4 h-4" /> Add Filter
+                                Apply
                             </button>
-                            <div className="flex items-center gap-2 mr-13">
-                                <button 
-                                    type="button"
-                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                                    disabled={errors.length > 0}
-                                    onClick={handleApply}
-                                >
-                                    Apply
-                                </button>
-                                <button 
-                                    type="button"
-                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                                    onClick={handleClear}
-                                >
-                                    Clear
-                                </button>
-                            </div>
+                            <button 
+                                type="button"
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                onClick={handleClear}
+                            >
+                                Clear
+                            </button>
                         </div>
-                        {errors.length > 0 && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
                     </div>
+                    {errors.length > 0 && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
                 </div>
-            )}
-        </div>
+            </PopoverContent>
+        </Popover>
     )
 }
