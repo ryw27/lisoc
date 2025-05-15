@@ -263,84 +263,86 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                 side="bottom"
                 sideOffset={5}
             >
+
                 {/* Custom arrow that's properly attached to the popover */}
                 <div className="absolute -top-[10px] left-[10px] h-0 w-0 border-x-8 border-x-transparent border-b-[10px] border-b-white z-30"></div>
                 {/* Border for the arrow */}
                 <div className="absolute -top-[11px] left-[10px] h-0 w-0 border-x-8 border-x-transparent border-b-[10px] border-b-gray-300 z-20"></div>
-                
-                <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-500"> Show rows that match </p>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger className={cn(
-                            "inline-flex items-center pl-1",
-                            "text-sm font-medium text-blue-600 hover:text-blue-700",
-                            "bg-white cursor-pointer ",
-                        )}>
-                            {matchStrategy}
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-32 p-1">
-                            <DropdownMenuRadioGroup>
-                                <DropdownMenuRadioItem 
-                                    value="all" 
-                                    className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => setMatchStrategy("all")}
-                                >
-                                    All
-                                </DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem 
-                                    value="any" 
-                                    className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => setMatchStrategy("any")}
-                                >
-                                    Any
-                                </DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <p className="text-sm font-medium text-gray-500">of these conditions:</p>
-                </div>
-                <div className="flex flex-col gap-2 mt-2">
-                    {drafts.map((filter) => (
-                        <FilterBox 
-                            key={filter.id}
-                            entry={filter}
-                            columns={columns}
-                            dateExists={dateFilterPresent && columns.find((c) => c.id === filter.col_id)?.meta?.filter?.type !== 'date'}
-                            onChange={(payload) => dispatch({ type: 'update', id: filter.id, payload })} 
-                            onDelete={() => dispatch({ type: 'remove', id: filter.id })} 
-                        />
-                    ))}
-                    {/* actions */}
-                    <div className="flex justify-between items-center">
-                        <button 
-                            type="button"
-                            className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                            onClick={() => {
-                                dispatch({ type: 'add', col_id: columns[0].id as string});
-                            }}
-                        >
-                            <PlusIcon className="w-4 h-4" /> Add Filter
-                        </button>
-                        <div className="flex items-center gap-2 mr-13">
-                            <button 
-                                type="button"
-                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                                disabled={errors.length > 0}
-                                onClick={handleApply}
-                            >
-                                Apply
-                            </button>
-                            <button 
-                                type="button"
-                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
-                                onClick={handleClear}
-                            >
-                                Clear
-                            </button>
-                        </div>
+                <div className="overflow-y-auto max-h-[300px]">
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-500"> Show rows that match </p>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className={cn(
+                                "inline-flex items-center pl-1",
+                                "text-sm font-medium text-blue-600 hover:text-blue-700",
+                                "bg-white cursor-pointer ",
+                            )}>
+                                {matchStrategy}
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-32 p-1">
+                                <DropdownMenuRadioGroup>
+                                    <DropdownMenuRadioItem 
+                                        value="all" 
+                                        className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                                        onClick={() => setMatchStrategy("all")}
+                                    >
+                                        All
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem 
+                                        value="any" 
+                                        className="text-sm px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                                        onClick={() => setMatchStrategy("any")}
+                                    >
+                                        Any
+                                    </DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <p className="text-sm font-medium text-gray-500">of these conditions:</p>
                     </div>
-                    {errors.length > 0 && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
+                    <div className="flex flex-col gap-2 mt-2">
+                        {drafts.map((filter) => (
+                            <FilterBox 
+                                key={filter.id}
+                                entry={filter}
+                                columns={columns}
+                                dateExists={dateFilterPresent && columns.find((c) => c.id === filter.col_id)?.meta?.filter?.type !== 'date'}
+                                onChange={(payload) => dispatch({ type: 'update', id: filter.id, payload })} 
+                                onDelete={() => dispatch({ type: 'remove', id: filter.id })} 
+                            />
+                        ))}
+                        {/* actions */}
+                        <div className="flex justify-between items-center">
+                            <button 
+                                type="button"
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                onClick={() => {
+                                    dispatch({ type: 'add', col_id: columns[0].id as string});
+                                }}
+                            >
+                                <PlusIcon className="w-4 h-4" /> Add Filter
+                            </button>
+                            <div className="flex items-center gap-2 mr-13">
+                                <button 
+                                    type="button"
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                    disabled={errors.length > 0}
+                                    onClick={handleApply}
+                                >
+                                    Apply
+                                </button>
+                                <button 
+                                    type="button"
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start cursor-pointer" 
+                                    onClick={handleClear}
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        {errors.length > 0 && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
+                    </div>
                 </div>
             </PopoverContent>
         </Popover>
