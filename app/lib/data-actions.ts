@@ -1,287 +1,196 @@
-import { Class, Teacher, Parent, Feedback, Transactions, formatDate } from "../admintest/components/columns/column-types";
-import { db } from "./db";
+import { FilterableColumn, filterTypes, formatDate } from "../admintest/components/columns/column-types";
+import { getClassrooms, getClasses } from "@/app/admintest/dashboard/(class-pages)/class-helpers";
+import { AnyPgColumn, PgColumn } from 'drizzle-orm/pg-core';
+import * as schema from "@/app/lib/db/schema";
+import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
 
-//Get all classes
-export async function getAllClasses({ page = 1, pageSize = 10, query = "" }: { 
-    page?: number; 
-    pageSize?: number; 
-    query?: string;
-} = {}) {
-    // In a real implementation, you would use a database query with LIMIT and OFFSET
-    // const classes = await db.query(
-    //     "SELECT * FROM classes LIMIT $1 OFFSET $2",
-    //     [pageSize, (page - 1) * pageSize]
-    // );
-    // const countResult = await db.query("SELECT COUNT(*) FROM classes");
-    // return { 
-    //     classes: classes.rows,
-    //     totalCount: parseInt(countResult.rows[0].count)
-    // };
+// ----------------------------------------------------------------
+// Filter Type Utilities
+// ----------------------------------------------------------------
 
-    //mock data:
-    const mockClasses: Class[] = [
-        {
-            id: 1,
-            class_name_cn: "Class 1",
-            class_name_en: "Class 1",
-            upgrade_class: "Class 2",
-            class_level: "Class 1",
-            class_type: "MLP",
-            status: "Active",
-            update_by: "admin",
-            update_at: new Date(),
-            description: "Notes 1",
+/**
+ * Maps Drizzle column types to filter types
+ * @param column A Drizzle column from the schema
+ * @returns The appropriate filter type as a string
+ */
+export function getFilterTypeFromColumn(column: AnyPgColumn): string {
+  const pgColumn = column as PgColumn;
+  const dataType = pgColumn?.dataType?.toLowerCase() || '';
+  
+  if (dataType.includes('varchar') || dataType.includes('text') || dataType.includes('char')) {
+    return 'text';
+  } else if (dataType.includes('int') || dataType.includes('decimal') || dataType.includes('numeric') || dataType.includes('float')) {
+    return 'number';
+  } else if (dataType.includes('timestamp') || dataType.includes('date')) {
+    return 'date';
+  } else if (dataType.includes('boolean')) {
+    return 'enum';
+  }
+  
+  return 'text'; // Default to text for unknown types
+}
+
+/**
+ * Creates a filter configuration based on the column type
+ * @param type The type of the column ('text', 'enum', 'number', 'date')
+ * @returns A filter configuration object
+ */
+function defaultFilter(type: string): filterTypes {
+  switch (type) {
+    case 'text':
+      return { type: 'text', mode: ['='] };
+    case 'enum':
+      return { type: 'enum', mode: ['=', '≠'], options: [] };
+    case 'number':
+      return { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] };
+    case 'date':
+      return { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='], options: ['hours', 'days', 'months', 'years'] };
+    default:
+      return { type: 'text', mode: ['='] };
+  }
+}
+
+// ----------------------------------------------------------------
+// Column Definition Generators
+// ----------------------------------------------------------------
+
+/**
+ * Checks if a column is a PgColumn
+ * @param column The column to check
+ * @returns True if the column is a PgColumn, false otherwise - used to filter out non-column properties like enableRLS
+ */
+function isPgColumn(column: AnyPgColumn): column is PgColumn {
+  return !!column && typeof column === 'object' && 'dataType' in (column as any);
+}
+
+
+/**
+ * Generates column definitions with filter metadata from a Drizzle schema table
+ * @type {T} The type of the table, derived from the schema: can be classes, teacher, student, etc.
+ * @param table A Drizzle schema table
+ * @param overrides Optional overrides for specific columns
+ * @returns An array of column definitions with filter metadata. Used for the table component.
+ */
+export function generateColumnDefs<T extends object>(
+  table: { [K in keyof T]: AnyPgColumn },
+  overrides: Partial<Record<keyof T, Partial<FilterableColumn<T>>>> = {}
+): FilterableColumn<T>[] {
+  try {
+    return Object.entries(table)
+    .filter(([, column]) => isPgColumn(column as AnyPgColumn))
+    .map(([key, column]) => {
+      const baseKey = key as keyof T;
+      const columnType = getFilterTypeFromColumn(column as AnyPgColumn);
+      const baseFilter = defaultFilter(columnType);
+      
+      // For boolean columns, add true/false options
+      if (columnType === 'enum' && (column as PgColumn)?.dataType?.toLowerCase().includes('boolean')) {
+        (baseFilter as any).options = ['true', 'false'];
+      }
+      
+      return {
+        id: key,
+        accessorKey: columnType === 'date' ? undefined : key,
+        accessorFn: columnType === 'date' ? (row) => formatDate(new Date(row[key as keyof T] as string)) : undefined,
+        header: key,
+        meta: {
+          filter: baseFilter
         },
-        {
-            id: 2,
-            class_name_cn: "Class 2",
-            class_name_en: "Class 2",
-            upgrade_class: "Class 2",
-            class_level: "Class 2",
-            class_type: "Class 2",
-            status: "Inactive",
-            update_by: "admin",
-            update_at: new Date(),
-            description: "Notes 2",
-        },
-        {
-            id: 3,
-            class_name_cn: "中文课",
-            class_name_en: "Chinese Class",
-            upgrade_class: "Class 3",
-            class_level: "Class 3",
-            class_type: "Class 3",
-            status: "Active",
-            update_by: "admin",
-            update_at: new Date(),
-            description: "Notes 3",
-        },
-        {
-            id: 4,
-            class_name_cn: "英文课",
-            class_name_en: "English Class",
-            upgrade_class: "Class 4",
-            class_level: "Class 4",
-            class_type: "Class 4",
-            status: "Inactive",
-            update_by: "admin",
-            update_at: new Date(),
-            description: "Notes 4",
-        },
-        {
-            id: 5,
-            class_name_cn: "数学课",
-            class_name_en: "Math Class",
-            upgrade_class: "Class 5",
-            class_level: "Class 5",
-            class_type: "Class 5",
-            status: "Active",
-            update_by: "admin",
-            update_at: new Date(),
-            description: "Notes 5",
-        },
-    ];
-    
-    // Pre-format dates for all classes
-    mockClasses.forEach(classItem => {
-        classItem.formatted_update_at = formatDate(classItem.update_at);
-    });
-    
-    // Filter classes if query is provided
-    let filteredClasses = mockClasses;
-    if (query != "") {
-        const lowercaseQuery = query.toLowerCase();
-        filteredClasses = mockClasses.filter(classItem => 
-            classItem.class_name_en.toLowerCase().includes(lowercaseQuery) ||
-            classItem.class_name_cn.toLowerCase().includes(lowercaseQuery) ||
-            classItem.class_type.toLowerCase().includes(lowercaseQuery)
-        );
+        ...overrides[baseKey],
+      };
+    }) as FilterableColumn<T>[];
+  } catch (error) {
+    console.error('Error generating column definitions:', error);
+    return [];
+  }
+}
+
+
+// ----------------------------------------------------------------
+// Schema-Specific Column Definitions
+// ----------------------------------------------------------------
+
+/**
+ * Generates column definitions for the classes table
+ * @returns Properly filtered and formatted column definitions for classes
+ */
+export function getClassColumns() {
+  return generateColumnDefs(schema.classes, {
+    classnamecn: {
+      header: "Class Name (CN)",
+      meta: {
+        filter: {
+          type: 'text',
+          mode: ['=']
+        }
+      }
+    },
+    classnameen: {
+      header: "Class Name (EN)"
+    },
+    classid: {
+      header: "Class ID"
+    },
+    lastmodify: {
+      header: "Last Modified"
     }
-    
-    // Calculate pagination
-    const totalCount = filteredClasses.length;
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedClasses = filteredClasses.slice(startIndex, endIndex);
-    return {
-        classes: paginatedClasses,
-        totalCount
-    };
+  });
 }
 
-//Get all teachers
-export async function getAllTeachers() {
-    // const teachers = await db.query(
-    //     "SELECT * FROM teachers"
-    // );
-    // return teachers.rows;
-    
-    // Mock data for teachers
-    const mockTeachers: Teacher[] = [
-        {
-            teacher_id: 1,
-            name: "Teacher 1",
-            status: "Active",
-            num_classes: 3,
-            phone: "123-456-7890",
-            email: "teacher1@example.com",
-            last_login: new Date(),
-            user_name: "teacher1",
-        },
-        {
-            teacher_id: 2,
-            name: "Teacher 2",
-            status: "Inactive",
-            num_classes: 1,
-            phone: "987-654-3210",
-            email: "teacher2@example.com",
-            last_login: new Date(),
-            user_name: "teacher2",
+/**
+ * Generates column definitions for the teacher table
+ * @returns Properly filtered and formatted column definitions for teachers
+ */
+export function getTeacherColumns() {
+  return generateColumnDefs(schema.teacher, {
+    teacherid: {
+      header: "Teacher ID"
+    },
+    namecn: {
+      header: "Name (Chinese)"
+    },
+    namefirsten: {
+      header: "First Name"
+    },
+    namelasten: {
+      header: "Last Name"
+    },
+    status: {
+      meta: {
+        filter: {
+          type: 'enum',
+          mode: ['=', '≠'],
+          options: ['Active', 'Inactive', 'On Leave']
         }
-    ];
-    
-    // Pre-format dates
-    mockTeachers.forEach(teacher => {
-        teacher.formatted_last_login = formatDate(teacher.last_login);
-    });
-    
-    return mockTeachers;
+      }
+    },
+    lastlogin: {
+      header: "Last Login"
+    }
+  });
 }
 
-//Get all parents
-export async function getAllParents() {
-    // const parents = await db.query(
-    //     "SELECT * FROM parents"
-    // );
-    // return parents.rows;
-    
-    // Mock data for parents
-    const mockParents: Parent[] = [
-        {
-            id: 1,
-            name_en: "Parent 1",
-            name_cn: "家长 1",
-            email: "parent1@example.com",
-            phone: "123-456-7890",
-            city: "City 1",
-            zip: "12345",
-            status: "Active",
-            last_login: new Date(),
-        },
-        {
-            id: 2,
-            name_en: "Parent 2",
-            name_cn: "家长 2",
-            email: "parent2@example.com",
-            phone: "987-654-3210",
-            city: "City 2",
-            zip: "54321",
-            status: "Inactive",
-            last_login: new Date(),
-        }
-    ];
-    
-    // Pre-format dates
-    mockParents.forEach(parent => {
-        parent.formatted_last_login = formatDate(parent.last_login);
-    });
-    
-    return mockParents;
-}
-
-//Get all registrations
-export async function getAllRegistrations() {
-    const registrations = await db.query(
-        "SELECT * FROM registrations"
-    );
-    return registrations.rows;
-}
-
-//Get all transactions
-export async function getAllTransactions() {
-    // const transactions = await db.query(
-    //     "SELECT * FROM transactions"
-    // );
-    // return transactions.rows;
-    
-    // Mock data for transactions
-    const mockTransactions: Transactions[] = [
-        {
-            fid: 1,
-            father_name: "Father 1",
-            mother_name: "Mother 1",
-            phone: "123-456-7890",
-            amount: 100,
-            issued_date: new Date(),
-            issued_by: "Admin",
-            status: "Paid",
-            balanceid: 1,
-            memo: "Memo 1",
-        },
-        {
-            fid: 2,
-            father_name: "Father 2",
-            mother_name: "Mother 2",
-            phone: "987-654-3210",
-            amount: 200,
-            issued_date: new Date(),
-            issued_by: "Admin",
-            status: "Unpaid",
-            balanceid: 2,
-            memo: "Memo 2",
-        }
-    ];
-    
-    // Pre-format dates
-    mockTransactions.forEach(transaction => {
-        transaction.formatted_issued_date = formatDate(transaction.issued_date);
-    });
-    
-    return mockTransactions;
-}
-
-//Get all classrooms
-export async function getAllClassrooms() {
-    const classrooms = await db.query(
-        "SELECT * FROM classrooms"
-    );
-    return classrooms.rows;
-}
-
-//Get all feedbacks
-export async function getAllFeedbacks() {
-    // const feedbacks = await db.query(
-    //     "SELECT * FROM feedbacks"
-    // );
-    // return feedbacks.rows;
-    
-    // Mock data for feedbacks
-    const mockFeedbacks: Feedback[] = [
-        {
-            id: 1,
-            fid: 1,
-            name: "Feedback 1",
-            phone: "123-456-7890",
-            email: "feedback1@example.com",
-            date: new Date(),
-            feedback: "Feedback 1",
-        },
-        {
-            id: 2,
-            fid: 2,
-            name: "Feedback 2",
-            phone: "987-654-3210",
-            email: "feedback2@example.com",
-            date: new Date(),
-            feedback: "Feedback 2",
-        }
-    ];
-    
-    // Pre-format dates
-    mockFeedbacks.forEach(feedback => {
-        feedback.formatted_date = formatDate(feedback.date);
-    });
-    
-    return mockFeedbacks;
+/**
+ * Generates column definitions for the student table
+ * @returns Properly filtered and formatted column definitions for students
+ */
+export function getStudentColumns() {
+  return generateColumnDefs(schema.student, {
+    studentid: {
+      header: "Student ID"
+    },
+    namecn: {
+      header: "Name (Chinese)"
+    },
+    namefirsten: {
+      header: "First Name"
+    },
+    namelasten: {
+      header: "Last Name"
+    },
+    dob: {
+      header: "Date of Birth"
+    }
+  });
 }
 
