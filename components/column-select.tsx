@@ -4,6 +4,7 @@ import { ColumnsIcon } from "lucide-react";
 import { Checkbox } from './ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Column } from '@tanstack/react-table'
+import { useMemo } from 'react';
 
 interface ColumnSelectProps<TData> {
     columns: Column<TData>[]
@@ -11,19 +12,19 @@ interface ColumnSelectProps<TData> {
 
 export default function ColumnSelect<TData>({ columns }: ColumnSelectProps<TData>) {
     // Filter out utility columns first (select, edit)
-    const filteredColumns = columns.filter(column => 
+    const filteredColumns = useMemo(() => columns.filter(column => 
         column.id !== "select" && column.id !== "edit"
-    );
+    ), [columns]);
     
     // Partition into fixed and hideable columns
-    const [fixedColumns, displayColumns] = filteredColumns.reduce(
+    const [fixedColumns, displayColumns] = useMemo(() => filteredColumns.reduce(
         (result, column) => {
             // Add to fixed or display columns based on getCanHide()
             result[column.getCanHide() ? 1 : 0].push(column);
             return result;
         }, 
         [[] as Column<TData>[], [] as Column<TData>[]]
-    );
+    ), [filteredColumns]);
     
     return (
         <Popover>
