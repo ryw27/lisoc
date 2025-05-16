@@ -1,13 +1,16 @@
 "use client";
-import { ColumnDef, useReactTable, getCoreRowModel, flexRender, SortingState } from "@tanstack/react-table"
+import { ColumnDef, useReactTable, getCoreRowModel, flexRender, SortingState, ColumnPinningState } from "@tanstack/react-table"
 import { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import TableHeader from "@/components/table-header";
 import { FilterableColumn } from "./columns/column-types";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog'
+// import { deleteRows } from "../dashboard/(class-pages)/class-helpers";
+
 
 type DataTableProps<TData> = {
     data: TData[];
@@ -20,8 +23,11 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
     const [sorting, setSorting] = useState<SortingState>([]);
-    
-    
+    const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
+        left: ['select'],
+        right: ['edit']
+    });
+
     useEffect(() => {
         try {
             const storedVisibility = localStorage.getItem(`${tableName} Columns`);
@@ -117,17 +123,62 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
     ], []);
 
     // Create edit column
-    // const editColumn: ColumnDef<TData>[] = useMemo(() => [
-    //     {
-    //         id: "edit",
-    //         header: "Edit",
-    //         cell: ({ row }) => {
-    //             return <div>Edit</div>
-    //         }
-    //     }
-    // ], [])
+    const editColumn: ColumnDef<TData>[] = useMemo(() => [
+        {
+            id: "edit",
+            cell: ({ row }) => {
+                return (
+                    <Popover>
+                        <PopoverTrigger className={cn(
+                            "items-center rounded-md p-1 cursor-pointer",
+                            "border-1 border-gray-300 hover:border-gray-700",
+                        )}>
+                            <MoreHorizontal className="w-4 h-4" />
+                        </PopoverTrigger>
+                        <PopoverContent 
+                            className={cn(
+                            "flex flex-col gap-1 justify-begin items-center w-36",
+                            "bg-white border border-gray-300 rounded-md",
+                            "p-1"
+                            )}
+                            align="end"
+                            side="bottom"
+                            sideOffset={5}
+                        >
+                            <button 
+                                className={cn(
+                                    "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                    "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
+                                    "text-blue-500 hover:text-blue-600"
+                                )}
+                                onClick={() => {
+                                    //TODO: find path
+                                    // router.push(``)
+                                    console.log("edit");
+                                }}
+                            >
+                                <PencilIcon className="w-4 h-4 mr-2" /> Edit
+                            </button>
+                            <button 
+                                className={cn(
+                                    "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                    "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
+                                    "text-red-500 hover:text-red-600"
+                                )}
+                                onClick={() => {
+                                    handleRowDelete();
+                                }}
+                            >
+                                <TrashIcon className="w-4 h-4 mr-2" /> Delete
+                            </button>
+                        </PopoverContent>
+                    </Popover>
+                )
+            }
+        }
+    ], [])
     // Combine selection column with provided columns
-    const allColumns = useMemo(() => [...selectionColumn, ...columns], [columns])
+    const allColumns = useMemo(() => [...selectionColumn, ...columns, ...editColumn], [columns])
 
     // Set sorting 
     useEffect(() => {
@@ -141,15 +192,11 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
     }, [searchParams.toString()]);
 
     useEffect(() => {
-        console.log("sorting: ", sorting);
-        // console.log("sortBy: ", sorting[0].id)
-        // console.log("sortBy: ", sorting[0].desc)
         if (sorting.length > 0) {
             if (sorting[0].id && sorting[0].desc) {
                 const params = new URLSearchParams(searchParams.toString());
                 params.set('sortBy', sorting[0].id);
                 params.set('sortOrder', sorting[0].desc ? 'desc' : 'asc');
-                console.log(params);
                 router.replace(`?${params.toString()}`);
             }
         }
@@ -172,13 +219,12 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
         router.replace(createPageURL(pageNumber));
     };
 
-    // Editing functions
-
 
     const table = useReactTable({
         data,
-        columns: allColumns,
+        columns: allColumns, 
         state: {
+            columnPinning,
             rowSelection,
             pagination: {
                 pageIndex: 0, // Always show first page in the UI since actual pagination is server-side
@@ -190,6 +236,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
         enableRowSelection: true,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        onColumnPinningChange: setColumnPinning, 
         getCoreRowModel: getCoreRowModel(),
         // Client-side pagination is disabled for server-side pagination
         manualPagination: true,
@@ -197,8 +244,10 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
         pageCount: pageCount 
     });
 
-    const handleMassDelete = () => {
-        console.log("mass delete");
+    // TODO: pass in table names and primary key
+    const handleRowDelete = () => {
+        console.log("Delete rows");
+        // deleteRows(tableName, primarykey, rowSelection);;
     }
 
     // Memoize the columns passed to TableHeader
@@ -222,7 +271,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                        Are you  absolutely sure?
+                                        Are you absolutely sure?
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
                                         This action cannot be undone. This will permanently delete the selected rows from 
@@ -231,7 +280,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleMassDelete}>Continue</AlertDialogAction>
+                                    <AlertDialogAction onClick={handleRowDelete}>Continue</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
@@ -246,7 +295,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
 
             {/* Table with horizontal scroll */}
             <div className="overflow-x-auto w-full">
-                <table className="min-w-full table-fixed">
+                <table className="min-w-full table-fixed relative">
                     {/* Header items */}
                     <thead className="border-b border-gray-200">
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -254,13 +303,16 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                                 {headerGroup.headers.map((header) => (
                                     <th 
                                         key={header.id}
-                                        className={`whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black uppercase tracking-wider ${
+                                        className={`whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider ${
                                             header.id === 'select' ? 'w-12' : ''
+                                        } ${
+                                            header.column.getIsPinned() === 'left' ? 'sticky left-0 z-10 bg-white' : ''
+                                        } ${
+                                            header.column.getIsPinned() === 'right' ? 'sticky right-0 z-10 bg-white' : ''
                                         }`}
                                         onClick={() => {
                                             if ((header.id !== 'select') && header.column.getCanSort()) {
                                                 const direction = sorting[0]?.id === header.id && sorting[0]?.desc === false ? true : false; // true it's desc, false it's asc
-                                                console.log("hi", header.id);
                                                 setSorting([{id: header.id, desc: direction}]);
                                             }
                                         }}
@@ -280,14 +332,19 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                         {table.getRowModel().rows.map((row) => (
                             <tr 
                                 key={row.id}
-                                className={`hover:bg-blue-50 transition-colors ${row.getIsSelected() ? 'bg-blue-50' : ''}`}
+                                className={`cursor-pointer hover:bg-blue-50 transition-colors ${row.getIsSelected() ? 'bg-blue-50' : ''}`}
                             >
                                 {row.getVisibleCells().map((cell) => (
                                     <td 
                                         key={cell.id}
-                                        className={`px-3 py-2 text-sm text-gray-600 ${
+                                        className={`px-3 py-1 text-sm text-gray-600 ${
                                             cell.column.id === 'select' ? 'w-12' : 'whitespace-nowrap'
+                                        } ${
+                                            cell.column.getIsPinned() === 'left' ? `sticky left-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}` : ''
+                                        } ${
+                                            cell.column.getIsPinned() === 'right' ? `sticky right-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}` : ''
                                         }`}
+                                        tabIndex={0}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </td>
