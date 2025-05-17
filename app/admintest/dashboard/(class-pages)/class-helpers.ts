@@ -2,89 +2,158 @@ import { db } from "@/app/lib/db/index";
 import { classes, classregistration, classrooms, classtype } from "@/app/lib/db/schema";
 import { generateColumnDefs } from "@/app/lib/data-actions";
 import { createInsertSchema} from "drizzle-zod";
-import { z } from 'zod';
-import { eq, inArray, getTableColumns } from 'drizzle-orm';
+import { z, ZodError, ZodIssue } from 'zod';
+import { eq, inArray, getTableColumns, InferSelectModel, max, and } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { AnyPgTable } from "drizzle-orm/pg-core";
+import { formatISO } from "date-fns";
+import { randomUUID } from "crypto";
+import { requireRole } from '@/app/lib/actions'
 
 // export function generateFormSchema()
 export const classFormSchema = z.object({
     classnamecn: z.string().min(1),
     classnameen: z.string().min(1),
-    classupid: z.string().min(1),
-    classno: z.number().nonnegative(),
-    classindex: z.number().nonnegative(),
-    sizelimits: z.number().nonnegative()
-
+    typeid: z.coerce.number().int().positive(), // Select strings from dropdowon, but values are numbers increasing from 1 correctly
+    classno: z.coerce.number().int().nonnegative(), // Coerce string from form to number
+    sizelimits: z.coerce.number().int().positive().optional(), // Coerce string from form to number, optional
+    status: z.enum(["Active", "Inactive"]), 
+    classupid: z.string().min(1), // Start as a string, selected class name. id found later
+    description: z.string().optional() // optional
 })
 
 export type newClass = typeof classes.$inferSelect
 export async function addClass(formData: FormData) {
     'use server';
+    // make sure user is logged in and has correct roles
+    // const session = await requireRole(["admin"])
+    // if (!session?.user) {
+    //     throw new Error("No user found");
+    // }
+    // const user = session.user.email;
+    const user = "testuser";
+
+    //drizzle-zod to validate that this is a valid object that can be inserted into database
+    const classInsertSchema = createInsertSchema(classes);
     try {
         const form = classFormSchema.parse(Object.fromEntries(formData));
-        const insertData = await db.transaction(async (tx) => {
-            const upgrade = await tx.select().from(classes)
-                .where(eq(classes.classid, parseInt(form.classupid)))
+        await db.transaction(async (tx) => {
+            // Check whether the class already exists
+            const exists = await tx
+                    .select()
+                    .from(classes)
+                    .where(and(
+                        eq(classes.classnamecn, form.classnamecn),
+                        eq(classes.status, "Active")
+                    ))
+                    .limit(1);
+            if (exists.length) {
+                throw new Error("Class already exists");
+            }
+
+            // Find the class that matches the selected class name (not id)
+            const upgrade = await tx
+                .select()
+                .from(classes)
+                .where(eq(classes.classnamecn, form.classupid))
                 .limit(1);
                 
             if (!upgrade || upgrade.length === 0) throw new Error("Invalid upgrade class");
-            
-            // Create a properly structured object matching the schema
-            return {
-                classnamecn: form.classnamecn,
-                classnameen: form.classnameen,
-                classno: String(form.classno),
-                classindex: String(form.classindex),
-                sizelimits: form.sizelimits,
-                classupid: upgrade[0].classid,
-                // Add default values for required fields
-                status: "Active",
-                typeid: 1, // Default typeid, replace with appropriate value
-            };
-        })  
 
-        //drizzle-zod to validate that this is a valid object that can be inserted into database
-        const classInsertSchema = createInsertSchema(classes);
-        const parsed = classInsertSchema.parse(insertData);
-        await db.insert(classes).values(parsed);
+            const newclassid = Number(randomUUID().slice(0, 8)); 
+            const newclass = {
+                ...form,
+                classid: newclassid,
+                classupid: upgrade[0].classid, // Use the found class ID
+                lastmodify: formatISO(new Date()),
+                createon: formatISO(new Date()),
+                updateon: formatISO(new Date()),
+                createby: user,
+                updateby: user
+            };
+
+            const parsed = classInsertSchema.parse(newclass);
+            await db.insert(classes).values(parsed);
+        });  
+
+        redirect(`/admintest/dashboard/classes`);
     } catch (error) {
-        redirect(`/add-class/?error=${encodeURIComponent((error as Error).message)}`);
+        console.error(error);
+        if (error instanceof ZodError) {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent(error.errors[0].message)}`);
+        } else if (error instanceof Error) {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent(error.message)}`);
+        } else {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent('An unknown error occurred')}`);
+        }
     }
 }
 
+
 export async function updateClass(formData: FormData) {
     'use server';
+    // make sure user is logged in and has correct roles
+    // const session = await requireRole(["admin"])
+    // if (!session?.user) {
+    //     throw new Error("No user found");
+    // }
+    // const user = session.user.email;
+    const user = "testuser";
+
+    //drizzle-zod to validate that this is a valid object that can be inserted into database
+    const classInsertSchema = createInsertSchema(classes);
     try {
         const form = classFormSchema.parse(Object.fromEntries(formData));
-        const insertData = await db.transaction(async (tx) => {
-            const upgrade = await tx.select().from(classes)
-                .where(eq(classes.classid, parseInt(form.classupid)))
+        await db.transaction(async (tx) => {
+            // Check whether the class already exists
+            const exists = await tx
+                    .select()
+                    .from(classes)
+                    .where(and(
+                        eq(classes.classnamecn, form.classnamecn),
+                        eq(classes.status, "Active")
+                    ))
+                    .limit(1);
+            if (exists.length) {
+                throw new Error("Class already exists");
+            }
+
+            // Find the class that matches the selected class name (not id)
+            const upgrade = await tx
+                .select()
+                .from(classes)
+                .where(eq(classes.classnamecn, form.classupid))
                 .limit(1);
                 
             if (!upgrade || upgrade.length === 0) throw new Error("Invalid upgrade class");
-            
-            // Create a properly structured object matching the schema
-            return {
-                classnamecn: form.classnamecn,
-                classnameen: form.classnameen,
-                classno: String(form.classno),
-                classindex: String(form.classindex),
-                sizelimits: form.sizelimits,
-                classupid: upgrade[0].classid,
-                // Add default values for required fields
-                status: "Active",
-                typeid: 1, // Default typeid, replace with appropriate value
-            };
-        })  
 
-        //drizzle-zod to validate that this is a valid object that can be inserted into database
-        const classInsertSchema = createInsertSchema(classes);
-        const parsed = classInsertSchema.parse(insertData);
-        await db.insert(classes).values(parsed);
+            const newclassid = Number(randomUUID().slice(0, 8)); 
+            const newclass = {
+                ...form,
+                classid: newclassid,
+                classupid: upgrade[0].classid, // Use the found class ID
+                lastmodify: formatISO(new Date()),
+                createon: formatISO(new Date()),
+                updateon: formatISO(new Date()),
+                createby: user,
+                updateby: user
+            };
+
+            const parsed = classInsertSchema.parse(newclass);
+            await db.insert(classes).values(parsed);
+        });  
+
+        redirect(`/admintest/dashboard/classes`);
     } catch (error) {
-        redirect(`/add-class/?error=${encodeURIComponent((error as Error).message)}`);
-    }
+        console.error(error);
+        if (error instanceof ZodError) {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent(error.errors[0].message)}`);
+        } else if (error instanceof Error) {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent(error.message)}`);
+        } else {
+            redirect(`/admintest/dashboard/add-class/?error=${encodeURIComponent('An unknown error occurred')}`);
+        }
+    } 
 }
 
 
@@ -92,10 +161,11 @@ export async function deleteRows<T extends AnyPgTable, PrimaryKey extends keyof 
 (
     table: T, 
     pk: PrimaryKey,
-    values: T['_']['columns'][PrimaryKey],
+    values: InferSelectModel<T>[PrimaryKey] | InferSelectModel<T>[PrimaryKey][] //number, number[]
 ) {
-    const col = getTableColumns(table)[pk]
-    return await db.delete(table).where(inArray(col, values)).returning();
+    const valueslist = Array.isArray(values) ? values : [values]
+    const column = getTableColumns(table)[pk]
+    return await db.delete(table).where(inArray(column, valueslist)).returning();
 }
 
 //----------------------------------------------------------------------------------------
@@ -157,6 +227,10 @@ export const classColumns = generateColumnDefs<Class>(classes, {
     },
 })
 
+export async function getAllClasses() {
+    const result = await db.select().from(classes);
+    return result;
+}
 
 export async function getClasses(page: number, pageSize: number, query:string = "") {
     const result = await db.select().from(classes);
