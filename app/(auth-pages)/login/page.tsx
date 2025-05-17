@@ -4,14 +4,14 @@ import { login } from '@/app/lib/actions';
 import Link from 'next/link';
 import Logo from '@/components/logo';
 import { FcGoogle } from "react-icons/fc";
+
 export default async function LoginPage({
     searchParams,
 }: {
-    searchParams: {
+    searchParams: Promise<{
         error?: string;
-    }
+    }>
 }) {
-
     const params = await searchParams;
     const showError = params?.error !== undefined;
 
