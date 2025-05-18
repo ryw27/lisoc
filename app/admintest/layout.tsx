@@ -1,8 +1,8 @@
-'use client';
+// 'use client';
 
 import React from 'react';
 import SideNav from '@/components/sidenav';
-import { Home, User, Users, School, CreditCard, Settings } from 'lucide-react';
+import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book } from 'lucide-react';
 import LogoutButton from '@/components/logout-button';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 import Header from '@/components/header';
@@ -13,49 +13,80 @@ const navItems = [
         header: "Admin",
         items: [
             {
-                label: "Dashboard",
+                label: "Home",
                 href: ["/admintest/dashboard"],
                 icon: <Home className="w-4 h-4 " />
             },
             {
-                label: "Registrations",
-                href: ["/admintest/dashboard/registrations", "/admintest/dashboard/registrations/students"],
-                icon: <Users className="w-4 h-4 " />
+                label: "Semester Management",
+                href: ["/admintest/dashboard/semester"],
+                icon: <Calendar className="w-4 h-4" />
             },
             {
+                label: "Feedback",
+                href: ["/admintest/dashboard/feedback"],
+                icon: <MessageCircle className="w-4 h-4" />
+            }
+        ],
+    },
+    {
+
+        header: "Accounting",
+        items: [
+            {
+                label: "Billing", // Collect Money and payments, payment for this semester, processing refunds, family balance
+                href: ["/admintest/dashboard/billing"],
+                icon: <CreditCard className="w-4 h-4 " />
+            }, 
+            {
+                label: "Payments", // Invoices for this semester, creating fees owed to the school
+                href: ["/admintest/dashboard/payments"],
+                icon: <FileText className="w-4 h-4 " />
+            },
+            {
+                label: "Transaction Reports", // Comprehensive financial transactions, including analysis, payments, refunds, family balnaces, and school balances
+                href: ["/admintest/dashboard/transaction-reports"],
+                icon: <Receipt className="w-4 h-4 " />
+            }, 
+        ],
+    },
+    {
+        header: "Data",
+        items: [ 
+            {
                 label: "Class View",
-                href: ["/admintest/dashboard/classes", "/admintest/dashboard/classrooms"],
+                href: ["/admintest/dashboard/class-view", "/admintest/dashboard/classroom-view"],
                 icon: <School className="w-4 h-4" />
             },
             {
-                label: "Teacher View",
-                href: ["/admintest/dashboard/teachers", "/admintest/dashboard/teachers/students"],
-                icon: <FaChalkboardTeacher className="w-4 h-4 " />
+                label: "People View",
+                href: ["/admintest/dashboard/teacher-view", "/admintest/dashboard/student-view", "/admintest/dashboard/family-view", "/admintest/dashboard/adminstrator-view"],
+                icon: <Users className="w-4 h-4 " />
             },
             {
-                label: "Parent View",
-                href: ["/admintest/dashboard/parents", "/admintest/dashboard/parents/students"],
-                icon: <User className="w-4 h-4 " />
+                label: "Semester View",
+                href: ["/admintest/dashboard/past-semesters", "/admintest/dashboard/past-arrangements"],
+                icon: <FaChalkboardTeacher className="w-4 h-4" />
+            },
+            {
+                label: "Transactions View",
+                href: ["/admintest/dashboard/transactions-view"],
+                icon: <DollarSign className="w-4 h-4" />
             }
         ]
     },  
-    {
-        header: "Transactions",
-        items: [
-            {
-                label: "Transactions",
-                href: ["/admintest/dashboard/transactions", "/admintest/dashboard/transactions/students"],
-                icon: <CreditCard className="w-4 h-4 " />
-            }
-        ]
-    },
     {
         header: "Settings",
         items: [
             {
                 label: "Settings",
-                href: ["/admintest/dashboard/settings", "/admintest/dashboard/settings/users"],
+                href: ["/admintest/dashboard/settings"],
                 icon: <Settings className="w-4 h-4 " />
+            },
+            {
+                label: "Site Guide",
+                href: ["/admintest/dashboard/site-guide"],
+                icon: <Book className="w-4 h-4" />
             },
             {
                 label: "Logout",
