@@ -1,8 +1,10 @@
 import { FilterableColumn, filterTypes, formatDate } from "../admintest/components/columns/column-types";
-import { getClassrooms, getClasses } from "@/app/admintest/dashboard/(class-pages)/class-helpers";
-import { AnyPgColumn, PgColumn } from 'drizzle-orm/pg-core';
+import { AnyPgColumn, AnyPgTable, PgColumn } from 'drizzle-orm/pg-core';
+import { InferSelectModel, getTableColumns, inArray } from "drizzle-orm";
 import * as schema from "@/app/lib/db/schema";
-import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
+import { db } from "./db";
+
+
 
 // ----------------------------------------------------------------
 // Filter Type Utilities
@@ -194,3 +196,20 @@ export function getStudentColumns() {
   });
 }
 
+
+export async function deleteRows<T extends AnyPgTable, PrimaryKey extends keyof T['_']['columns'] & string>
+(
+    table: T, 
+    pk: PrimaryKey,
+    values: InferSelectModel<T>[PrimaryKey] | InferSelectModel<T>[PrimaryKey][] //number, number[]
+) {
+    // const session = await requireRole(["ADMIN"]);
+    // if (!session?.user) {
+    //     throw new Error("Not authorized ");
+    //     return;
+    // } 
+
+    const valueslist = Array.isArray(values) ? values : [values]
+    const column = getTableColumns(table)[pk]
+    return await db.delete(table).where(inArray(column, valueslist)).returning();
+}
