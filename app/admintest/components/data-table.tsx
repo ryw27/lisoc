@@ -1,5 +1,5 @@
 "use client";
-import { ColumnDef, useReactTable, getCoreRowModel, flexRender, SortingState, ColumnPinningState } from "@tanstack/react-table"
+import { ColumnDef, useReactTable, getCoreRowModel, flexRender, SortingState, ColumnPinningState, Row } from "@tanstack/react-table"
 import { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -9,17 +9,21 @@ import TableHeader from "@/components/table-header";
 import { FilterableColumn } from "./columns/column-types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog'
-// import { deleteRows } from "../dashboard/(class-pages)/class-helpers";
+// import { deleteClasses } from "../dashboard/(class-pages)/class-helpers";
 
 
-type DataTableProps<TData> = {
+type DataTableProps<TData extends Record<string, any>, TId = string | number> = {
     data: TData[];
     columns: FilterableColumn<TData>[];
     totalCount: number;
     tableName: string;
+    primaryKey: string;
+    // getTableRowID: (row: TData) => TId;
+    deleteAction: (ids: TId[]) => Promise<void>;
 }
-
-export default function DataTable<TData>({data, columns, totalCount, tableName}: DataTableProps<TData>) {
+ 
+// TODO: Check Record<string, any>
+export default function DataTable<TData extends Record<string, any>, TId extends string | number>({data, columns, totalCount, tableName, primaryKey, deleteAction}: DataTableProps<TData, TId>) {
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -153,8 +157,9 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                                 )}
                                 onClick={() => {
                                     //TODO: find path
-                                    // router.push(``)
-                                    console.log("edit");
+                                    const row_id = row.getValue(primaryKey);
+                                    router.push(pathname + `${row_id}`)
+                                    // console.log("edit");
                                 }}
                             >
                                 <PencilIcon className="w-4 h-4 mr-2" /> Edit
@@ -166,7 +171,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                                     "text-red-500 hover:text-red-600"
                                 )}
                                 onClick={() => {
-                                    handleRowDelete();
+                                    handleDelete(row);
                                 }}
                             >
                                 <TrashIcon className="w-4 h-4 mr-2" /> Delete
@@ -219,6 +224,20 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
         router.replace(createPageURL(pageNumber));
     };
 
+    const handleDelete = async (selectedRow?: Row<TData>) => {
+        if (selectedRow) {
+            console.log("there is a row");
+            table.resetRowSelection(); // Make sure no others are toggled
+        }
+        console.log("deleting");
+        const selectedRows = selectedRow ? [selectedRow] : table.getSelectedRowModel().rows;
+        const ids = selectedRows.map(row => row.original[primaryKey]) as TId[];
+        console.log(ids);
+        if (!ids.length) return;
+        await deleteAction(ids);
+        table.resetRowSelection();
+    }
+
 
     const table = useReactTable({
         data,
@@ -233,6 +252,7 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
             sorting,
             columnVisibility // Select which columns to show
         },
+        // getRowId: row => String(getTableRowID(row)),
         enableRowSelection: true,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
@@ -244,11 +264,6 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
         pageCount: pageCount 
     });
 
-    // TODO: pass in table names and primary key
-    const handleRowDelete = () => {
-        console.log("Delete rows");
-        // deleteRows(tableName, primarykey, rowSelection);;
-    }
 
     // Memoize the columns passed to TableHeader
     const memoizedTableColumns = useMemo(() => table.getAllColumns(), [table]);
@@ -279,8 +294,8 @@ export default function DataTable<TData>({data, columns, totalCount, tableName}:
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleRowDelete}>Continue</AlertDialogAction>
+                                    <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete()} className="cursor-pointer">Continue</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
