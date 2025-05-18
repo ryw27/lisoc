@@ -53,7 +53,7 @@ export default async function AddClass({
                         <label className="block text-sm text-gray-400 font-bold mb-2">Class Name (中文)</label>
                         <Input 
                             type="text" 
-                            name="classnamecn" 
+                            name="classnamecn"
                             placeholder="中文课名字" 
                             className="rounded-sm !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
                             required
@@ -108,6 +108,7 @@ export default async function AddClass({
                             name="sizelimits"
                             placeholder="Enter the size limits"
                             className="rounded-sm !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
+                            required
                         />
                     </div>
                     <div className="flex gap-3 mb-6">
