@@ -99,8 +99,10 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen">
-            <SideNav items={navItems} />
-            <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="fixed h-screen">
+                <SideNav items={navItems} />
+            </div>
+            <div className="flex flex-col flex-1 overflow-hidden ml-64">
                 <Header />
                 <main className="flex-1 overflow-auto p-6 bg-white">
                     {children}
