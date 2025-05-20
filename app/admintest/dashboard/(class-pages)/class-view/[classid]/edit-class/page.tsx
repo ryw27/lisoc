@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/app/lib/db";
 import Link from "next/link";
-import { getAllClasses, updateClass } from "../../../class-helpers";
+import { getAllClasses, updateClass } from "../../class-helpers";
 import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from "@/components/ui/select";
 
 export default async function ClassEditPage({
