@@ -3,11 +3,12 @@ import { classes, classregistration, classrooms, classtype } from "@/app/lib/db/
 import { deleteRows, generateColumnDefs } from "@/app/lib/data-actions";
 import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
 import { z, ZodError } from 'zod';
-import { eq, and } from 'drizzle-orm';
+import { sql, eq, and, gt, lt, gte, lte, getTableColumns, or, asc, desc } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { formatISO } from "date-fns";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { ParsedFilter } from "@/app/lib/data-actions";
 // import { requireRole } from '@/app/lib/actions'
 
 
@@ -228,6 +229,48 @@ export const classColumns = generateColumnDefs<Class>(classes, {
     },
 })
 
+// export const classFilterSchema = z.object({
+//     classid: z.coerce.number().optional(),
+//     classindex: z.coerce.number().optional(),
+//     ageid: z.coerce.number().optional(),
+//     typeid: z.coerce.number().optional(),
+//     classno: z.coerce.number().optional(),
+//     classnamecn: z.string().optional(),
+//     upgradeclassid: z.coerce.number().optional(),
+//     classnameen: z.string().optional(),
+//     sizelimits: z.coerce.number().optional(),
+//     status: z.string().optional(),
+//     description: z.string().optional(),
+//     lastmodify: z.string().optional(),
+//     createby: z.string().optional(),
+//     createon: z.string().optional(),
+//     updateby: z.string().optional(),
+//     updateon: z.string().optional(),
+// })
+
+// export type ClassFilter = z.infer<typeof classFilterSchema>;
+
+
+export function buildClassSQL(filters: ParsedFilter[], match: string) {
+    console.log(filters);
+    const columns = getTableColumns(classes); // For compile-time type checking
+    const conds = filters.map(filter => {
+        if (!(filter.field in columns) && filter.field != "match") throw new Error(`Unknown filter field ${filter.field}`);
+        const col = columns[filter.field as keyof typeof columns]
+        const value = filter.value instanceof Date ? formatISO(filter.value) : filter.value;
+        switch(filter.op) {
+            case 'eq': return eq(col, value)
+            case 'lt': return lt(col, value)
+            case 'gt': return gt(col, value)
+            case 'lte': return lte(col, value)
+            case 'gte': return gte(col, value)
+        }
+    }).filter(Boolean); // Filter out any undefined conditions
+
+    if (conds.length === 0) return undefined;
+    return match === "all" ? and(...conds) : or(...conds);
+}
+
 // Get all classes
 export async function getAllClasses() {
     const result = await db.select().from(classes);
@@ -235,15 +278,35 @@ export async function getAllClasses() {
 }
 
 // Get classes with filter and pagination restrictions
-export async function getClasses(page: number, pageSize: number, query:string = "") {
-    const result = await db.select().from(classes);
-    const size = result.length;
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedResult = result.slice(start, end);
+export async function getClasses(page: number, pageSize: number, match: string, sortBy: string | undefined, sortOrder: string | undefined, query:ParsedFilter[]) {
+    const where = buildClassSQL(query, match);
+    const columns = getTableColumns(classes);
+    const sortbycolumn = sortBy ? columns[sortBy as keyof typeof columns] : undefined;
+    const orderByClause = sortbycolumn
+      ? (sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
+      : undefined;
+
+    const baseQuery = db
+        .select()
+        .from(classes)
+        .where(where);
+
+    const result = await (
+        orderByClause
+            ? baseQuery.orderBy(orderByClause)
+            : baseQuery
+        )
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)`})
+        .from(classes)
+        .where(where);
+
     return {
-        classes: paginatedResult,
-        totalCount: size,
+        classes: result,
+        totalCount: count,
     };
 }
 
@@ -281,7 +344,6 @@ export async function getClassrooms(page: number, pageSize: number, query:string
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     const paginatedResult = result.slice(start, end);
-    console.log(start, end, size, pageSize, page)
     return {
         classrooms: paginatedResult,
         totalCount: size,
