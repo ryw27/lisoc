@@ -1,5 +1,4 @@
 import { pgTable, smallint, varchar, integer, boolean, timestamp, numeric, bigint, char } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
 
 
 
@@ -507,7 +506,7 @@ export const seasons = pgTable("seasons", {
 	relatedseasonid: integer().notNull(),
 	beginseasonid: integer().notNull(),
 	haslateregfee: boolean().notNull(),
-	haslateregfee4Newfamily: boolean().notNull(),
+	haslateregfee4newfamily: boolean().notNull(),
 	hasdutyfee: boolean().notNull(),
 	startdate: timestamp({ mode: 'string' }).notNull(),
 	enddate: timestamp({ mode: 'string' }).notNull(),
@@ -519,12 +518,12 @@ export const seasons = pgTable("seasons", {
 	canceldeadline: timestamp({ mode: 'string' }).notNull(),
 	hasdeadline: boolean().notNull(),
 	status: varchar({ length: 50 }).notNull(),
-	open4Register: boolean().notNull(),
+	open4register: boolean().notNull(),
 	showadmissionnotice: boolean().notNull(),
 	showteachername: boolean().notNull(),
-	days4Showteachername: smallint().notNull(),
+	days4showteachername: smallint().notNull(),
 	allownewfamilytoregister: boolean().notNull(),
-	date4Newfamilytoregister: timestamp({ mode: 'string' }).notNull(),
+	date4newfamilytoregister: timestamp({ mode: 'string' }).notNull(),
 	notes: varchar({ length: 6000 }),
 	createddate: timestamp({ mode: 'string' }),
 	lastmodifieddate: timestamp({ mode: 'string' }),
