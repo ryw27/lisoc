@@ -1,199 +1,52 @@
-import { FilterableColumn, filterTypes, formatDate } from "../admintest/components/columns/column-types";
-import { AnyPgColumn, AnyPgTable, PgColumn } from 'drizzle-orm/pg-core';
-import { InferSelectModel, getTableColumns, inArray } from "drizzle-orm";
-import * as schema from "@/app/lib/db/schema";
+import { FilterableColumn, filterTypes } from "@/app/lib/column-actions";
+import { AnyPgColumn, AnyPgTable, parsePgNestedArray, PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
+import { InferInsertModel, InferSelectModel, eq, gt, lt, lte, gte, and, or, getTableColumns, inArray, sql, desc, asc } from "drizzle-orm";
 import { db } from "./db";
+import { formatISO } from "date-fns";
+import { z, ZodError, ZodObject, ZodSchema } from "zod";
+import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-
-
-// ----------------------------------------------------------------
-// Filter Type Utilities
-// ----------------------------------------------------------------
-
-/**
- * Maps Drizzle column types to filter types
- * @param column A Drizzle column from the schema
- * @returns The appropriate filter type as a string
- */
-export function getFilterTypeFromColumn(column: AnyPgColumn): string {
-  const pgColumn = column as PgColumn;
-  const dataType = pgColumn?.dataType?.toLowerCase() || '';
-  
-  if (dataType.includes('varchar') || dataType.includes('text') || dataType.includes('char')) {
-    return 'text';
-  } else if (dataType.includes('int') || dataType.includes('decimal') || dataType.includes('numeric') || dataType.includes('float')) {
-    return 'number';
-  } else if (dataType.includes('timestamp') || dataType.includes('date')) {
-    return 'date';
-  } else if (dataType.includes('boolean')) {
-    return 'enum';
-  }
-  
-  return 'text'; // Default to text for unknown types
-}
-
-/**
- * Creates a filter configuration based on the column type
- * @param type The type of the column ('text', 'enum', 'number', 'date')
- * @returns A filter configuration object
- */
-function defaultFilter(type: string): filterTypes {
-  switch (type) {
-    case 'text':
-      return { type: 'text', mode: ['='] };
-    case 'enum':
-      return { type: 'enum', mode: ['=', '≠'], options: [] };
-    case 'number':
-      return { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] };
-    case 'date':
-      return { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='], options: ['hours', 'days', 'months', 'years'] };
-    default:
-      return { type: 'text', mode: ['='] };
-  }
-}
-
-// ----------------------------------------------------------------
-// Column Definition Generators
-// ----------------------------------------------------------------
-
-/**
- * Checks if a column is a PgColumn
- * @param column The column to check
- * @returns True if the column is a PgColumn, false otherwise - used to filter out non-column properties like enableRLS
- */
-function isPgColumn(column: AnyPgColumn): column is PgColumn {
-  return !!column && typeof column === 'object' && 'dataType' in (column as any);
-}
-
-
-/**
- * Generates column definitions with filter metadata from a Drizzle schema table
- * @type {T} The type of the table, derived from the schema: can be classes, teacher, student, etc.
- * @param table A Drizzle schema table
- * @param overrides Optional overrides for specific columns
- * @returns An array of column definitions with filter metadata. Used for the table component.
- */
-export function generateColumnDefs<T extends object>(
-  table: { [K in keyof T]: AnyPgColumn },
-  overrides: Partial<Record<keyof T, Partial<FilterableColumn<T>>>> = {}
-): FilterableColumn<T>[] {
-  try {
-    return Object.entries(table)
-    .filter(([, column]) => isPgColumn(column as AnyPgColumn))
-    .map(([key, column]) => {
-      const baseKey = key as keyof T;
-      const columnType = getFilterTypeFromColumn(column as AnyPgColumn);
-      const baseFilter = defaultFilter(columnType);
-      
-      // For boolean columns, add true/false options
-      if (columnType === 'enum' && (column as PgColumn)?.dataType?.toLowerCase().includes('boolean')) {
-        (baseFilter as any).options = ['true', 'false'];
-      }
-      
-      return {
-        id: key,
-        accessorKey: columnType === 'date' ? undefined : key,
-        accessorFn: columnType === 'date' ? (row) => formatDate(new Date(row[key as keyof T] as string)) : undefined,
-        header: key,
-        meta: {
-          filter: baseFilter
-        },
-        ...overrides[baseKey],
-      };
-    }) as FilterableColumn<T>[];
-  } catch (error) {
-    console.error('Error generating column definitions:', error);
-    return [];
-  }
-}
-
-
-// ----------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // Schema-Specific Column Definitions
-// ----------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 
-/**
- * Generates column definitions for the classes table
- * @returns Properly filtered and formatted column definitions for classes
- */
-export function getClassColumns() {
-  return generateColumnDefs(schema.classes, {
-    classnamecn: {
-      header: "Class Name (CN)",
-      meta: {
-        filter: {
-          type: 'text',
-          mode: ['=']
-        }
-      }
-    },
-    classnameen: {
-      header: "Class Name (EN)"
-    },
-    classid: {
-      header: "Class ID"
-    },
-    lastmodify: {
-      header: "Last Modified"
-    }
-  });
+export async function getAllRows<T extends AnyPgTable>(table: T) {
+    return await db.select().from(table as AnyPgTable);
 }
 
-/**
- * Generates column definitions for the teacher table
- * @returns Properly filtered and formatted column definitions for teachers
- */
-export function getTeacherColumns() {
-  return generateColumnDefs(schema.teacher, {
-    teacherid: {
-      header: "Teacher ID"
-    },
-    namecn: {
-      header: "Name (Chinese)"
-    },
-    namefirsten: {
-      header: "First Name"
-    },
-    namelasten: {
-      header: "Last Name"
-    },
-    status: {
-      meta: {
-        filter: {
-          type: 'enum',
-          mode: ['=', '≠'],
-          options: ['Active', 'Inactive', 'On Leave']
-        }
-      }
-    },
-    lastlogin: {
-      header: "Last Login"
-    }
-  });
-}
+export async function getRows<T extends AnyPgTable>(table: T, page: number, pageSize: number, match: string, sortBy: string | undefined, sortOrder: string | undefined, query:ParsedFilter[]) {
+    // const where = buildClassSQL(query, match);
+    const where = query ? buildSQL(table, query, match) : undefined;
+    const columns = getTableColumns(table);
+    const sortbycolumn = sortBy ? columns[sortBy as keyof typeof columns] : undefined;
+    const orderByClause = sortbycolumn
+      ? (sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
+      : undefined;
 
-/**
- * Generates column definitions for the student table
- * @returns Properly filtered and formatted column definitions for students
- */
-export function getStudentColumns() {
-  return generateColumnDefs(schema.student, {
-    studentid: {
-      header: "Student ID"
-    },
-    namecn: {
-      header: "Name (Chinese)"
-    },
-    namefirsten: {
-      header: "First Name"
-    },
-    namelasten: {
-      header: "Last Name"
-    },
-    dob: {
-      header: "Date of Birth"
-    }
-  });
+    const baseQuery = db
+        .select()
+        .from(table as AnyPgTable)
+        .where(where);
+
+    const result = await (
+        orderByClause
+            ? baseQuery.orderBy(orderByClause)
+            : baseQuery
+        )
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)`})
+        .from(table as AnyPgTable)
+        .where(where);
+
+    return {
+        rows: result,
+        totalCount: count,
+    };
 }
 
 
@@ -213,3 +66,352 @@ export async function deleteRows<T extends AnyPgTable, PrimaryKey extends keyof 
     const column = getTableColumns(table)[pk]
     return await db.delete(table).where(inArray(column, valueslist)).returning();
 }
+
+
+
+// Helper zod to turn all query paramaters into the correct type
+export const primitive = z.union([
+    z.enum(["Active", "Inactive"]),
+    z.coerce.number(),
+    z.coerce.date(),
+    z.string(),
+])
+
+// Parsed filters only, not including page, pageSize, sortBy, sortOrder, match
+export type ParsedFilter = {
+    field: string, // The column that is being filtered
+    op: 'eq' | 'lt' | 'gt' | 'gte' | 'lte', // Operation on clumn
+    value: z.infer<typeof primitive> // Correctly coerce value into the correct JS type
+}
+
+// Paramaters after proper parsing done
+export type parsedParams = {
+	page: number,
+	pageSize: number,
+	sortBy: string | undefined,
+	sortOrder: 'asc' | 'desc' | undefined,
+	match: 'all' | 'any'
+	query: ParsedFilter[]
+}
+
+// General search params when they come in from the URL
+export type SearchParams = {
+    page: string | undefined;
+    pageSizes: string | undefined;
+    sortBy: string | undefined;
+    sortOrder: 'asc' | 'desc' | undefined
+    match: 'any' | 'all' | undefined
+    [key: string]: string | undefined; // Allow for additional query parameters
+}
+
+export async function parseParams(searchParams: Promise<SearchParams>) {
+	const params = await searchParams;
+    const out: parsedParams = {
+		page: 1,
+		pageSize: 10,
+		sortBy: undefined,
+		sortOrder: undefined,
+		match: 'all',
+		query: []
+	}
+
+    Object.entries(params).forEach(([rawKey, rawValue]) => {
+		if (rawValue === undefined) return;
+		if (rawKey == "pageSize") {
+			const parsed = parseInt(rawValue);
+			if (!isNaN(parsed) && parsed > 0) out.pageSize = parsed;
+		}
+		if (rawKey == "page") {
+			const parsed = parseInt(rawValue);
+			if (!isNaN(parsed) && parsed > 0) out.page = parsed;
+		}
+		if (rawKey == "sortBy") {
+			const parsed = rawValue;
+			if (parsed !== undefined) out.sortBy = parsed;
+		}
+		if (rawKey == "sortOrder") {
+			const parsed = rawValue;
+			if (parsed !== undefined) out.sortOrder = parsed as 'asc' | 'desc';
+		}
+		if (rawKey == "match") out.match = rawValue as 'all' | 'any';
+	})
+
+	out.query = parseFilters(params);
+	return out;
+}
+
+
+export function parseFilters(params: Record<string, string | undefined>) {
+    const out: ParsedFilter[] = []
+    Object.entries(params).forEach(([rawKey, rawValue]) => {
+        if (rawValue === undefined) return; 
+		if (rawKey == "match") return;
+		if (rawKey == "pageSize" || rawKey == "page") return;
+		if (rawKey == "sortBy" || rawKey == "sortOrder") return;
+        let field = rawKey;
+        let op: ParsedFilter['op'] = 'eq';
+        const reg = rawKey.match(/^(.+)\[(gte|lte|gt|lt)\]$/)
+        if (reg) {
+            field = reg[1];
+            op = reg[2] as ParsedFilter['op']
+        }
+
+        const value = primitive.parse(rawValue);
+        out.push({field, op, value});
+    })
+    return out;
+}
+
+export function buildSQL<T extends AnyPgTable>(table: T, filters: ParsedFilter[], match: string) {
+    const columns = getTableColumns(table); // For compile-time type checking
+    const conds = filters.map(filter => {
+        if (!(filter.field in columns) && filter.field != "match") throw new Error(`Unknown filter field ${filter.field}`);
+        const col = columns[filter.field as keyof typeof columns]
+        const value = filter.value instanceof Date ? formatISO(filter.value) : filter.value;
+        switch(filter.op) {
+            case 'eq': return eq(col, value)
+            case 'lt': return lt(col, value)
+            case 'gt': return gt(col, value)
+            case 'lte': return lte(col, value)
+            case 'gte': return gte(col, value)
+        }
+    }).filter(Boolean); // Filter out any undefined conditions
+
+    if (conds.length === 0) return undefined;
+    return match === "all" ? and(...conds) : or(...conds);
+}
+
+export function addRow<
+	T extends AnyPgTable, 
+	Form extends ZodSchema, 
+	Upgrade extends object = {},
+	Extra extends object = {}
+>(
+	opts: {
+		table: T;
+		formSchema: Form;
+		enrich: (
+			parsed: z.infer<Form>,
+			tx: PgTransaction<any, any, any>,
+		) => Promise<Upgrade>;
+		uniqueCheck?: (
+			item: z.infer<Form> & Upgrade & Extra,
+			tx: PgTransaction<any, any, any>,
+		) => Promise<void>;
+		extras: Extra,
+		redirectPath: string
+	}
+) {
+	type Row = InferInsertModel<T>;
+	const insertSchema = createInsertSchema(opts.table);
+
+	// TODO: Auth checks
+
+	return async function createItem(formData: FormData) {
+		"use server";
+		try {
+			const form = opts.formSchema.parse(Object.fromEntries(formData));
+			await db.transaction(async tx => {
+				const enrichedForm = await opts.enrich(form, tx);
+
+				const fullItemData = {
+					...form,
+					...enrichedForm,
+					...(opts.extras ?? {})
+				};
+
+				if (opts.uniqueCheck) {
+					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
+				}
+
+				const itemToInsert: Row = fullItemData as Row;
+				insertSchema.parse(itemToInsert); // Validate against table schema
+				await tx.insert(opts.table).values(itemToInsert);
+			})
+			revalidatePath(opts.redirectPath)
+			redirect(opts.redirectPath)
+		} catch (error) {
+			console.error(error);
+			const msg = 
+				error instanceof ZodError
+					? error.errors[0].message
+					: error instanceof Error
+						? error.message
+						: "Unknown error occured";
+			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
+		}
+	}
+}
+
+
+// At this point it will have been parsed by form schema, now parse with update schema
+export function updateRow<
+	T extends AnyPgTable, 
+	Form extends ZodSchema, 
+	PrimaryKey extends keyof T['_']['columns'],
+	Upgrade extends object = {},
+	Extra extends object = {}
+>(
+	opts: {
+		table: T;
+		formSchema: Form;
+		pk: PrimaryKey;
+		enrich: (
+			parsed: z.infer<Form>,
+			tx: PgTransaction<any, any, any>,
+		) => Promise<Upgrade>;
+		uniqueCheck?: (
+			item: z.infer<Form> & Upgrade & Extra,
+			tx: PgTransaction<any, any, any>,
+		) => Promise<void>;
+		extras: Extra,
+		redirectPath: string
+	}
+) {
+	type Row = InferInsertModel<T>;
+	const updateSchema = createUpdateSchema(opts.table);
+
+	// TODO: Auth checks
+
+	return async function updateItem(formData: FormData, id_col: string) {
+		"use server";
+		try {
+			const form = opts.formSchema.parse(Object.fromEntries(formData));
+			await db.transaction(async tx => {
+				const enrichedForm = await opts.enrich(form, tx);
+
+				const fullItemData = {
+					...form,
+					...enrichedForm,
+					...(opts.extras ?? {})
+				};
+
+				if (opts.uniqueCheck) {
+					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
+				}
+
+				const itemToUpdate: Row = fullItemData as Row;
+				updateSchema.parse(itemToUpdate); // Validate against table schema
+				const pkColumn = getTableColumns(opts.table)[opts.pk];
+				await tx.update(opts.table).set(itemToUpdate).where(eq(pkColumn, id_col));
+			})
+			revalidatePath(opts.redirectPath)
+			redirect(opts.redirectPath)
+		} catch (error) {
+			console.error(error);
+			const msg = 
+				error instanceof ZodError
+					? error.errors[0].message
+					: error instanceof Error
+						? error.message
+						: "Unknown error occured";
+			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
+		}
+	}
+}
+
+
+// type rows<T extends AnyPgTable> = InferSelectMode<T>;
+
+export function makeOperations<
+	T extends AnyPgTable, 
+	PrimaryKeyName extends keyof T['_']['columns'] & string,
+>(
+	opts:{
+		table: T,
+		pk: PrimaryKeyName,
+		revalidatePath: string;
+	}
+) {
+	const { table, pk: pkName, revalidatePath: defaultRedirectPath } = opts;
+
+	// Queries
+	const allRows = () => {
+		return getAllRows<T>(table);
+	}
+
+	const someRows = (
+		page: number,
+		pageSize: number, 
+		match: string, 
+    	sortBy: keyof T['_']['columns'] & string | undefined, 
+		sortOrder: 'asc' | 'desc' | undefined, 
+		query:ParsedFilter[]
+	) => getRows<T>(table, page, pageSize, match, sortBy, sortOrder, query);
+
+	const deleteOp = async (ids: (InferSelectModel<T>[PrimaryKeyName])[]) => {
+		'use server';
+		await deleteRows(table, pkName, ids);
+		revalidatePath(defaultRedirectPath);
+	};
+
+	const addOp = <
+		FormSchema extends ZodSchema,
+		EnrichReturn extends object = {},
+		ExtraData extends object = {}
+	>(
+		addOpts: {
+			formSchema: FormSchema;
+			enrich: (
+				parsed: z.infer<FormSchema>,
+				tx: PgTransaction<any, any, any>,
+			) => Promise<EnrichReturn>;
+			uniqueCheck?: (
+				item: z.infer<FormSchema> & EnrichReturn & ExtraData,
+				tx: PgTransaction<any, any, any>,
+			) => Promise<void>;
+			extras?: ExtraData;
+			redirectPath?: string;
+		}
+	) => {
+		return addRow({
+			table,
+			formSchema: addOpts.formSchema,
+			enrich: addOpts.enrich,
+			uniqueCheck: addOpts.uniqueCheck,
+			extras: addOpts.extras ?? {} as ExtraData,
+			redirectPath: addOpts.redirectPath ?? defaultRedirectPath,
+		});
+	};
+
+	const updateOp = <
+		FormSchema extends ZodSchema,
+		EnrichReturn extends object = {},
+		ExtraData extends object = {}
+	>(
+		updateOpts: {
+			formSchema: FormSchema;
+			enrich: (
+				parsed: z.infer<FormSchema>,
+				tx: PgTransaction<any, any, any>,
+			) => Promise<EnrichReturn>;
+			uniqueCheck?: (
+				item: z.infer<FormSchema> & EnrichReturn & ExtraData,
+				tx: PgTransaction<any, any, any>,
+			) => Promise<void>;
+			extras?: ExtraData;
+			redirectPath?: string;
+		}
+	) => {
+		return updateRow({
+			table,
+			formSchema: updateOpts.formSchema,
+			pk: pkName,
+			enrich: updateOpts.enrich,
+			uniqueCheck: updateOpts.uniqueCheck,
+			extras: updateOpts.extras ?? {} as ExtraData,
+			redirectPath: updateOpts.redirectPath ?? defaultRedirectPath,
+		});
+	};
+
+	return {
+		table,
+		pk: pkName,
+		allRows,
+		someRows,
+		deleteOp,
+		addOp,
+		updateOp		
+	}
+}
+
