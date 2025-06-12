@@ -1,172 +1,26 @@
-import { FilterableColumn, filterTypes } from "@/app/lib/column-actions";
-import { AnyPgColumn, AnyPgTable, parsePgNestedArray, PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
-import { InferInsertModel, InferSelectModel, eq, gt, lt, lte, gte, and, or, getTableColumns, inArray, sql, desc, asc } from "drizzle-orm";
+import { AnyPgColumn, AnyPgTable, ForeignKeyBuilder, PgTransaction } from 'drizzle-orm/pg-core';
+import { InferInsertModel, InferSelectModel, eq, gt, lt, lte, gte, and, or, getTableColumns, inArray, sql, desc, asc, SQL } from "drizzle-orm";
 import { db } from "./db";
+import * as schema from "./db/schema";
 import { formatISO } from "date-fns";
-import { z, ZodError, ZodObject, ZodSchema } from "zod";
+import { z, ZodError, ZodSchema } from "zod";
 import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ParsedFilter } from "./handle-params";
+import { Table, TableName, ColKey, ColVal, PKVal, PKName, FKCol, FKVal } from "./entity-types";
+import { primKeyMap } from './entity-types';
+import { parsedParams } from './handle-params';
 
 // ------------------------------------------------------------------------------------------------
-// Schema-Specific Column Definitions
-// -------------------------------------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------------------------------------
 
-export async function getAllRows<T extends AnyPgTable>(table: T) {
-    return await db.select().from(table as AnyPgTable);
-}
-
-export async function getRows<T extends AnyPgTable>(table: T, page: number, pageSize: number, match: string, sortBy: string | undefined, sortOrder: string | undefined, query:ParsedFilter[]) {
-    // const where = buildClassSQL(query, match);
-    const where = query ? buildSQL(table, query, match) : undefined;
-    const columns = getTableColumns(table);
-    const sortbycolumn = sortBy ? columns[sortBy as keyof typeof columns] : undefined;
-    const orderByClause = sortbycolumn
-      ? (sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
-      : undefined;
-
-    const baseQuery = db
-        .select()
-        .from(table as AnyPgTable)
-        .where(where);
-
-    const result = await (
-        orderByClause
-            ? baseQuery.orderBy(orderByClause)
-            : baseQuery
-        )
-        .limit(pageSize)
-        .offset((page - 1) * pageSize);
-
-    const [{ count }] = await db
-        .select({ count: sql<number>`count(*)`})
-        .from(table as AnyPgTable)
-        .where(where);
-
-    return {
-        rows: result,
-        totalCount: count,
-    };
-}
-
-
-export async function deleteRows<T extends AnyPgTable, PrimaryKey extends keyof T['_']['columns'] & string>
-(
-    table: T, 
-    pk: PrimaryKey,
-    values: InferSelectModel<T>[PrimaryKey] | InferSelectModel<T>[PrimaryKey][] //number, number[]
-) {
-    // const session = await requireRole(["ADMIN"]);
-    // if (!session?.user) {
-    //     throw new Error("Not authorized ");
-    //     return;
-    // } 
-
-    const valueslist = Array.isArray(values) ? values : [values]
-    const column = getTableColumns(table)[pk]
-    return await db.delete(table).where(inArray(column, valueslist)).returning();
-}
-
-
-
-// Helper zod to turn all query paramaters into the correct type
-export const primitive = z.union([
-    z.enum(["Active", "Inactive"]),
-    z.coerce.number(),
-    z.coerce.date(),
-    z.string(),
-])
-
-// Parsed filters only, not including page, pageSize, sortBy, sortOrder, match
-export type ParsedFilter = {
-    field: string, // The column that is being filtered
-    op: 'eq' | 'lt' | 'gt' | 'gte' | 'lte', // Operation on clumn
-    value: z.infer<typeof primitive> // Correctly coerce value into the correct JS type
-}
-
-// Paramaters after proper parsing done
-export type parsedParams = {
-	page: number,
-	pageSize: number,
-	sortBy: string | undefined,
-	sortOrder: 'asc' | 'desc' | undefined,
-	match: 'all' | 'any'
-	query: ParsedFilter[]
-}
-
-// General search params when they come in from the URL
-export type SearchParams = {
-    page: string | undefined;
-    pageSizes: string | undefined;
-    sortBy: string | undefined;
-    sortOrder: 'asc' | 'desc' | undefined
-    match: 'any' | 'all' | undefined
-    [key: string]: string | undefined; // Allow for additional query parameters
-}
-
-export async function parseParams(searchParams: Promise<SearchParams>) {
-	const params = await searchParams;
-    const out: parsedParams = {
-		page: 1,
-		pageSize: 10,
-		sortBy: undefined,
-		sortOrder: undefined,
-		match: 'all',
-		query: []
-	}
-
-    Object.entries(params).forEach(([rawKey, rawValue]) => {
-		if (rawValue === undefined) return;
-		if (rawKey == "pageSize") {
-			const parsed = parseInt(rawValue);
-			if (!isNaN(parsed) && parsed > 0) out.pageSize = parsed;
-		}
-		if (rawKey == "page") {
-			const parsed = parseInt(rawValue);
-			if (!isNaN(parsed) && parsed > 0) out.page = parsed;
-		}
-		if (rawKey == "sortBy") {
-			const parsed = rawValue;
-			if (parsed !== undefined) out.sortBy = parsed;
-		}
-		if (rawKey == "sortOrder") {
-			const parsed = rawValue;
-			if (parsed !== undefined) out.sortOrder = parsed as 'asc' | 'desc';
-		}
-		if (rawKey == "match") out.match = rawValue as 'all' | 'any';
-	})
-
-	out.query = parseFilters(params);
-	return out;
-}
-
-
-export function parseFilters(params: Record<string, string | undefined>) {
-    const out: ParsedFilter[] = []
-    Object.entries(params).forEach(([rawKey, rawValue]) => {
-        if (rawValue === undefined) return; 
-		if (rawKey == "match") return;
-		if (rawKey == "pageSize" || rawKey == "page") return;
-		if (rawKey == "sortBy" || rawKey == "sortOrder") return;
-        let field = rawKey;
-        let op: ParsedFilter['op'] = 'eq';
-        const reg = rawKey.match(/^(.+)\[(gte|lte|gt|lt)\]$/)
-        if (reg) {
-            field = reg[1];
-            op = reg[2] as ParsedFilter['op']
-        }
-
-        const value = primitive.parse(rawValue);
-        out.push({field, op, value});
-    })
-    return out;
-}
-
-export function buildSQL<T extends AnyPgTable>(table: T, filters: ParsedFilter[], match: string) {
-    const columns = getTableColumns(table); // For compile-time type checking
+export function buildSQL<N extends TableName, T extends Table<N>>(table: T, filters: ParsedFilter[], match: string): SQL<unknown> | undefined {
+    const columns = getTableColumns(table as AnyPgTable); // For compile-time type checking
     const conds = filters.map(filter => {
         if (!(filter.field in columns) && filter.field != "match") throw new Error(`Unknown filter field ${filter.field}`);
-        const col = columns[filter.field as keyof typeof columns]
+        const col = columns[filter.field as keyof typeof columns] as AnyPgColumn;
         const value = filter.value instanceof Date ? formatISO(filter.value) : filter.value;
         switch(filter.op) {
             case 'eq': return eq(col, value)
@@ -181,237 +35,453 @@ export function buildSQL<T extends AnyPgTable>(table: T, filters: ParsedFilter[]
     return match === "all" ? and(...conds) : or(...conds);
 }
 
-export function addRow<
-	T extends AnyPgTable, 
-	Form extends ZodSchema, 
-	Upgrade extends object = {},
-	Extra extends object = {}
->(
-	opts: {
-		table: T;
-		formSchema: Form;
-		enrich: (
-			parsed: z.infer<Form>,
-			tx: PgTransaction<any, any, any>,
-		) => Promise<Upgrade>;
-		uniqueCheck?: (
-			item: z.infer<Form> & Upgrade & Extra,
-			tx: PgTransaction<any, any, any>,
-		) => Promise<void>;
-		extras: Extra,
-		redirectPath: string
-	}
-) {
-	type Row = InferInsertModel<T>;
-	const insertSchema = createInsertSchema(opts.table);
+export type Extras<N extends TableName> = {[K in ColKey<N>]?: ColVal<N,K>};
 
-	// TODO: Auth checks
+export type uniqueCheckFields<N extends TableName, FormSchema extends ZodSchema> = {
+	tableCol: ColKey<N>;
+	formVal: keyof FormSchema;
+}
 
-	return async function createItem(formData: FormData) {
-		"use server";
-		try {
-			const form = opts.formSchema.parse(Object.fromEntries(formData));
-			await db.transaction(async tx => {
-				const enrichedForm = await opts.enrich(form, tx);
-
-				const fullItemData = {
-					...form,
-					...enrichedForm,
-					...(opts.extras ?? {})
-				};
-
-				if (opts.uniqueCheck) {
-					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
-				}
-
-				const itemToInsert: Row = fullItemData as Row;
-				insertSchema.parse(itemToInsert); // Validate against table schema
-				await tx.insert(opts.table).values(itemToInsert);
-			})
-			revalidatePath(opts.redirectPath)
-			redirect(opts.redirectPath)
-		} catch (error) {
-			console.error(error);
-			const msg = 
-				error instanceof ZodError
-					? error.errors[0].message
-					: error instanceof Error
-						? error.message
-						: "Unknown error occured";
-			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
-		}
+export type enrichFields<N extends TableName, FormSchema extends ZodSchema> = {
+	[FK in FKCol<N>]?: {
+		formFields: keyof z.infer<FormSchema>;
+		lookupTable: TableName;
+		lookupField: ColKey<N>;
+		returnField: string;
 	}
 }
 
+// ------------------------------------------------------------------------------------------------
+// Create CRUD operations for an entity
+// -------------------------------------------------------------------------------------------------
 
-// At this point it will have been parsed by form schema, now parse with update schema
-export function updateRow<
-	T extends AnyPgTable, 
-	Form extends ZodSchema, 
-	PrimaryKey extends keyof T['_']['columns'],
-	Upgrade extends object = {},
-	Extra extends object = {}
->(
-	opts: {
-		table: T;
-		formSchema: Form;
-		pk: PrimaryKey;
-		enrich: (
-			parsed: z.infer<Form>,
-			tx: PgTransaction<any, any, any>,
-		) => Promise<Upgrade>;
-		uniqueCheck?: (
-			item: z.infer<Form> & Upgrade & Extra,
-			tx: PgTransaction<any, any, any>,
-		) => Promise<void>;
-		extras: Extra,
-		redirectPath: string
+
+export async function uniqueCheck<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
+	table: T,
+	entity_name: string,
+	parsed: z.infer<FormSchema>,
+	tx: PgTransaction<any, typeof schema, any>,
+	uniqueConstraints: uniqueCheckFields<N, FormSchema>[]
+): Promise<void> {
+	// TODO: Implement
+	let chainedQueries: SQL<unknown> | undefined;
+	const columns = getTableColumns(table as AnyPgTable);
+	for (const constraint of uniqueConstraints) {
+		const condition = eq(columns[constraint.tableCol], parsed[constraint.formVal]);
+		chainedQueries = chainedQueries ? and(chainedQueries, condition) : condition;
 	}
-) {
-	type Row = InferInsertModel<T>;
-	const updateSchema = createUpdateSchema(opts.table);
 
-	// TODO: Auth checks
+	const exists = await tx
+		.select()
+		.from(table as AnyPgTable)
+		.where(chainedQueries)
+		.limit(1);
 
-	return async function updateItem(formData: FormData, id_col: string) {
-		"use server";
-		try {
-			const form = opts.formSchema.parse(Object.fromEntries(formData));
-			await db.transaction(async tx => {
-				const enrichedForm = await opts.enrich(form, tx);
-
-				const fullItemData = {
-					...form,
-					...enrichedForm,
-					...(opts.extras ?? {})
-				};
-
-				if (opts.uniqueCheck) {
-					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
-				}
-
-				const itemToUpdate: Row = fullItemData as Row;
-				updateSchema.parse(itemToUpdate); // Validate against table schema
-				const pkColumn = getTableColumns(opts.table)[opts.pk];
-				await tx.update(opts.table).set(itemToUpdate).where(eq(pkColumn, id_col));
-			})
-			revalidatePath(opts.redirectPath)
-			redirect(opts.redirectPath)
-		} catch (error) {
-			console.error(error);
-			const msg = 
-				error instanceof ZodError
-					? error.errors[0].message
-					: error instanceof Error
-						? error.message
-						: "Unknown error occured";
-			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
-		}
+	if (exists.length) {
+		throw new Error(`${entity_name} already exists`);
 	}
 }
 
-
-// type rows<T extends AnyPgTable> = InferSelectMode<T>;
+export async function enrich<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
+	tableName: N,
+	table: T,
+	parsed: z.infer<FormSchema>,
+	tx: PgTransaction<any, typeof schema, any>,
+	enrichFields: enrichFields<N, FormSchema>[]
+): Promise<Omit<InferInsertModel<T>, keyof z.infer<FormSchema> | 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'>> {
+	// TODO: Implement
+	// You want to change a bunch of form elements to their actual internal representation in the
+	return parsed;
+}
 
 export function makeOperations<
-	T extends AnyPgTable, 
-	PrimaryKeyName extends keyof T['_']['columns'] & string,
+	N extends TableName,
+	T extends Table<N>,
+	FormSchema extends ZodSchema
 >(
-	opts:{
-		table: T,
-		pk: PrimaryKeyName,
-		revalidatePath: string;
-	}
+	tableName: N,
+	table: T,
+	formSchema: FormSchema,
+	revalidatePath: string,
+	enrich: ( // Changes form elements to match the actual schema, i.e. classupid should be inputted as a classname, but changed to ID
+		parsed: z.infer<FormSchema>,
+		tx: PgTransaction<any, typeof schema, any>,
+	) => Promise<Omit<InferInsertModel<T>, keyof z.infer<FormSchema> | 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'>>, 
+	uniqueCheck?: ( // Check before inserting the entity. ATP the data is ready to be inserted, just needs to be checked for existence
+		item: InferInsertModel<T>,
+		tx: PgTransaction<any, typeof schema, any>,
+	) => Promise<void>, // Should just throw an error
 ) {
-	const { table, pk: pkName, revalidatePath: defaultRedirectPath } = opts;
+	// type RowSelect = typeof table["$inferSelect"]; // Use instead of 
+	// type RowInsert = typeof table["$inferInsert"];
+	type RowSelect = InferSelectModel<T>;
+	type RowInsert = InferInsertModel<T>;
 
-	// Queries
-	const allRows = () => {
-		return getAllRows<T>(table);
-	}
+	type PK = PKName<N>;
+	type ID = PKVal<N>;
 
-	const someRows = (
-		page: number,
-		pageSize: number, 
-		match: string, 
-    	sortBy: keyof T['_']['columns'] & string | undefined, 
-		sortOrder: 'asc' | 'desc' | undefined, 
-		query:ParsedFilter[]
-	) => getRows<T>(table, page, pageSize, match, sortBy, sortOrder, query);
 
-	const deleteOp = async (ids: (InferSelectModel<T>[PrimaryKeyName])[]) => {
-		'use server';
-		await deleteRows(table, pkName, ids);
-		revalidatePath(defaultRedirectPath);
-	};
+	// Must do to satisfy drizzle since N is a union type which drizzle complains about
+	// Strict type checking on paramaters means it's not a big deal, we already know the table and prim key at this point is fine
+	const anyTable = table as unknown as AnyPgTable;
+	const anyColumn = (table as any)[primKeyMap[tableName] as PK] as AnyPgColumn; 
 
-	const addOp = <
-		FormSchema extends ZodSchema,
-		EnrichReturn extends object = {},
-		ExtraData extends object = {}
-	>(
-		addOpts: {
-			formSchema: FormSchema;
-			enrich: (
-				parsed: z.infer<FormSchema>,
-				tx: PgTransaction<any, any, any>,
-			) => Promise<EnrichReturn>;
-			uniqueCheck?: (
-				item: z.infer<FormSchema> & EnrichReturn & ExtraData,
-				tx: PgTransaction<any, any, any>,
-			) => Promise<void>;
-			extras?: ExtraData;
-			redirectPath?: string;
-		}
-	) => {
-		return addRow({
-			table,
-			formSchema: addOpts.formSchema,
-			enrich: addOpts.enrich,
-			uniqueCheck: addOpts.uniqueCheck,
-			extras: addOpts.extras ?? {} as ExtraData,
-			redirectPath: addOpts.redirectPath ?? defaultRedirectPath,
-		});
-	};
-
-	const updateOp = <
-		FormSchema extends ZodSchema,
-		EnrichReturn extends object = {},
-		ExtraData extends object = {}
-	>(
-		updateOpts: {
-			formSchema: FormSchema;
-			enrich: (
-				parsed: z.infer<FormSchema>,
-				tx: PgTransaction<any, any, any>,
-			) => Promise<EnrichReturn>;
-			uniqueCheck?: (
-				item: z.infer<FormSchema> & EnrichReturn & ExtraData,
-				tx: PgTransaction<any, any, any>,
-			) => Promise<void>;
-			extras?: ExtraData;
-			redirectPath?: string;
-		}
-	) => {
-		return updateRow({
-			table,
-			formSchema: updateOpts.formSchema,
-			pk: pkName,
-			enrich: updateOpts.enrich,
-			uniqueCheck: updateOpts.uniqueCheck,
-			extras: updateOpts.extras ?? {} as ExtraData,
-			redirectPath: updateOpts.redirectPath ?? defaultRedirectPath,
-		});
-	};
+	// Check if need to add updatedBy and createdBy fields
+	const columns = getTableColumns(anyTable);
+	const hasCreateBy = "createby" in columns;
+	const hasUpdateBy = "updateby" in columns;
 
 	return {
-		table,
-		pk: pkName,
-		allRows,
-		someRows,
-		deleteOp,
-		addOp,
-		updateOp		
+		async allRows(): Promise<RowSelect[]> {
+			// Have to do type assertions unfortunately
+			return db.select().from(anyTable) as unknown as RowSelect[];
+		},
+		async idRow(id: ID): Promise<RowSelect> {
+			const [row] = (await db
+				.select()
+				.from(anyTable)
+				.where(eq(anyColumn, id))
+				.limit(1)
+			) as unknown as RowSelect[];
+
+			if (!row) throw new Error(`ID ${id} not found in ${tableName} `);
+			return row;
+		},
+		async pageRows(opts: parsedParams) {
+			// Take parsed params type from handle-params.ts
+			// Build SQL query with helper function
+			const where = opts.query ? buildSQL(table, opts.query, opts.match) : undefined;
+
+			const columns = getTableColumns(table as AnyPgTable);
+			// Process sort by and sort order
+			const sortbycolumn = opts.sortBy ? columns[opts.sortBy] : undefined;
+			const orderByClause = sortbycolumn
+			? (opts.sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
+			: undefined;
+
+			// Build drizzle query, don't execute yet
+			const baseQuery = db
+				.select()
+				.from(table as AnyPgTable) // Type assertion to satisfy drizzle
+				.where(where);
+
+			// Add sorting if necessary as well as pagesize and page and execute
+			const result = await (
+				orderByClause
+					? baseQuery.orderBy(orderByClause)
+					: baseQuery
+				)
+				.limit(opts.pageSize)
+				.offset((opts.page - 1) * opts.pageSize);
+
+			// Obtain total count of rows in this table
+			// TODO: ADD CACHING TO PREVENT REPEATS
+			const [{ count }] = await db
+				.select({ count: sql<number>`count(*)`})
+				.from(table as AnyPgTable)
+				.where(where);
+
+			return {
+				rows: result as unknown as RowSelect[],
+				totalCount: count,
+			};
+		},
+		async insertRow(formData: FormData, insertExtras?: Extras<N>): Promise<RowInsert> {
+			"use server";
+			// TODO: Add auth check
+			const user = "testuser";
+			const insertSchema = createInsertSchema(table);
+			try {
+				const form = formSchema.parse(Object.fromEntries(formData));
+				return await db.transaction(async tx => {
+					const enrichedForm = await enrich(form, tx);
+					const userInfo = hasCreateBy ? hasUpdateBy ? {createby: user, updateby: user} : {createby: user} : {};
+					// TODO: Make sure all ID cols are serial in people tables
+					// TODO: Entity tables should probably be UUID
+					const fullData = {
+						...form, 
+						...enrichedForm,
+						...(insertExtras ?? {}),
+						...userInfo
+					};
+					const insertItem: RowInsert = fullData;
+					insertSchema.parse(insertItem);
+
+					if (uniqueCheck) {
+						await uniqueCheck(insertItem, tx);
+					}
+
+					await tx.insert(anyTable).values(insertItem);
+					return insertItem;
+				});
+			} catch (error) {
+				console.error(error);
+				const msg = 
+					error instanceof ZodError
+						? error.errors[0].message
+						: error instanceof Error
+							? error.message
+							: "Unknown error occured";
+				redirect(`${revalidatePath}?error=${encodeURIComponent(msg)}`);	
+			}
+		},
+		async deleteRows(id: ID[]): Promise<RowSelect[]> {
+			"use server";
+			const result = await db.delete(anyTable).where(inArray(anyColumn, id)).returning();
+			if (result.length === 0) throw new Error(`Elements not found in ${tableName}`);
+			return result as unknown as RowSelect[];
+		}, 
+		async updateRow(id: ID, formData: FormData, updateExtras: Extras<N>): Promise<RowInsert> {
+			"use server";
+			// TODO: Add auth checking
+			const user = "testuser";
+			const updateSchema = createUpdateSchema(table);
+			try {
+				const form = formSchema.parse(Object.fromEntries(formData));
+				await db.transaction(async tx => {
+					const enrichedForm = await enrich(form, tx);
+
+					const userInfo = hasUpdateBy ? {updateby: user} : {};
+
+					const fullItemData = {
+						...form,
+						...enrichedForm,
+						...(updateExtras?? {}),
+						...userInfo
+					};
+
+					if (uniqueCheck) {
+						await uniqueCheck(fullItemData, tx);
+					}
+
+					const itemToUpdate: RowInsert = fullItemData;
+					updateSchema.parse(itemToUpdate); // Validate against table schema
+					await tx.update(anyTable).set(itemToUpdate).where(eq(anyColumn, id));
+				})
+				// TODO: fix
+				// revalidatePath(revalidatePath);
+				redirect(revalidatePath)
+			} catch (error) {
+				console.error(error);
+				const msg = 
+					error instanceof ZodError
+						? error.errors[0].message
+						: error instanceof Error
+							? error.message
+							: "Unknown error occured";
+				redirect(`${revalidatePath}?error=${encodeURIComponent(msg)}`);
+			}	
+		}
+		
 	}
+
 }
+
+
+// export async function getAllRows<N extends TableName, T extends Table<N>>(table: T) {
+//     return await db.select().from(table as AnyPgTable);
+// }
+
+export async function getRows<N extends TableName, T extends Table<N>>(
+	table: T, 
+	page: number, 
+	pageSize: number, 
+	match: 'all' | 'any',
+	sortBy: ColKey<N> | undefined,
+	sortOrder: 'asc' | 'desc' | undefined,
+	query:ParsedFilter[]
+) {
+    // const where = buildClassSQL(query, match);
+	// Build SQL query with helper function
+    const where = query ? buildSQL(table, query, match) : undefined;
+
+    const columns = getTableColumns(table as AnyPgTable);
+	// Process sort by and sort order
+    const sortbycolumn = sortBy ? columns[sortBy] : undefined;
+    const orderByClause = sortbycolumn
+      ? (sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
+      : undefined;
+
+	// Build drizzle query, don't execute yet
+    const baseQuery = db
+        .select()
+        .from(table as AnyPgTable) // Type assertion to satisfy drizzle
+        .where(where);
+
+	// Add sorting if necessary as well as pagesize and page and execute
+    const result = await (
+        orderByClause
+            ? baseQuery.orderBy(orderByClause)
+            : baseQuery
+        )
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+	// Obtain total count of rows in this table
+	// TODO: ADD CACHING TO PREVENT REPEATS
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)`})
+        .from(table as AnyPgTable)
+        .where(where);
+
+    return {
+        rows: result,
+        totalCount: count,
+    };
+}
+
+
+// export async function deleteRows<N extends TableName, T extends Table<N>, PrimaryKey extends keyof T['_']['columns'] & string>
+// (
+//     table: T, 
+//     pk: PrimaryKey,
+//     values: InferSelectModel<T>[PrimaryKey] | InferSelectModel<T>[PrimaryKey][] //number, number[]
+// ) {
+//     // const session = await requireRole(["ADMIN"]);
+//     // if (!session?.user) {
+//     //     throw new Error("Not authorized ");
+//     //     return;
+//     // } 
+
+//     const valueslist = Array.isArray(values) ? values : [values]
+//     const column = getTableColumns(table as AnyPgTable)[pk]
+//     return await db.delete(table).where(inArray(column, valueslist)).returning();
+// }
+
+
+
+
+
+// export function addRow<
+// 	N extends TableName, 
+// 	T extends Table<N>, 
+// 	FormSchema extends ZodSchema, 
+// 	Upgrade extends object = {},
+// 	Extra extends object = {[K in ColumnKey<N>]?: ColumnVal<N, K>}
+// >(
+// 	opts: {
+// 		table: T;
+// 		formSchema: FormSchema;
+// 		enrich: (
+// 			parsed: z.infer<FormSchema>,
+// 			tx: PgTransaction<any, any, any>,
+// 		) => Promise<Upgrade>;
+// 		uniqueCheck?: (
+// 			item: z.infer<FormSchema> & Upgrade & Extra,
+// 			tx: PgTransaction<any, any, any>,
+// 		) => Promise<void>;
+// 		extras: Extra,
+// 		redirectPath: string
+// 	}
+// ) {
+// 	type Row = InferInsertModel<T>;
+// 	const insertSchema = createInsertSchema(opts.table);
+
+// 	// TODO: Auth checks
+
+// 	return async function createItem(formData: FormData) {
+// 		"use server";
+// 		try {
+// 			const form = opts.formSchema.parse(Object.fromEntries(formData));
+// 			await db.transaction(async tx => {
+// 				const enrichedForm = await opts.enrich(form, tx);
+
+// 				const fullItemData = {
+// 					...form,
+// 					...enrichedForm,
+// 					...(opts.extras ?? {})
+// 				};
+
+// 				if (opts.uniqueCheck) {
+// 					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
+// 				}
+
+// 				const itemToInsert: Row = fullItemData as Row;
+// 				insertSchema.parse(itemToInsert); // Validate against table schema
+// 				await tx.insert(opts.table).values(itemToInsert);
+// 			})
+// 			revalidatePath(opts.redirectPath)
+// 			redirect(opts.redirectPath)
+// 		} catch (error) {
+// 			console.error(error);
+// 			const msg = 
+// 				error instanceof ZodError
+// 					? error.errors[0].message
+// 					: error instanceof Error
+// 						? error.message
+// 						: "Unknown error occured";
+// 			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
+// 		}
+// 	}
+// }
+
+
+// // At this point it will have been parsed by form schema, now parse with update schema
+// export function updateRow<
+// 	N extends TableName, 
+// 	T extends Table<N>, 
+// 	Form extends ZodSchema, 
+// 	PrimaryKey extends keyof T['_']['columns'],
+// 	Upgrade extends object = {},
+// 	Extra extends object = {}
+// >(
+// 	opts: {
+// 		table: T; // TODO: Make this a table object
+// 		formSchema: Form;
+// 		pk: PrimaryKey;
+// 		enrich: (
+// 			parsed: z.infer<Form>,
+// 			tx: PgTransaction<any, any, any>,
+// 		) => Promise<Upgrade>;
+// 		uniqueCheck?: (
+// 			item: z.infer<Form> & Upgrade & Extra,
+// 			tx: PgTransaction<any, any, any>,
+// 		) => Promise<void>;
+// 		extras: Extra,
+// 		redirectPath: string
+// 	}
+// ) {
+// 	type Row = InferInsertModel<T>; // TODO: Make this a table object
+// 	const updateSchema = createUpdateSchema(opts.table);
+
+// 	// TODO: Auth checks
+
+// 	return async function updateItem(formData: FormData, id_col: string) {
+// 		"use server";
+// 		try {
+// 			const form = opts.formSchema.parse(Object.fromEntries(formData));
+// 			await db.transaction(async tx => {
+// 				const enrichedForm = await opts.enrich(form, tx);
+
+// 				const fullItemData = {
+// 					...form,
+// 					...enrichedForm,
+// 					...(opts.extras ?? {})
+// 				};
+
+// 				if (opts.uniqueCheck) {
+// 					await opts.uniqueCheck(fullItemData as z.infer<Form> & Upgrade & Extra, tx);
+// 				}
+
+// 				const itemToUpdate: Row = fullItemData as Row;
+// 				updateSchema.parse(itemToUpdate); // Validate against table schema
+// 				const pkColumn = getTableColumns(opts.table as AnyPgTable)[opts.pk] as AnyPgColumn;
+// 				await tx.update(opts.table).set(itemToUpdate).where(eq(pkColumn, id_col as PKVal<N>));
+// 			})
+// 			revalidatePath(opts.redirectPath)
+// 			redirect(opts.redirectPath)
+// 		} catch (error) {
+// 			console.error(error);
+// 			const msg = 
+// 				error instanceof ZodError
+// 					? error.errors[0].message
+// 					: error instanceof Error
+// 						? error.message
+// 						: "Unknown error occured";
+// 			redirect(`${opts.redirectPath}?error=${encodeURIComponent(msg)}`);
+// 		}
+// 	}
+// }
+
+
 
