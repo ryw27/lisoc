@@ -41,7 +41,7 @@ export type creationFields = 'createby' | 'updateby' | 'createon' | 'updateon' |
 
 export type uniqueCheckFields<N extends TableName, FormSchema extends ZodSchema> = {
 	tableCol: ColKey<N>;
-	formCol?: keyof FormSchema;
+	formCol?: keyof z.infer<FormSchema>;
 	wantedValue?: string | number;
 }
 
@@ -61,11 +61,10 @@ export type enrichFields<FormSchema extends ZodSchema> = {
 // Create CRUD operations for an entity
 // -------------------------------------------------------------------------------------------------
 
-
 export async function uniqueCheck<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
 	table: T,
 	entity_name: string,
-	itemToCheck: FormSchema, // The actual data to be inserted, after enrichment
+	itemToCheck: z.infer<FormSchema>, // ✅ Fixed: Use inferred type, not ZodSchema
 	tx: PgTransaction<any, typeof schema, any>,
 	uniqueConstraints: uniqueCheckFields<N, FormSchema>[],
 	// Included if updating
