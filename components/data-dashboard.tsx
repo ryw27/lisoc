@@ -2,7 +2,7 @@ import DataTable from "@/components/data-table";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import HorizontalNav from "./horizontal-nav";
-import { FilterableColumn } from "@/app/lib/column-actions";
+import { FilterableColumn } from "@/app/lib/column-types";
 
 // Props for the data dashboard
 export type DataDashboardProps<TData extends Record<string, any>> = {
