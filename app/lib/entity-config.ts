@@ -1,7 +1,7 @@
 import { ColKey, ColVal, PKName, PKVal, Table, TableName } from "./entity-types";
 import { z, ZodSchema } from "zod";
 import { FilterableColumn } from "./column-actions";
-import { makeOperations, type Extras} from "./data-actions"
+import { makeOperations, type Extras, type enrichFields, type uniqueCheckFields} from "./data-actions"
 import { parsedParams } from "./handle-params";
 import { PgTransaction } from "drizzle-orm/pg-core";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
@@ -25,8 +25,8 @@ export interface EntityConfig<N extends TableName, T extends Table<N>> {
         allRows: () => Promise<InferSelectModel<T>[]>; // Get all rows from the table
         idRow: (id: PKVal<N>) => Promise<InferSelectModel<T>>; // Get a row from the table by its primary key
         pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>; // Get rows from the table with pagination
-        insertRow: (formData: FormData, insertExtras: Extras<N>) => Promise<InferInsertModel<T>>; // Insert a new row into the table
-        updateRow: (id: PKVal<N>, formData: FormData, updateExtras: Extras<N>) => Promise<InferInsertModel<T>>; // Update a row in the table
+        insertRow: (formData: FormData, insertExtras: Extras<N, T>) => Promise<InferInsertModel<T>>; // Insert a new row into the table
+        updateRow: (id: PKVal<N>, formData: FormData, updateExtras: Extras<N, T>) => Promise<InferInsertModel<T>>; // Update a row in the table
         deleteRows: (id: PKVal<N>[]) => Promise<InferSelectModel<T>[]>; // Delete a row from the table
     }
 }
@@ -38,14 +38,10 @@ interface makeEntityProps<N extends TableName, T extends Table<N>, FormSchema ex
     primaryKey: PKName<N>;
     formSchema: FormSchema;
     revalidatePath: string;
-    enrich: (
-		parsed: z.infer<FormSchema>,
-		tx: PgTransaction<any, typeof schema, any>,
-	) => Promise<Omit<InferInsertModel<T>, keyof z.infer<FormSchema> | 'createby' | 'updateby'>>;
-	uniqueCheck?: (
-		item: InferInsertModel<T>,
-		tx: PgTransaction<any, typeof schema, any>,
-	) => Promise<void>;
+	enrichFields: enrichFields<FormSchema>[], 
+	uniqueConstraints?: uniqueCheckFields<N, T>[],
+    insertExtras?: Extras<N, T>,
+    updateExtras?: Extras<N, T>,
     columns: FilterableColumn<InferSelectModel<T>>[];
 }
 
@@ -56,13 +52,15 @@ export function makeEntity<N extends TableName, T extends Table<N>, FormSchema e
         primaryKey,
         formSchema,
         revalidatePath,
-        enrich,
-        uniqueCheck,
+        enrichFields,
+        uniqueConstraints,
+        insertExtras,
+        updateExtras,
         columns
     }: makeEntityProps<N, T, FormSchema>
 ): EntityConfig<N, T> {
     const { allRows, idRow, pageRows, insertRow, updateRow, deleteRows } = 
-        makeOperations(tableName, table, formSchema, revalidatePath, enrich, uniqueCheck);
+        makeOperations(tableName, table, formSchema, revalidatePath, enrichFields, uniqueConstraints, insertExtras, updateExtras);
 
     const config: EntityConfig<N, T> = {
         table,
