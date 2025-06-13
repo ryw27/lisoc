@@ -3,7 +3,7 @@ import { AnyPgColumn } from "drizzle-orm/pg-core";
 import { InferSelectModel } from "drizzle-orm";
 
 // ------------------------------------------------------------------------------
-// Probably overkill but why not. AI generated the two maps.
+// Possibly overkill
 // ------------------------------------------------------------------------------
 
 
@@ -197,7 +197,7 @@ export type Table<N extends TableName> = (typeof schema)[N]; // Concrete table t
 // Union type of all column names for a table. i.e. "classnamecn" | "classnameeng" | "classid" | ...
 export type ColKey<N extends TableName> = { [K in keyof Table<N>]: Table<N>[K] extends AnyPgColumn ? K : never }[keyof Table<N>] & string;
 // Union type of the types of the columns, i.e. (corresponding to top comment): string | string | number
-export type ColVal<N extends TableName, K extends ColKey<N>> = Table<N>[K]
+export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N>> = (T[K] extends AnyPgColumn ? T[K]["_"]["data"] : never)
 
 
 // Primary key name for a table. i.e. "roleid" | "classid" | ... 
