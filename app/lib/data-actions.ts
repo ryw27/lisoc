@@ -39,9 +39,9 @@ export type Extras<N extends TableName, T extends Table<N>> = {[K in ColKey<N>]?
 
 export type creationFields = 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'
 
-export type uniqueCheckFields<N extends TableName, T extends Table<N>> = {
+export type uniqueCheckFields<N extends TableName, FormSchema extends ZodSchema> = {
 	tableCol: ColKey<N>;
-	formCol?: keyof InferInsertModel<T>;
+	formCol?: keyof FormSchema;
 	wantedValue?: string | number;
 }
 
@@ -62,12 +62,13 @@ export type enrichFields<FormSchema extends ZodSchema> = {
 // -------------------------------------------------------------------------------------------------
 
 
-export async function uniqueCheck<N extends TableName, T extends Table<N>>(
+export async function uniqueCheck<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
 	table: T,
 	entity_name: string,
-	itemToCheck: InferInsertModel<T>, // The actual data to be inserted, after enrichment
+	itemToCheck: FormSchema, // The actual data to be inserted, after enrichment
 	tx: PgTransaction<any, typeof schema, any>,
-	uniqueConstraints: uniqueCheckFields<N, T>[],
+	uniqueConstraints: uniqueCheckFields<N, FormSchema>[],
+	// Included if updating
 	PKCol?: AnyPgColumn, // Type safe from driver function
 	exclude?: PKVal<N> // Exclude the row itself for updating
 ): Promise<void> {
@@ -161,7 +162,7 @@ export function makeOperations<
 	formSchema: FormSchema,
 	revalidatePath: string,
 	enrichFields: enrichFields<FormSchema>[],// Enrichment fields configuration
-	uniqueConstraints?: uniqueCheckFields<N, T>[], // Unique constraint checks
+	uniqueConstraints?: uniqueCheckFields<N, FormSchema>[], // Unique constraint checks
 	insertExtras?: Extras<N, T>,
 	updateExtras?: Extras<N, T>
 ) {
@@ -246,6 +247,11 @@ export function makeOperations<
 				const form = formSchema.parse(Object.fromEntries(formData));
 				
 				return await db.transaction(async tx => {
+					// Check unique constraints if provided
+					if (uniqueConstraints && uniqueConstraints.length > 0) {
+						await uniqueCheck(table, tableName, form, tx, uniqueConstraints);
+					}
+
 					// Enrich form data with foreign key lookups
 					const enrichedForm = await enrich(tableName, table, form, tx, enrichFields);
 					
@@ -263,12 +269,8 @@ export function makeOperations<
 					};
 
 					// Validate against table schema
-					const insertItem = insertSchema.parse(fullData) as RowInsert;
-
-					// Check unique constraints if provided
-					if (uniqueConstraints && uniqueConstraints.length > 0) {
-						await uniqueCheck(table, tableName, insertItem, tx, uniqueConstraints);
-					}
+					// I don't think this should create problems with serial ID's
+					const insertItem = insertSchema.parse(fullData);
 
 					// Insert and return
 					const [inserted] = await tx.insert(anyTable).values(insertItem).returning();
@@ -301,6 +303,10 @@ export function makeOperations<
 				const form = formSchema.parse(Object.fromEntries(formData));
 				
 				return await db.transaction(async tx => {
+					// Check unique constraints if provided (excluding current record)
+					if (uniqueConstraints && uniqueConstraints.length > 0) {
+						await uniqueCheck(table, tableName, form, tx, uniqueConstraints, anyColumn, id);
+					}
 					// Enrich form data with foreign key lookups
 					const enrichedForm = await enrich(tableName, table, form, tx, enrichFields);
 
@@ -316,12 +322,7 @@ export function makeOperations<
 					};
 
 					// Validate against table schema
-					const updateItem = updateSchema.parse(fullData) as RowInsert;
-
-					// Check unique constraints if provided (excluding current record)
-					if (uniqueConstraints && uniqueConstraints.length > 0) {
-						await uniqueCheck(table, tableName, updateItem, tx, uniqueConstraints, anyColumn, id);
-					}
+					const updateItem = updateSchema.parse(fullData);
 
 					// Update and return
 					const [updated] = await tx
