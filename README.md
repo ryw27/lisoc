@@ -1,3 +1,10 @@
+# Compiling random rules to follow
+1. Separate business logic and database interactions
+2. Ensure strict typing to move all errors into compilation time, but don't go crazy
+3. DRY - don't repeat yourself
+4. Assure that assumptions in each function are documented or accounted for
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
