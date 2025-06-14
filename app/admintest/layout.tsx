@@ -1,5 +1,3 @@
-// 'use client';
-
 import React from 'react';
 import SideNav from '@/components/sidenav';
 import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book } from 'lucide-react';
@@ -10,7 +8,7 @@ import Header from '@/components/header';
 
 const navItems = [
     {
-        header: "Admin",
+        header: "Management",
         items: [
             {
                 label: "Home",
@@ -19,12 +17,12 @@ const navItems = [
             },
             {
                 label: "Semester Management",
-                href: ["/admintest/dashboard/semester"],
+                href: ["/admintest/dashboard/management/semester"],
                 icon: <Calendar className="w-4 h-4" />
             },
             {
                 label: "Feedback",
-                href: ["/admintest/dashboard/feedback"],
+                href: ["/admintest/dashboard/management/feedback"],
                 icon: <MessageCircle className="w-4 h-4" />
             }
         ],
@@ -35,17 +33,17 @@ const navItems = [
         items: [
             {
                 label: "Billing", // Collect Money and payments, payment for this semester, processing refunds, family balance
-                href: ["/admintest/dashboard/billing"],
+                href: ["/admintest/dashboard/accounting/billing"],
                 icon: <CreditCard className="w-4 h-4 " />
             }, 
             {
                 label: "Payments", // Invoices for this semester, creating fees owed to the school
-                href: ["/admintest/dashboard/payments"],
+                href: ["/admintest/dashboard/accounting/payments"],
                 icon: <FileText className="w-4 h-4 " />
             },
             {
                 label: "Transaction Reports", // Comprehensive financial transactions, including analysis, payments, refunds, family balnaces, and school balances
-                href: ["/admintest/dashboard/transaction-reports"],
+                href: ["/admintest/dashboard/accounting/transaction-reports"],
                 icon: <Receipt className="w-4 h-4 " />
             }, 
         ],
@@ -55,22 +53,22 @@ const navItems = [
         items: [ 
             {
                 label: "Class View",
-                href: ["/admintest/dashboard/class-view", "/admintest/dashboard/classroom-view"],
+                href: ["/admintest/dashboard/data/classes", "/admintest/dashboard/data/classrooms"],
                 icon: <School className="w-4 h-4" />
             },
             {
                 label: "People View",
-                href: ["/admintest/dashboard/teacher-view", "/admintest/dashboard/student-view", "/admintest/dashboard/family-view", "/admintest/dashboard/adminstrator-view"],
+                href: ["/admintest/dashboard/data/teachers", "/admintest/dashboard/data/students", "/admintest/dashboard/data/families", "/admintest/dashboard/data/administrators"],
                 icon: <Users className="w-4 h-4 " />
             },
             {
                 label: "Semester View",
-                href: ["/admintest/dashboard/past-semesters", "/admintest/dashboard/past-arrangements"],
+                href: ["/admintest/dashboard/data/semesters", "/admintest/dashboard/data/arrangements"],
                 icon: <FaChalkboardTeacher className="w-4 h-4" />
             },
             {
                 label: "Transactions View",
-                href: ["/admintest/dashboard/transactions-view"],
+                href: ["/admintest/dashboard/data/transactions"],
                 icon: <DollarSign className="w-4 h-4" />
             }
         ]
