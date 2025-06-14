@@ -9,6 +9,8 @@
 3. Make sure it fits the insert schema
 4. Insert/Update
 
+** Further testing to see if this pattern works every time, but it should. **
+
 
 ## Dates
 All dates should be DISPLAYED in **DD/MM/YY** form. Internally, they will be represented as fully as possible, i.e. day/month/year HH:MM:SS EST.
@@ -25,3 +27,11 @@ Almost everything that can be generically written has been. There is a possibili
 3. What fields need to be checked to ensure uniqueness
 4. Extra fields that need to be handwritten when inserting/updating
 5. Header names for each column that can be displayed
+
+### Each entity has a few files/pages:
+
+1. An ID page, displaying information for individual rows of a certain config
+2. An edit entity page, to edit individual rows
+3. An add entity pages, self-explanatory
+4. Helpers, contains all the handwritten things + useful types to use
+5. The data of the entiy, the main page itself. 
