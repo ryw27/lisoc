@@ -116,7 +116,8 @@ export default async function ClassEditPage({
                 "use server";
                 return await updateClassRow(id, formData);
             }}
-            cancelHref={`/admintest/dashboard/classes/${classId}`}
+            gobacklink={`/admintest/dashboard/data/classes/${classId}`}
+            entityId={classId}
             error={error}
         />
     )

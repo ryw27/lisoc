@@ -3,6 +3,7 @@ import { classes } from '@/app/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import EntityId, { displaySectionGroup } from '@/components/entity-id';
 import { Table } from '@/app/lib/entity-types';
+import { classTable } from '../class-helpers';
 
 interface ClassPageProps {
     params: Promise<{
@@ -88,7 +89,8 @@ export default async function ClassPage({ params }: ClassPageProps) {
     ];
 
     return (
-        <EntityId<"classes", Table<"classes">, 'classid'>
+        <EntityId<"classes", classTable, 'classid'>
+            table={classes}
             tableName="classes"
             primaryKey="classid"
             displaySections={displaySections}

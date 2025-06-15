@@ -32,7 +32,7 @@ export default async function ClassesPage({
             columns={classColumns}
             totalCount={totalCount}
             tableName="classes"
-            addLink="/admintest/dashboard/classes/add-class"
+            addLink="/admintest/dashboard/data/classes/add"
             addText="Add Class"
             deleteAction={deleteClassRows}
             primaryKey="classid"
