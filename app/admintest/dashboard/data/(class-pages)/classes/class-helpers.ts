@@ -15,12 +15,12 @@ import { parsedParams } from "@/app/lib/handle-params";
 export const classFormSchema = z.object({
     classnamecn: z.string().min(1),
     classnameen: z.string().min(1),
-    classtype: z.coerce.number().int().positive(), // Select strings from dropdowon, but values are numbers increasing from 1 correctly
+    typeid: z.coerce.number().int().positive(), // Select strings from dropdown, but values are numbers increasing from 1 correctly
     classno: z.coerce.number().int().nonnegative(), // Coerce string from form to number
     sizelimits: z.coerce.number().int().nonnegative().optional(), // Coerce string from form to number, optional
     status: z.enum(["Active", "Inactive"]), 
     // ENRICHED
-    upgradeclass: z.string().min(1), // Start as a string, selected class name. id found later
+    classupid: z.string().min(1), // Start as a string, selected class name. id found later
     description: z.string().optional() // optional
 })
 
@@ -29,6 +29,7 @@ export const classFormSchema = z.object({
 export type classObject = typeof classes.$inferSelect
 // This is the actual internal representation from drizzle, PgTable type
 export type classTable = typeof classes
+
 
 
 export const classColumns = generateColumnDefs<classObject>(classes, {
@@ -88,7 +89,7 @@ export const classColumns = generateColumnDefs<classObject>(classes, {
 // ]
 
 const classEnrichFields: enrichFields<typeof classFormSchema>[] =  [
-    { formField: "upgradeclass", lookupTable: "classes", lookupField: "classnamecn", returnField: "classid" }
+    { formField: "classupid", lookupTable: "classes", lookupField: "classnamecn", returnField: "classid" }
 ]
 
 const classUniqueConstraints: uniqueCheckFields<"classes", classTable, typeof classFormSchema>[] = [
@@ -99,6 +100,7 @@ const classUniqueConstraints: uniqueCheckFields<"classes", classTable, typeof cl
 const insertExtras: Extras<"classes", classTable>= {
     "classindex": undefined,
     "ageid": undefined,
+    "createon": formatISO(new Date()),
     "lastmodify": formatISO(new Date()),
     "updateon": formatISO(new Date())
 }
@@ -119,7 +121,7 @@ export const classConfig: EntityConfig<"classes", classTable> = makeEntity({
     tableName: "classes",
     primaryKey: "classid",
     formSchema: classFormSchema,
-    revalidatePath: "/admintest/dashboard/classes",
+    revalidatePath: "/admintest/dashboard/data/classes",
     enrichFields: classEnrichFields,
     uniqueConstraints: classUniqueConstraints,
     insertExtras: insertExtras,
