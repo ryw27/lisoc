@@ -94,7 +94,6 @@ const classEnrichFields: enrichFields<typeof classFormSchema>[] =  [
 
 const classUniqueConstraints: uniqueCheckFields<"classes", classTable, typeof classFormSchema>[] = [
     {tableCol: "classnamecn", formCol: "classnamecn"},
-    {tableCol: "status", wantedValue: "active"}
 ]
 
 const insertExtras: Extras<"classes", classTable>= {
@@ -121,7 +120,7 @@ export const classConfig: EntityConfig<"classes", classTable> = makeEntity({
     tableName: "classes",
     primaryKey: "classid",
     formSchema: classFormSchema,
-    revalidatePath: "/admintest/dashboard/data/classes",
+    mainPath: "/admintest/dashboard/data/classes",
     enrichFields: classEnrichFields,
     uniqueConstraints: classUniqueConstraints,
     insertExtras: insertExtras,
