@@ -1,7 +1,6 @@
 import AddEntity, { FormField } from '@/components/add-entity'
 import { classObject, allClassRows, insertClassRow } from '../class-helpers'
 
-
 export default async function AddClass({
     searchParams,
 }: {
@@ -104,7 +103,6 @@ export default async function AddClass({
             submitAction={insertClassRow}
             error={error}
             submitText="Save"
-            revalidatePath="/admintest/dashboard/classes"
         />
     );
 }
