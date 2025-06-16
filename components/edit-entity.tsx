@@ -11,8 +11,8 @@ export interface SelectOption {
 
 // Base interface for common properties
 interface BaseFormField {
-    name: string
     label: string
+    name: string
     placeholder?: string
     required?: boolean
     width?: 'full' | 'half' | 'third' | 'quarter'
@@ -44,22 +44,16 @@ export interface EditEntityProps {
     title: string
     fields: EditFormField[]
     submitAction: (formData: FormData) => Promise<void>
-    cancelHref: string
+    gobacklink: string
     error?: string
-    submitText?: string
-    cancelText?: string
-    entityId?: string | number
 }
 
-export default function EditEntity({
+export default async function EditEntity({
     title,
     fields,
     submitAction,
-    cancelHref,
+    gobacklink,
     error,
-    submitText = "Save",
-    cancelText = "Cancel",
-    entityId
 }: EditEntityProps) {
     
     const renderField = (field: EditFormField) => {
@@ -187,7 +181,7 @@ export default function EditEntity({
         <div className="p-6 space-y-4">
             <div className="flex justify-between px-4">
                 <Link 
-                    href={cancelHref}
+                    href={gobacklink}
                     className="text-blue-600 flex items-center gap-1 underline hover:text-blue-800 text-sm cursor-pointer p-2" 
                 >
                     <span className="underline"><ArrowLeft className="w-3 h-3"/></span> Go Back
@@ -229,19 +223,19 @@ export default function EditEntity({
                     )}
                     
                     <div className="flex justify-end gap-2">
-                        <Link href={cancelHref}>
+                        <Link href={gobacklink}>
                             <button 
                                 type="button" 
                                 className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
                             >
-                                {cancelText}
+                                Cancel
                             </button>
                         </Link>
                         <button 
                             type="submit" 
                             className="rounded-md bg-blue-600 text-white text-sm flex items-center gap-1 hover:bg-blue-800 font-semibold cursor-pointer p-2"
                         >
-                            {submitText}
+                            Submit
                         </button>
                     </div>
                 </form>
