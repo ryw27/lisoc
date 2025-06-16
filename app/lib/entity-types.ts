@@ -1,6 +1,7 @@
 import * as schema from "@/app/lib/db/schema";
 import { AnyPgColumn } from "drizzle-orm/pg-core";
 import { InferSelectModel } from "drizzle-orm";
+import { classes } from "@/app/lib/db/schema";
 
 // ------------------------------------------------------------------------------
 // Possibly overkill
@@ -195,13 +196,14 @@ export type TableName = keyof typeof schema; // Names of all tables, "adminrole"
 export type Table<N extends TableName> = (typeof schema)[N]; // Concrete table type, PgTableWithColumns<Class>, PgTableWithColumns<AdminRole>, etc.
 
 // Union type of all column names for a table. i.e. "classnamecn" | "classnameeng" | "classid" | ...
-export type ColKey<N extends TableName> = { [K in keyof Table<N>]: Table<N>[K] extends AnyPgColumn ? K : never }[keyof Table<N>] & string;
+export type ColKey<N extends TableName, T extends Table<N>> = { [K in keyof T]: T[K] extends AnyPgColumn ? K : never }[keyof T] & string;
 // Union type of the types of the columns, i.e. (corresponding to top comment): string | string | number
-export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N>> = (T[K] extends AnyPgColumn ? T[K]["_"]["data"] : never)
+export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N, T>> = (T[K] extends AnyPgColumn ? T[K]["_"]["data"] : never)
+// export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N, T>> = K extends keyof T["$inferSelect"] ? T["$inferSelect"][K] : never;
 
 
 // Primary key name for a table. i.e. "roleid" | "classid" | ... 
-export type PKName<N extends TableName> = (typeof primKeyMap)[N];
+export type PKName<N extends TableName, T extends Table<N>> = (typeof primKeyMap)[N] & keyof T;
 
 // Primary key value type for a table.  i.e. number | string | ...
 
@@ -213,7 +215,7 @@ export type PKVal<N extends TableName> =
         // Parentheses tells compiler to look at the internal type as fully resolved, so it's not treating it as a union type anymore
         InferSelectModel<Table<N>>
         // index it with THIS table's PK literal
-      )[PKName<N> &
+      )[PKName<N, Table<N>> &
         keyof InferSelectModel<Table<N>> /* safety &'ing two different things produces never, make sure PKName is a key of the table */]
     : never;
 
