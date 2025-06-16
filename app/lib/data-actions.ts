@@ -5,12 +5,16 @@ import * as schema from "./db/schema";
 import { formatISO } from "date-fns";
 import { z, ZodError, ZodSchema } from "zod";
 import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ParsedFilter } from "./handle-params";
-import { Table, TableName, ColKey, ColVal, PKVal, PKName, FKCol, FKVal } from "./entity-types";
-import { primKeyMap } from './entity-types';
+import { Table, TableName, ColKey, ColVal, PKVal, PKName } from "./entity-types";
 import { parsedParams } from './handle-params';
+import { revalidatePath } from "next/cache";
+
+// Some possible TODOS:
+// 1. Safe Parse for better handling
+// 2. Caching and more efficency 
+
 
 // ------------------------------------------------------------------------------------------------
 // Helpers
@@ -35,26 +39,26 @@ export function buildSQL<N extends TableName, T extends Table<N>>(table: T, filt
     return match === "all" ? and(...conds) : or(...conds);
 }
 
-export type Extras<N extends TableName, T extends Table<N>> = {[K in ColKey<N>]?: ColVal<N,T,K>};
+export type Extras<N extends TableName, T extends Table<N>> = {[K in ColKey<N, T>]?: ColVal<N,T,K>};
 
 export type creationFields = 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'
 
-export type uniqueCheckFields<N extends TableName, FormSchema extends ZodSchema> = {
-	tableCol: ColKey<N>;
+export type uniqueCheckFields<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema> = {
+	tableCol: ColKey<N, T>;
 	formCol?: keyof z.infer<FormSchema>;
 	wantedValue?: string | number;
 }
 
-export type enrichField<FKN extends TableName, FormSchema extends ZodSchema> = {
+export type enrichField<FKN extends TableName, T extends Table<FKN>, FormSchema extends ZodSchema> = {
 	formField: keyof z.infer<FormSchema>;
 	lookupTable: FKN;
-	lookupField: ColKey<FKN>; // Column name - will be validated at runtime
-	returnField: ColKey<FKN>; // Column name - will be validated at runtime
+	lookupField: ColKey<FKN, T>; // Column name - will be validated at runtime
+	returnField: ColKey<FKN, T>; // Column name - will be validated at runtime
 }
 
 // Simple array type for better developer experience
 export type enrichFields<FormSchema extends ZodSchema> = {
-	[FKN in TableName]: enrichField<FKN, FormSchema>
+	[FKN in TableName]: enrichField<FKN, Table<FKN>, FormSchema>
 }[TableName]
 
 // ------------------------------------------------------------------------------------------------
@@ -66,7 +70,7 @@ export async function uniqueCheck<N extends TableName, T extends Table<N>, FormS
 	entity_name: string,
 	itemToCheck: z.infer<FormSchema>, // ✅ Fixed: Use inferred type, not ZodSchema
 	tx: PgTransaction<any, typeof schema, any>,
-	uniqueConstraints: uniqueCheckFields<N, FormSchema>[],
+	uniqueConstraints: uniqueCheckFields<N, T, FormSchema>[],
 	// Included if updating
 	PKCol?: AnyPgColumn, // Type safe from driver function
 	exclude?: PKVal<N> // Exclude the row itself for updating
@@ -112,9 +116,7 @@ export async function uniqueCheck<N extends TableName, T extends Table<N>, FormS
 
 
 // Form names for matching fields in field and actual schema for a table should be different. They should make sense to a reader
-export async function enrich<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
-	tableName: N,
-	table: T,
+export async function enrich<FormSchema extends ZodSchema>(
 	parsed: z.infer<FormSchema>,
 	tx: PgTransaction<any, typeof schema, any>,
 	enrichFields: enrichFields<FormSchema>[] // Information should be in the foreign key table
@@ -126,8 +128,8 @@ export async function enrich<N extends TableName, T extends Table<N>, FormSchema
 		const formValue = parsed[formField];
 		
 		// Get the actual table object from schema using the table name
-		const lookupTableRef = schema[lookupTable] as AnyPgTable;
-		const columns = getTableColumns(lookupTableRef);
+		const anyTable = schema[lookupTable] as AnyPgTable;
+		const columns = getTableColumns(anyTable);
 		
 		// Get the specific column objects for type-safe querying
 		const searchColumn = columns[lookupField] as AnyPgColumn;
@@ -136,7 +138,7 @@ export async function enrich<N extends TableName, T extends Table<N>, FormSchema
 		// Execute the query properly
 		const [lookupResult] = await tx
 			.select({ result: returnColumn })
-			.from(lookupTableRef)
+			.from(anyTable)
 			.where(eq(searchColumn, formValue))
 			.limit(1);
 
@@ -145,7 +147,7 @@ export async function enrich<N extends TableName, T extends Table<N>, FormSchema
 		}
 
 		// Store the result using the return field name as key
-		enriched[returnField] = lookupResult.result;
+		enriched[formField as string] = (lookupResult.result);
 	}
 
 	return enriched;
@@ -158,23 +160,24 @@ export function makeOperations<
 >(
 	tableName: N,
 	table: T,
+	primaryKey: PKName<N, T>,
 	formSchema: FormSchema,
-	revalidatePath: string,
+	mainPath: string,
 	enrichFields: enrichFields<FormSchema>[],// Enrichment fields configuration
-	uniqueConstraints?: uniqueCheckFields<N, FormSchema>[], // Unique constraint checks
+	uniqueConstraints?: uniqueCheckFields<N, T, FormSchema>[], // Unique constraint checks
 	insertExtras?: Extras<N, T>,
 	updateExtras?: Extras<N, T>
 ) {
 	type RowSelect = InferSelectModel<T>;
 	type RowInsert = InferInsertModel<T>;
 
-	type PK = PKName<N>;
+	type PK = PKName<N, T>;
 	type ID = PKVal<N>;
 
 	// Must do to satisfy drizzle since N is a union type which drizzle complains about
 	// Strict type checking on parameters means it's not a big deal, we already know the table and prim key at this point is fine
 	const anyTable = table as unknown as AnyPgTable;
-	const anyColumn = (table as any)[primKeyMap[tableName] as PK] as AnyPgColumn; // Primary Key of table
+	const pkCol = (table as any)[primaryKey as PK] as AnyPgColumn;
 
 	// Check if need to add updatedBy and createdBy fields
 	const columns = getTableColumns(anyTable);
@@ -190,7 +193,7 @@ export function makeOperations<
 			const [row] = (await db
 				.select()
 				.from(anyTable)
-				.where(eq(anyColumn, id))
+				.where(eq(pkCol, id))
 				.limit(1)
 			) as unknown as RowSelect[];
 
@@ -236,23 +239,23 @@ export function makeOperations<
 				totalCount: count,
 			};
 		},
-		async insertRow(formData: FormData): Promise<RowInsert> {
-			"use server";
+		async insertRow(formData: FormData): Promise<void> {
 			// TODO: Add auth check
 			const user = "testuser";
 			const insertSchema = createInsertSchema(table);
+
+			let insertedPk: PKVal<N>;
 			
 			try {
-				const form = formSchema.parse(Object.fromEntries(formData));
-				
-				return await db.transaction(async tx => {
+				insertedPk = await db.transaction(async tx => {
+					const form = formSchema.parse(Object.fromEntries(formData));
 					// Check unique constraints if provided
 					if (uniqueConstraints && uniqueConstraints.length > 0) {
 						await uniqueCheck(table, tableName, form, tx, uniqueConstraints);
 					}
 
 					// Enrich form data with foreign key lookups
-					const enrichedForm = await enrich(tableName, table, form, tx, enrichFields);
+					const enrichedForm = await enrich(form, tx, enrichFields);
 					
 					// Add user tracking fields
 					const userInfo = hasCreateBy 
@@ -273,41 +276,45 @@ export function makeOperations<
 
 					// Insert and return
 					const [inserted] = await tx.insert(anyTable).values(insertItem).returning();
-					return inserted as RowInsert;
+					return inserted[primaryKey] as PKVal<N>;
 				});
 			} catch (error) {
 				console.error(error);
-				const msg = 
-					error instanceof ZodError
-						? error.errors[0].message
-						: error instanceof Error
-							? error.message
-							: "Unknown error occurred";
-				redirect(`${revalidatePath}?error=${encodeURIComponent(msg)}`);	
+				const msg = error instanceof ZodError
+					? error.errors[0].message
+					: error instanceof Error
+						? error.message
+						: "Unknown error occurred";
+				redirect(`${mainPath}/add?error=${encodeURIComponent(msg)}`);
 			}
+
+			revalidatePath(`${mainPath}/${insertedPk}`);
+			redirect(mainPath);
+
 		},
 		async deleteRows(ids: ID[]): Promise<RowSelect[]> {
-			"use server";
-			const result = await db.delete(anyTable).where(inArray(anyColumn, ids)).returning();
+			// TODO: Add auth check
+			const result = await db.delete(anyTable).where(inArray(pkCol, ids)).returning();
 			if (result.length === 0) throw new Error(`Elements not found in ${tableName}`);
+			revalidatePath(mainPath);
 			return result as unknown as RowSelect[];
 		}, 
-		async updateRow(id: ID, formData: FormData): Promise<RowInsert> {
-			"use server";
-			// TODO: Add auth checking
+		async updateRow(id: ID, formData: FormData): Promise<void> {
+			// TODO: Add auth check
 			const user = "testuser";
 			const updateSchema = createUpdateSchema(table);
+
+			let updatedPk: PKVal<N>;
 			
 			try {
-				const form = formSchema.parse(Object.fromEntries(formData));
-				
-				return await db.transaction(async tx => {
+				updatedPk = await db.transaction(async tx => {
+					const form = formSchema.parse(Object.fromEntries(formData));
 					// Check unique constraints if provided (excluding current record)
 					if (uniqueConstraints && uniqueConstraints.length > 0) {
-						await uniqueCheck(table, tableName, form, tx, uniqueConstraints, anyColumn, id);
+						await uniqueCheck(table, tableName, form, tx, uniqueConstraints, pkCol, id);
 					}
 					// Enrich form data with foreign key lookups
-					const enrichedForm = await enrich(tableName, table, form, tx, enrichFields);
+					const enrichedForm = await enrich(form, tx, enrichFields);
 
 					// Add user tracking fields
 					const userInfo = hasUpdateBy ? {updateby: user} : {};
@@ -327,11 +334,12 @@ export function makeOperations<
 					const [updated] = await tx
 						.update(anyTable)
 						.set(updateItem)
-						.where(eq(anyColumn, id))
+						.where(eq(pkCol, id))
 						.returning();
 					
 					if (!updated) throw new Error(`Failed to update ${tableName} with ID ${id}`);
-					return updated as RowInsert;
+
+					return updated[primaryKey] as PKVal<N>;
 				});
 			} catch (error) {
 				console.error(error);
@@ -341,8 +349,11 @@ export function makeOperations<
 						: error instanceof Error
 							? error.message
 							: "Unknown error occurred";
-				redirect(`${revalidatePath}?error=${encodeURIComponent(msg)}`);
+				redirect(`${mainPath}/${id}/edit?error=${encodeURIComponent(msg)}`);
 			}	
+
+			revalidatePath(`${mainPath}/${updatedPk}`);
+			redirect(mainPath);
 		}
 	}
 }
