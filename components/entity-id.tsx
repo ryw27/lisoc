@@ -3,62 +3,39 @@ import { ArrowLeft, Edit } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/app/lib/db";
 import { eq } from "drizzle-orm";
-import { Table, ColumnKey, TableName } from "@/app/lib/entity-types";
+import { Table, ColKey, TableName, PKName, ColVal } from "@/app/lib/entity-types";
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
-import * as schema from "@/app/lib/db/schema";
-
-// Utility function to handle param extraction and parsing
-export async function extractEntityParam(
-    params: Promise<Record<string, string>>, 
-    paramKey: string
-): Promise<number> {
-    const resolvedParams = await params;
-    const paramValue = resolvedParams[paramKey];
-    
-    if (!paramValue) {
-        console.error(`Parameter '${paramKey}' not found in URL`);
-        notFound();
-    }
-    
-    const parsedValue = parseInt(paramValue);
-    if (isNaN(parsedValue)) {
-        console.error(`Parameter '${paramKey}' is not a valid number: ${paramValue}`);
-        notFound();
-    }
-    
-    return parsedValue;
-}
 
 
-
-export type displaySection<N extends TableName> = {
+export type displaySection<N extends TableName, T extends Table<N>> = {
     label: string;
-    key: ColumnKey<N>;
-    formatter?: (
-        value: Table<N>["$inferSelect"][ColumnKey<N>]
-    ) => string;
+    key: ColKey<N,T>;
+    formatter?: (value: ColVal<N, T, ColKey<N,T>>) => string;
     fallback?: string;
 }
 
-export type displaySectionGroup<N extends TableName> = {
+export type displaySectionGroup<N extends TableName, T extends Table<N>> = {
     label: string;
-    display: displaySection<N>[];
+    display: displaySection<N, T>[];
 }
 
-interface EntityIdProps<N extends TableName, pk extends ColumnKey<N>> {
+interface EntityIdProps<N extends TableName, T extends Table<N>, pk extends PKName<N, T>> {
+    table: T;
     tableName: N;
     primaryKey: pk;
+    titleCol: ColKey<N,T>
     id: number;
-    displaySections: displaySectionGroup<N>[];
+    displaySections: displaySectionGroup<N, T>[];
     notFoundMessage?: string;
 }
 
 // Helper function to format values
-function formatValue<N extends TableName>(
-    section: displaySection<N>, 
-    tableData: Table<N>['$inferSelect']
+function formatValue<N extends TableName, T extends Table<N>, K extends ColKey<N, T>>(
+    section: displaySection<N, T>,
+    tableData: T["$inferSelect"]
 ): string {
-    const value = tableData[section.key];
+    const value = tableData[section.key as unknown as keyof T["$inferSelect"]];
+    console.log(section.key)
     
     // Handle null/undefined values
     if (value === null || value === undefined) {
@@ -67,12 +44,7 @@ function formatValue<N extends TableName>(
     
     // Use custom formatter if provided
     if (section.formatter) {
-        return section.formatter(value);
-    }
-    
-    // Default formatting based on type
-    if (typeof value === 'string' && !isNaN(Date.parse(value))) {
-        return new Date(value).toLocaleDateString();
+        return section.formatter(value as ColVal<N, T, K>);
     }
     
     if (typeof value === 'boolean') {
@@ -84,22 +56,26 @@ function formatValue<N extends TableName>(
 
 
 
-export default async function EntityId<N extends TableName, pk extends ColumnKey<N>>({
+export default async function EntityId<N extends TableName, T extends Table<N>, pk extends PKName<N, T>>({
+    table,
     tableName,
     primaryKey,
+    titleCol,
     displaySections,
     notFoundMessage = "Entity not found",
     id
-}: EntityIdProps<N, pk>) {
+}: EntityIdProps<N, T, pk>) {
 
-    const table  = schema[tableName] as Table<N>;
-    const column = table[primaryKey] as AnyPgColumn;
+
+    const primColumn = table[primaryKey] as AnyPgColumn;
+    const anyTable = table as AnyPgTable;
 
     const [data] = await db
-    .select()
-    .from(table as AnyPgTable)
-    .where(eq(column, id))
-    .limit(1);
+        .select()
+        .from(anyTable)
+        .where(eq(primColumn, id))
+        .limit(1);
+    // console.log(data);
 
     // Handle not found case
     if (!data) {
@@ -111,7 +87,7 @@ export default async function EntityId<N extends TableName, pk extends ColumnKey
         <div className="p-6 space-y-4">
             <div className="flex justify-between px-4">
                 <Link 
-                    href={`/admintest/dashboard/${tableName}`}
+                    href={`/admintest/dashboard/data/${tableName}`}
                     className="text-blue-600 flex items-center gap-1 underline hover:text-blue-800 text-sm cursor-pointer p-2" 
                 >
                     <span className="underline"><ArrowLeft className="w-3 h-3"/></span> Go Back
@@ -119,21 +95,21 @@ export default async function EntityId<N extends TableName, pk extends ColumnKey
 
                 <Link 
                     className="text-blue-600 text-sm flex items-center gap-1 hover:text-blue-800 cursor-pointer p-2 underline"
-                    href={`/admintest/dashboard/${tableName}/${id}`}
+                    href={`/admintest/dashboard/data/${tableName}/${id}/edit`}
                 >
                     <Edit className="w-3 h-3"/>Edit {tableName}
                 </Link>
             </div>
             <div className="mx-auto max-w-2xl w-full">
-                <h1 className="text-2xl font-extrabold mb-4 break-words">{String(data[primaryKey])}</h1>
+                <h1 className="text-2xl font-extrabold mb-4 break-words">{String(data[titleCol])}</h1>
                 <div className="flex flex-col gap-6">
-                    {displaySections.map((sectionGroup) => (
+                    {displaySections.map((sectionGroup:displaySectionGroup<N, T>) => (
                         <div key={sectionGroup.label} className="gap-2">
                             <h2 className="text-lg font-semibold mb-2 text-blue-800">{sectionGroup.label}</h2>
                             <div className="space-y-4">
                                 {sectionGroup.display.map((section, sectionIndex) => (
                                     <p key={`${String(section.key)}-${sectionIndex}`} className="break-words text-gray-700">
-                                        <span className="font-bold text-black">{section.label}:</span> {formatValue(section, data)}
+                                        <span className="font-bold text-black">{section.label}:</span> {formatValue(section, data as T["$inferSelect"])}
                                     </p>
                                 ))}
                             </div>
