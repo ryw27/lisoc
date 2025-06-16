@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Textarea } from '@/components/ui/textarea'
+import { Table, TableName } from '@/app/lib/entity-types'
 
 export interface SelectOption {
     value: string
@@ -37,7 +38,7 @@ export type FormField =
         multiple?: boolean
     })
 
-export interface AddEntityProps {
+export interface AddEntityProps<N extends TableName, T extends Table<N>> {
     title: string
     description: string
     fields: FormField[]
@@ -46,14 +47,15 @@ export interface AddEntityProps {
     submitText?: string
 }
 
-export default function AddEntity({
+// TODO: Cache results in between errors
+export default function AddEntity<N extends TableName, T extends Table<N>>({
     title,
     description,
     fields,
     submitAction,
     error,
-    submitText = "Save"
-}: AddEntityProps) {
+    submitText = "Save",
+}: AddEntityProps<N, T>) {
     
     const renderField = (field: FormField) => {
         const baseClasses = "rounded-sm !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
