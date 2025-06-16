@@ -1,6 +1,4 @@
-import { db } from '@/app/lib/db';
 import { classes } from '@/app/lib/db/schema';
-import { eq } from 'drizzle-orm';
 import EntityId, { displaySectionGroup } from '@/components/entity-id';
 import { Table } from '@/app/lib/entity-types';
 import { classTable } from '../class-helpers';
@@ -15,9 +13,9 @@ export default async function ClassPage({ params }: ClassPageProps) {
     const class_id = parseInt((await params).classid);
     
     // Fetch the specific class
-    const classData = await db.query.classes.findFirst({
-        where: eq(classes.classid, class_id)
-    });
+    // const classData = await db.query.classes.findFirst({
+    //     where: eq(classes.classid, class_id)
+    // });
 
     // Define display sections with type-safe keys using the table schema
     const displaySections: displaySectionGroup<'classes', Table<"classes">>[] = [
@@ -93,6 +91,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
             table={classes}
             tableName="classes"
             primaryKey="classid"
+            titleCol="classnamecn"
             displaySections={displaySections}
             notFoundMessage="Class not found"
             id={class_id}

@@ -1,13 +1,8 @@
 import { classes } from "@/app/lib/db/schema";
-import { Input } from "@/components/ui/input";
 import { eq } from "drizzle-orm";
-import { Textarea } from "@/components/ui/textarea";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { db } from "@/app/lib/db";
-import Link from "next/link";
 import { allClassRows, updateClassRow } from "../../class-helpers";
-import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from "@/components/ui/select";
 import EditEntity, { EditFormField } from "@/components/edit-entity";
 
 export default async function ClassEditPage({
@@ -28,8 +23,10 @@ export default async function ClassEditPage({
         notFound();
     }
 
-    const classTypes = ["1: Standard Chinese", "2: 马立平", "4: Clubs"];
-    const showError = error !== undefined
+    const classTypes = [{value: 1, label: "1: Standard Chinese"}, {value: 2, label: "2: 马立平"}, {value: 4, label: "4: Clubs"}];
+    const classTypeDefault = classTypes.filter(classType => classType.value === classData.typeid)[0].value.toString();
+
+    // const showError = error !== undefined
     const allClasses = await allClassRows();
     const classlist = allClasses.map((someclass) => someclass.classnamecn);
     
@@ -39,28 +36,32 @@ export default async function ClassEditPage({
         {
             label: "Class Name (中文)",
             name: "classnamecn",
+            defaultValue: classData.classnamecn,
             type: "text",
             required: true
         },
         {
             label: "Class Name (EN)",
             name: "classnameen",
+            defaultValue: classData.classnameen,
             type: "text",
             required: true
         },
         {
             label: "Class Type",
             name: "typeid",
+            defaultValue: classTypeDefault,
             type: "select",
             required: true,
             options: classTypes.map((type) => ({
-                label: type,
-                value: type
+                label: type.label,
+                value: type.value.toString()
             }))
         },
         {
             label: "Class Level",
             name: "classno",
+            defaultValue: classData.classno.toString(),
             type: "select",
             required: true,
             options: Array.from({length: 13}, (_, i) => ({
@@ -71,12 +72,14 @@ export default async function ClassEditPage({
         {
             label: "Size Limits",
             name: "sizelimits",
+            defaultValue: classData.sizelimits,
             type: "number",
             required: true
         },
         {
             label: "Status",
             name: "status",
+            defaultValue: classData.status,
             type: "select",
             required: true,
             options: [
@@ -93,6 +96,7 @@ export default async function ClassEditPage({
         {
             label: "Upgrade Class",
             name: "classupid",
+            defaultValue: currentUpgradeClass && currentUpgradeClass.length > 0 ? currentUpgradeClass[0].classnamecn : "",
             type: "select",
             required: true,
             options: classlist.map((classnamecn) => ({
@@ -103,21 +107,23 @@ export default async function ClassEditPage({
         {
             label: "Description",
             name: "description",
+            defaultValue: classData.description,
             type: "textarea",
             required: false
         }
     ]
 
+    async function handleSubmit(formData: FormData) {
+        "use server";
+        await updateClassRow(classId, formData);
+    }
+
     return (
         <EditEntity
             title="Edit Class"
             fields={classFields}
-            submitAction={async (id, formData) => {
-                "use server";
-                return await updateClassRow(id, formData);
-            }}
+            submitAction={handleSubmit}
             gobacklink={`/admintest/dashboard/data/classes/${classId}`}
-            entityId={classId}
             error={error}
         />
     )
