@@ -1,4 +1,4 @@
-import { emailToCode, checkCode, register } from '@/app/lib/auth-lib/auth-actions';
+import { emailToCode, checkCode, register, resendCode } from '@/app/lib/auth-lib/auth-actions';
 import RegisterForm from '@/components/register-form';
 import FamilyForm from '@/components/family-form';
 
@@ -18,6 +18,7 @@ export default function RegisterPage() {
         <RegisterForm 
             register={register}
             requestCode={emailToCode}
+            resendCode={resendCode}
             checkCode={checkCode}
             familyForm={<FamilyForm />}
         />

@@ -3,12 +3,10 @@
 import { auth, signIn, signOut } from "./auth";
 import { db } from "../db";
 import { users } from "../db/schema";
-import { randomInt, randomUUID } from "crypto";
+import { randomInt } from "crypto";
 import bcrypt from "bcrypt"
-import { hash } from "bcrypt";
-// import transporter from "@/lib/nodemailer";
+import { transporter } from "@/lib/nodemailer";
 import { redirect } from "next/navigation";
-import { pgadapter } from "./auth";
 import * as authSchemas from './auth-schema';
 import { redis } from "@/lib/redis";
 import { sql } from "drizzle-orm";
@@ -93,52 +91,59 @@ export async function emailToCode(formData: FormData): Promise<authMSG> {
     }
 
     const code = randomInt(100000, 1000000).toString();
-    const codeHash = await bcrypt.hash(code, 10);
+
+    await redis.set(`code:${email}`, code, { EX: 60 * 5, NX: false }) // 5 minutes
     
-    await pgadapter.createVerificationToken({
-        token: code, // TODO: change back
-        identifier: email,
-        expires: new Date(Date.now() + 10 * 60 * 1000) 
-    })
+    // await pgadapter.createVerificationToken({
+    //     token: codeHash, 
+    //     identifier: email,
+    //     expires: new Date(Date.now() + 10 * 60 * 1000) 
+    // })
 
     await sendVerificationEmail(email, code);
     return { ok: true };
 }
 
+export async function resendCode(email: string): Promise<authMSG> {
+    const code = randomInt(100000, 1000000).toString();
+    await Promise.all([
+        redis.set(`code:${email}`, code, { EX: 60 * 5, NX: false}),
+        sendVerificationEmail(email, code)
+    ])
+
+    return { ok: true }
+}
+
 // STEP 2: Send a verification email using NodeMailer
 export async function sendVerificationEmail(emailTo: string, token: string) {
-    // await transporter.sendMail({
-    //     from: "LISOC regadmin@lisoc.org",
-    //     to: emailTo,
-    //     subject: "LISOC Account Registration verification",
-    //     html: `
-    //         <p> Your verification code is <em> ${token} </em>. This code will expire in 10 minutes </p>
-    //         <p> Your username is: <em> ${username} </em> and email: ${emailTo}. If these details are not correct or if you are not trying to register, please ignore this email </p>
-    //     `
-    // });
-    console.log("TODO");
+    await transporter.sendMail({
+        from: "LISOC Registration <regadmin@lisoc.org>",
+        to: emailTo,
+        subject: "LISOC Account Registration Verification",
+        html: `
+            <p> Your verification code is <em> ${token} </em>. This code will expire in 10 minutes </p>
+            <p> If you are not trying to register, please ignore this email </p>
+        `
+    });
 }
 // Step 3: Check the inputted code. 
 export async function checkCode(formData: FormData, email: string): Promise<authMSG> {
-    const code = formData.get("code")!.toString();
+    const data = authSchemas.codeSchema.parse(Object.fromEntries(formData));
 
-    const vt = await pgadapter.useVerificationToken({identifier: email, token: code})
-
-    if (!vt || vt.expires < new Date(Date.now())) {
-        return { ok: false, msg: "Expired Code" }
-    } else if (!(await bcrypt.compare(code, vt.token))) {
-        return { ok: false, msg: "Invalid Code" }
+    // Retrieve the verification token for this email
+    const vt = await redis.get(`code:${email}`);
+    if (!vt) {
+        return { ok: false, msg: "Invalid or expired code" };
     }
 
-    
+    // Compare the provided code with the hashed token
+    const isValid = vt === data.code;
+    if (!isValid) {
+        return { ok: false, msg: "Invalid Code" };
+    }
 
+    await redis.del(`code:${email}`);
     return { ok: true };
-
-    // register(username, email, password, roles)
-    // await db
-    //     .update(users)
-    //     .set({ emailVerified: String(Date.now()) })
-    //     .where(eq(users.email, email)); // email should be unique atp
 }
 
 // Step 4: Register the user into the database
@@ -156,7 +161,7 @@ export async function register(usernameIn: string, userEmail: string, userPasswo
         .values({
             email: userEmail,
             username: usernameIn,
-            password: await hash(userPassword, 10),
+            password: await bcrypt.hash(userPassword, 10),
             emailVerified: new Date(Date.now()).toISOString(),
             roles: sql`'FAMILY'::user_role`
         })
@@ -178,3 +183,10 @@ export async function checkExistence(input: string, column: "username" | "email"
 
 
 
+// -----------------------------------------------------------------------------------------------------------------------------------
+// Forgot password functions
+// -----------------------------------------------------------------------------------------------------------------------------------
+
+export async function forgotPassword(formData: FormData) {
+    
+}
