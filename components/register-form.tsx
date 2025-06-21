@@ -3,7 +3,8 @@ import { FcGoogle } from "react-icons/fc";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Logo from "./logo";
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition, useRef } from "react";
+import ResendCodeButton from './resend-code-button'
 import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { credSchema, codeSchema, emailSchema } from "@/app/lib/auth-lib/auth-sch
 type regParams = {
     register: (userUserName: string, userEmail: string, userPassword: string) => Promise<authMSG>;
     requestCode: (formData: FormData) => Promise<authMSG>;
+    resendCode: (email: string) => Promise<authMSG>;
     checkCode: (formData: FormData, email: string) => Promise<authMSG>;
     familyForm: React.ReactNode;
 }
@@ -24,18 +26,18 @@ type userInfo = { // Don't store password in state
 type Step = "EMAIL" | "CODE" | "CREDENTIALS" | "PROFILE" | "DONE";
 
 function FormInput({ label, type, extras, register }: { label: string; type: string; extras?: any; register?: any }) {
-    const fieldName = label.toLowerCase().replace(/\s+/g, '');
     return (
     <>
         <label className="block text-sm text-gray-400 font-bold mb-2">{label}</label>
         <Input
             type={type}
-            name={fieldName}
+            name={label}
             placeholder={`Enter your ${label.toLowerCase()}`}
-            className="rounded-sm !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
+            className="rounded-sm mb-3 px-2 py-4 !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
             required
             aria-required
-            {...register?.(fieldName)}
+            aria-invalid={!!register?.errors?.message}
+            {...register}
             {...extras}
         /> 
     </>
@@ -59,21 +61,25 @@ function FormSubmit({ children, disabled }: { children: React.ReactNode; disable
 export default function RegisterForm({
     register,
     requestCode,
+    resendCode,
     checkCode,
     familyForm
 }: regParams) {
     const [credentials, setCredentials] = useState<userInfo | null>(null);
     const [step, setStep] = useState<Step>("EMAIL");
 
-    const [error, setError] = useState<string>("");
     const [pending, startTransition] = useTransition();
+
+    // -----------------------------------------------------------
+    // 1. Email step
+    // -----------------------------------------------------------
 
     const emailForm = useForm({
         mode: "onChange",
         resolver: zodResolver(emailSchema)
     })
 
-    const onEmail = async (data: any) => {
+    const onEmail = async (data: { email: string }) => {
         startTransition(async () => {
             const formData = new FormData();
             formData.append('email', data.email);
@@ -84,12 +90,16 @@ export default function RegisterForm({
         })
     }
 
+    // -----------------------------------------------------------
+    // 2. Code step
+    // -----------------------------------------------------------
+
     const codeForm = useForm({
         resolver: zodResolver(codeSchema),
         mode: "onChange"
     })
 
-    const onCode = async (data: any) => {
+    const onCode = async (data: { code: string }) => {
         startTransition(async () => {
             const formData = new FormData();
             formData.append('code', data.code);
@@ -98,13 +108,18 @@ export default function RegisterForm({
             setStep("CREDENTIALS");
         })
     }
+
     
+    // -----------------------------------------------------------
+    // 3. Credentials step
+    // -----------------------------------------------------------
+
     const credForm = useForm({
         resolver: zodResolver(credSchema),
         mode: "onChange"
     })
 
-    const onCred = async (data: any) => {
+    const onCred = async (data: { username: string, password: string }) => {
         startTransition(async () => {
             const credCheck = await register(data.username, credentials!.email as string, data.password);
             if (!credCheck.ok) return credForm.setError("root", { message: credCheck.msg });
@@ -135,12 +150,12 @@ export default function RegisterForm({
             )}
 
             {step === "EMAIL" && (
-                <form onSubmit={emailForm.handleSubmit(onEmail)} className="flex flex-col bg-white p-2 w-1/5 space-y-4">
+                <form onSubmit={emailForm.handleSubmit(onEmail)} className="flex flex-col bg-white p-2 w-1/5">
                     <h1 className="flex justify-center items-center font-bold mb-4">Step 1/4 - Email</h1>
                     <FormInput 
                         label="Email"
                         type="text"
-                        register={emailForm.register}
+                        register={emailForm.register("email")}
                     />
                     <FormError
                         error={emailForm.formState.errors.email?.message}
@@ -150,27 +165,33 @@ export default function RegisterForm({
             )}
 
             {step === "CODE" && (
-                <form onSubmit={codeForm.handleSubmit(onCode)} className="flex flex-col bg-white p-2 w-1/5 space-y-4">
+                <form onSubmit={codeForm.handleSubmit(onCode)} className="flex flex-col bg-white p-2 w-1/5">
                     <h1 className="flex justify-center items-center font-bold mb-4">Step 2/4 - Verification Code</h1>
                     <FormInput 
                         label="Code"
                         type="number"
-                        register={codeForm.register}
+                        register={codeForm.register("code")}
                     />
                     <FormError
                         error={codeForm.formState.errors.code?.message}
                     />
                     <FormSubmit disabled={pending}>Continue</FormSubmit>
+                    
+                    <ResendCodeButton 
+                        resendCode={resendCode}
+                        defaultCooldown={30}
+                        email={credentials!.email!}
+                    />
                 </form>
             )}
 
             {step === "CREDENTIALS" && (
-                <form onSubmit={credForm.handleSubmit(onCred)} className="flex flex-col bg-white p-2 w-1/5 space-y-4">
+                <form onSubmit={credForm.handleSubmit(onCred)} className="flex flex-col bg-white p-2 w-1/5">
                     <h1 className="flex justify-center items-center font-bold mb-4">Step 3/4 - Account Details</h1>
                     <FormInput 
                         label="Username"
                         type="text"
-                        register={credForm.register}
+                        register={credForm.register("username")}
                     />
                     <FormError
                         error={credForm.formState.errors.username?.message}
@@ -178,7 +199,7 @@ export default function RegisterForm({
                     <FormInput 
                         label="Password"
                         type="password"
-                        register={credForm.register}
+                        register={credForm.register("password")}
                     />
                     <FormError
                         error={credForm.formState.errors.password?.message}
