@@ -20,7 +20,7 @@ declare module "next-auth" {
     }
 }
 
-export const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
+const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -53,13 +53,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     });
 
                     if (!result) {
-                        return { error: "No user with this email" };
+                        return null;
                     }
                     if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return { error: "Unauthorized"};
+                        return null;
                     }
                     if (!result.emailVerified) {
-                        return { error: "Email has not been verified"};
+                        return null;
                     }
                     const adminuser = result;
                     const valid = await bcrypt.compare(password, adminuser.password);
@@ -96,13 +96,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         where: (users, { eq }) => eq(users.email, email)
                     });
                     if (!result) {
-                        return { error: "No user with this email" };
+                        return null;
                     }
                     if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return { error: "Unauthorized"};
+                        return null;
                     }
                     if (!result.emailVerified) {
-                        return { error: "Email has not been verified"};
+                        return null;
                     }
 
                     const teacheruser = result
@@ -140,13 +140,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         where: (users, { eq }) => eq(users.email, email)
                     });
                     if (!result) {
-                        return { error: "No user with this email" };
+                        return null;
                     }
                     if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return { error: "Unauthorized"};
+                        return null;
                     }
                     if (!result.emailVerified) {
-                        return { error: "Email has not been verified"};
+                        return null;
                     }
 
                     const familyuser = result
