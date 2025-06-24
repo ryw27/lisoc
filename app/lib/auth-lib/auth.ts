@@ -3,9 +3,11 @@ import Credentials from "next-auth/providers/credentials"
 import { db } from "../db"
 import { pool } from "../db"
 import bcrypt from "bcrypt"
-import { z } from "zod"
 import PostgresAdapter from "@auth/pg-adapter"
-import { type Adapter } from "@auth/core/adapters"
+import { type Adapter } from "next-auth/adapters"
+import { credSchema, loginSchema } from "./auth-schema"
+import { JWT } from "next-auth/jwt";
+import authConfig from "@/auth.config"
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
@@ -20,47 +22,56 @@ declare module "next-auth" {
     }
 }
 
-const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
+declare module "next-auth/jwt" {
+    interface JWT { 
+        role: "ADMIN" | "TEACHER" | "FAMILY"
+    }
+}
+
+export const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    ...authConfig,
     providers: [
         Credentials({
             id: "admin-credentials",
             name: "Admin Login",
             credentials: {
+                email: { label: "Email", type: "email", required: true },
                 username: { label: "Username", type: "text", required: true },
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod
-                const parsedCredentials = await z.object({
-                    username: z.string({ required_error: "Username is required" })
-                        .min(1, "Username is required")
-                        .max(24, "Username must be less than 24 characters"),
-                    password: z.string({ required_error: "Password is required" })
-                        .min(1, "Password is required")
-                        .min(8, "Password must be more than 8 characters")
-                        .max(32, "Password must be less than 32 characters"),
-                }).safeParseAsync(credentials);
+                //Parse credentials with zod. Make sure it's safe.
+                const creds = credSchema.safeParse(credentials);
+
+                if (creds.error) {
+                    return null;
+                }
+
+                const credData = creds.data;
+
+                const isEmail = Boolean(credData.email?.trim());
+                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+
+                const parsedCredentials = loginSchema.safeParse({
+                    emailUsername: identifier,
+                    password: credData.password,
+                });
 
                 if (parsedCredentials.success) {
-                    const { username, password } = parsedCredentials.data;
-                    
-                    // const result = await db.select().from(adminuser).where(eq(adminuser.username, username));
+                    const { emailUsername, password } = parsedCredentials.data;
                     const result = await db.query.users.findFirst({
-                        where: (users, { eq }) => eq(users.username, username)
+                        where: (users, { eq }) =>
+                            isEmail
+                                ? eq(users.email, emailUsername)
+                                : eq(users.username, emailUsername),
                     });
+                    if (!result || !result.emailVerified || !result.roles.includes("ADMIN")) {
+                        return null;
+                    }
 
-                    if (!result) {
-                        return null;
-                    }
-                    if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return null;
-                    }
-                    if (!result.emailVerified) {
-                        return null;
-                    }
                     const adminuser = result;
                     const valid = await bcrypt.compare(password, adminuser.password);
                     if (!valid) return null;
@@ -76,36 +87,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: "Teacher Login",
             credentials: {
                 email: { label: "Email", type: "email", required: true },
+                username: { label: "Username", type: "string", required: true },
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod
-                const parsedCredentials = await z.object({
-                email: z.string({ required_error: "Email is required" })
-                    .min(1, "Email is required")
-                    .email("Invalid email"),
-                password: z.string({ required_error: "Password is required" })
-                    .min(1, "Password is required")
-                    .min(8, "Password must be more than 8 characters")
-                    .max(32, "Password must be less than 32 characters"),
-                }).safeParseAsync(credentials);
+                //Parse credentials with zod. Make sure it's safe.
+                const creds = credSchema.safeParse(credentials);
+
+                if (creds.error) {
+                    return null;
+                }
+
+                const credData = creds.data;
+
+                const isEmail = Boolean(credData.email?.trim());
+                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+
+                const parsedCredentials = loginSchema.safeParse({
+                    emailUsername: identifier,
+                    password: credData.password,
+                });
 
                 if (parsedCredentials.success) {
-                    const { email, password } = parsedCredentials.data;
+                    const { emailUsername, password } = parsedCredentials.data;
                     const result = await db.query.users.findFirst({
-                        where: (users, { eq }) => eq(users.email, email)
+                        where: (users, { eq }) =>
+                            isEmail
+                                ? eq(users.email, emailUsername)
+                                : eq(users.username, emailUsername),
                     });
-                    if (!result) {
-                        return null;
-                    }
-                    if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return null;
-                    }
-                    if (!result.emailVerified) {
+                    if (!result || !result.emailVerified || !result.roles.includes("TEACHER")) {
                         return null;
                     }
 
-                    const teacheruser = result
+                    const teacheruser = result;
                     const valid = await bcrypt.compare(password, teacheruser.password);
                     if (!valid) return null;
                     
@@ -119,37 +134,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             id: "family-credentials",
             name: "Family Login",
             credentials: {
+                username: { label: "Username", type: "string", required: true },
                 email: { label: "Email", type: "email", required: true },
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod
-                const parsedCredentials = await z.object({
-                    email: z.string({ required_error: "Email is required" })
-                        .min(1, "Email is required")
-                        .email("Invalid email"),
-                    password: z.string({ required_error: "Password is required" })
-                        .min(1, "Password is required")
-                        .min(8, "Password must be more than 8 characters")
-                        .max(32, "Password must be less than 32 characters"),
-                }).safeParseAsync(credentials);
+                //Parse credentials with zod. Make sure it's safe.
+                const creds = credSchema.safeParse(credentials);
+
+                if (creds.error) {
+                    return null;
+                }
+
+                const credData = creds.data;
+
+                const isEmail = Boolean(credData.email?.trim());
+                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+
+                const parsedCredentials = loginSchema.safeParse({
+                    emailUsername: identifier,
+                    password: credData.password,
+                });
 
                 if (parsedCredentials.success) {
-                    const { email, password } = parsedCredentials.data;
+                    const { emailUsername, password } = parsedCredentials.data;
                     const result = await db.query.users.findFirst({
-                        where: (users, { eq }) => eq(users.email, email)
+                        where: (users, { eq }) =>
+                            isEmail
+                                ? eq(users.email, emailUsername)
+                                : eq(users.username, emailUsername),
                     });
-                    if (!result) {
-                        return null;
-                    }
-                    if (!result.roles.includes("ADMIN")) { // Check if user is an admin
-                        return null;
-                    }
-                    if (!result.emailVerified) {
+                    if (!result || !result.emailVerified) { //|| !result.roles.includes("FAMILY")) {
                         return null;
                     }
 
-                    const familyuser = result
+                    const familyuser = result;
                     const valid = await bcrypt.compare(password, familyuser.password);
                     if (!valid) return null;
                     
@@ -161,20 +180,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }), 
     ],
     adapter: pgadapter,
-    callbacks: {
-        async session({ session, token, user }) {
-            if (user?.role) {
-                session.user.role = user.role;
-            }
-            return session
-        },
-    },
-    session: {
-        strategy: "database",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-    },
-    pages: {
-        signIn: "/login",
-        signOut: "/logout",
-    }
 })
