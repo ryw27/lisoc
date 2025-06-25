@@ -1,7 +1,7 @@
-import { pgTable, serial, integer, varchar, text, bigint, timestamp, unique, smallint, boolean, foreignKey, numeric, char, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, serial, integer, varchar, text, bigint, unique, smallint, boolean, foreignKey, numeric, char, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { userRole } from "./db_types"
-
+import { createdAt, updatedAt, timestampWithTz } from "./db_types"
 
 
 export const accounts = pgTable("accounts", {
@@ -23,12 +23,12 @@ export const accounts = pgTable("accounts", {
 export const sessions = pgTable("sessions", {
 	id: serial().primaryKey().notNull(),
 	userId: integer().notNull(),
-	expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+	expires: timestampWithTz().notNull(),
 	sessionToken: varchar({ length: 255 }).notNull(),
 });
 
 export const adminrole = pgTable("adminrole", {
-	roleid: smallint().primaryKey().notNull(),
+	roleid: serial().primaryKey().notNull(),
 	rolename: varchar({ length: 50 }).notNull(),
 	rolefullnameeng: varchar({ length: 100 }).notNull(),
 	rolefullnamecn: varchar({ length: 100 }).notNull(),
@@ -40,7 +40,7 @@ export const adminrole = pgTable("adminrole", {
 ]);
 
 export const errorlog = pgTable("errorlog", {
-	id: integer().primaryKey().notNull(),
+	id: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "errorlog_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	userid: varchar({ length: 100 }),
 	errortype: varchar({ length: 50 }),
 	errormessage: varchar({ length: 2000 }),
@@ -50,19 +50,19 @@ export const errorlog = pgTable("errorlog", {
 	querystringdata: varchar({ length: 255 }),
 	useragent: varchar({ length: 255 }),
 	machinename: varchar({ length: 50 }),
-	errordate: timestamp({ precision: 3, mode: 'string' }),
+	errordate: timestampWithTz(),
 });
 
 export const users = pgTable("users", {
 	id: text().default(sql`gen_random_uuid()`).primaryKey().notNull(),
-	email: varchar({ length: 255 }).notNull(),
-	emailVerified: timestamp({ withTimezone: true, mode: 'string' }),
+	email: varchar({ length: 255 }).notNull().unique(),
+	emailVerified: timestampWithTz(),
 	image: text(),
 	roles: userRole().array().notNull(), // Changed from single role to array of roles
-	username: varchar({ length: 50 }).notNull(),
+	username: varchar({ length: 50 }).notNull().unique(),
 	password: varchar({ length: 100 }).notNull(),
-	createon: timestamp({ withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	lastlogin: timestamp({ withTimezone: true, mode: 'string' }),
+	createon: createdAt(),
+	lastlogin: timestampWithTz(),
 	address: varchar({ length: 100 }),
 	city: varchar({ length: 50 }),
 	state: varchar({ length: 4 }),
@@ -75,8 +75,17 @@ export const users = pgTable("users", {
 	unique("users_username_key").on(table.username),
 ]);
 
+export const registration_drafts = pgTable("registration_drafts", {
+	email: varchar({ length: 255 }).notNull(),
+	username: varchar({ length: 50 }).notNull(),
+	password: varchar({ length: 100 }).notNull(),
+	expires: timestampWithTz().default(sql`CURRENT_TIMESTAMP + INTERVAL '72 hours'`).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.email, table.username] }),
+]);
+
 export const family = pgTable("family", {
-	familyid: serial().primaryKey().notNull(),
+	familyid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "family_familyid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	userid: text().notNull(),
 	fatherfirsten: varchar({ length: 50 }),
 	fatherlasten: varchar({ length: 50 }),
@@ -87,7 +96,7 @@ export const family = pgTable("family", {
 	address2: varchar({ length: 100 }),
 	phonealt: varchar({ length: 20 }),
 	emailalt: varchar({ length: 100 }),
-	lastmodify: timestamp({ withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	lastmodify: updatedAt(),
 	notes: varchar({ length: 300 }),
 }, (table) => [
 	foreignKey({
@@ -98,7 +107,7 @@ export const family = pgTable("family", {
 ]);
 
 export const adminuser = pgTable("adminuser", {
-	adminid: serial().primaryKey().notNull(),
+	adminid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "adminuser_adminid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	userid: text().notNull(),
 	roleid: integer().notNull(),
 	namecn: varchar({ length: 50 }).notNull(),
@@ -108,7 +117,7 @@ export const adminuser = pgTable("adminuser", {
 	familyid: integer(),
 	createby: varchar({ length: 50 }).notNull(),
 	updateby: varchar({ length: 50 }).notNull(),
-	updateon: timestamp({ withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updateon: updatedAt(),
 	ischangepwdnext: boolean().default(false).notNull(),
 	status: boolean().default(true).notNull(),
 	notes: varchar({ length: 300 }),
@@ -131,18 +140,18 @@ export const adminuser = pgTable("adminuser", {
 ]);
 
 export const paypalrecord = pgTable("paypalrecord", {
-	pid: integer().primaryKey().notNull(),
+	pid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "paypalrecord_pid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	regnum: integer().notNull(),
 	paidamount: numeric().notNull(),
 	transfee: numeric(),
 	paypalstatus: varchar({ length: 250 }),
 	counterpartystatus: varchar({ length: 250 }),
 	transactionid: varchar({ length: 50 }),
-	paiddate: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	paiddate: timestampWithTz().notNull(),
 	isprocess: boolean(),
 	iscurrent: boolean(),
 	updateby: varchar({ length: 50 }),
-	updateon: timestamp({ precision: 3, mode: 'string' }),
+	updateon: timestampWithTz(),
 	notes: varchar({ length: 250 }),
 });
 
@@ -159,24 +168,25 @@ export const paypalrecordImport = pgTable("paypalrecord_import", {
 });
 
 export const scorecode = pgTable("scorecode", {
-	codeid: integer().primaryKey().notNull(),
+	codeid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "scorecode_codeid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	codenameeng: varchar({ length: 50 }),
 	codenamecn: varchar({ length: 50 }),
 });
 
 export const teacher = pgTable("teacher", {
-	teacherid: serial().primaryKey().notNull(),
+	teacherid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "teacher_teacherid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	userid: text().notNull(),
 	namecn: varchar({ length: 50 }).notNull(),
 	namelasten: varchar({ length: 50 }).notNull(),
 	namefirsten: varchar({ length: 50 }).notNull(),
-	classid: integer().notNull(),
-	address: varchar({ length: 100 }),
+	classid: integer(),
 	address2: varchar({ length: 100 }),
-	familyid: integer().notNull(),
-	createby: varchar({ length: 50 }).notNull(),
-	updateby: varchar({ length: 50 }).notNull(),
-	updateon: timestamp({ withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	phonealt: varchar({ length: 20 }),
+	emailalt: varchar({ length: 100 }),
+	familyid: integer(),
+	createby: varchar({ length: 50 }),
+	updateby: varchar({ length: 50 }),
+	updateon: updatedAt(),
 	notes: varchar({ length: 300 }),
 }, (table) => [
 	foreignKey({
@@ -196,13 +206,19 @@ export const teacher = pgTable("teacher", {
 		}),
 ]);
 
+export const teacher_registration = pgTable("teacher_registration", {
+	linkuuid: text().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+	email: varchar({ length: 255 }).notNull(),
+	expires: timestampWithTz().default(sql`CURRENT_TIMESTAMP + INTERVAL '7 days'`).notNull(),
+})
+
 export const seatnum = pgTable("seatnum", {
-	seatid: integer().primaryKey().notNull(),
+	seatid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "seatnum_seatid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	seatnum: integer().notNull(),
 });
 
 export const supports = pgTable("supports", {
-	catid: integer().primaryKey().notNull(),
+	catid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "supports_catid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	catnamecn: varchar({ length: 50 }).notNull(),
 	catnameeng: varchar({ length: 100 }).notNull(),
 	description: varchar({ length: 400 }),
@@ -273,7 +289,7 @@ export const supports = pgTable("supports", {
 // ]);
 
 export const seasons = pgTable("seasons", {
-	seasonid: smallint().primaryKey().notNull(),
+	seasonid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "seasons_seasonid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	seasonnamecn: varchar({ length: 100 }).notNull(),
 	seasonnameeng: varchar({ length: 100 }),
 	isspring: boolean().notNull(),
@@ -282,14 +298,14 @@ export const seasons = pgTable("seasons", {
 	haslateregfee: boolean().notNull(),
 	haslateregfee4Newfamily: boolean().notNull(),
 	hasdutyfee: boolean().notNull(),
-	startdate: timestamp({ mode: 'string' }).notNull(),
-	enddate: timestamp({ mode: 'string' }).notNull(),
-	earlyregdate: timestamp({ mode: 'string' }).notNull(),
-	normalregdate: timestamp({ mode: 'string' }).notNull(),
-	lateregdate1: timestamp({ mode: 'string' }).notNull(),
-	lateregdate2: timestamp({ mode: 'string' }).notNull(),
-	closeregdate: timestamp({ mode: 'string' }).notNull(),
-	canceldeadline: timestamp({ mode: 'string' }).notNull(),
+	startdate: timestampWithTz().notNull(),
+	enddate: timestampWithTz().notNull(),
+	earlyregdate: timestampWithTz().notNull(),
+	normalregdate: timestampWithTz().notNull(),
+	lateregdate1: timestampWithTz().notNull(),
+	lateregdate2: timestampWithTz().notNull(),
+	closeregdate: timestampWithTz().notNull(),
+	canceldeadline: timestampWithTz().notNull(),
 	hasdeadline: boolean().notNull(),
 	status: varchar({ length: 50 }).notNull(),
 	open4Register: boolean().notNull(),
@@ -297,15 +313,15 @@ export const seasons = pgTable("seasons", {
 	showteachername: boolean().notNull(),
 	days4Showteachername: smallint().notNull(),
 	allownewfamilytoregister: boolean().notNull(),
-	date4Newfamilytoregister: timestamp({ mode: 'string' }).notNull(),
+	date4Newfamilytoregister: timestampWithTz().notNull(),
 	notes: varchar({ length: 6000 }),
-	createddate: timestamp({ mode: 'string' }),
-	lastmodifieddate: timestamp({ mode: 'string' }),
+	createddate: timestampWithTz(),
+	lastmodifieddate: timestampWithTz(),
 	updateby: varchar({ length: 50 }),
 });
 
 export const arrangement = pgTable("arrangement", {
-	arrangeid: integer().primaryKey().notNull(),
+	arrangeid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "arrangement_arrangeid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	seasonid: smallint().notNull(),
 	classid: integer().notNull(),
 	teacherid: integer().notNull(),
@@ -319,7 +335,7 @@ export const arrangement = pgTable("arrangement", {
 	regstatus: varchar({ length: 20 }),
 	closeregistration: boolean(),
 	notes: varchar({ length: 250 }),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
+	lastmodify: updatedAt(),
 	updateby: varchar({ length: 50 }).notNull(),
 	tuitionW: numeric("tuition_w"),
 	specialfeeW: numeric("specialfee_w"),
@@ -361,7 +377,7 @@ export const arrangement = pgTable("arrangement", {
 ]);
 
 export const classes = pgTable("classes", {
-	classid: serial().primaryKey().notNull(),
+	classid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "classes_classid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	classindex: integer(),
 	ageid: smallint(),
 	typeid: smallint().notNull(),
@@ -372,11 +388,11 @@ export const classes = pgTable("classes", {
 	sizelimits: integer(),
 	status: varchar({ length: 20 }).notNull(),
 	description: varchar({ length: 2000 }),
-	lastmodify: timestamp({ precision: 3, mode: 'string' }),
+	lastmodify: timestampWithTz(),
 	createby: varchar({ length: 100 }).notNull(),
-	createon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	createon: createdAt(),
 	updateby: varchar({ length: 100 }).notNull(),
-	updateon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	updateon: updatedAt(),
 }, (table) => [
 	foreignKey({
 			columns: [table.ageid],
@@ -438,15 +454,15 @@ export const classes = pgTable("classes", {
 // ]);
 
 export const classrooms = pgTable("classrooms", {
-	roomid: smallint().primaryKey().notNull(),
+	roomid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "classrooms_roomid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	roomno: varchar({ length: 50 }).notNull(),
 	roomcapacity: smallint().notNull(),
-	status: varchar({ length: 20 }).notNull(),
+	status: varchar({ length: 20 }).default("Active").notNull(),
 	notes: varchar({ length: 200 }).notNull(),
 });
 
 export const classtime = pgTable("classtime", {
-	timeid: smallint().primaryKey().notNull(),
+	timeid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "classtime_timeid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	period: varchar({ length: 20 }).notNull(),
 	timebegin: numeric().notNull(),
 	timeend: numeric().notNull(),
@@ -454,14 +470,14 @@ export const classtime = pgTable("classtime", {
 });
 
 export const suitableterm = pgTable("suitableterm", {
-	termno: smallint().primaryKey().notNull(),
+	termno: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "suitableterm_termno_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	suitableterm: varchar({ length: 30 }),
 	suitabletermcn: varchar({ length: 30 }),
 	description: varchar({ length: 100 }),
 });
 
 export const agerestriction = pgTable("agerestriction", {
-	ageid: smallint().primaryKey().notNull(),
+	ageid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "agerestriction_ageid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	description: varchar({ length: 100 }).notNull(),
 	minage: smallint().notNull(),
 	maxage: smallint().notNull(),
@@ -469,7 +485,7 @@ export const agerestriction = pgTable("agerestriction", {
 });
 
 export const classtype = pgTable("classtype", {
-	typeid: smallint().primaryKey().notNull(),
+	typeid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "classtype_typeid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	typenameen: varchar({ length: 100 }).notNull(),
 	typenamecn: varchar({ length: 100 }).notNull(),
 	ageofstudent: varchar({ length: 20 }).notNull(),
@@ -491,7 +507,7 @@ export const classtype = pgTable("classtype", {
 ]);
 
 export const student = pgTable("student", {
-	studentid: integer().primaryKey().notNull(),
+	studentid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "student_studentid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	familyid: integer().notNull(),
 	studentno: varchar({ length: 20 }),
 	namecn: varchar({ length: 50 }),
@@ -500,10 +516,10 @@ export const student = pgTable("student", {
 	gender: varchar({ length: 20 }),
 	ageof: varchar({ length: 20 }),
 	age: integer(),
-	dob: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	dob: timestampWithTz().notNull(),
 	active: boolean().notNull(),
-	createddate: timestamp({ mode: 'string' }).notNull(),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
+	createddate: createdAt(),
+	lastmodify: updatedAt(),
 	notes: varchar({ length: 200 }),
 	upgradable: integer().notNull(),
 }, (table) => [
@@ -516,14 +532,14 @@ export const student = pgTable("student", {
 
 export const classregistration = pgTable("classregistration", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	regid: bigint({ mode: "number" }).primaryKey().notNull(),
+	regid: bigint({ mode: "number" }).primaryKey().notNull().generatedAlwaysAsIdentity({ name: "classregistration_regid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	appliedid: integer(),
 	studentid: integer().notNull(),
 	arrangeid: integer().notNull(),
 	seasonid: smallint(),
 	isyearclass: boolean().notNull(),
 	classid: integer().notNull(),
-	registerdate: timestamp({ mode: 'string' }).notNull(),
+	registerdate: timestampWithTz().notNull(),
 	statusid: smallint().notNull(),
 	previousstatusid: smallint().notNull(),
 	familybalanceid: integer(),
@@ -532,7 +548,7 @@ export const classregistration = pgTable("classregistration", {
 	isdropspring: boolean().notNull(),
 	byadmin: boolean(),
 	userid: varchar({ length: 100 }),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
+	lastmodify: updatedAt(),
 	notes: varchar({ length: 500 }),
 }, (table) => [
 	foreignKey({
@@ -582,6 +598,7 @@ export const classregistration = pgTable("classregistration", {
 		}),
 ]);
 
+// STATIC
 export const regstatus = pgTable("regstatus", {
 	regstatusid: smallint().primaryKey().notNull(),
 	regstatus: varchar({ length: 50 }),
@@ -589,7 +606,7 @@ export const regstatus = pgTable("regstatus", {
 });
 
 export const familybalance = pgTable("familybalance", {
-	balanceid: integer().primaryKey().notNull(),
+	balanceid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "familybalance_balanceid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	appliedid: integer().notNull(),
 	appliedregid: integer().notNull(),
 	seasonid: smallint().notNull(),
@@ -616,9 +633,9 @@ export const familybalance = pgTable("familybalance", {
 	checkno: varchar({ length: 50 }),
 	transactionno: varchar({ length: 20 }),
 	isonlinepayment: boolean(),
-	registerdate: timestamp({ mode: 'string' }).notNull(),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
-	paiddate: timestamp({ mode: 'string' }).notNull(),
+	registerdate: timestampWithTz().notNull(),
+	lastmodify: updatedAt(),
+	paiddate: timestampWithTz().notNull(),
 	reference: varchar({ length: 50 }),
 	notes: varchar({ length: 250 }),
 	userid: varchar({ length: 100 }),
@@ -648,14 +665,14 @@ export const familybalance = pgTable("familybalance", {
 ]);
 
 export const dutyassignment = pgTable("dutyassignment", {
-	dutyassignid: integer().primaryKey().notNull(),
+	dutyassignid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "dutyassignment_dutyassignid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	familyid: integer().notNull(),
 	studentid: integer(),
 	seasonid: smallint(),
-	dutydate: timestamp({ mode: 'string' }).notNull(),
+	dutydate: timestampWithTz().notNull(),
 	dutystatus: smallint().notNull(),
-	createddate: timestamp({ mode: 'string' }).notNull(),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
+	createddate: createdAt(),
+	lastmodify: updatedAt(),
 	note: varchar({ length: 150 }),
 	pdid: integer(),
 	ischarged: boolean(),
@@ -687,25 +704,26 @@ export const dutyassignment = pgTable("dutyassignment", {
 		}),
 ]);
 
+// STATIC
 export const dutystatus = pgTable("dutystatus", {
-	dutystatusid: smallint().primaryKey().notNull(),
+	dutystatusid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "dutystatus_dutystatusid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	dutystatuscn: varchar({ length: 50 }),
 	dutystatus: varchar({ length: 50 }).notNull(),
 	active: boolean().notNull(),
 });
 
 export const parentdutyPb = pgTable("parentduty_pb", {
-	pdid: integer().primaryKey().notNull(),
+	pdid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "parentduty_pb_pdid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	familyid: integer().notNull(),
 	studentid: integer().notNull(),
 	committeeid: integer().notNull(),
 	seasonid: integer().notNull(),
-	selecteddutydate: timestamp({ precision: 3, mode: 'string' }),
+	selecteddutydate: timestampWithTz(),
 	ischangebyadmin: boolean().notNull(),
-	scheduleddutydate: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	scheduleddutydate: timestampWithTz().notNull(),
 	previouscommitteeid: integer().notNull(),
-	regdate: timestamp({ precision: 3, mode: 'string' }).notNull(),
-	lastupdated: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	regdate: timestampWithTz().notNull(),
+	lastupdated: timestampWithTz().notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.familyid],
@@ -730,7 +748,7 @@ export const parentdutyPb = pgTable("parentduty_pb", {
 ]);
 
 export const familybalancetype = pgTable("familybalancetype", {
-	typeid: smallint().primaryKey().notNull(),
+	typeid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "familybalancetype_typeid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	typenameen: varchar({ length: 60 }),
 	typenamecn: varchar({ length: 60 }),
 	isminusvalue: boolean().notNull(),
@@ -738,13 +756,13 @@ export const familybalancetype = pgTable("familybalancetype", {
 });
 
 export const familybalancestatus = pgTable("familybalancestatus", {
-	statusid: smallint().primaryKey().notNull(),
+	statusid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "familybalancestatus_statusid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	statusen: varchar({ length: 60 }),
 	statuscn: varchar({ length: 60 }),
 });
 
 export const familybalanceSave = pgTable("familybalance_save", {
-	balanceid: integer().primaryKey().notNull(),
+	balanceid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "familybalance_save_balanceid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	appliedid: integer().notNull(),
 	appliedregid: integer().notNull(),
 	seasonid: smallint().notNull(),
@@ -771,9 +789,9 @@ export const familybalanceSave = pgTable("familybalance_save", {
 	checkno: varchar({ length: 50 }),
 	transactionno: varchar({ length: 20 }),
 	isonlinepayment: boolean(),
-	registerdate: timestamp({ mode: 'string' }).notNull(),
-	lastmodify: timestamp({ mode: 'string' }).notNull(),
-	paiddate: timestamp({ mode: 'string' }).notNull(),
+	registerdate: timestampWithTz().notNull(),
+	lastmodify: updatedAt(),
+	paiddate: timestampWithTz().notNull(),
 	reference: varchar({ length: 50 }),
 	notes: varchar({ length: 250 }),
 	userid: varchar({ length: 100 }),
@@ -801,13 +819,13 @@ export const familybalanceSave = pgTable("familybalance_save", {
 ]);
 
 export const feedback = pgTable("feedback", {
-	recid: integer().primaryKey().notNull(),
+	recid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "feedback_recid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	familyid: integer(),
 	name: varchar({ length: 100 }),
 	phone: char({ length: 15 }),
 	email: varchar({ length: 100 }),
 	comment: varchar({ length: 2000 }),
-	postdate: timestamp({ mode: 'string' }),
+	postdate: timestampWithTz(),
 	followup: varchar({ length: 250 }),
 }, (table) => [
 	foreignKey({
@@ -818,7 +836,7 @@ export const feedback = pgTable("feedback", {
 ]);
 
 export const feelist = pgTable("feelist", {
-	feelistid: integer().primaryKey().notNull(),
+	feelistid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "feelist_feelistid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	seasonid: integer().notNull(),
 	feeid: integer().notNull(),
 	feename: varchar({ length: 50 }),
@@ -834,7 +852,7 @@ export const feelist = pgTable("feelist", {
 ]);
 
 export const dutycommittee = pgTable("dutycommittee", {
-	dcid: integer().primaryKey().notNull(),
+	dcid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "dutycommittee_dcid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	committeenamecn: varchar({ length: 200 }),
 	committeenameeng: varchar({ length: 200 }),
 	numofseats: integer().notNull(),
@@ -844,13 +862,13 @@ export const dutycommittee = pgTable("dutycommittee", {
 	sortorder: integer().notNull(),
 	isforadminonly: boolean().notNull(),
 	openstatus: boolean().notNull(),
-	createdate: timestamp({ precision: 3, mode: 'string' }).notNull(),
-	lastupdatedate: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	createdate: createdAt(),
+	lastupdatedate: updatedAt(),
 	lastupdateby: varchar({ length: 50 }),
 });
 
 export const regchangerequest = pgTable("regchangerequest", {
-	requestid: integer().primaryKey().notNull(),
+	requestid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "regchangerequest_requestid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 })	,
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	regid: bigint({ mode: "number" }).notNull(),
 	appliedid: integer(),
@@ -859,7 +877,7 @@ export const regchangerequest = pgTable("regchangerequest", {
 	isyearclass: boolean().notNull(),
 	relatedseasonid: smallint(),
 	classid: integer().notNull(),
-	registerdate: timestamp({ mode: 'string' }),
+	registerdate: timestampWithTz(),
 	oriregstatusid: smallint().notNull(),
 	regstatusid: smallint().notNull(),
 	reqstatusid: smallint().notNull(),
@@ -867,9 +885,9 @@ export const regchangerequest = pgTable("regchangerequest", {
 	familyid: integer(),
 	otherfee: numeric(),
 	newbalanceid: integer(),
-	submitdate: timestamp({ precision: 3, mode: 'string' }),
-	processdate: timestamp({ precision: 3, mode: 'string' }),
-	lastmodify: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	submitdate: timestampWithTz(),
+	processdate: timestampWithTz(),
+	lastmodify: updatedAt().notNull(),
 	notes: varchar({ length: 500 }),
 	adminmemo: varchar({ length: 500 }),
 	adminuserid: varchar({ length: 50 }),
@@ -932,15 +950,15 @@ export const regchangerequest = pgTable("regchangerequest", {
 ]);
 
 export const requeststatus = pgTable("requeststatus", {
-	reqstatusid: smallint().primaryKey().notNull(),
+	reqstatusid: smallint().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "requeststatus_reqstatusid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 32767, cache: 1 }),
 	reqstatus: varchar({ length: 50 }),
 	reqstatuscn: varchar({ length: 50 }),
 });
 
 export const schoolcalendar = pgTable("schoolcalendar", {
-	calid: integer().primaryKey().notNull(),
+	calid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "schoolcalendar_calid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	seasonid: smallint().notNull(),
-	schooldate: timestamp({ precision: 3, mode: 'string' }),
+	schooldate: timestampWithTz(),
 	alternatename: varchar({ length: 200 }),
 	description: varchar({ length: 2000 }),
 	fontcolor: varchar({ length: 30 }).notNull(),
@@ -948,9 +966,9 @@ export const schoolcalendar = pgTable("schoolcalendar", {
 	isbold: boolean().notNull(),
 	active: boolean().notNull(),
 	createby: varchar({ length: 100 }).notNull(),
-	createon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	createon: createdAt(),
 	updateby: varchar({ length: 100 }).notNull(),
-	updateon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	updateon: updatedAt(),
 }, (table) => [
 	foreignKey({
 			columns: [table.seasonid],
@@ -960,16 +978,16 @@ export const schoolcalendar = pgTable("schoolcalendar", {
 ]);
 
 export const studentscore = pgTable("studentscore", {
-	scoreid: integer().primaryKey().notNull(),
+	scoreid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "studentscore_scoreid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	studentid: integer().notNull(),
 	seasonid: smallint().notNull(),
 	classid: integer().notNull(),
 	factorid: integer().notNull(),
 	islock: boolean().notNull(),
 	lockby: integer(),
-	lastlockupdateon: timestamp({ precision: 3, mode: 'string' }),
+	lastlockupdateon: timestampWithTz(),
 	ispublish: boolean().notNull(),
-	lastpublishupdateon: timestamp({ precision: 3, mode: 'string' }),
+	lastpublishupdateon: timestampWithTz(),
 }, (table) => [
 	foreignKey({
 			columns: [table.studentid],
@@ -994,17 +1012,17 @@ export const studentscore = pgTable("studentscore", {
 ]);
 
 export const scoredetail = pgTable("scoredetail", {
-	scoredetailid: integer().primaryKey().notNull(),
+	scoredetailid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "scoredetail_scoredetailid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	scoreid: integer().notNull(),
 	score: numeric().notNull(),
 	active: boolean().notNull(),
 	createby: integer().notNull(),
 	isteacher4Createby: boolean().notNull(),
-	dateforscore: timestamp({ precision: 3, mode: 'string' }).notNull(),
-	createon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	dateforscore: timestampWithTz().notNull(),
+	createon: createdAt(),
 	updateby: integer().notNull(),
 	isteacher4Updateby: boolean().notNull(),
-	updateon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	updateon: updatedAt(),
 }, (table) => [
 	foreignKey({
 			columns: [table.scoreid],
@@ -1014,7 +1032,7 @@ export const scoredetail = pgTable("scoredetail", {
 ]);
 
 export const scorefactors = pgTable("scorefactors", {
-	factorid: integer().primaryKey().notNull(),
+	factorid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "scorefactors_factorid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	factorsequenceindex: numeric().notNull(),
 	factornamecn: varchar({ length: 300 }).notNull(),
 	factornamecnshort: varchar({ length: 100 }).notNull(),
@@ -1026,13 +1044,13 @@ export const scorefactors = pgTable("scorefactors", {
 	istext: boolean().notNull(),
 	description: varchar({ length: 2000 }),
 	createby: integer().notNull(),
-	createon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	createon: createdAt(),
 	updateby: integer().notNull(),
-	updateon: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	updateon: updatedAt(),
 });
 
 export const studentscorecomment = pgTable("studentscorecomment", {
-	scorecommentid: integer().primaryKey().notNull(),
+	scorecommentid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "studentscorecomment_scorecommentid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	studentid: integer().notNull(),
 	seasonid: smallint().notNull(),
 	classid: integer().notNull(),
@@ -1040,9 +1058,9 @@ export const studentscorecomment = pgTable("studentscorecomment", {
 	othercomment: varchar({ length: 2000 }),
 	islock: boolean().notNull(),
 	lockby: integer().notNull(),
-	lockon: timestamp({ precision: 3, mode: 'string' }),
+	lockon: timestampWithTz(),
 	updateby: integer().notNull(),
-	updateon: timestamp({ precision: 3, mode: 'string' }),
+	updateon: updatedAt(),
 	scoreid: integer(),
 }, (table) => [
 	foreignKey({
@@ -1068,7 +1086,7 @@ export const studentscorecomment = pgTable("studentscorecomment", {
 ]);
 
 export const studentscorefactor = pgTable("studentscorefactor", {
-	scorefactorid: integer().primaryKey().notNull(),
+	scorefactorid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "studentscorefactor_scorefactorid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	scoreid: integer().notNull(),
 	factorid: integer().notNull(),
 }, (table) => [
@@ -1085,7 +1103,7 @@ export const studentscorefactor = pgTable("studentscorefactor", {
 ]);
 
 export const studentscorerating = pgTable("studentscorerating", {
-	scoreratingid: integer().primaryKey().notNull(),
+	scoreratingid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "studentscorerating_scoreratingid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	studentid: integer().notNull(),
 	seasonid: smallint().notNull(),
 	classid: integer().notNull(),
@@ -1120,7 +1138,7 @@ export const studentscorerating = pgTable("studentscorerating", {
 ]);
 
 export const scoreratingfactors = pgTable("scoreratingfactors", {
-	ratingfactorid: integer().primaryKey().notNull(),
+	ratingfactorid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "scoreratingfactors_ratingfactorid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	sequenceindex: numeric().notNull(),
 	ratingfactornamecn: varchar({ length: 200 }).notNull(),
 	ratingfactornameeng: varchar({ length: 300 }),
@@ -1129,7 +1147,7 @@ export const scoreratingfactors = pgTable("scoreratingfactors", {
 });
 
 export const scorerating = pgTable("scorerating", {
-	ratingid: integer().primaryKey().notNull(),
+	ratingid: integer().primaryKey().notNull().generatedAlwaysAsIdentity({ name: "scorerating_ratingid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	sequenceindex: numeric().notNull(),
 	ratingnamecn: varchar({ length: 200 }).notNull(),
 	ratingnameeng: varchar({ length: 300 }).notNull(),
@@ -1201,7 +1219,7 @@ export const tempclass = pgTable("tempclass", {
 
 export const verificationToken = pgTable("verification_token", {
 	identifier: text().notNull(),
-	expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+	expires: timestampWithTz().notNull(),
 	token: text().notNull(),
 }, (table) => [
 	primaryKey({ columns: [table.identifier, table.token], name: "verification_token_pkey"}),
