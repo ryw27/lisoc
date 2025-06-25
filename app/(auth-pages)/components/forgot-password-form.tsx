@@ -5,35 +5,40 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { forgotPassSchema } from "@/app/lib/auth-lib/auth-schema";
 import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 
 type FPFormParams = {
     requestReset: (formData: FormData) => Promise<authMSG>;
 }
+
 export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
     const [busy, setBusy] = useState<boolean>(false);
-    const [sentCode, setSentCode] = useState<boolean>(false);
+    const [sentLink, setSentLink] = useState<boolean>(false);
 
     const fpForm = useForm({
         mode: "onChange",
         resolver: zodResolver(forgotPassSchema)
     })
 
-    const onEmail = async ( data: { email: string }) => {
+    const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
+        console.log(data);
         setBusy(true);
         const fd = new FormData();
-        fd.append("email", data.email)
+        Object.entries(data).forEach(([k, v]) => fd.set(k, v as string));
         const status = await requestReset(fd);
         if (!status.ok && status.msg !== "Account does not exist") {
-            return fpForm.setError("email", { message: status.msg })
+            return fpForm.setError("emailUsername", { message: status.msg })
         }
-        setSentCode(true);
+        setSentLink(true);
+        setBusy(false);
     }
 
     const tryFPAgain = () => {
         // Todo: Rate limit
-        setSentCode(false);
+        setSentLink(false);
+        setBusy(false);
     }
 
 
@@ -43,21 +48,21 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
 
             <h1 className="text-2xl font-bold mb-10 mt-10 text-left">Forgot Password Form</h1>
 
-            {!sentCode && (
+            {!sentLink && (
                 <form onSubmit={fpForm.handleSubmit(onEmail)} className="flex flex-col bg-white p-2 w-1/5">
                     <FormInput 
-                        label="Email"
+                        label="Email or Username"
                         type="text"
-                        register={fpForm.register("email")}
+                        register={fpForm.register("emailUsername")}
                     />
                     <FormError
-                        error={fpForm.formState.errors.email?.message}
+                        error={fpForm.formState.errors.emailUsername?.message}
                     />
                     <FormSubmit disabled={busy}>Continue</FormSubmit>
                 </form>
             )}
             
-            {sentCode && (
+            {sentLink && (
                 <div className="flex flex-col bg-white p-2 w-1/5">
                     <p className="text-gray-700 font-bold">A link to reset your password has been sent to your email.
                         If you did not receive an email, please &thinsp;
