@@ -2,16 +2,17 @@
 
 import { auth, signIn, signOut } from "./auth";
 import { db } from "../db";
-import { users } from "../db/schema";
+import { family, registration_drafts, teacher, users } from "../db/schema";
 import bcrypt from "bcrypt"
 import { randomInt } from "crypto";
 import { transporter } from "@/lib/nodemailer";
 import { redirect } from "next/navigation";
 import * as authSchemas from './auth-schema';
-import { sql } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { pgadapter } from "./auth";
+import { z } from "zod";
 
 export type authMSG = 
     | { ok: false, msg: string}
@@ -159,8 +160,11 @@ export async function checkCode(data: FormData, email: string): Promise<authMSG>
     return { ok: true };
 }
 
-// Step 4: Register the user into the database
-export async function register(data: FormData): Promise<authMSG> {
+
+
+
+// Step 4: Register the username, email, and password into drafts 
+export async function registerDraft(data: FormData): Promise<authMSG> {
     const registerData = authSchemas.registerSchema.safeParse(Object.fromEntries(data));
 
     if (!registerData.success || !registerData.data) {
@@ -169,6 +173,7 @@ export async function register(data: FormData): Promise<authMSG> {
 
     const { username, email, password } = registerData.data;
 
+    // Check if username already exists
     const usernameUnique = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.username, username)
     })
@@ -177,19 +182,76 @@ export async function register(data: FormData): Promise<authMSG> {
         return { ok: false, msg: "Username already exists" }
     }
 
-    const newUser = await db
-        .insert(users)
+    // Insert into registration_drafts, if username and email combo already exists, update the password and expires
+    const newDraft = await db
+        .insert(registration_drafts)
         .values({
             email: email,
             username: username,
             password: await bcrypt.hash(password, 10),
-            emailVerified: new Date(Date.now()).toISOString(),
-            roles: sql`'FAMILY'::user_role`
+        })
+        .onConflictDoUpdate({
+            target: [registration_drafts.email, registration_drafts.username],
+            set: {
+                password: await bcrypt.hash(password, 10),
+                expires: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString()
+            }
         })
         .returning();
 
-    return { ok: true, data: newUser };
+    return { ok: true, data: {username: newDraft[0].username, email: newDraft[0].email}};
 
+}
+
+// STEP 5: Register the user into the database
+export async function fullRegister(data: FormData, regData: z.infer<typeof authSchemas.nameEmailSchema>, isTeacher: boolean): Promise<authMSG> {
+    const info = isTeacher ? authSchemas.teacherSchema.safeParse(Object.fromEntries(data)) : authSchemas.familySchema.safeParse(Object.fromEntries(data));
+    if (!info.success) {
+        return { ok: false, msg: info.error.errors[0].message }
+    }
+
+    const insertion = isTeacher ? teacher : family
+
+    const { address, city, state, zip, phone, ...parsedData } = info.data;
+
+    const draft = await db.query.registration_drafts.findFirst({
+        where: (registration_drafts, { and, eq }) => and(eq(registration_drafts.email, regData.email), eq(registration_drafts.username, regData.username))
+    })    
+
+    if (!draft || new Date(draft.expires) < new Date(Date.now())) {
+        return { ok: false, msg: "Your session has expired. Please register again." }
+    }
+
+    // Delete the draft
+    await db.delete(registration_drafts).where(and(eq(registration_drafts.email, draft.email), eq(registration_drafts.username, draft.username)));
+
+    const newUser = await db
+        .insert(users)
+        .values({
+            roles: sql`'${isTeacher ? 'TEACHER' : 'FAMILY'}'::user_role`,
+            emailverified: new Date(Date.now()).toISOString(),
+            createon: new Date(Date.now()).toISOString(),
+            ischangepwdnext: false,
+            address: address,
+            city: city,
+            state: state,
+            zip: zip,
+            phone: phone,
+            email: draft.email,
+            username: draft.username,
+            password: draft.password,
+        })
+        .returning()
+    
+    const second = await db
+        .insert(insertion)
+        .values({
+            userid: newUser[0].id,
+            ...parsedData
+        })
+        .returning()
+
+    return { ok: true, data: second };
 }
 
 // Helper function
