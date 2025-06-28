@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm"
 
 export const userRole = pgEnum("user_role", ['ADMIN', 'TEACHER', 'FAMILY'])
 
+export const status = pgEnum("status", ["Active", "Inactive"])
+
 // ----------------------------------------------------------------
 // TIMESTAMP HELPERS - Use these for ALL timestamp columns
 // ----------------------------------------------------------------
