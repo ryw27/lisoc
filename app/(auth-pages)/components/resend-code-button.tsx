@@ -1,9 +1,10 @@
 "use client";
-import { authMSG } from "@/app/lib/auth-lib/auth-actions";
+import { z } from 'zod';
+import { emailSchema } from '@/app/lib/auth-lib/auth-schema';
 import { useState, useRef, useEffect } from 'react';
 
 type resendCodeProps = {
-    resendCode: (formData: FormData) => Promise<authMSG>;
+    resendCode: (data: z.infer<typeof emailSchema>) => Promise<void>;
     email: string;
     defaultCooldown: number;
 }
@@ -56,20 +57,10 @@ export default function ResendCodeButton({resendCode, email, defaultCooldown = 3
         setBusy(true);
         
         try {
-            const formData = new FormData();
-            formData.append('email', email);
-            const status = await resendCode(formData);
-            if (!status.ok) {
-                throw new Error(`Error with resending code: ${status.msg}`)
-            }
+            await resendCode({ email });
             startCountdown(30);
         } catch (error) {
-            console.error('Error resending code:', error);
             // Reset countdown on error so user can try again
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
             setRemain(0);
         } finally {
             setBusy(false);

@@ -5,31 +5,31 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from '@/components/ui/select';
-import { authMSG } from '@/app/lib/auth-lib/auth-actions';
+import { useRouter } from 'next/navigation';
 
 export default function FamilyForm({
     fullRegister,
     registerData
 }: {
-    fullRegister: (data: FormData, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<authMSG>;
-    registerData?: z.infer<typeof nameEmailSchema>;
+    fullRegister: (data: z.infer<typeof familySchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
+    registerData: z.infer<typeof nameEmailSchema>;
 }) {
+
+    const router = useRouter();
     const form = useForm<z.infer<typeof familySchema>>({
         resolver: zodResolver(familySchema),
-        mode: 'onChange'
+        mode: 'onChange',
+        defaultValues: {
+            state: "NY"
+        }
     });
 
     const onSubmit = async (data: z.infer<typeof familySchema>) => {
         try {
-            const formData = new FormData();
-            Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-            const info = await fullRegister(formData, registerData!, false);
-            if (!info.ok) {
-                form.setError("root", { message: info.msg });
-                return;
-            }
+            await fullRegister(data, registerData, false);
+            router.push("/dashboard");
         } catch (error) {
-            console.error('Form submission error:', error);
+            form.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         }
     };
 
@@ -149,8 +149,8 @@ export default function FamilyForm({
             </div>
 
             <FormError error={form.formState.errors.root?.message} />
-            <FormSubmit>
-                Submit
+            <FormSubmit disabled={!form.formState.isValid || form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Submitting...' : 'Submit'}
             </FormSubmit>
         </form>
     )

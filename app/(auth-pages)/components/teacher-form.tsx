@@ -5,14 +5,13 @@ import { z } from "zod";
 import { FormInput, FormError, FormSubmit } from "./form-components";
 import { nameEmailSchema, teacherSchema } from "@/app/lib/auth-lib/auth-schema";
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
-import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 
 export default function TeacherForm({
     fullRegister,
     registerData
 }: {
-    fullRegister: (data: FormData, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<authMSG>;
-    registerData?: z.infer<typeof nameEmailSchema>;
+    fullRegister: (data: z.infer<typeof teacherSchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
+    registerData: z.infer<typeof nameEmailSchema>;
 }) {
     const form = useForm<z.infer<typeof teacherSchema>>({
         resolver: zodResolver(teacherSchema),
@@ -21,15 +20,9 @@ export default function TeacherForm({
 
     const onSubmit = async (data: z.infer<typeof teacherSchema>) => {
         try {
-            const formData = new FormData();
-            Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-            const info = await fullRegister(formData, registerData!, true);
-            if (!info.ok) {
-                form.setError("root", { message: info.msg });
-                return;
-            }
+            await fullRegister(data, registerData, true);
         } catch (error) {
-            console.error('Form submission error:', error);
+            form.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         }
     };
 

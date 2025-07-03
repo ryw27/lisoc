@@ -9,14 +9,12 @@ import { useForm } from 'react-hook-form';
 import { FormInput, FormSubmit, FormError } from './form-components'
 import { z } from 'zod';
 import { emailSchema, loginSchema, usernameSchema } from '@/app/lib/auth-lib/auth-schema';
-import { authMSG } from '@/app/lib/auth-lib/auth-actions';
 import { signIn } from "next-auth/react"
 
 
 type LoginFormProps = {
     isAdminForm: boolean;
     isTeacherForm: boolean;
-    login: (data: FormData, isAdminForm: boolean, isTeacherForm: boolean) => Promise<authMSG>;
 }
 
 export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps) {
@@ -32,14 +30,14 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
         setBusy(true);
 
         try {
-            loginSchema.parse(data);
-            const fd = new FormData();
-            Object.entries(data).forEach(([k, v]) => fd.set(k,v as string))
-
             const provider = isAdminForm ? "admin-credentials" : isTeacherForm ? "teacher-credentials" : "family-credentials";
 
             const isEmail = emailSchema.safeParse({ email: data.emailUsername }).success;
             const isUsername = usernameSchema.safeParse({ username: data.emailUsername }).success;
+
+            if (!isEmail && !isUsername) {
+                throw new Error("Invalid email or username")
+            }
 
             const result = await signIn(provider, {
                 username: isUsername ? data.emailUsername : null,
@@ -49,8 +47,7 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
             });
 
             if (!result.ok) {
-                loginForm.setError("root", { message: "Invalid credentials" });
-                return;
+                throw new Error("Invalid credentials")
             }
 
             // Redirect based on provider
@@ -61,9 +58,8 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
             } else {
                 router.push("/dashboard");
             }
-        } catch (err) {
-            console.error("Login error:", err);
-            loginForm.setError("root", { message: "An error occurred during login" });
+        } catch (error) {
+            loginForm.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         } finally {
             setBusy(false);
         }

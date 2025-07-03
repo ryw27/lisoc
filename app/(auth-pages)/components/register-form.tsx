@@ -5,24 +5,23 @@ import { FormSubmit, FormInput, FormError } from "./form-components"
 import Logo from "@/components/logo";
 import React, { useState } from "react";
 import ResendCodeButton from './resend-code-button'
-import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { codeSchema, emailSchema, nameEmailSchema, userPassSchema } from "@/app/lib/auth-lib/auth-schema";
+import { codeSchema, emailSchema, familySchema, nameEmailSchema, teacherSchema, userPassSchema } from "@/app/lib/auth-lib/auth-schema";
 import { z } from "zod";
 import FamilyForm from "./family-form";
 import TeacherForm from "./teacher-form";
 
 type regParams = {
-    requestCode: (formData: FormData) => Promise<authMSG>; // Email to Code, get the code once email is inputted
-    resendCode: (formData: FormData) => Promise<authMSG>; // Resend code if needed
-    checkCode: (formData: FormData, email: string) => Promise<authMSG>; // Check the inputted code once submitted, go to credentials
-    registerDraft: (data: FormData) => Promise<authMSG>; // Get credentials, put in registration draft
+    requestCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Email to Code, get the code once email is inputted
+    resendCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Resend code if needed
+    checkCode: (data: z.infer<typeof codeSchema>, email: string) => Promise<void>; // Check the inputted code once submitted, go to credentials
+    registerDraft: (data: z.infer<typeof userPassSchema>, email: string) => Promise<void>; // Get credentials, put in registration draft
     isTeacher: boolean;
     inCredentials?: userInfo;
     inStep?: Step;
     // Pass down to the additional and contact information form, official registration into the system
-    fullRegister: (data: FormData, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<authMSG>;
+    fullRegister: (data: z.infer<typeof familySchema> | z.infer<typeof teacherSchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
 }
 
 type Step = "EMAIL" | "CODE" | "CREDENTIALS" | "PROFILE" | "DONE";
@@ -63,14 +62,12 @@ export default function RegisterForm({
     const onEmail = async (data: z.infer<typeof emailSchema>) => {
         setBusy(true);
 
-        const formData = new FormData();
-        Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-
-        const res = await requestCode(formData);
-        if (!res.ok) {
-            emailForm.setError("email",{ message: res.msg });
+        try {
+            await requestCode(data);
+        } catch (error) {
+            emailForm.setError("email", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+        } finally {
             setBusy(false);
-            return;
         }
 
         setCredentials({ email: data.email, username: "" });
@@ -89,17 +86,15 @@ export default function RegisterForm({
 
     const onCode = async (data: z.infer<typeof codeSchema>) => {
         setBusy(true);
-        const formData = new FormData();
-        Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-        const codeCheck = await checkCode(formData, credentials!.email as string);
-        if (!codeCheck.ok) {
-            codeForm.setError("code", { message: codeCheck.msg });
+        try {
+            await checkCode(data, credentials!.email as string);
+        } catch (error) {
+            codeForm.setError("code", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+        } finally {
             setBusy(false);
-            return;
         }
 
         setStep("CREDENTIALS");
-        setBusy(false);
     }
 
     
@@ -114,19 +109,16 @@ export default function RegisterForm({
 
     const onCred = async (data: z.infer<typeof userPassSchema>) => {
         setBusy(true);
-        const formData = new FormData();
-        Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-        formData.append('email', credentials!.email as string);
-        const credCheck = await registerDraft(formData);
-        if (!credCheck.ok) {
-            credForm.setError("root", { message: credCheck.msg });
+        try {
+            await registerDraft(data, credentials!.email as string);
+        } catch (error) {
+            credForm.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+        } finally {
             setBusy(false);
-            return;
         }
 
         setCredentials({ email: credentials!.email, username: data.username });
         setStep("PROFILE");
-        setBusy(false);
     }
 
     return (

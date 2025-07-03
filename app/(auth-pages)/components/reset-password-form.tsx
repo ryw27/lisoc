@@ -5,14 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { resetPassSchema } from "@/app/lib/auth-lib/auth-schema"
 import { z } from "zod"
 import { useState } from "react";
-import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 import Logo from "@/components/logo";
 import { useRouter } from "next/navigation";
 
 type resetPasswordParams = {
     userEmail: string;
     userToken: string;
-    resetPassword: (data: FormData) => Promise<authMSG>
+    resetPassword: (data: z.infer<typeof resetPassSchema>) => Promise<void>;
 }
 export default function ResetPasswordForm({ userEmail, userToken, resetPassword }: resetPasswordParams) {
     const [busy, setBusy] = useState<boolean>(false);
@@ -27,21 +26,15 @@ export default function ResetPasswordForm({ userEmail, userToken, resetPassword 
 
     const onReset = async (data: z.infer<typeof resetPassSchema>) => {
         setBusy(true);
-        console.log(data);
-        const formData = new FormData();
-        Object.entries(data).forEach(([k, v]) => formData.set(k, v as string));
-        formData.set("email", userEmail);
-        formData.set("token", userToken);
-        const resetRes = await resetPassword(formData);
-        if (!resetRes.ok) {
-            rpForm.setError("root", { message: resetRes.msg });
-            console.log(resetRes.msg);
+        try {
+            await resetPassword(data);
+        } catch (error) {
+            rpForm.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+        } finally {
             setBusy(false);
-            return;
         }
-        setSuccess(true);
-        setBusy(false);
         router.push("/login");
+        setSuccess(true);
     }
 
     return (

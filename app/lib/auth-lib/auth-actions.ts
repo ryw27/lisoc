@@ -7,16 +7,28 @@ import bcrypt from "bcrypt"
 import { randomInt } from "crypto";
 import { transporter } from "@/lib/nodemailer";
 import { redirect } from "next/navigation";
-import * as authSchemas from './auth-schema';
-import { and, sql } from "drizzle-orm";
+import { 
+    loginSchema, 
+    emailSchema, 
+    usernameSchema, 
+    teacherSchema, 
+    familySchema, 
+    nameEmailSchema, 
+    forgotPassSchema, 
+    resetPassSchema, 
+    codeSchema,
+    userPassSchema,
+    uuidSchema
+} from "./auth-schema";
+import { and } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { pgadapter } from "./auth";
 import { z } from "zod";
 
-export type authMSG = 
-    | { ok: false, msg: string}
-    | { ok: true, data?: any }
+// export type authMSG = 
+//     | { ok: false, msg: string}
+//     | { ok: true, data?: any }
 
 const SITE_LINK = "localhost:3000"; // TODO: change to actual link
 
@@ -24,15 +36,15 @@ const SITE_LINK = "localhost:3000"; // TODO: change to actual link
 // Login functions 
 // -----------------------------------------------------------------------------------------------------------------------------------
 // TODO: Learn wtf is going on with server side signIn
-export async function login(formData: FormData, isAdminForm: boolean, isTeacherForm: boolean): Promise<authMSG> {
-    const { emailUsername, password } = authSchemas.loginSchema.parse(Object.fromEntries(formData));
+export async function login(formData: FormData, isAdminForm: boolean, isTeacherForm: boolean) {
+    const { emailUsername, password } = loginSchema.parse(Object.fromEntries(formData));
     const provider = isAdminForm ? "admin-credentials" : isTeacherForm ? "teacher-credentials" : "family-credentials";
 
-    const isEmail = authSchemas.emailSchema.safeParse({ email: emailUsername }).success;
-    const isUsername = authSchemas.usernameSchema.safeParse({ username: emailUsername }).success;
+    const isEmail = emailSchema.safeParse({ email: emailUsername }).success;
+    const isUsername = usernameSchema.safeParse({ username: emailUsername }).success;
 
     if (!isEmail && !isUsername) {
-        return { ok: false, msg: "Invalid email or username" };
+        throw new Error("Invalid email or username")
     }
 
     const result = await signIn(provider, {
@@ -43,10 +55,8 @@ export async function login(formData: FormData, isAdminForm: boolean, isTeacherF
     });
 
     if (!result) {
-        return { ok: false, msg: "Invalid credentials" };
+        throw new Error("Invalid credentials")
     }
-
-    return { ok: true };
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------------
@@ -60,17 +70,22 @@ export async function logout() {
 // -----------------------------------------------------------------------------------------------------------------------------------
 // Check auth function 
 // -----------------------------------------------------------------------------------------------------------------------------------
-export async function requireRole(allowed: ("ADMIN" | "TEACHER" | "FAMILY")[]) {
+export async function requireRole(allowed: ("ADMIN" | "TEACHER" | "FAMILY")[], options: { redirect?: boolean } = { redirect: true }) {
     const session = await auth();
-    if (!session && allowed.includes("ADMIN")) {
-        redirect("/login/admin") // Not logged in and trying to access admin pages
-    } else if (!session) {
-        redirect("login") // Not logged in and trying to access any other pages
-    } else if (allowed.includes("ADMIN") && session.user.role != "ADMIN") {
-        redirect("/unauthorized") // Logged in as user and trying to access admin pages
-    } else if (!allowed.includes(session.user.role as "ADMIN" | "TEACHER" | "FAMILY")) {
-        redirect("/unauthorized") // Logged in and trying to access pages you can't
-    }
+    if (!session) {
+        if (options.redirect) {
+            const redirectLink = allowed.includes("ADMIN") ? "/login/admin" : "/login";
+            redirect(redirectLink);
+        } else {
+            throw new Error("Authentication required");
+        }
+    } else if (!allowed.includes(session.user.role)) {
+        if (options.redirect) {
+            redirect("/unauthorized") // Logged in as user and trying to access admin pages
+        } else {
+            throw new Error("Access denied. Required role not found");
+        }
+    } 
 
     return session;
 }
@@ -81,27 +96,21 @@ export async function requireRole(allowed: ("ADMIN" | "TEACHER" | "FAMILY")[]) {
 
 
 // STEP 1: Enter email. If valid, request a code using the auth.js PostgresAdapter
-export async function emailToCode(data: FormData): Promise<authMSG> {
-    const userData = authSchemas.emailSchema.safeParse(Object.fromEntries(data));
-
-    if (userData.error) {
-        return { ok: false, msg: userData.error.errors[0].message }
-    }
+export async function emailToCode(data: z.infer<typeof emailSchema>) {
+    // Parse incoming data
+    const userData = emailSchema.parse(data);
 
     // unique check
     const unique = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, userData.data.email)
+        where: (users, { eq }) => eq(users.email, userData.email)
     })
+
     if (unique) { // Email exists
-        return { ok: false, msg: "Email already exists" }
+        throw new Error("Email already exists")
     }
 
-    const { email } = userData.data
-
-
+    const email = userData.email
     const code = randomInt(100000, 1000000).toString();
-
-    
     await pgadapter.createVerificationToken({
         token: code, 
         identifier: email,
@@ -109,11 +118,10 @@ export async function emailToCode(data: FormData): Promise<authMSG> {
     })
 
     await sendRegEmail(email, code);
-    return { ok: true };
 }
 
-export async function resendCode(data: FormData): Promise<authMSG> {
-    const userEmail = authSchemas.emailSchema.parse(Object.fromEntries(data)).email;
+export async function resendCode(data: z.infer<typeof emailSchema>) {
+    const userEmail = (emailSchema.parse(data)).email
     const code = randomInt(100000, 1000000).toString();
     await pgadapter.createVerificationToken({
         token: code,
@@ -121,8 +129,6 @@ export async function resendCode(data: FormData): Promise<authMSG> {
         expires: new Date(Date.now() + 10 * 60 * 1000) 
     })
     await sendRegEmail(userEmail, code)
-
-    return { ok: true }
 }
 
 // STEP 2: Send a verification email using NodeMailer
@@ -132,46 +138,38 @@ export async function sendRegEmail(emailTo: string, token: string) {
         to: emailTo,
         subject: "LISOC Account Registration Verification",
         html: `
-            <p> Your verification code is <em> ${token} </em>. This code will expire in 10 minutes </p>
+            <p> Your verification code is <strong> ${token} </strong>. This code will expire in 10 minutes </p>
             <p> If you are not trying to register, please ignore this email </p>
         `
     });
 }
 // Step 3: Check the inputted code. 
-export async function checkCode(data: FormData, email: string): Promise<authMSG> {
-    const codeData = authSchemas.codeSchema.safeParse(Object.fromEntries(data));
-
-    if (!codeData.success || !codeData.data) {
-        return { ok: false, msg: codeData.error.errors[0].message }
-    }
+export async function checkCode(data: z.infer<typeof codeSchema>, email: string) {
+    emailSchema.parse({ email: email });
+    const codeData = codeSchema.parse(data);
 
     // Automatically deletes the token and validates it
-    const vt = await pgadapter.useVerificationToken({ identifier: email, token: codeData.data.code })
+    const vt = await pgadapter.useVerificationToken({ identifier: email, token: codeData.code })
     
     if (!vt) {
-        return { ok: false, msg: "Invalid or expired code" };
+        throw new Error("Invalid or expired code")
     }
 
     // Check if token is expired
     if (new Date(vt.expires) < new Date(Date.now())) {
-        return { ok: false, msg: "Expired Code" };
+        throw new Error("Expired Code")
     }
-
-    return { ok: true };
 }
 
 
 
 
 // Step 4: Register the username, email, and password into drafts 
-export async function registerDraft(data: FormData): Promise<authMSG> {
-    const registerData = authSchemas.registerSchema.safeParse(Object.fromEntries(data));
+export async function registerDraft(data: z.infer<typeof userPassSchema>, email: string) {
+    const draftData = userPassSchema.parse(data);
+    emailSchema.parse({ email: email });
 
-    if (!registerData.success || !registerData.data) {
-        return { ok: false, msg: registerData.error.errors[0].message }
-    }
-
-    const { username, email, password } = registerData.data;
+    const { username, password } = draftData;
 
     // Check if username already exists
     const usernameUnique = await db.query.users.findFirst({
@@ -179,11 +177,11 @@ export async function registerDraft(data: FormData): Promise<authMSG> {
     })
 
     if (usernameUnique) {
-        return { ok: false, msg: "Username already exists" }
+        throw new Error("Username already exists")
     }
 
     // Insert into registration_drafts, if username and email combo already exists, update the password and expires
-    const newDraft = await db
+    await db
         .insert(registration_drafts)
         .values({
             email: email,
@@ -197,29 +195,25 @@ export async function registerDraft(data: FormData): Promise<authMSG> {
                 expires: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString()
             }
         })
-        .returning();
-
-    return { ok: true, data: {username: newDraft[0].username, email: newDraft[0].email}};
-
 }
 
 // STEP 5: Register the user into the database
-export async function fullRegister(data: FormData, regData: z.infer<typeof authSchemas.nameEmailSchema>, isTeacher: boolean): Promise<authMSG> {
-    const info = isTeacher ? authSchemas.teacherSchema.safeParse(Object.fromEntries(data)) : authSchemas.familySchema.safeParse(Object.fromEntries(data));
-    if (!info.success) {
-        return { ok: false, msg: info.error.errors[0].message }
-    }
-
+export async function fullRegister(
+    data: z.infer<typeof teacherSchema> | z.infer<typeof familySchema>, 
+    regData: z.infer<typeof nameEmailSchema>, 
+    isTeacher: boolean
+) {
+    const info = isTeacher ? teacherSchema.parse(data) : familySchema.parse(data);
+    nameEmailSchema.parse(regData);
     const insertion = isTeacher ? teacher : family
-
-    const { address, city, state, zip, phone, ...parsedData } = info.data;
+    const { address, city, state, zip, phone, ...parsedData } = info;
 
     const draft = await db.query.registration_drafts.findFirst({
         where: (registration_drafts, { and, eq }) => and(eq(registration_drafts.email, regData.email), eq(registration_drafts.username, regData.username))
     })    
 
     if (!draft || new Date(draft.expires) < new Date(Date.now())) {
-        return { ok: false, msg: "Your session has expired. Please register again." }
+        throw new Error("Your session has expired. Please register again.")
     }
 
     // Delete the draft
@@ -228,7 +222,7 @@ export async function fullRegister(data: FormData, regData: z.infer<typeof authS
     const newUser = await db
         .insert(users)
         .values({
-            roles: sql`'${isTeacher ? 'TEACHER' : 'FAMILY'}'::user_role`,
+            roles: [isTeacher ? 'TEACHER' : 'FAMILY'],
             emailverified: new Date(Date.now()).toISOString(),
             createon: new Date(Date.now()).toISOString(),
             ischangepwdnext: false,
@@ -241,17 +235,15 @@ export async function fullRegister(data: FormData, regData: z.infer<typeof authS
             username: draft.username,
             password: draft.password,
         })
-        .returning()
+        .returning({ id: users.id })
     
-    const second = await db
+    await db
         .insert(insertion)
         .values({
             userid: newUser[0].id,
             ...parsedData
         })
-        .returning()
 
-    return { ok: true, data: second };
 }
 
 // Helper function
@@ -280,18 +272,13 @@ export async function sendFPEmail(emailTo: string, uuid: string) {
     });   
 }
 
-export async function requestReset(data: FormData): Promise<authMSG> {
-    const fpData = authSchemas.forgotPassSchema.safeParse(Object.fromEntries(data));
+export async function requestReset(data: z.infer<typeof forgotPassSchema>) {
+    const fpCheck = forgotPassSchema.parse(data);
+    const input = fpCheck.emailUsername;
 
-    if (!fpData || !fpData.data) {
-        return { ok: false, msg: "Invalid Email or Username"}
-    }
-
-    const input = fpData.data.emailUsername;
-    
     // Check if input is an email or username
-    const isEmail = authSchemas.emailSchema.safeParse({ email: input }).success;
-    const isUsername = authSchemas.usernameSchema.safeParse({ username: input }).success;
+    const isEmail = emailSchema.safeParse({ email: input }).success;
+    const isUsername = usernameSchema.safeParse({ username: input }).success;
     
     let userEmail: string | null = null;
     
@@ -299,7 +286,7 @@ export async function requestReset(data: FormData): Promise<authMSG> {
         // Input is an email
         const emailExists = await checkExistence(input, "email");
         if (!emailExists) {
-            return { ok: false, msg: "Account does not exist" };
+            throw new Error("Account does not exist")
         }
         userEmail = input;
     } else if (isUsername) {
@@ -309,46 +296,41 @@ export async function requestReset(data: FormData): Promise<authMSG> {
         });
         
         if (!user) {
-            return { ok: false, msg: "Account does not exist" };
+            throw new Error("Account does not exist")
         }
         userEmail = user.email;
     } else {
-        return { ok: false, msg: "Invalid Email or Username" };
+        throw new Error("Invalid Email or Username")
     }
 
     await db
         .update(users)
         .set({ ischangepwdnext: true})
-        .where(eq(users.email, userEmail))
+        .where(eq(users.email, userEmail!))
 
     const uuidCode = uuid();
 
     await pgadapter.createVerificationToken({
         token: uuidCode,
-        identifier: userEmail,
+        identifier: userEmail!,
         expires: new Date(Date.now() + 1000 * 60 * 15) 
     });
 
-    await sendFPEmail(userEmail, uuidCode);
-    return { ok: true }
+    await sendFPEmail(userEmail!, uuidCode);
 }
 
-export async function resetPassword(data: FormData): Promise<authMSG> {
-    const resetData = authSchemas.resetPassSchema.safeParse(Object.fromEntries(data));
+export async function resetPassword(data: z.infer<typeof resetPassSchema>) {
+    const resetData = resetPassSchema.parse(data);
 
-    if (!resetData.success || !resetData.data) {
-        return { ok: false, msg: resetData.error.errors[0].message }
-    }
-
-    const { email, password, confirmPassword, token } = resetData.data;
+    const { email, password, confirmPassword, token } = resetData;
 
     if (password !== confirmPassword) {
-        return { ok: false, msg: "Passwords don't match"}
+        throw new Error("Passwords don't match")
     }
 
     const row = await pgadapter.useVerificationToken({ identifier: email, token: token })
     if (!row) {
-        return { ok: false, msg: "Invalid or expired Link"};
+        throw new Error("Invalid or expired Link")
     }
     const pwdhash = await bcrypt.hash(password, 10);
     await db
@@ -358,16 +340,19 @@ export async function resetPassword(data: FormData): Promise<authMSG> {
             password: pwdhash
         })
         .where(eq(users.email, email));
-    return { ok: true };
 }
 
 export async function checkLink(email: string, token: string): Promise<boolean> {
+    emailSchema.parse({ email: email });
+    uuidSchema.parse({ uuid: token });
+
     const row = await db.query.verificationToken.findFirst({
-        where: (verificationToken, {and, eq }) => and(eq(verificationToken.identifier, email), eq(verificationToken.token, token))
-    })
+        where: (verificationToken, { and, eq }) => and(eq(verificationToken.identifier, email), eq(verificationToken.token, token))
+    });
 
     if (!row) {
         return false;
     }
+
     return true;
 }

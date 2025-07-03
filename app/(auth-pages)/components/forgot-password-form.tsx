@@ -7,10 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { forgotPassSchema } from "@/app/lib/auth-lib/auth-schema";
-import { authMSG } from "@/app/lib/auth-lib/auth-actions";
 
 type FPFormParams = {
-    requestReset: (formData: FormData) => Promise<authMSG>;
+    requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<void>;
 }
 
 export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
@@ -23,20 +22,19 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
     })
 
     const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
-        console.log(data);
-        setBusy(true);
-        const fd = new FormData();
-        Object.entries(data).forEach(([k, v]) => fd.set(k, v as string));
-        const status = await requestReset(fd);
-        if (!status.ok && status.msg !== "Account does not exist") {
-            return fpForm.setError("emailUsername", { message: status.msg })
+        try {
+            setBusy(true);
+            await requestReset(data);
+            setSentLink(true);
+        } catch (error) {
+            fpForm.setError("emailUsername", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+        } finally {
+            setBusy(false);
         }
-        setSentLink(true);
-        setBusy(false);
     }
 
     const tryFPAgain = () => {
-        // Todo: Rate limit
+        // TODO: Rate limit
         setSentLink(false);
         setBusy(false);
     }
