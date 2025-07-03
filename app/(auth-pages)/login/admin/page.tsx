@@ -1,9 +1,8 @@
 import LoginForm from '../../components/login-form';
-import { login } from '@/app/lib/auth-lib/auth-actions';
 
 export default function AdminLoginPage() {
     return (
-        <LoginForm isAdminForm={true} isTeacherForm={false} login={login}/>
+        <LoginForm isAdminForm={true} isTeacherForm={false}/>
     )
 }
 
