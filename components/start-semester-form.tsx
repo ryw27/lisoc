@@ -4,17 +4,17 @@ import { FormProvider, useFieldArray, useForm, UseFormReturn } from 'react-hook-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { type draftClasses, semClassesSchema } from '@/app/lib/semester/sem-schemas';
-// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from './ui/input';
 import SemesterClassBox from './sem-class-box';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { PlusIcon } from 'lucide-react';
 import { DrizzleError } from 'drizzle-orm';
+import { cn } from '@/lib/utils';
 
 
 type semesterClassesProps = {
     drafts: draftClasses[]
-    startSemester: (data: z.infer<typeof semClassesSchema>) => Promise<void | string>
+    startSemester: (data: z.infer<typeof semClassesSchema>) => Promise<any>
     selectOptions: any; // TODO: Fix typing or find a better solution
 }
 
@@ -45,58 +45,34 @@ const defaultExpClass = {
 
 
 export default function StartSemesterForm({drafts, startSemester, selectOptions } : semesterClassesProps) {
-    // const [draftClasses, setDraftClasses] = useState<classExpanded[]>(() => {
-    //     return drafts.map((draft) => {
-    //         const priceH = parseFloat(draft.tuitionH || '0') + parseFloat(draft.bookfeeH || '0') + parseFloat(draft.specialfeeH || '0');
-    //         const priceW = parseFloat(draft.tuitionW || '0') + parseFloat(draft.bookfeeW || '0') + parseFloat(draft.specialfeeW || '0');
-    //         return {
-    //             summary: {
-    //                 classnamecn: draft.class.classnamecn,
-    //                 teacher: draft.teacher.namecn,
-    //                 classroom: draft.classroom.roomno,
-    //                 totalPriceH: priceH,
-    //                 totalPriceW: priceW,
-    //                 isEditing: false,
-    //                 isExpanded: false
-    //             },
-    //             classtime: draft.classtime.period,
-    //             tuitionW: parseFloat(draft.tuitionW || '0'),
-    //             specialfeeW: parseFloat(draft.specialfeeW || '0'),
-    //             bookfeeW: parseFloat(draft.bookfeeW || '0'),
-    //             tuitionH: parseFloat(draft.tuitionH || '0'),
-    //             specialfeeH: parseFloat(draft.specialfeeH || '0'),
-    //             bookfeeH: parseFloat(draft.bookfeeH || '0'),
-    //             waiveregfee: draft.waiveregfee ?? false,
-    //             closeregistration: draft.closeregistration ?? false,
-    //             notes: draft.notes ?? "",
-    //             seatlimit: draft.seatlimit ?? 0,
-    //             agelimit: draft.agelimit ?? 0
-    //         }
-    //     })
-    // });
-
+    // Navigation
+    const router = useRouter();
+    
+    // UI State
     const [draftClasses, setDraftClasses] = useState<draftClasses[]>(drafts);
     const [configuring, setConfiguring] = useState<{isEditing: boolean, isExpanded: boolean}[]>(() => Array(drafts.length).fill({isEditing: false, isExpanded: false}));
 
+
+    // Form State
     const semClassForm = useForm({
         resolver: zodResolver(semClassesSchema),
+        mode: "onChange",
         defaultValues: {
             classes: draftClasses.map(draft => ({
                 classid: draft.class.classid,
                 teacherid: draft.teacher.teacherid,
                 roomid: draft.classroom.roomid,
                 timeid: draft.classtime.timeid,
-                tuitionH: draft.tuitionH,
-                bookfeeH: draft.bookfeeH,
-                specialfeeH: draft.specialfeeH,
-                tuitionW: draft.tuitionW,
-                bookfeeW: draft.bookfeeW,
-                specialfeeW: draft.specialfeeW,
-                seatlimit: draft.seatlimit,
-                agelimit: draft.agelimit,
+                tuitionH: Number(draft.tuitionH),
+                bookfeeH: Number(draft.bookfeeH),
+                specialfeeH: Number(draft.specialfeeH),
+                tuitionW: Number(draft.tuitionW),
+                bookfeeW: Number(draft.bookfeeW),
+                specialfeeW: Number(draft.specialfeeW),
+                seatlimit: Number(draft.seatlimit),
+                agelimit: Number(draft.agelimit),
             }))
         },
-        shouldUnregister: false
     }) 
 
     const { fields, append, remove } = useFieldArray({
@@ -119,7 +95,17 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
     const onSemSubmit = async (data: z.infer<typeof semClassesSchema>) => {
         try {
             console.log("Submitting semester data: ", data)
-            // await startSemester(data)
+            const result = await startSemester(data)
+            
+            // Add success feedback and navigation
+            if (!result) {
+                console.error("Start semester returned error", )
+                semClassForm.setError("root", { message: result })
+            } else {
+                console.log("Semester started successfully!")
+                // Navigate to success page or show success message
+                router.push("/admintest/semester")
+            }
         } catch (err) {
             if (err instanceof DrizzleError) {
                 console.error("Drizzle semester start error.")
@@ -134,12 +120,6 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
     }
 
     const submitDisabled = semClassForm.formState.isSubmitting || configuring.some(config => config.isEditing); 
-    const curOptions = {
-        classes: selectOptions.classes.filter((c: { classid: number, classnamecn: string }) => draftClasses.some(d => d.class.classid === c.classid)),
-        teachers: selectOptions.teachers.filter((t: { teacherid: number, namecn: string }) => draftClasses.some(d => d.teacher.teacherid === t.teacherid)),
-        rooms: selectOptions.rooms.filter((r: { roomid: number, roomno: string }) => draftClasses.some(d => d.classroom.roomid === r.roomid)),
-        times: selectOptions.times.filter((t: { timeid: number, period: string }) => draftClasses.some(d => d.classtime.timeid === t.timeid))
-    }
 
     return (
         <div className="flex flex-col justify-center">
@@ -147,6 +127,13 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
             {/* Form should submit semClassesSchema shape*/}
             <FormProvider {...semClassForm}>
                 <form onSubmit={semClassForm.handleSubmit(onSemSubmit)} className="flex flex-col gap-1 justify-center">
+                    {/* Display form errors */}
+                    {semClassForm.formState.errors.root && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                            {semClassForm.formState.errors.root.message}
+                        </div>
+                    )}
+                    
                     <NameAndDates semClassForm={semClassForm} />
 
                     {/* Individual Classes */}
@@ -156,8 +143,7 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
                             <SemesterClassBox 
                                 field={c}
                                 idx={idx}
-                                formHandler={semClassForm}
-                                selectOptions={curOptions}
+                                selectOptions={selectOptions}
                                 configuring={configuring[idx]}
                                 setConfiguring={setConfiguring}
                                 setDraftClasses={setDraftClasses}
@@ -196,14 +182,14 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
                                     teacher: { teacherid: 0, namecn: "" },
                                     classroom: { roomid: 0, roomno: "" },
                                     classtime: { timeid: 0, period: "" },
-                                    tuitionH: 0,
-                                    bookfeeH: 0,
-                                    specialfeeH: 0,
-                                    tuitionW: 0,
-                                    bookfeeW: 0,
-                                    specialfeeW: 0,
-                                    seatlimit: 0,
-                                    agelimit: 0,
+                                    tuitionH: "0",
+                                    bookfeeH: "0",
+                                    specialfeeH: "0",
+                                    tuitionW: "0",
+                                    bookfeeW: "0",
+                                    specialfeeW: "0",
+                                    seatlimit: null,
+                                    agelimit: null,
                                     waiveregfee: false,
                                     closeregistration: false,
                                     notes: "",
@@ -221,18 +207,21 @@ export default function StartSemesterForm({drafts, startSemester, selectOptions 
                     {/* Cancel and Submit buttons */}
                     <div className="flex gap-4 mt-6 justify-end">
                         <button 
-                            type="button" 
+                            type="button"
                             className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
-                            onClick={() => redirect("/admintest/semester")}
+                            onClick={() => router.push("/admintest/semester")}
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit"
-                            className="rounded-md bg-blue-600 text-white text-sm flex items-center gap-1 hover:bg-blue-800 font-semibold cursor-pointer p-2"
+                            className={cn(
+                                "rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold bg-blue-600 text-white hover:bg-blue-700 cursor-pointer p-2", 
+                                submitDisabled && "opacity-50 cursor-not-allowed hover:bg-blue-600"
+                            )}
                             disabled={submitDisabled}
                         >
-                            Start Semester
+                            {semClassForm.formState.isSubmitting ? "Starting..." : "Start Semester"}
                         </button>
 
                         {/* <AlertDialog>
