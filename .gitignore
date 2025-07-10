@@ -41,6 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 # db
-app/lib/db/lisocdb.sql
-app/lib/db/repopulate.sql
-app/lib/db/repopulate.py
+drizzle/migrations
