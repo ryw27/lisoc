@@ -1,160 +1,183 @@
-import * as schema from "@/app/lib/db/schema";
+import * as schema from "@/app/lib/db/schema"
 import { AnyPgColumn } from "drizzle-orm/pg-core";
 import { InferSelectModel } from "drizzle-orm";
-import { classes } from "@/app/lib/db/schema";
 
 // ------------------------------------------------------------------------------
 // Possibly overkill
 // ------------------------------------------------------------------------------
-
 
 // Primary key map
 // THESE MUST MATCH UP TO THE TABLE NAMES IN THE SCHEMA. THIS IS THE ONE SOURCE OF TRUTH - ANYTHING WRONG HERE BREAKS ALL TYPE CHECKS 
 // Const assertion tells typescript that this is a constant object. Refer: https://blog.logrocket.com/complete-guide-const-assertions-typescript/
 
 export const primKeyMap = {
+    accounts: "id",
+    sessions: "id",
     adminrole: "roleid",
-    family: "familyid", 
-    adminuser: "userid",
-    adminuserrole: "userid", // Composite key, using first column as representative
-    agerestriction: "ageid",
-    agelist: "ageid", // Composite key, using first column as representative
-    seasons: "seasonid",
-    classtype: "typeid",
-    classes: "classid",
-    teacher: "teacherid",
-    classrooms: "roomid",
-    sessions: "timeid",
-    suitableterm: "termno",
-    arrangement: "arrangeid",
-    student: "studentid",
-    regstatus: "regstatusid",
-    familybalancestatus: "statusid",
-    familybalancetype: "typeid",
-    classregistration: "regid",
-    familybalance: "balanceid",
-    familybalanceSave: "balanceid",
-    dutycommittee: "dcid",
-    dutystatus: "dutystatusid",
-    dutyassignment: "dutyassignid",
-    parentdutyPb: "pdid",
     errorlog: "id",
+    users: "id",
+    family: "familyid", 
+    adminuser: "adminid",
+    legacyAdminuser: "userid",
+    paypalrecord: "pid",
+    scorecode: "codeid",
+    teacher: "teacherid",
+    legacyTeacher: "teacherid",
+    seatnum: "seatid",
+    supports: "catid",
+    seasons: "seasonid",
+    arrangement: "arrangeid",
+    classes: "classid",
+    agelist: "ageid",
+    classrooms: "roomid",
+    classtime: "timeid",
+    suitableterm: "termno",
+    agerestriction: "ageid",
+    classtype: "typeid",
+    student: "studentid",
+    classregistration: "regid",
+    regstatus: "regstatusid",
+    familybalance: "balanceid",
+    dutyassignment: "dutyassignid",
+    dutystatus: "dutystatusid",
+    parentdutyPb: "pdid",
+    familybalancetype: "typeid",
+    familybalancestatus: "statusid",
     feedback: "recid",
     feelist: "feelistid", 
-    menu: "menuid",
-    paypalrecord: "pid",
-    paypalrecordImport: "importid",
-    requeststatus: "reqstatusid",
+    dutycommittee: "dcid",
     regchangerequest: "requestid",
     schoolcalendar: "calid",
-    scorecode: "codeid",
     scorefactors: "factorid",
     studentscore: "scoreid",
     scoredetail: "scoredetailid",
-    scorerating: "ratingid",
-    scoreratingfactors: "ratingfactorid",
     studentscorecomment: "scorecommentid",
-    studentscorefactor: "scorefactorid",
+    studentscorefactor: "scoreid",
     studentscorerating: "scoreratingid",
-    seatnum: "seatid",
-    supports: "catid",
-    tempclass: "tempid"
+    scoreratingfactors: "ratingfactorid",
+    scorerating: "ratingid",
+    requeststatus: "reqstatusid",
+    legacyFamily: "familyid",
+    verificationToken: "identifier",
+    adminuserrole: "userid"
 } as const;
-
 
 // Do the same for foreign key maps. This is all for strict compile-time type safety!! YEAH 
 export const fkMap = {
-  adminrole: {},
-  family: {},
-  adminuser: {
-    familyid: { table: "family", column: "familyid" },
-  },
-  adminuserrole: {
-    roleid: { table: "adminrole", column: "roleid" },
-    userid: { table: "adminuser", column: "userid" },
-  },
-  agerestriction: {},
-  agelist: {
-    ageid: { table: "agelist", column: "ageid" },
-  },
-  seasons: {
-    seasonid: { table: "seasons", column: "seasonid" },
-  },
-  classtype: {
-    typeid: { table: "classtype", column: "typeid" },
-  },
-  classes: {
-    teacherid: { table: "teacher", column: "teacherid" },
-    roomid: { table: "classrooms", column: "roomid" },
-    timeid: { table: "sessions", column: "timeid" },
-    typeid: { table: "classtype", column: "typeid" },
-    ageid: { table: "agerestriction", column: "ageid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-  },
-  teacher: {
-    familyid: { table: "family", column: "familyid" },
-  },
-  classrooms: {},
+  accounts: {},
   sessions: {},
-  suitableterm: {},
+  adminrole: {},
+  errorlog: {},
+  users: {},
+  family: {
+    userid: { table: "users", column: "id" },
+  },
+  adminuser: {
+    userid: { table: "users", column: "id" },
+  },
+  legacyAdminuser: {},
+  paypalrecord: {},
+  scorecode: {},
+  teacher: {
+    userid: { table: "users", column: "id" },
+  },
+  legacyTeacher: {},
+  seatnum: {},
+  supports: {},
+  seasons: {},
   arrangement: {
     seasonid: { table: "seasons", column: "seasonid" },
+    classid: { table: "classes", column: "classid" },
+    teacherid: { table: "teacher", column: "teacherid" },
+    roomid: { table: "classrooms", column: "roomid" },
+    timeid: { table: "classtime", column: "timeid" },
+  },
+  classes: {
+    ageid: { table: "agerestriction", column: "ageid" },
+    typeid: { table: "classtype", column: "typeid" },
+    classupid: { table: "classes", column: "classid" },
+  },
+  agelist: {},
+  classrooms: {},
+  classtime: {},
+  suitableterm: {},
+  agerestriction: {},
+  classtype: {
+    ageid: { table: "agerestriction", column: "ageid" },
   },
   student: {
     familyid: { table: "family", column: "familyid" },
   },
-  regstatus: {},
-  familybalancestatus: {},
-  familybalancetype: {},
   classregistration: {
-    classid: { table: "classes", column: "classid" },
     studentid: { table: "student", column: "studentid" },
-    regstatusid: { table: "regstatus", column: "regstatusid" },
-  },
-  familybalance: {
-    familyid: { table: "family", column: "familyid" },
+    arrangeid: { table: "arrangement", column: "arrangeid" },
     seasonid: { table: "seasons", column: "seasonid" },
-    statusid: { table: "familybalancestatus", column: "statusid" },
+    classid: { table: "classes", column: "classid" },
+    statusid: { table: "regstatus", column: "regstatusid" },
+    previousstatusid: { table: "regstatus", column: "regstatusid" },
+    familybalanceid: { table: "familybalance", column: "balanceid" },
+    familyid: { table: "family", column: "familyid" },
+    newbalanceid: { table: "familybalance", column: "balanceid" },
+  },
+  regstatus: {},
+  familybalance: {
+    seasonid: { table: "seasons", column: "seasonid" },
+    familyid: { table: "family", column: "familyid" },
     typeid: { table: "familybalancetype", column: "typeid" },
+    statusid: { table: "familybalancestatus", column: "statusid" },
   },
-  familybalanceSave: {},
-  dutycommittee: {},
-  dutystatus: {},
   dutyassignment: {
-    dcid: { table: "dutycommittee", column: "dcid" },
-    dutystatusid: { table: "dutystatus", column: "dutystatusid" },
-  },
-  parentdutyPb: {},
-  errorlog: {},
-  feedback: {
+    familyid: { table: "family", column: "familyid" },
     studentid: { table: "student", column: "studentid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+    dutystatus: { table: "dutystatus", column: "dutystatusid" },
+    pdid: { table: "parentdutyPb", column: "pdid" },
   },
-  feelist: {},
-  menu: {},
-  paypalrecord: {},
-  paypalrecordImport: {},
-  requeststatus: {},
+  dutystatus: {},
+  parentdutyPb: {
+    familyid: { table: "family", column: "familyid" },
+    studentid: { table: "student", column: "studentid" },
+    committeeid: { table: "dutycommittee", column: "dcid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+  },
+  familybalancetype: {},
+  familybalancestatus: {},
+  feedback: {
+    familyid: { table: "family", column: "familyid" },
+  },
+  feelist: {
+    seasonid: { table: "seasons", column: "seasonid" },
+  },
+  dutycommittee: {},
   regchangerequest: {
     regid: { table: "classregistration", column: "regid" },
-    reqstatusid: { table: "requeststatus", column: "reqstatusid" },
+    studentid: { table: "student", column: "studentid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+    relatedseasonid: { table: "seasons", column: "seasonid" },
+    classid: { table: "classes", column: "classid" },
+    oriregstatusid: { table: "regstatus", column: "regstatusid" },
+    regstatusid: { table: "regstatus", column: "regstatusid" },
+    familybalanceid: { table: "familybalance", column: "balanceid" },
+    familyid: { table: "family", column: "familyid" },
+    newbalanceid: { table: "familybalance", column: "balanceid" },
   },
-  schoolcalendar: {},
-  scorecode: {},
+  schoolcalendar: {
+    seasonid: { table: "seasons", column: "seasonid" },
+  },
   scorefactors: {},
   studentscore: {
     studentid: { table: "student", column: "studentid" },
-    codeid: { table: "scorecode", column: "codeid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+    classid: { table: "classes", column: "classid" },
+    factorid: { table: "scorefactors", column: "factorid" },
   },
   scoredetail: {
     scoreid: { table: "studentscore", column: "scoreid" },
-    factorid: { table: "scorefactors", column: "factorid" },
-  },
-  scorerating: {},
-  scoreratingfactors: {
-    ratingid: { table: "scorerating", column: "ratingid" },
-    factorid: { table: "scorefactors", column: "factorid" },
   },
   studentscorecomment: {
+    studentid: { table: "student", column: "studentid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+    classid: { table: "classes", column: "classid" },
     scoreid: { table: "studentscore", column: "scoreid" },
   },
   studentscorefactor: {
@@ -162,15 +185,20 @@ export const fkMap = {
     factorid: { table: "scorefactors", column: "factorid" },
   },
   studentscorerating: {
-    scoreid: { table: "studentscore", column: "scoreid" },
+    studentid: { table: "student", column: "studentid" },
+    seasonid: { table: "seasons", column: "seasonid" },
+    classid: { table: "classes", column: "classid" },
+    ratingfactorid: { table: "scoreratingfactors", column: "ratingfactorid" },
     ratingid: { table: "scorerating", column: "ratingid" },
   },
-  seatnum: {
-    classid: { table: "classes", column: "classid" },
-  },
-  supports: {},
-  tempclass: {
-    classid: { table: "classes", column: "classid" },
+  scoreratingfactors: {},
+  scorerating: {},
+  requeststatus: {},
+  legacyFamily: {},
+  verificationToken: {},
+  adminuserrole: {
+    userid: { table: "adminuser", column: "adminid" },
+    roleid: { table: "adminrole", column: "roleid" },
   }
 } as const;
 
@@ -192,7 +220,12 @@ export const fkMap = {
     }
 */
 
-export type TableName = keyof typeof schema; // Names of all tables, "adminrole" | "classes" | ...
+// Filter out non-table exports (like enums) and only include tables that have primary keys
+type SchemaTableNames = {
+  [K in keyof typeof schema]: (typeof schema)[K] extends { _: any; $inferSelect: any } ? K : never;
+}[keyof typeof schema];
+
+export type TableName = SchemaTableNames & keyof typeof primKeyMap; // Names of tables that have primary keys defined
 export type Table<N extends TableName> = (typeof schema)[N]; // Concrete table type, PgTableWithColumns<Class>, PgTableWithColumns<AdminRole>, etc.
 
 // Union type of all column names for a table. i.e. "classnamecn" | "classnameeng" | "classid" | ...
@@ -220,9 +253,9 @@ export type PKVal<N extends TableName> =
     : never;
 
 // Names of Foreign keys on a table
-export type FKCol<N extends TableName> = keyof typeof fkMap[N] & string;
+export type FKCol<N extends TableName> = keyof (typeof fkMap)[N] & string;
 
 // I'm pretty sure it's always number but whatever lol
-export type FKVal<N extends keyof typeof fkMap, K extends FKCol<N>> = typeof fkMap[N][K];
+export type FKVal<N extends TableName, K extends FKCol<N>> = (typeof fkMap)[N][K];
 
       
