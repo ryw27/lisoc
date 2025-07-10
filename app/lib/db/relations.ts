@@ -1,258 +1,153 @@
 import { relations } from "drizzle-orm/relations";
-import { users, family, adminuser, adminrole, teacher, classes, seasons, arrangement, classrooms, classtime, suitableterm, agerestriction, classtype, student, classregistration, regstatus, familybalance, familybalancetype, familybalancestatus, dutyassignment, dutystatus, parentdutyPb, dutycommittee, familybalanceSave, feedback, feelist, regchangerequest, requeststatus, schoolcalendar, studentscore, scorefactors, scoredetail, studentscorecomment, studentscorefactor, studentscorerating, scoreratingfactors, scorerating, tempclass } from "./schema";
+import { users, family, teacher, adminuser, classtype, classes, arrangement, legacyTeacher, classrooms, seasons, classtime, agerestriction, classregistration, legacyFamily, regstatus, student, dutyassignment, dutystatus, familybalance, familybalancestatus, familybalancetype, parentdutyPb, schoolcalendar, studentscore, scorefactors, studentscorefactor, legacyAdminuser, studentscorecomment, studentscorerating, scoreratingfactors, scorerating, regchangerequest, requeststatus, adminuserrole, adminrole } from "../../app/lib/db/schema";
 
 export const familyRelations = relations(family, ({one, many}) => ({
 	user: one(users, {
 		fields: [family.userid],
 		references: [users.id]
 	}),
-	adminUsers: many(adminuser),
-	teacherUsers: many(teacher),
+	classregistrations: many(classregistration),
+	dutyassignments: many(dutyassignment),
+	familybalances: many(familybalance),
+	students: many(student),
+	regchangerequests: many(regchangerequest),
 }));
 
 export const usersRelations = relations(users, ({many}) => ({
-	familyUsers: many(family),
-	adminUsers: many(adminuser),
-	teacherUsers: many(teacher),
+	families: many(family),
+	teachers: many(teacher),
+	adminusers: many(adminuser),
 }));
 
-export const adminuserRelations = relations(adminuser, ({one}) => ({
-	user: one(users, {
-		fields: [adminuser.userid],
-		references: [users.id]
-	}),
-	adminrole: one(adminrole, {
-		fields: [adminuser.roleid],
-		references: [adminrole.roleid]
-	}),
-	family: one(family, {
-		fields: [adminuser.familyid],
-		references: [family.familyid]
-	}),
-}));
-
-export const adminroleRelations = relations(adminrole, ({many}) => ({
-	adminUsers: many(adminuser),
-}));
-
-export const teacherRelations = relations(teacher, ({one}) => ({
+export const teacherRelations = relations(teacher, ({one, many}) => ({
 	user: one(users, {
 		fields: [teacher.userid],
 		references: [users.id]
 	}),
-	class: one(classes, {
-		fields: [teacher.classid],
-		references: [classes.classid]
+	arrangements: many(arrangement),
+}));
+
+export const adminuserRelations = relations(adminuser, ({one, many}) => ({
+	user: one(users, {
+		fields: [adminuser.userid],
+		references: [users.id]
 	}),
-	family: one(family, {
-		fields: [teacher.familyid],
-		references: [family.familyid]
-	}),
+	adminuserroles: many(adminuserrole),
 }));
 
 export const classesRelations = relations(classes, ({one, many}) => ({
-	teacherUsers: many(teacher),
-	arrangements: many(arrangement),
-	agerestriction: one(agerestriction, {
-		fields: [classes.ageid],
-		references: [agerestriction.ageid]
-	}),
 	classtype: one(classtype, {
 		fields: [classes.typeid],
 		references: [classtype.typeid]
 	}),
-	class: one(classes, {
-		fields: [classes.classupid],
-		references: [classes.classid],
-		relationName: "classes_classupid_classes_classid"
-	}),
-	classes: many(classes, {
-		relationName: "classes_classupid_classes_classid"
-	}),
+	arrangements: many(arrangement),
 	classregistrations: many(classregistration),
-	regchangerequests: many(regchangerequest),
 	studentscores: many(studentscore),
 	studentscorecomments: many(studentscorecomment),
 	studentscoreratings: many(studentscorerating),
 }));
 
-// export const adminuserRelations = relations(adminuser, ({one}) => ({
-// 	family: one(family, {
-// 		fields: [adminuser.familyid],
-// 		references: [family.familyid]
-// 	}),
-// }));
+export const classtypeRelations = relations(classtype, ({one, many}) => ({
+	classes: many(classes),
+	agerestriction: one(agerestriction, {
+		fields: [classtype.ageid],
+		references: [agerestriction.ageid]
+	}),
+}));
 
-// export const familyRelations2 = relations(family, ({many}) => ({
-// 	adminusers: many(adminuser),
-// 	teachers: many(teacher),
-// 	students: many(student),
-// 	classregistrations: many(classregistration),
-// 	familybalances: many(familybalance),
-// 	dutyassignments: many(dutyassignment),
-// 	parentdutyPbs: many(parentdutyPb),
-// 	familybalanceSaves: many(familybalanceSave),
-// 	feedbacks: many(feedback),
-// 	regchangerequests: many(regchangerequest),
-// }));
-
-export const arrangementRelations = relations(arrangement, ({one, many}) => ({
-	season: one(seasons, {
-		fields: [arrangement.seasonid],
-		references: [seasons.seasonid]
+export const arrangementRelations = relations(arrangement, ({one}) => ({
+	teacher: one(teacher, {
+		fields: [arrangement.teacherid],
+		references: [teacher.teacherid]
+	}),
+	legacyTeacher: one(legacyTeacher, {
+		fields: [arrangement.teacherid],
+		references: [legacyTeacher.teacherid]
 	}),
 	class: one(classes, {
 		fields: [arrangement.classid],
 		references: [classes.classid]
 	}),
-	teacher: one(teacher, {
-		fields: [arrangement.teacherid],
-		references: [teacher.teacherid]
-	}),
 	classroom: one(classrooms, {
 		fields: [arrangement.roomid],
 		references: [classrooms.roomid]
+	}),
+	season: one(seasons, {
+		fields: [arrangement.seasonid],
+		references: [seasons.seasonid]
 	}),
 	classtime: one(classtime, {
 		fields: [arrangement.timeid],
 		references: [classtime.timeid]
 	}),
-	suitableterm: one(suitableterm, {
-		fields: [arrangement.suitableterm],
-		references: [suitableterm.termno]
-	}),
-	classregistrations: many(classregistration),
+}));
+
+export const legacyTeacherRelations = relations(legacyTeacher, ({many}) => ({
+	arrangements: many(arrangement),
+}));
+
+export const classroomsRelations = relations(classrooms, ({many}) => ({
+	arrangements: many(arrangement),
 }));
 
 export const seasonsRelations = relations(seasons, ({many}) => ({
 	arrangements: many(arrangement),
 	classregistrations: many(classregistration),
-	familybalances: many(familybalance),
 	dutyassignments: many(dutyassignment),
+	familybalances: many(familybalance),
 	parentdutyPbs: many(parentdutyPb),
-	familybalanceSaves: many(familybalanceSave),
-	feelists: many(feelist),
-	regchangerequests_seasonid: many(regchangerequest, {
-		relationName: "regchangerequest_seasonid_seasons_seasonid"
-	}),
-	regchangerequests_relatedseasonid: many(regchangerequest, {
-		relationName: "regchangerequest_relatedseasonid_seasons_seasonid"
-	}),
 	schoolcalendars: many(schoolcalendar),
 	studentscores: many(studentscore),
 	studentscorecomments: many(studentscorecomment),
 	studentscoreratings: many(studentscorerating),
-	tempclasses: many(tempclass),
-}));
-
-// export const teacherRelations = relations(teacher, ({one, many}) => ({
-// 	arrangements: many(arrangement),
-// 	classtype: one(classtype, {
-// 		fields: [teacher.classtypeid],
-// 		references: [classtype.typeid]
-// 	}),
-// 	family: one(family, {
-// 		fields: [teacher.familyid],
-// 		references: [family.familyid]
-// 	}),
-// 	tempclasses: many(tempclass),
-// }));
-
-export const classroomsRelations = relations(classrooms, ({many}) => ({
-	arrangements: many(arrangement),
-	tempclasses: many(tempclass),
+	regchangerequests: many(regchangerequest),
 }));
 
 export const classtimeRelations = relations(classtime, ({many}) => ({
 	arrangements: many(arrangement),
-	tempclasses: many(tempclass),
-}));
-
-export const suitabletermRelations = relations(suitableterm, ({many}) => ({
-	arrangements: many(arrangement),
-	tempclasses: many(tempclass),
 }));
 
 export const agerestrictionRelations = relations(agerestriction, ({many}) => ({
-	classes: many(classes),
 	classtypes: many(classtype),
 }));
 
-export const classtypeRelations = relations(classtype, ({one, many}) => ({
-	classes: many(classes),
-	teachers: many(teacher),
-	agerestriction: one(agerestriction, {
-		fields: [classtype.ageid],
-		references: [agerestriction.ageid]
-	}),
-	tempclasses: many(tempclass),
-}));
-
-export const studentRelations = relations(student, ({one, many}) => ({
+export const classregistrationRelations = relations(classregistration, ({one}) => ({
 	family: one(family, {
-		fields: [student.familyid],
+		fields: [classregistration.familyid],
 		references: [family.familyid]
 	}),
-	classregistrations: many(classregistration),
-	dutyassignments: many(dutyassignment),
-	parentdutyPbs: many(parentdutyPb),
-	regchangerequests: many(regchangerequest),
-	studentscores: many(studentscore),
-	studentscorecomments: many(studentscorecomment),
-	studentscoreratings: many(studentscorerating),
-}));
-
-export const classregistrationRelations = relations(classregistration, ({one, many}) => ({
-	student: one(student, {
-		fields: [classregistration.studentid],
-		references: [student.studentid]
-	}),
-	arrangement: one(arrangement, {
-		fields: [classregistration.arrangeid],
-		references: [arrangement.arrangeid]
-	}),
-	season: one(seasons, {
-		fields: [classregistration.seasonid],
-		references: [seasons.seasonid]
+	legacyFamily: one(legacyFamily, {
+		fields: [classregistration.familyid],
+		references: [legacyFamily.familyid]
 	}),
 	class: one(classes, {
 		fields: [classregistration.classid],
 		references: [classes.classid]
 	}),
-	regstatus_statusid: one(regstatus, {
+	season: one(seasons, {
+		fields: [classregistration.seasonid],
+		references: [seasons.seasonid]
+	}),
+	regstatus: one(regstatus, {
 		fields: [classregistration.statusid],
-		references: [regstatus.regstatusid],
-		relationName: "classregistration_statusid_regstatus_regstatusid"
+		references: [regstatus.regstatusid]
 	}),
-	regstatus_previousstatusid: one(regstatus, {
-		fields: [classregistration.previousstatusid],
-		references: [regstatus.regstatusid],
-		relationName: "classregistration_previousstatusid_regstatus_regstatusid"
+	student: one(student, {
+		fields: [classregistration.studentid],
+		references: [student.studentid]
 	}),
-	familybalance_familybalanceid: one(familybalance, {
-		fields: [classregistration.familybalanceid],
-		references: [familybalance.balanceid],
-		relationName: "classregistration_familybalanceid_familybalance_balanceid"
-	}),
-	family: one(family, {
-		fields: [classregistration.familyid],
-		references: [family.familyid]
-	}),
-	familybalance_newbalanceid: one(familybalance, {
-		fields: [classregistration.newbalanceid],
-		references: [familybalance.balanceid],
-		relationName: "classregistration_newbalanceid_familybalance_balanceid"
-	}),
+}));
+
+export const legacyFamilyRelations = relations(legacyFamily, ({many}) => ({
+	classregistrations: many(classregistration),
+	dutyassignments: many(dutyassignment),
+	familybalances: many(familybalance),
+	students: many(student),
 	regchangerequests: many(regchangerequest),
 }));
 
 export const regstatusRelations = relations(regstatus, ({many}) => ({
-	classregistrations_statusid: many(classregistration, {
-		relationName: "classregistration_statusid_regstatus_regstatusid"
-	}),
-	classregistrations_previousstatusid: many(classregistration, {
-		relationName: "classregistration_previousstatusid_regstatus_regstatusid"
-	}),
+	classregistrations: many(classregistration),
 	regchangerequests_oriregstatusid: many(regchangerequest, {
 		relationName: "regchangerequest_oriregstatusid_regstatus_regstatusid"
 	}),
@@ -261,45 +156,20 @@ export const regstatusRelations = relations(regstatus, ({many}) => ({
 	}),
 }));
 
-export const familybalanceRelations = relations(familybalance, ({one, many}) => ({
-	classregistrations_familybalanceid: many(classregistration, {
-		relationName: "classregistration_familybalanceid_familybalance_balanceid"
-	}),
-	classregistrations_newbalanceid: many(classregistration, {
-		relationName: "classregistration_newbalanceid_familybalance_balanceid"
-	}),
-	season: one(seasons, {
-		fields: [familybalance.seasonid],
-		references: [seasons.seasonid]
-	}),
+export const studentRelations = relations(student, ({one, many}) => ({
+	classregistrations: many(classregistration),
+	dutyassignments: many(dutyassignment),
 	family: one(family, {
-		fields: [familybalance.familyid],
+		fields: [student.familyid],
 		references: [family.familyid]
 	}),
-	familybalancetype: one(familybalancetype, {
-		fields: [familybalance.typeid],
-		references: [familybalancetype.typeid]
+	legacyFamily: one(legacyFamily, {
+		fields: [student.familyid],
+		references: [legacyFamily.familyid]
 	}),
-	familybalancestatus: one(familybalancestatus, {
-		fields: [familybalance.statusid],
-		references: [familybalancestatus.statusid]
-	}),
-	regchangerequests_familybalanceid: many(regchangerequest, {
-		relationName: "regchangerequest_familybalanceid_familybalance_balanceid"
-	}),
-	regchangerequests_newbalanceid: many(regchangerequest, {
-		relationName: "regchangerequest_newbalanceid_familybalance_balanceid"
-	}),
-}));
-
-export const familybalancetypeRelations = relations(familybalancetype, ({many}) => ({
-	familybalances: many(familybalance),
-	familybalanceSaves: many(familybalanceSave),
-}));
-
-export const familybalancestatusRelations = relations(familybalancestatus, ({many}) => ({
-	familybalances: many(familybalance),
-	familybalanceSaves: many(familybalanceSave),
+	studentscorecomments: many(studentscorecomment),
+	studentscoreratings: many(studentscorerating),
+	regchangerequests: many(regchangerequest),
 }));
 
 export const dutyassignmentRelations = relations(dutyassignment, ({one}) => ({
@@ -307,21 +177,21 @@ export const dutyassignmentRelations = relations(dutyassignment, ({one}) => ({
 		fields: [dutyassignment.familyid],
 		references: [family.familyid]
 	}),
-	student: one(student, {
-		fields: [dutyassignment.studentid],
-		references: [student.studentid]
-	}),
-	season: one(seasons, {
-		fields: [dutyassignment.seasonid],
-		references: [seasons.seasonid]
+	legacyFamily: one(legacyFamily, {
+		fields: [dutyassignment.familyid],
+		references: [legacyFamily.familyid]
 	}),
 	dutystatus: one(dutystatus, {
 		fields: [dutyassignment.dutystatus],
 		references: [dutystatus.dutystatusid]
 	}),
-	parentdutyPb: one(parentdutyPb, {
-		fields: [dutyassignment.pdid],
-		references: [parentdutyPb.pdid]
+	season: one(seasons, {
+		fields: [dutyassignment.seasonid],
+		references: [seasons.seasonid]
+	}),
+	student: one(student, {
+		fields: [dutyassignment.studentid],
+		references: [student.studentid]
 	}),
 }));
 
@@ -329,118 +199,42 @@ export const dutystatusRelations = relations(dutystatus, ({many}) => ({
 	dutyassignments: many(dutyassignment),
 }));
 
-export const parentdutyPbRelations = relations(parentdutyPb, ({one, many}) => ({
-	dutyassignments: many(dutyassignment),
+export const familybalanceRelations = relations(familybalance, ({one}) => ({
 	family: one(family, {
-		fields: [parentdutyPb.familyid],
+		fields: [familybalance.familyid],
 		references: [family.familyid]
 	}),
-	student: one(student, {
-		fields: [parentdutyPb.studentid],
-		references: [student.studentid]
+	legacyFamily: one(legacyFamily, {
+		fields: [familybalance.familyid],
+		references: [legacyFamily.familyid]
 	}),
-	dutycommittee: one(dutycommittee, {
-		fields: [parentdutyPb.committeeid],
-		references: [dutycommittee.dcid]
+	season: one(seasons, {
+		fields: [familybalance.seasonid],
+		references: [seasons.seasonid]
 	}),
+	familybalancestatus: one(familybalancestatus, {
+		fields: [familybalance.statusid],
+		references: [familybalancestatus.statusid]
+	}),
+	familybalancetype: one(familybalancetype, {
+		fields: [familybalance.typeid],
+		references: [familybalancetype.typeid]
+	}),
+}));
+
+export const familybalancestatusRelations = relations(familybalancestatus, ({many}) => ({
+	familybalances: many(familybalance),
+}));
+
+export const familybalancetypeRelations = relations(familybalancetype, ({many}) => ({
+	familybalances: many(familybalance),
+}));
+
+export const parentdutyPbRelations = relations(parentdutyPb, ({one}) => ({
 	season: one(seasons, {
 		fields: [parentdutyPb.seasonid],
 		references: [seasons.seasonid]
 	}),
-}));
-
-export const dutycommitteeRelations = relations(dutycommittee, ({many}) => ({
-	parentdutyPbs: many(parentdutyPb),
-}));
-
-export const familybalanceSaveRelations = relations(familybalanceSave, ({one}) => ({
-	season: one(seasons, {
-		fields: [familybalanceSave.seasonid],
-		references: [seasons.seasonid]
-	}),
-	family: one(family, {
-		fields: [familybalanceSave.familyid],
-		references: [family.familyid]
-	}),
-	familybalancetype: one(familybalancetype, {
-		fields: [familybalanceSave.typeid],
-		references: [familybalancetype.typeid]
-	}),
-	familybalancestatus: one(familybalancestatus, {
-		fields: [familybalanceSave.statusid],
-		references: [familybalancestatus.statusid]
-	}),
-}));
-
-export const feedbackRelations = relations(feedback, ({one}) => ({
-	family: one(family, {
-		fields: [feedback.familyid],
-		references: [family.familyid]
-	}),
-}));
-
-export const feelistRelations = relations(feelist, ({one}) => ({
-	season: one(seasons, {
-		fields: [feelist.seasonid],
-		references: [seasons.seasonid]
-	}),
-}));
-
-export const regchangerequestRelations = relations(regchangerequest, ({one}) => ({
-	classregistration: one(classregistration, {
-		fields: [regchangerequest.regid],
-		references: [classregistration.regid]
-	}),
-	student: one(student, {
-		fields: [regchangerequest.studentid],
-		references: [student.studentid]
-	}),
-	season_seasonid: one(seasons, {
-		fields: [regchangerequest.seasonid],
-		references: [seasons.seasonid],
-		relationName: "regchangerequest_seasonid_seasons_seasonid"
-	}),
-	season_relatedseasonid: one(seasons, {
-		fields: [regchangerequest.relatedseasonid],
-		references: [seasons.seasonid],
-		relationName: "regchangerequest_relatedseasonid_seasons_seasonid"
-	}),
-	class: one(classes, {
-		fields: [regchangerequest.classid],
-		references: [classes.classid]
-	}),
-	regstatus_oriregstatusid: one(regstatus, {
-		fields: [regchangerequest.oriregstatusid],
-		references: [regstatus.regstatusid],
-		relationName: "regchangerequest_oriregstatusid_regstatus_regstatusid"
-	}),
-	regstatus_regstatusid: one(regstatus, {
-		fields: [regchangerequest.regstatusid],
-		references: [regstatus.regstatusid],
-		relationName: "regchangerequest_regstatusid_regstatus_regstatusid"
-	}),
-	requeststatus: one(requeststatus, {
-		fields: [regchangerequest.reqstatusid],
-		references: [requeststatus.reqstatusid]
-	}),
-	familybalance_familybalanceid: one(familybalance, {
-		fields: [regchangerequest.familybalanceid],
-		references: [familybalance.balanceid],
-		relationName: "regchangerequest_familybalanceid_familybalance_balanceid"
-	}),
-	family: one(family, {
-		fields: [regchangerequest.familyid],
-		references: [family.familyid]
-	}),
-	familybalance_newbalanceid: one(familybalance, {
-		fields: [regchangerequest.newbalanceid],
-		references: [familybalance.balanceid],
-		relationName: "regchangerequest_newbalanceid_familybalance_balanceid"
-	}),
-}));
-
-export const requeststatusRelations = relations(requeststatus, ({many}) => ({
-	regchangerequests: many(regchangerequest),
 }));
 
 export const schoolcalendarRelations = relations(schoolcalendar, ({one}) => ({
@@ -451,48 +245,54 @@ export const schoolcalendarRelations = relations(schoolcalendar, ({one}) => ({
 }));
 
 export const studentscoreRelations = relations(studentscore, ({one, many}) => ({
-	student: one(student, {
-		fields: [studentscore.studentid],
-		references: [student.studentid]
+	class: one(classes, {
+		fields: [studentscore.classid],
+		references: [classes.classid]
 	}),
 	season: one(seasons, {
 		fields: [studentscore.seasonid],
 		references: [seasons.seasonid]
 	}),
-	class: one(classes, {
-		fields: [studentscore.classid],
-		references: [classes.classid]
-	}),
+	studentscorefactors: many(studentscorefactor),
+	studentscorecomments: many(studentscorecomment),
+}));
+
+export const studentscorefactorRelations = relations(studentscorefactor, ({one}) => ({
 	scorefactor: one(scorefactors, {
-		fields: [studentscore.factorid],
+		fields: [studentscorefactor.factorid],
 		references: [scorefactors.factorid]
 	}),
-	scoredetails: many(scoredetail),
-	studentscorecomments: many(studentscorecomment),
-	studentscorefactors: many(studentscorefactor),
-}));
-
-export const scorefactorsRelations = relations(scorefactors, ({many}) => ({
-	studentscores: many(studentscore),
-	studentscorefactors: many(studentscorefactor),
-}));
-
-export const scoredetailRelations = relations(scoredetail, ({one}) => ({
 	studentscore: one(studentscore, {
-		fields: [scoredetail.scoreid],
+		fields: [studentscorefactor.scoreid],
 		references: [studentscore.scoreid]
 	}),
 }));
 
+export const scorefactorsRelations = relations(scorefactors, ({one, many}) => ({
+	studentscorefactors: many(studentscorefactor),
+	legacyAdminuser_createby: one(legacyAdminuser, {
+		fields: [scorefactors.createby],
+		references: [legacyAdminuser.userid],
+		relationName: "scorefactors_createby_legacyAdminuser_userid"
+	}),
+	legacyAdminuser_updateby: one(legacyAdminuser, {
+		fields: [scorefactors.updateby],
+		references: [legacyAdminuser.userid],
+		relationName: "scorefactors_updateby_legacyAdminuser_userid"
+	}),
+}));
+
+export const legacyAdminuserRelations = relations(legacyAdminuser, ({many}) => ({
+	scorefactors_createby: many(scorefactors, {
+		relationName: "scorefactors_createby_legacyAdminuser_userid"
+	}),
+	scorefactors_updateby: many(scorefactors, {
+		relationName: "scorefactors_updateby_legacyAdminuser_userid"
+	}),
+	adminuserroles: many(adminuserrole),
+}));
+
 export const studentscorecommentRelations = relations(studentscorecomment, ({one}) => ({
-	student: one(student, {
-		fields: [studentscorecomment.studentid],
-		references: [student.studentid]
-	}),
-	season: one(seasons, {
-		fields: [studentscorecomment.seasonid],
-		references: [seasons.seasonid]
-	}),
 	class: one(classes, {
 		fields: [studentscorecomment.classid],
 		references: [classes.classid]
@@ -501,28 +301,17 @@ export const studentscorecommentRelations = relations(studentscorecomment, ({one
 		fields: [studentscorecomment.scoreid],
 		references: [studentscore.scoreid]
 	}),
-}));
-
-export const studentscorefactorRelations = relations(studentscorefactor, ({one}) => ({
-	studentscore: one(studentscore, {
-		fields: [studentscorefactor.scoreid],
-		references: [studentscore.scoreid]
+	season: one(seasons, {
+		fields: [studentscorecomment.seasonid],
+		references: [seasons.seasonid]
 	}),
-	scorefactor: one(scorefactors, {
-		fields: [studentscorefactor.factorid],
-		references: [scorefactors.factorid]
+	student: one(student, {
+		fields: [studentscorecomment.studentid],
+		references: [student.studentid]
 	}),
 }));
 
 export const studentscoreratingRelations = relations(studentscorerating, ({one}) => ({
-	student: one(student, {
-		fields: [studentscorerating.studentid],
-		references: [student.studentid]
-	}),
-	season: one(seasons, {
-		fields: [studentscorerating.seasonid],
-		references: [seasons.seasonid]
-	}),
 	class: one(classes, {
 		fields: [studentscorerating.classid],
 		references: [classes.classid]
@@ -535,6 +324,14 @@ export const studentscoreratingRelations = relations(studentscorerating, ({one})
 		fields: [studentscorerating.ratingid],
 		references: [scorerating.ratingid]
 	}),
+	season: one(seasons, {
+		fields: [studentscorerating.seasonid],
+		references: [seasons.seasonid]
+	}),
+	student: one(student, {
+		fields: [studentscorerating.studentid],
+		references: [student.studentid]
+	}),
 }));
 
 export const scoreratingfactorsRelations = relations(scoreratingfactors, ({many}) => ({
@@ -545,29 +342,61 @@ export const scoreratingRelations = relations(scorerating, ({many}) => ({
 	studentscoreratings: many(studentscorerating),
 }));
 
-export const tempclassRelations = relations(tempclass, ({one}) => ({
-	classtype: one(classtype, {
-		fields: [tempclass.typeid],
-		references: [classtype.typeid]
+export const regchangerequestRelations = relations(regchangerequest, ({one}) => ({
+	family: one(family, {
+		fields: [regchangerequest.familyid],
+		references: [family.familyid]
+	}),
+	legacyFamily: one(legacyFamily, {
+		fields: [regchangerequest.familyid],
+		references: [legacyFamily.familyid]
+	}),
+	requeststatus_reqstatusid: one(requeststatus, {
+		fields: [regchangerequest.reqstatusid],
+		references: [requeststatus.reqstatusid],
+		relationName: "regchangerequest_reqstatusid_requeststatus_reqstatusid"
+	}),
+	regstatus_oriregstatusid: one(regstatus, {
+		fields: [regchangerequest.oriregstatusid],
+		references: [regstatus.regstatusid],
+		relationName: "regchangerequest_oriregstatusid_regstatus_regstatusid"
+	}),
+	regstatus_regstatusid: one(regstatus, {
+		fields: [regchangerequest.regstatusid],
+		references: [regstatus.regstatusid],
+		relationName: "regchangerequest_regstatusid_regstatus_regstatusid"
 	}),
 	season: one(seasons, {
-		fields: [tempclass.seasonid],
+		fields: [regchangerequest.seasonid],
 		references: [seasons.seasonid]
 	}),
-	teacher: one(teacher, {
-		fields: [tempclass.teacherid],
-		references: [teacher.teacherid]
+	student: one(student, {
+		fields: [regchangerequest.studentid],
+		references: [student.studentid]
 	}),
-	classroom: one(classrooms, {
-		fields: [tempclass.roomid],
-		references: [classrooms.roomid]
+}));
+
+export const requeststatusRelations = relations(requeststatus, ({many}) => ({
+	regchangerequests_reqstatusid: many(regchangerequest, {
+		relationName: "regchangerequest_reqstatusid_requeststatus_reqstatusid"
 	}),
-	classtime: one(classtime, {
-		fields: [tempclass.timeid],
-		references: [classtime.timeid]
+}));
+
+export const adminuserroleRelations = relations(adminuserrole, ({one}) => ({
+	adminuser: one(adminuser, {
+		fields: [adminuserrole.userid],
+		references: [adminuser.adminid]
 	}),
-	suitableterm: one(suitableterm, {
-		fields: [tempclass.suitableterm],
-		references: [suitableterm.termno]
+	legacyAdminuser: one(legacyAdminuser, {
+		fields: [adminuserrole.userid],
+		references: [legacyAdminuser.userid]
 	}),
+	adminrole: one(adminrole, {
+		fields: [adminuserrole.roleid],
+		references: [adminrole.roleid]
+	}),
+}));
+
+export const adminroleRelations = relations(adminrole, ({many}) => ({
+	adminuserroles: many(adminuserrole),
 }));
