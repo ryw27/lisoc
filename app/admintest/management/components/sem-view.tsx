@@ -1,8 +1,7 @@
-import { seasons } from "@/app/lib/db/schema";
+import { seasons, arrangement, classes, suitableterm, classrooms, teacher, classtime } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import SemesterViewBox from "./sem-view-box";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { getSelectOptions } from "@/app/lib/semester/sem-actions";
 
 
@@ -33,35 +32,43 @@ export type studentStatus =
     | "Pending Drop"
     | {}
 
+export type fullClassData = InferSelectModel<typeof arrangement> & { 
+    class: InferSelectModel<typeof classes> 
+    teacher: InferSelectModel<typeof teacher>
+    classroom: InferSelectModel<typeof classrooms>
+    classtime: InferSelectModel<typeof classtime>
+    suitableterm: InferSelectModel<typeof suitableterm>
+};
+
+export type selectOptions = {
+    teachers: { teacherid: number, namecn: string | null, namelasten: string | null, namefirsten: string | null }[];
+    classes: { classid: number, classnamecn: string, classnameen: string }[];
+    rooms: { roomid: number, roomno: string }[];
+    times: { timeid: number, period: string | null }[];
+    terms: { termno: number, suitableterm: string | null, suitabletermcn: string | null }[];
+}
+
+
 // Start with a general class overview that is clickable. Each one expands into a data table of students
 export default async function SemesterView({ season }: semViewProps) {
     // Active semester
     const classData = await db.query.arrangement.findMany({
         where: (arr, { eq }) => eq(arr.seasonid, season.seasonid),
         with: {
-            class: {
-                columns: {
-                    classid: true,
-                    classnamecn: true,
-                    classnameen: true
-                }
-            },
-            teacher: {
-                columns: {
-                    teacherid: true,
-                    namecn: true,
-                    namefirsten: true,
-                    namelasten: true
-                }
-            }, 
-            classroom: {}
-        }
-    });
+            class: true,
+            teacher: true, 
+            classroom: true,
+            classtime: true,
+            suitableterm: true,
+        },
+        orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
+    }) satisfies fullClassData[];
 
-    const selectOptions = await getSelectOptions();
+
+    const selectOptions = (await getSelectOptions()) satisfies selectOptions
+
 
     // Get student view data and transform into data table form
-
     const getStudents = async (classid: number) => {
         // Get all students who have registered
         const reg = await db.query.classregistration.findMany({
@@ -72,7 +79,7 @@ export default async function SemesterView({ season }: semViewProps) {
         });
 
         const dataview = await Promise.all(reg.map(async (student) => {
-            // TODO: More complete handling of drop/transfer status
+            // TODO: More complete handling of whether a drop/transfer has occured
             // Check if dropped, request status id is 2 indicating approval
             const requests = await db.query.regchangerequest.findFirst({
                 where: (reg, { and, eq }) => and(eq(reg.appliedid, student.regid), eq(reg.reqstatusid, 2))
@@ -113,73 +120,6 @@ export default async function SemesterView({ season }: semViewProps) {
         return dataview;
     }
 
-    // const onDrop = async (row: ColumnDef<studentView>) => {
-    //     // Extract the studentView from the row
-    //     const student: studentView = row.original as studentView;
-
-    //     // You may need to provide these from your component's scope/context
-    //     // For this example, we assume you have access to:
-    //     // - season (current season object)
-    //     // - classid (current class id)
-    //     // - userId (admin user id performing the drop)
-    //     // - registration (the registration record for this student in this class/season)
-    //     // - regstatusid/oriregstatusid (from registration or business logic)
-    //     // - isyearclass/relatedseasonid (from class or season context)
-    //     // - etc.
-
-    //     // Example: You must fill in these values from your actual data/context
-    //     const registration = {
-    //         regid: student.regid,
-    //         appliedid: student.regid,
-    //         studentid: student.studentid,
-    //         seasonid: season.seasonid,
-    //         isyearclass: false, // Set appropriately
-    //         relatedseasonid: season.relatedseasonid ?? null,
-    //         classid: student.classid ?? 0,
-    //         registerdate: student.registerDate,
-    //         oriregstatusid: 1, // Set appropriately
-    //         regstatusid: 3, // e.g. 3 = dropped, set appropriately
-    //         reqstatusid: 2, // e.g. 2 = approved, set appropriately
-    //         familybalanceid: null,
-    //         familyid: student.familyid,
-    //         otherfee: null,
-    //         newbalanceid: null,
-    //         submitdate: new Date().toISOString(),
-    //         processdate: null,
-    //         lastmodify: new Date().toISOString(),
-    //         notes: '',
-    //         adminmemo: '',
-    //         adminuserid: typeof userId === 'string' ? userId : '',
-    //     };
-
-    //     // Only include fields that exist in the regchangerequest table
-    //     await db.insert(regchangerequest).values({
-    //         regid: registration.regid,
-    //         appliedid: registration.appliedid,
-    //         studentid: registration.studentid,
-    //         seasonid: registration.seasonid,
-    //         isyearclass: registration.isyearclass,
-    //         relatedseasonid: registration.relatedseasonid,
-    //         classid: registration.classid,
-    //         registerdate: registration.registerdate,
-    //         oriregstatusid: registration.oriregstatusid,
-    //         regstatusid: registration.regstatusid,
-    //         reqstatusid: registration.reqstatusid,
-    //         familybalanceid: registration.familybalanceid,
-    //         familyid: registration.familyid,
-    //         otherfee: registration.otherfee,
-    //         newbalanceid: registration.newbalanceid,
-    //         submitdate: registration.submitdate,
-    //         processdate: registration.processdate,
-    //         lastmodify: registration.lastmodify,
-    //         notes: registration.notes,
-    //         adminmemo: registration.adminmemo,
-    //         adminuserid: registration.adminuserid,
-    //     });
-    // }
-
-
-
     return (
         <div className="container mx-auto flex flex-col">
             <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
@@ -190,6 +130,7 @@ export default async function SemesterView({ season }: semViewProps) {
                     return (
                         <SemesterViewBox
                             key={`${idx}-${val.classid}-${val.arrangeid}`}
+                            season={season}
                             data={val}
                             registrations={studentView}
                             selectOptions={selectOptions}
