@@ -3,6 +3,7 @@ import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import SemesterViewBox from "./sem-view-box";
 import { getSelectOptions } from "@/app/lib/semester/sem-actions";
+import SemesterControlsPopover from "./sem-control-popover";
 
 
 type semViewProps = {
@@ -120,9 +121,71 @@ export default async function SemesterView({ season }: semViewProps) {
         return dataview;
     }
 
+    const getCurrentPhase = () => {
+        const curDate = new Date(Date.now());
+        if (curDate <= new Date(season.earlyregdate)) {
+            "Registration has not begun";
+        } else if (curDate <= new Date(season.normalregdate)) {
+            return "Early registration";
+        } else if (curDate <= new Date(season.lateregdate1)) {
+            return "Normal registration";
+        } else if (curDate <= new Date(season.closeregdate)) {
+            return "Late registration";
+        } else if (curDate <= new Date(season.startdate)) {
+            return "Registration has closed";
+        } else if (curDate <= new Date(season.enddate)) {
+            return "Fall semester has begun";
+        } else {
+            return "Fall semester has ended";
+        }
+    }
+
+    const currentPhase = getCurrentPhase()
+
     return (
         <div className="container mx-auto flex flex-col">
-            <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
+            <div className="flex justify-between">
+                <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
+                <SemesterControlsPopover season={season} />
+            </div>
+            <div className="mb-4">
+                <h2 className="text-md font-semibold mb-1">Current Phase: {currentPhase}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div>
+                        <span className="font-medium">Early Registration:</span>{" "}
+                        {season.earlyregdate ? new Date(season.earlyregdate).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Normal Registration:</span>{" "}
+                        {season.normalregdate ? new Date(season.normalregdate).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Late Registration 1:</span>{" "}
+                        {season.lateregdate1 ? new Date(season.lateregdate1).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Late Registration 2:</span>{" "}
+                        {season.lateregdate2 ? new Date(season.lateregdate2).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Close Registration:</span>{" "}
+                        {season.closeregdate ? new Date(season.closeregdate).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Cancel Deadline:</span>{" "}
+                        {season.canceldeadline ? new Date(season.canceldeadline).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Semester Start:</span>{" "}
+                        {season.startdate ? new Date(season.startdate).toLocaleString() : "N/A"}
+                    </div>
+                    <div>
+                        <span className="font-medium">Semester End:</span>{" "}
+                        {season.enddate ? new Date(season.enddate).toLocaleString() : "N/A"}
+                    </div>
+                </div>
+            </div>
+            
             <div className="flex flex-col gap-2">
                 {classData.map(async (val, idx) => {
                     const studentView = await getStudents(val.classid);
@@ -141,3 +204,4 @@ export default async function SemesterView({ season }: semViewProps) {
         </div>
     )
 }
+
