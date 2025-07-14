@@ -3,6 +3,8 @@ import Logo from "@/components/logo";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import SemesterView from "../components/sem-view";
+import { getSelectOptions } from "@/app/lib/semester/sem-actions";
+import { type fullArrData, type selectOptions, type classWithStudents, type studentView } from "@/app/lib/semester/sem-schemas";
 
 
 export default async function SemesterPage() {
@@ -37,11 +39,90 @@ export default async function SemesterPage() {
         )
     } 
 
+    // Active semester
+    const classData = await db.query.arrangement.findMany({
+        where: (arr, { eq }) => eq(arr.seasonid, active.seasonid),
+        with: {
+            class: true,
+            teacher: true, 
+            classroom: true,
+            classtime: true,
+            suitableterm: true,
+        },
+        orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
+    }) satisfies fullArrData[];
+
+    // TODO: Change teacher and class columns to relevant not null
+    const { options, idMaps } = await getSelectOptions()
+
+    // Get student view data and transform into data table form
+    const getStudents = async (classid: number): Promise<studentView[]> => {
+        // Get all students who have registered
+        const reg = await db.query.classregistration.findMany({
+            where: (reg, { and, eq }) => and(eq(reg.classid, classid), eq(reg.seasonid, active.seasonid)),
+            with: {
+                student: {}
+            }
+        });
+
+        const dataview = await Promise.all(reg.map(async (student) => {
+            // TODO: More complete handling of whether a drop/transfer has occured
+            // Check if dropped, request status id is 2 indicating approval
+            const requests = await db.query.regchangerequest.findFirst({
+                where: (reg, { and, eq }) => and(eq(reg.appliedid, student.regid), eq(reg.reqstatusid, 2))
+            });
+
+            const reqStatusMap = {
+                1: "Pending Drop",
+                2: "Dropout",
+                3: "Submitted"
+            }
+
+            const regStatusMap = {
+                1: "Submitted",
+                2: "Registered",
+                3: "Dropout", // Shouldn't get here
+                4: "Dropout",
+                5: "Dropout Spring"
+            }
+            const status = requests ? 
+                                reqStatusMap[requests.reqstatusid as 1 | 2 | 3] 
+                                : regStatusMap[student.statusid as 1 | 2 | 3 | 4 | 5]
+
+            return {
+                regid: student.regid,
+                studentid: student.studentid,
+                registerDate: student.registerdate,
+                dropped: status,
+                familyid: student.familyid,
+                namecn: student.student.namecn,
+                namelasten: student.student.namelasten,
+                namefirsten: student.student.namefirsten,
+                dob: student.student.dob,
+                gender: student.student.gender || "Unknown",
+                notes: student.notes || ""
+            } satisfies studentView
+        }))
+
+        return dataview;
+    }
+
+    // Fetch all student data upfront
+    const classDataWithStudents: classWithStudents[] = await Promise.all(
+        classData.map(async (classItem) => {
+            const students = await getStudents(classItem.classid);
+            return {
+                ...classItem,
+                students
+            };
+        })
+    );
 
     return (
         <SemesterView 
             season={active}
+            classDataWithStudents={classDataWithStudents}
+            selectOptions={options}
         />
     )
-
 }
