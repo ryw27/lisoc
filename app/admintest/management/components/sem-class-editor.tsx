@@ -1,25 +1,55 @@
 "use client";
-import { draftClasses, semClassSchema } from "@/app/lib/semester/sem-schemas";
+import { arrangementSchema } from "@/app/lib/semester/sem-schemas";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { updateClass } from "@/app/lib/semester/sem-actions";
-import { selectOptions } from "./sem-view";
-import { useMemo } from "react";
+import { z } from "zod/v4";
+import { type uiClassStudents } from "./sem-view";
+import React, { useContext } from "react";
+import { OptionContext } from "./sem-view"; 
+import { InferSelectModel } from "drizzle-orm";
+import { arrangement, seasons } from "@/app/lib/db/schema";
+
 
 type semClassEditorProps = {
-    data: draftClasses
-    selectOptions: selectOptions;
-    setEditing: (editing: boolean) => void;
-    setUIState: React.Dispatch<React.SetStateAction<draftClasses>>;
+    cancelEdit: () => void
+    setUIState: React.Dispatch<React.SetStateAction<uiClassStudents[]>>;
+    setConfiguring: React.Dispatch<React.SetStateAction<{ editing: boolean, expanded: boolean}[]>>;
+    editClass: (formData: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) => Promise<InferSelectModel<typeof arrangement>>;
+    idx: number;
+    data?: uiClassStudents;
 }
 
-export default function SemClassEditor({ data, selectOptions, setEditing, setUIState }: semClassEditorProps) {
+export default function SemClassEditor({ cancelEdit, setUIState, setConfiguring, editClass, idx, data }: semClassEditorProps) {
+    const { selectOptions, idMaps, season } = useContext(OptionContext)!;
+    const { classMap, teacherMap, roomMap, termMap, timeMap } = idMaps
+    const defaultObj: uiClassStudents = {
+        arrangeid: undefined,
+        season: { seasonid: season.seasonid, seasonnamecn: season.seasonnamecn, seasonnameeng: season.seasonnameeng },
+        class: { classid: 0, classnamecn: "", classnameen: "" },
+        teacher: { teacherid: 0, namecn: "", namelasten: "", namefirsten: "" },
+        classroom: { roomid: 0, roomno: "" },
+        classtime: { timeid: 0, period: "" },
+        suitableterm: { termno: 0, suitableterm: "", suitabletermcn: "" },
+        seatlimit: null,
+        agelimit: null,
+        waiveregfee: false,
+        closeregistration: false,
+        tuitionW: null,
+        specialfeeW: null,
+        bookfeeW: null,
+        tuitionH: null,
+        specialfeeH: null,
+        bookfeeH: null,
+        notes: null,
+        students: [],
+    }
+
     const editForm = useForm({
-        resolver: zodResolver(semClassSchema),
-        defaultValues: {
+        resolver: zodResolver(arrangementSchema),
+        defaultValues: (data ? {
+            arrangeid: data.arrangeid,
             classid: data.class.classid,
             teacherid: data.teacher.teacherid,
             roomid: data.classroom.roomid,
@@ -36,89 +66,105 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             tuitionH: data.tuitionH ? Number(data.tuitionH) : 0,
             bookfeeH: data.bookfeeH ? Number(data.bookfeeH) : 0,
             specialfeeH: data.specialfeeH ? Number(data.specialfeeH) : 0,
-        }
+        } : undefined)
     })
 
-    const idToClass = useMemo(() => {
-        const m = new Map<number, string>();
-        selectOptions.classes.forEach((c: { classid: number, classnamecn: string }) => m.set(c.classid, c.classnamecn))
-        return m;
-    }, [selectOptions.classes]);
-
-    const idToTeacher = useMemo(() => {
-        const m = new Map<number, string>();
-        selectOptions.teachers.forEach((t: { teacherid: number, namecn: string | null }) => m.set(t.teacherid, t.namecn || ""))
-        return m;
-    }, [selectOptions.teachers]);
-
-    const idToRoom = useMemo(() => {
-        const m = new Map<number, string>();
-        selectOptions.rooms.forEach((r: { roomid: number, roomno: string }) => m.set(r.roomid, r.roomno))
-        return m;
-    }, [selectOptions.rooms]);
-
-    const idToTime = useMemo(() => {
-        const m = new Map<number, string>();
-        selectOptions.times.forEach((t: { timeid: number, period: string | null }) => m.set(t.timeid, t.period || ""))
-        return m;
-    }, [selectOptions.times]);
-
-    const idToTerm = useMemo(() => {
-        const m = new Map<number, string>();
-        selectOptions.terms.forEach((t: { termno: number, suitableterm: string | null }) => m.set(t.termno, t.suitableterm || ""))
-        return m;
-    }, [selectOptions.terms]);
-
-    const onSubmit = async (formData: z.infer<typeof semClassSchema>) => {
+    const onSubmit = async (formData: z.infer<typeof arrangementSchema>) => {
         try {
             // Optimistic update
             setUIState(prev => {
-                return {
-                    ...prev,
-                    class: { classid: formData.classid, classnamecn: idToClass.get(formData.classid) || "" },
-                    teacher: { teacherid: formData.teacherid, namecn: idToTeacher.get(formData.teacherid) || "" },
-                    classroom: { roomid: formData.roomid, roomno: idToRoom.get(formData.roomid) || "" },
-                    classtime: { timeid: formData.timeid, period: idToTime.get(formData.timeid) || "" },
-                    suitableterm: { termno: formData.suitableterm, suitabletermcn: idToTerm.get(formData.suitableterm) || "" },
-                    tuitionW: formData.tuitionW.toString(),
-                    bookfeeW: formData.bookfeeW.toString(),
-                    specialfeeW: formData.specialfeeW.toString(),
-                    tuitionH: formData.tuitionH.toString(),
-                    bookfeeH: formData.bookfeeH.toString(),
-                    specialfeeH: formData.specialfeeH.toString(),
+                const newState = prev;
+                const classObj = classMap[formData.classid!];
+                const teacherObj = teacherMap[formData.teacherid!];
+                const roomObj = roomMap[formData.roomid!];
+                const timeObj = timeMap[formData.timeid!];
+                const termObj = termMap[formData.suitableterm!];
+                const formObj = {
+                    arrangeid: data?.arrangeid || undefined,
+                    season: { seasonid: season.seasonid, seasonnamecn: season.seasonnamecn, seasonnameeng: season.seasonnameeng },
+                    class: { classid: formData.classid!, classnamecn: classObj?.classnamecn || "", classnameen: classObj?.classnameen || "" },
+                    teacher: { teacherid: formData.teacherid!, namecn: teacherObj?.namecn || "", namelasten: teacherObj?.namelasten || "", namefirsten: teacherObj?.namefirsten || "" },
+                    classroom: { roomid: formData.roomid!, roomno: roomObj?.roomno || "" },
+                    classtime: { timeid: formData.timeid!, period: timeObj?.period || "" },
+                    suitableterm: { termno: formData.suitableterm!, suitableterm: termObj?.suitableterm || "", suitabletermcn: termObj?.suitabletermcn || "" },
+                    students: data?.students || [],
+                    tuitionW: formData.tuitionW!.toString(),
+                    bookfeeW: formData.bookfeeW!.toString(),
+                    specialfeeW: formData.specialfeeW!.toString(),
+                    tuitionH: formData.tuitionH!.toString(),
+                    bookfeeH: formData.bookfeeH!.toString(),
+                    specialfeeH: formData.specialfeeH!.toString(),
                     seatlimit: Number(formData.seatlimit),
                     agelimit: Number(formData.agelimit),
-                    waiveregfee: formData.waiveregfee,
-                    closeregistration: formData.closeregistration,
-                } 
+                    waiveregfee: formData.waiveregfee!,
+                    closeregistration: formData.closeregistration!,
+                    notes: formData.notes || "",
+                } satisfies uiClassStudents
+                if (data) {
+                    newState[idx] = formObj;
+                } else {
+                    newState.push(formObj);
+                }
+                return newState
             });
-            setEditing(false);
-            await updateClass(formData, data);
+            const updatedClass = await editClass(formData, season);
+            if (data) {
+                setConfiguring(prev => {
+                    const newState = prev;
+                    newState[idx] = { ...newState[idx], editing: false }
+                    return newState
+                })
+            } else {
+                setUIState(prev => {
+                    const newState = prev;
+                    newState[idx] = {
+                        ...newState[idx],
+                        arrangeid: updatedClass.arrangeid,
+                    }
+                    return newState
+                })
+                setConfiguring(prev => {
+                    const newState = prev;
+                    newState.push({ editing: false, expanded: false});
+                    return newState
+                })
+            }
+            cancelEdit();
         } catch (error) {
             // Revert optimistic update in case of error
-            setUIState(prev => {
-                return {
-                    ...prev,
-                    class: { classid: data.class.classid, classnamecn: data.class.classnamecn },
-                    teacher: { teacherid: data.teacher.teacherid, namecn: data.teacher.namecn || "" },
-                    classroom: { roomid: data.classroom.roomid, roomno: data.classroom.roomno },
-                    classtime: { timeid: data.classtime.timeid, period: data.classtime.period || "" },
-                    suitableterm: { termno: data.suitableterm.termno, suitabletermcn: data.suitableterm.suitabletermcn || "" },
-                    tuitionW: data.tuitionW || null,
-                    bookfeeW: data.bookfeeW || null,
-                    specialfeeW: data.specialfeeW || null,
-                    tuitionH: data.tuitionH || null,
-                    bookfeeH: data.bookfeeH || null,
-                    specialfeeH: data.specialfeeH || null,
-                    seatlimit: data.seatlimit || 0,
-                    agelimit: data.agelimit || 0,
-                    waiveregfee: data.waiveregfee,
-                    closeregistration: data.closeregistration,
-                }
-            })
+            if (data) {
+                setUIState(prev => {
+                    const newState = prev;
+                    newState[idx] = {
+                        season: { seasonid: season.seasonid, seasonnamecn: season.seasonnamecn, seasonnameeng: season.seasonnameeng },
+                        class: { classid: data.class.classid, classnamecn: data.class.classnamecn, classnameen: data.class.classnameen },
+                        teacher: { teacherid: data.teacher.teacherid, namecn: data.teacher.namecn || "", namelasten: data.teacher.namelasten || "", namefirsten: data.teacher.namefirsten || "" },
+                        classroom: { roomid: data.classroom.roomid, roomno: data.classroom.roomno },
+                        classtime: { timeid: data.classtime.timeid, period: data.classtime.period || "" },
+                        suitableterm: { termno: data.suitableterm.termno, suitableterm: data.suitableterm.suitableterm || "", suitabletermcn: data.suitableterm.suitabletermcn || "" },
+                        tuitionW: data.tuitionW || null,
+                        bookfeeW: data.bookfeeW || null,
+                        specialfeeW: data.specialfeeW || null,
+                        tuitionH: data.tuitionH || null,
+                        bookfeeH: data.bookfeeH || null,
+                        specialfeeH: data.specialfeeH || null,
+                        seatlimit: data.seatlimit || 0,
+                        agelimit: data.agelimit || 0,
+                        waiveregfee: data.waiveregfee,
+                        closeregistration: data.closeregistration,
+                        students: data.students || [],
+                        notes: data.notes || ""
+                    }
+                    return newState;
+                })
+            } else {
+                setUIState(prev => prev.slice(0, -1))
+            }
+            editForm.setError("root", { message: "Error updating class" });
             console.error(error);
         }
     }
+
     return (
         <form onSubmit={editForm.handleSubmit(onSubmit)}>
             <label className="block text-sm text-gray-400 font-bold mb-2">Class Name</label>
@@ -126,7 +172,7 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 name="classid"
                 control={editForm.control}
                 render={({ field }) => (
-                    <Select value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select required aria-required value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
                         <SelectTrigger className="w-full border rounded p-1">
                             <SelectValue placeholder="Select a class" />
                         </SelectTrigger>
@@ -146,7 +192,7 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 name="teacherid"
                 control={editForm.control}
                 render={({ field }) => (
-                    <Select value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select required aria-required value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a teacher" />
                         </SelectTrigger>
@@ -164,7 +210,7 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 name="roomid"
                 control={editForm.control}
                 render={({ field }) => (
-                    <Select value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select required aria-required value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a classroom" />
                         </SelectTrigger>
@@ -180,7 +226,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             <Input
                 type="number" 
                 {...editForm.register("tuitionW")}
-                defaultValue={data.tuitionW?.toString() || "Undetermined"}
+                required
+                aria-required
+                defaultValue={data?.tuitionW?.toString() || "0"}
                 className="border rounded p-1"
             />
 
@@ -188,14 +236,18 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             <Input
                 type="number" 
                 {...editForm.register("bookfeeW")}
-                defaultValue={data.bookfeeW?.toString() || "Undetermined"}
+                defaultValue={data?.bookfeeW?.toString() || "0"}
+                required
+                aria-required
                 className="border rounded p-1"
             />
             <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee Year (Whole Year) </label>
             <Input
                 type="number" 
                 {...editForm.register("specialfeeW")}
-                defaultValue={data.specialfeeW?.toString() || "Undetermined"}
+                defaultValue={data?.specialfeeW?.toString() || "0"}
+                required
+                aria-required
                 className="border rounded p-1"
             />
 
@@ -203,7 +255,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             <Input
                 type="number" 
                 {...editForm.register("tuitionH")}
-                defaultValue={data.tuitionH?.toString() || "Undetermined"}
+                defaultValue={data?.tuitionH?.toString() || "0"}
+                required
+                aria-required
                 className="border rounded p-1"
             />
 
@@ -211,29 +265,35 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             <Input
                 type="number" 
                 {...editForm.register("bookfeeH")}
-                defaultValue={data.bookfeeH?.toString() || "Undetermined"}
+                defaultValue={data?.bookfeeH?.toString() || "0"}
+                required
+                aria-required
                 className="border rounded p-1"
             />
             <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee (Half Year) </label>
             <Input
                 type="number" 
                 {...editForm.register("specialfeeH")}
-                defaultValue={data.specialfeeH?.toString() || "Undetermined"}
+                defaultValue={data?.specialfeeH?.toString() || "0"}
                 className="border rounded p-1"
             />
 
             <label className="block text-sm text-gray-400 font-bold mb-2">Seat Limit</label>
             <Input
                 type="number" 
+                required
+                aria-required
                 {...editForm.register("seatlimit")}
-                defaultValue={data.seatlimit?.toString() || "0"}
+                defaultValue={data?.seatlimit?.toString() || "0"}
                 className="border rounded p-1"
             />
             <label className="block text-sm text-gray-400 font-bold mb-2">Age Limit</label>
             <Input
                 type="number" 
+                required
+                aria-required
                 {...editForm.register("agelimit")}
-                defaultValue={data.agelimit?.toString() || "0"}
+                defaultValue={data?.agelimit?.toString() || "0"}
                 className="border rounded p-1"
             />
             <label className="block text-sm text-gray-400 font-bold mb-2">Class Time</label>
@@ -242,7 +302,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 control={editForm.control}
                 render={({ field }) => (
                     <Select
-                        value={field.value?.toString()}
+                        required
+                        aria-required
+                        value={field.value?.toString() || "0"}
                         onValueChange={(value) => field.onChange(Number(value))}
                     >
                         <SelectTrigger className="w-full">
@@ -264,7 +326,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 control={editForm.control}
                 render={({ field }) => (
                     <Select
-                        value={field.value?.toString()}
+                        required
+                        aria-required
+                        value={field.value?.toString() || "0"}
                         onValueChange={(value) => field.onChange(Number(value))}
                     >
                         <SelectTrigger className="w-full">
@@ -286,7 +350,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 control={editForm.control}
                 render={({ field }) => (
                     <Select
-                        value={field.value?.toString()}
+                        required
+                        aria-required
+                        value={field.value?.toString() || "false"}
                         onValueChange={(value) => field.onChange(value === "true" ? true : false)}
                     >
                         <SelectTrigger className="w-full">
@@ -309,7 +375,9 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 control={editForm.control}
                 render={({ field }) => (
                     <Select
-                        value={field.value?.toString()}
+                        required
+                        aria-required
+                        value={field.value?.toString() || "false"}
                         onValueChange={(value) => field.onChange(value === "true" ? true : false)}
                     >
                         <SelectTrigger className="w-full">
@@ -329,7 +397,7 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
             <div className="flex justify-end mt-2 gap-2">
                 <button
                     type="button"
-                    onClick={() => setEditing(false)}
+                    onClick={cancelEdit}
                     className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
                 >
                     Cancel
@@ -337,6 +405,7 @@ export default function SemClassEditor({ data, selectOptions, setEditing, setUIS
                 <button
                     className="bg-blue-600 text-sm text-white font-bold px-4 py-2 rounded-md cursor-pointer"
                     type="submit"
+                    disabled={!editForm.formState.isValid}
                 >
                     Save
                 </button>
