@@ -1,130 +1,59 @@
-import { seasons, arrangement, classes, suitableterm, classrooms, teacher, classtime } from "@/app/lib/db/schema";
+"use client";
+import { arrangement, seasons } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
-import { db } from "@/app/lib/db";
 import SemesterViewBox from "./sem-view-box";
-import { getSelectOptions } from "@/app/lib/semester/sem-actions";
 import SemesterControlsPopover from "./sem-control-popover";
-
+import { type selectOptions, type classWithStudents, type uiClasses, type studentView, type IdMaps, arrangementSchema } from "@/app/lib/semester/sem-schemas";
+import { PlusIcon } from "lucide-react";
+import { createContext, useState } from "react";
+import SemClassEditor from "./sem-class-editor";
+import { z } from "zod/v4";
 
 type semViewProps = {
     season: InferSelectModel<typeof seasons>
+    classDataWithStudents: classWithStudents[]
+    selectOptions: selectOptions
+    idMaps: IdMaps;
+    insertArr: (data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) => Promise<InferSelectModel<typeof arrangement>>;
+    updateArr: (data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) => Promise<InferSelectModel<typeof arrangement>>;
 }
 
-// Data type for data table
-export type studentView = {
-    regid: number;
-    studentid: number;
-    registerDate: string; 
-    dropped: studentStatus;
-    familyid: number;
-    namecn: string;
-    namelasten: string;
-    namefirsten: string;
-    dob: string;
-    gender: string;
-    notes: string
-} 
-
-export type studentStatus = 
-    | "Submitted"
-    | "Registered"
-    | "Dropout" 
-    | "Dropout Spring"
-    | "Pending Drop"
-    | {}
-
-export type fullClassData = InferSelectModel<typeof arrangement> & { 
-    class: InferSelectModel<typeof classes> 
-    teacher: InferSelectModel<typeof teacher>
-    classroom: InferSelectModel<typeof classrooms>
-    classtime: InferSelectModel<typeof classtime>
-    suitableterm: InferSelectModel<typeof suitableterm>
-};
-
-export type selectOptions = {
-    teachers: { teacherid: number, namecn: string | null, namelasten: string | null, namefirsten: string | null }[];
-    classes: { classid: number, classnamecn: string, classnameen: string }[];
-    rooms: { roomid: number, roomno: string }[];
-    times: { timeid: number, period: string | null }[];
-    terms: { termno: number, suitableterm: string | null, suitabletermcn: string | null }[];
+export type uiClassStudents = uiClasses & {
+    students: studentView[]
 }
 
+
+
+export const OptionContext = createContext<{season: InferSelectModel<typeof seasons>, selectOptions: selectOptions, idMaps: IdMaps} | null>(null); 
 
 // Start with a general class overview that is clickable. Each one expands into a data table of students
-export default async function SemesterView({ season }: semViewProps) {
-    // Active semester
-    const classData = await db.query.arrangement.findMany({
-        where: (arr, { eq }) => eq(arr.seasonid, season.seasonid),
-        with: {
-            class: true,
-            teacher: true, 
-            classroom: true,
-            classtime: true,
-            suitableterm: true,
-        },
-        orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
-    }) satisfies fullClassData[];
-
-
-    const selectOptions = (await getSelectOptions()) satisfies selectOptions
-
-
-    // Get student view data and transform into data table form
-    const getStudents = async (classid: number) => {
-        // Get all students who have registered
-        const reg = await db.query.classregistration.findMany({
-            where: (reg, { and, eq }) => and(eq(reg.classid, classid), eq(reg.seasonid, season.seasonid)),
-            with: {
-                student: {}
-            }
-        });
-
-        const dataview = await Promise.all(reg.map(async (student) => {
-            // TODO: More complete handling of whether a drop/transfer has occured
-            // Check if dropped, request status id is 2 indicating approval
-            const requests = await db.query.regchangerequest.findFirst({
-                where: (reg, { and, eq }) => and(eq(reg.appliedid, student.regid), eq(reg.reqstatusid, 2))
-            });
-
-            const reqStatusMap = {
-                1: "Pending Drop",
-                2: "Dropout",
-                3: "Submitted"
-            }
-
-            const regStatusMap = {
-                1: "Submitted",
-                2: "Registered",
-                3: "Dropout", // Shouldn't get here
-                4: "Dropout",
-                5: "Dropout Spring"
-            }
-            const status = requests ? 
-                                reqStatusMap[requests.reqstatusid as 1 | 2 | 3] 
-                                : regStatusMap[student.statusid as 1 | 2 | 3 | 4 | 5]
-
+export default function SemesterView({ season, classDataWithStudents, selectOptions, idMaps, insertArr, updateArr }: semViewProps) {
+    const [uiState, setUIState] = useState<uiClassStudents[]>(() => {
+        return classDataWithStudents.map(item => {
             return {
-                regid: student.regid,
-                studentid: student.studentid,
-                registerDate: student.registerdate,
-                dropped: status,
-                familyid: student.familyid,
-                namecn: student.student.namecn,
-                namelasten: student.student.namelasten,
-                namefirsten: student.student.namefirsten,
-                dob: student.student.dob,
-                gender: student.student.gender || "Unknown",
-                notes: student.notes || ""
-            } satisfies studentView
-        }))
+                ...item,
+                arrangeid: item.arrangeid,
+                season: { seasonid: season.seasonid, seasonnamecn: season.seasonnamecn, seasonnameeng: season.seasonnameeng },
+                class: { classid: item.class.classid, classnamecn: item.class.classnamecn, classnameen: item.class.classnameen },
+                teacher: { teacherid: item.teacher.teacherid, namecn: item.teacher.namecn || "", namelasten: item.teacher.namelasten || "", namefirsten: item.teacher.namefirsten || "" },
+                classroom: { roomid: item.classroom.roomid, roomno: item.classroom.roomno },
+                classtime: { timeid: item.classtime.timeid, period: item.classtime.period },
+                suitableterm: { termno: item.suitableterm.termno, suitableterm: item.suitableterm.suitableterm, suitabletermcn: item.suitableterm.suitabletermcn || "" },
+                students: item.students,
+            } satisfies uiClassStudents
+        })
+    })
+    const [configuring, setConfiguring] = useState<{ editing: boolean; expanded: boolean }[]>(
+        Array(classDataWithStudents.length).fill({ editing: false, expanded: false })
+    )
+    const [adding, setAdding] = useState<boolean>(false);
 
-        return dataview;
-    }
+
 
     const getCurrentPhase = () => {
         const curDate = new Date(Date.now());
         if (curDate <= new Date(season.earlyregdate)) {
-            "Registration has not begun";
+            return "Registration has not begun";
         } else if (curDate <= new Date(season.normalregdate)) {
             return "Early registration";
         } else if (curDate <= new Date(season.lateregdate1)) {
@@ -142,66 +71,88 @@ export default async function SemesterView({ season }: semViewProps) {
 
     const currentPhase = getCurrentPhase()
 
+
+
+
+    const cancelAddClass = () => {
+        setAdding(false);
+    }
+
+
     return (
-        <div className="container mx-auto flex flex-col">
-            <div className="flex justify-between">
-                <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
-                <SemesterControlsPopover season={season} />
-            </div>
-            <div className="mb-4">
-                <h2 className="text-md font-semibold mb-1">Current Phase: {currentPhase}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-                    <div>
-                        <span className="font-medium">Early Registration:</span>{" "}
-                        {season.earlyregdate ? new Date(season.earlyregdate).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Normal Registration:</span>{" "}
-                        {season.normalregdate ? new Date(season.normalregdate).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Late Registration 1:</span>{" "}
-                        {season.lateregdate1 ? new Date(season.lateregdate1).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Late Registration 2:</span>{" "}
-                        {season.lateregdate2 ? new Date(season.lateregdate2).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Close Registration:</span>{" "}
-                        {season.closeregdate ? new Date(season.closeregdate).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Cancel Deadline:</span>{" "}
-                        {season.canceldeadline ? new Date(season.canceldeadline).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Semester Start:</span>{" "}
-                        {season.startdate ? new Date(season.startdate).toLocaleString() : "N/A"}
-                    </div>
-                    <div>
-                        <span className="font-medium">Semester End:</span>{" "}
-                        {season.enddate ? new Date(season.enddate).toLocaleString() : "N/A"}
+        <OptionContext.Provider value={{ season: season, selectOptions: selectOptions, idMaps: idMaps}}>
+            <div className="container mx-auto flex flex-col">
+                <div className="flex justify-between">
+                    <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
+                    <SemesterControlsPopover />
+                </div>
+                <div className="mb-4">
+                    <h2 className="text-md font-semibold mb-1">Current Phase: {currentPhase}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+                        <div>
+                            <span className="font-medium">Early Registration: </span>
+                            {season.earlyregdate ? new Date(season.earlyregdate).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Normal Registration: </span>
+                            {season.normalregdate ? new Date(season.normalregdate).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Late Registration 1: </span>
+                            {season.lateregdate1 ? new Date(season.lateregdate1).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Late Registration 2: </span>
+                            {season.lateregdate2 ? new Date(season.lateregdate2).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Close Registration: </span>
+                            {season.closeregdate ? new Date(season.closeregdate).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Cancel Deadline: </span>
+                            {season.canceldeadline ? new Date(season.canceldeadline).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Semester Start: </span>
+                            {season.startdate ? new Date(season.startdate).toLocaleString() : "N/A"}
+                        </div>
+                        <div>
+                            <span className="font-medium">Semester End: </span>
+                            {season.enddate ? new Date(season.enddate).toLocaleString() : "N/A"}
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-                {classData.map(async (val, idx) => {
-                    const studentView = await getStudents(val.classid);
-
-                    return (
+                
+                <div className="flex flex-col gap-2">
+                    {uiState.map((classItem, idx) => (
                         <SemesterViewBox
-                            key={`${idx}-${val.classid}-${val.arrangeid}`}
-                            season={season}
-                            data={val}
-                            registrations={studentView}
-                            selectOptions={selectOptions}
+                            key={`${idx}-${classItem.arrangeid}-${classItem.class.classid}-${classItem.teacher.teacherid}`}
+                            idx={idx}
+                            data={classItem}
+                            registrations={classItem.students}
+                            setUIState={setUIState}
+                            setConfiguring={setConfiguring}
+                            configuring={configuring}
                         />
-                    )
-                })}
+                    ))}
+
+                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={() => setAdding(true)}>
+                        <PlusIcon className="w-4 h-4" /> Add Class (TODO)
+                    </button>
+                    {adding && 
+                        <SemClassEditor
+                            cancelEdit={cancelAddClass}
+                            setUIState={setUIState}
+                            setConfiguring={setConfiguring}
+                            editClass={(data) => insertArr(data, season)}
+                            idx={-1}
+                        />
+
+                    }
+                </div>
             </div>
-        </div>
+        </OptionContext.Provider>
     )
 }
 
