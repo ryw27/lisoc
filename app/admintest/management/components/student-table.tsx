@@ -1,6 +1,6 @@
 "use client";
 import { ColumnDef, useReactTable, getCoreRowModel, flexRender, ColumnPinningState, SortingState, getSortedRowModel } from "@tanstack/react-table";
-import { studentView } from "./sem-view";
+import { studentView } from "@/app/lib/semester/sem-schemas";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
