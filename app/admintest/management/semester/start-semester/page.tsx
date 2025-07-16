@@ -27,17 +27,13 @@ export default async function StartSemesterPage() {
     }
     const drafts = await getPreviousSeason();
 
-    const selectOptions = await getSelectOptions();
+    const { options, idMaps } = await getSelectOptions();
 
-    // })
-    // const classes = await
-    // const classrooms = await
-    // const times = await 
     
     
     return (
         <div className="container mx-auto w-3/4">
-            <StartSemesterForm drafts={drafts} startSemester={startSemester} selectOptions={selectOptions}/>
+            <StartSemesterForm drafts={drafts} startSemester={startSemester} selectOptions={options} idMaps={idMaps}/>
         </div>
     )
 }
