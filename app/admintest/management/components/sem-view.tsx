@@ -8,6 +8,8 @@ import { PlusIcon } from "lucide-react";
 import { createContext, useState } from "react";
 import SemClassEditor from "./sem-class-editor";
 import { z } from "zod/v4";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 type semViewProps = {
     season: InferSelectModel<typeof seasons>
@@ -27,6 +29,7 @@ export type uiClassStudents = uiClasses & {
 export const OptionContext = createContext<{season: InferSelectModel<typeof seasons>, selectOptions: selectOptions, idMaps: IdMaps} | null>(null); 
 
 // Start with a general class overview that is clickable. Each one expands into a data table of students
+// Season is always the academic year.
 export default function SemesterView({ season, classDataWithStudents, selectOptions, idMaps, insertArr, updateArr }: semViewProps) {
     const [uiState, setUIState] = useState<uiClassStudents[]>(() => {
         return classDataWithStudents.map(item => {
@@ -43,11 +46,41 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
             } satisfies uiClassStudents
         })
     })
+    
     const [configuring, setConfiguring] = useState<{ editing: boolean; expanded: boolean }[]>(
         Array(classDataWithStudents.length).fill({ editing: false, expanded: false })
     )
+    
     const [adding, setAdding] = useState<boolean>(false);
+    const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic'>('academic');
 
+    // Filter classes based on current view, but return with original indices
+    const getFilteredClassesWithIndices = () => {
+        const filtered: Array<{ item: uiClassStudents; originalIndex: number }> = [];
+        
+        uiState.forEach((item, index) => {
+            let shouldInclude = true;
+            
+            switch (currentView) {
+                case 'fall':
+                    shouldInclude = season.beginseasonid === item.season.seasonid // If the academic year's fall sem is this items seasonid
+                    break;
+                case 'spring':
+                    shouldInclude = season.relatedseasonid === item.season.seasonid // If the academic year's spring sem is this item's seasonid
+                    break;
+                case 'academic':
+                default:
+                    shouldInclude = true;
+                    break;
+            }
+            
+            if (shouldInclude) {
+                filtered.push({ item, originalIndex: index });
+            }
+        });
+        
+        return filtered;
+    }
 
 
     const getCurrentPhase = () => {
@@ -86,6 +119,9 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
                     <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
                     <SemesterControlsPopover />
                 </div>
+                
+
+
                 <div className="mb-4">
                     <h2 className="text-md font-semibold mb-1">Current Phase: {currentPhase}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
@@ -123,12 +159,35 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
                         </div>
                     </div>
                 </div>
+
+                {/* Add view selector */}
+                <div className="mb-4">
+                    <div className="w-56 mb-2">
+                        <label htmlFor="view-select" className="block text-sm font-medium text-gray-700 mb-1">
+                            View Semester
+                        </label>
+                        <Select value={currentView} onValueChange={v => setCurrentView(v as 'academic' | 'fall' | 'spring')}>
+                            <SelectTrigger id="view-select" className="flex flex-row items-center gap-2 [&>svg]:hidden">
+                                <div className="flex flex-col justify-center">
+                                    <ChevronUp className="w-4 h-4 text-gray-400 -mb-1" />
+                                    <ChevronDown className="w-4 h-4 text-gray-400 -mt-1" />
+                                </div>
+                                <SelectValue placeholder="Select view" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="academic">Full Year</SelectItem>
+                                <SelectItem value="fall">Fall</SelectItem>
+                                <SelectItem value="spring">Spring</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
                 
                 <div className="flex flex-col gap-2">
-                    {uiState.map((classItem, idx) => (
+                    {getFilteredClassesWithIndices().map(({ item: classItem, originalIndex }) => (
                         <SemesterViewBox
-                            key={`${idx}-${classItem.arrangeid}-${classItem.class.classid}-${classItem.teacher.teacherid}`}
-                            idx={idx}
+                            key={`${classItem.arrangeid}-${classItem.class.classid}-${classItem.teacher.teacherid}`}
+                            idx={originalIndex}
                             data={classItem}
                             registrations={classItem.students}
                             setUIState={setUIState}
