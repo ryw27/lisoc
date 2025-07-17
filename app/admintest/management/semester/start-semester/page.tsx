@@ -25,15 +25,16 @@ export default async function StartSemesterPage() {
             </div>
         )
     }
-    const drafts = await getPreviousSeason();
+    const { lastSeasonArrangements, lastSeason } = await getPreviousSeason();
 
     const { options, idMaps } = await getSelectOptions();
 
-    
+    const allArrangements = [...lastSeasonArrangements.yearRows, ...lastSeasonArrangements.fallRows, ...lastSeasonArrangements.springRows];
+
     
     return (
         <div className="container mx-auto w-3/4">
-            <StartSemesterForm drafts={drafts} startSemester={startSemester} selectOptions={options} idMaps={idMaps}/>
+            <StartSemesterForm drafts={allArrangements} startSemester={startSemester} selectOptions={options} idMaps={idMaps} lastSeason={lastSeason}/>
         </div>
     )
 }
