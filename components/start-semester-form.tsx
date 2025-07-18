@@ -77,7 +77,6 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
         }
     });
 
-    console.log(semClassForm.formState.errors)
 
     const { fields, append, remove } = useFieldArray({
         control: semClassForm.control,
@@ -124,7 +123,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                 <h1 className="font-bold text-2xl mb-2">Start Semester Form</h1>
                 {/* Form should submit semClassesSchema shape*/}
                 <FormProvider {...semClassForm}>
-                    <form onSubmit={semClassForm.handleSubmit(onSemSubmit as any)} className="flex flex-col gap-1">
+                    <form onSubmit={semClassForm.handleSubmit(onSemSubmit)} className="flex flex-col gap-1">
                         
                         <NameAndDates semClassForm={semClassForm as any} />
                         <RegSettingsForm semClassForm={semClassForm as any} />
@@ -135,7 +134,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                             <div key={`${c.classid}-${idx}`} className="flex flex-col rounded-lg shadow-md p-2 border-gray-400 border-1">
                                 <SemesterClassBox 
                                     idx={idx}
-                                    field={c as uiClasses}
+                                    field={c}
                                     deleteSemClass={deleteSemClass}
                                 />
                             </div>
@@ -143,8 +142,18 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                         {/* Add Class button */}
                         <button
                             type="button"
-                            // Minimal placeholder; useForm guards will enforce. Room and teacher are not chosen for R (registration) classes. These are IDs to TBD values
-                            onClick={() => append({teacherid: 7, roomid: 59} as uiClasses)} 
+                            // Room and teacher are not chosen for R (registration) classes. These are IDs to TBD values. Rest are non-existent values as placeholders
+                            onClick={() => append({
+                                teacherid: 7, 
+                                roomid: 59,
+                                timeid: 3,
+                                tuitionH: "0.00",
+                                bookfeeH: "0.00",
+                                bookfeeW: "0.00",
+                                specialfeeH: "0.00",
+                                specialfeeW: "0.00",
+                                tuitionW: "0.00",
+                            } as uiClasses)}
                             className="self-center flex items-center gap-2 text-blue-700 text-sm mt-2"
                         >
                             <PlusIcon className="h-4 w-4" /> Add Class
