@@ -1,6 +1,6 @@
 "use client";
 import React, { useContext, useState } from 'react';
-import { Controller, useFormContext, useWatch } from 'react-hook-form';
+import { Controller, useFormContext, useWatch, type FieldArrayWithId } from 'react-hook-form';
 import { Edit, Trash, Info } from 'lucide-react';
 import { 
     AlertDialog, 
@@ -23,13 +23,12 @@ import {
     SelectItem 
 } from "./ui/select";
 import OptionsContext from '@/app/lib/semester/sem-context';
-import { type uiClasses, arrangementSchema, startSemFormSchema } from '@/app/lib/semester/sem-schemas';
+import { arrangementSchema, startSemFormSchema } from '@/app/lib/semester/sem-schemas';
 import { z } from 'zod/v4';
-import { cn } from '@/lib/utils';
 
 
 type classBoxProps = {
-    field: uiClasses;
+    field: FieldArrayWithId<z.infer<typeof arrangementSchema>>;
     idx: number;
     deleteSemClass: (index: number) => void;
 }
@@ -80,8 +79,8 @@ export default function SemesterClassBox({
     idx,
     deleteSemClass,
 }: classBoxProps) {
-    const [isEditing, setIsEditing] = useState<boolean>(false)
-    const [isExpanded, setIsExpanded] = useState<boolean>(false)
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
 
     const { control, setValue } = useFormContext<z.infer<typeof startSemFormSchema>>();
@@ -154,6 +153,7 @@ export default function SemesterClassBox({
             />
         </div>
     )
+
 
     const termSelect = (
         <Controller
@@ -473,8 +473,7 @@ export default function SemesterClassBox({
 
 
                     {isExpanded && (
-                        // At the bottom
-                        <ExpandedClass classValues={classValues} timeMap={timeMap} field={field} />
+                        <ExpandedClass classValues={classValues} timeMap={timeMap} />
                     )}
 
                 </div>   
@@ -484,7 +483,7 @@ export default function SemesterClassBox({
 }
 
 
-function ExpandedClass({ classValues, field, timeMap }: { classValues: z.infer<typeof startSemFormSchema>["classes"][number], field: z.infer<typeof arrangementSchema>, timeMap: Record<number, { period: string | null }> }) {
+function ExpandedClass({ classValues, timeMap }: { classValues: z.infer<typeof startSemFormSchema>["classes"][number], timeMap: Record<number, { period: string | null }> }) {
     return (
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
             <h4 className="font-semibold text-gray-700 mb-2">Additional Details</h4>
@@ -493,35 +492,35 @@ function ExpandedClass({ classValues, field, timeMap }: { classValues: z.infer<t
                 <>
                     <div>
                         <span className="text-gray-600">Tuition (Whole Year):</span>
-                        <span className="ml-2 font-medium">${field.tuitionW || 0}</span>
+                        <span className="ml-2 font-medium">${classValues.tuitionW || 0}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">Book Fee (Whole Year):</span>
-                        <span className="ml-2 font-medium">${field.bookfeeW || 0}</span>
+                        <span className="ml-2 font-medium">${classValues.bookfeeW || 0}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">Special Fee (Whole Year):</span>
-                        <span className="ml-2 font-medium">${field.specialfeeW || 0}</span>
+                        <span className="ml-2 font-medium">${classValues.specialfeeW || 0}</span>
                     </div>
                 </>
                 )}
                 
                 <div>
                     <span className="text-gray-600">Tuition (Half Year):</span>
-                    <span className="ml-2 font-medium">${field.tuitionH || 0}</span>
+                    <span className="ml-2 font-medium">${classValues.tuitionH || 0}</span>
                 </div>
                 <div>
                     <span className="text-gray-600">Book Fee (Half Year):</span>
-                    <span className="ml-2 font-medium">${field.bookfeeH || 0}</span>
+                    <span className="ml-2 font-medium">${classValues.bookfeeH || 0}</span>
                 </div>
 
                 <div>
                     <span className="text-gray-600">Special Fee (Half Year):</span>
-                    <span className="ml-2 font-medium">${field.specialfeeH || 0}</span>
+                    <span className="ml-2 font-medium">${classValues.specialfeeH || 0}</span>
                 </div>
                 <div>
                     <span className="text-gray-600">Age Limit:</span>
-                    <span className="ml-2 font-medium">{field.agelimit || 0}</span>
+                    <span className="ml-2 font-medium">{classValues.agelimit || 0}</span>
                 </div>
                 <div>
                     <span className="text-gray-600">Class Time:</span>
