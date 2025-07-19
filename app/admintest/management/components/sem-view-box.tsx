@@ -112,7 +112,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
                 </button>
             </div>
             {/* More Info Box */}
-            {moreInfo && <MoreInfo data={dataWithStudents.arrinfo} idMaps={idMaps}/>}
+            {moreInfo && <MoreInfo data={dataWithStudents} idMaps={idMaps}/>}
             {/* Student Registrations View */}
             {expanded && (
                 <div className="flex flex-col space-y-2">
@@ -152,7 +152,6 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
             {editing && (
                 <SemClassEditor
                     uuid={uuid}
-                    classes={[regClassInfo, ...allClassrooms.map(c => c.arrinfo)]}
                     initialData={dataWithStudents}
                     onEdit={onEdit}
                     cancelEdit={() => setEditing(false)}
@@ -162,21 +161,77 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
     );
 }
 
-function MoreInfo({ data, idMaps }: { data: uiClasses, idMaps: IdMaps}) {
+function MoreInfo({ data, idMaps }: { data: fullRegID, idMaps: IdMaps}) {
+    const teachers = data.classrooms.map(c => idMaps.teacherMap[c.arrinfo.teacherid].namecn).join(", ") || "No Teachers assigned";
+    const rooms = data.classrooms.map(c => idMaps.roomMap[c.arrinfo.roomid].roomno).join(", ") || "No Rooms assigned";
+    const seatlimit = data.classrooms.reduce((sum, c) => sum + (c.arrinfo.seatlimit || 0), 0) || "0";
     return (
-        <div className="flex flex-col">
-            <h1 className="text-md text-gray-500">Age Limit: {data.agelimit || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Suitable Term: {idMaps.termMap[data.suitableterm].suitabletermcn || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Waive Reg Fee: {data.waiveregfee ? "Yes" : "No"}</h1>
-            <h1 className="text-md text-gray-500">Close Registration: {data.closeregistration ? "Yes" : "No"}</h1>
-            <h1 className="text-md text-gray-500">Seat Limit: {data.seatlimit || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Tuition: {data.tuitionW || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Special Fee: {data.specialfeeW || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Book Fee: {data.bookfeeW || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Tuition: {data.tuitionH || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Special Fee: {data.specialfeeH || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Book Fee: {data.bookfeeH || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Notes: {data.notes || "N/A"}</h1>
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
+            <h4 className="font-semibold text-gray-700 mb-2">Additional Details</h4>
+            <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="col-span-3">
+                    <span className="text-gray-600">Teachers:</span>
+                    <span className="ml-2 font-medium">{teachers}</span>
+                </div>
+                <div className="col-span-3">
+                    <span className="text-gray-600">Rooms:</span>
+                    <span className="ml-2 font-medium">{rooms}</span>
+                </div>
+                {data.arrinfo.suitableterm !== 2 && (
+                <>
+                    <div>
+                        <span className="text-gray-600">Tuition (Whole Year):</span>
+                        <span className="ml-2 font-medium">${data.arrinfo.tuitionW || 0}</span>
+                    </div>
+                    <div>
+                        <span className="text-gray-600">Book Fee (Whole Year):</span>
+                        <span className="ml-2 font-medium">${data.arrinfo.bookfeeW || 0}</span>
+                    </div>
+                    <div>
+                        <span className="text-gray-600">Special Fee (Whole Year):</span>
+                        <span className="ml-2 font-medium">${data.arrinfo.specialfeeW || 0}</span>
+                    </div>
+                </>
+                )}
+                
+                <div>
+                    <span className="text-gray-600">Tuition (Half Year):</span>
+                    <span className="ml-2 font-medium">${data.arrinfo.tuitionH || 0}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Book Fee (Half Year):</span>
+                    <span className="ml-2 font-medium">${data.arrinfo.bookfeeH || 0}</span>
+                </div>
+
+                <div>
+                    <span className="text-gray-600">Special Fee (Half Year):</span>
+                    <span className="ml-2 font-medium">${data.arrinfo.specialfeeH || 0}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Seat Limit:</span>
+                    <span className="ml-2 font-medium">{seatlimit}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Age Limit:</span>
+                    <span className="ml-2 font-medium">{data.arrinfo.agelimit || 0}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Class Time:</span>
+                    <span className="ml-2 font-medium">{idMaps.timeMap[data.arrinfo.timeid]?.period || "No Time"}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Waive Registration Fee:</span>
+                    <span className="ml-2 font-medium">{data.arrinfo.waiveregfee ? "Yes" : "No"}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Close Registration:</span>
+                    <span className="ml-2 font-medium">{data.arrinfo.closeregistration ? "Yes" : "No"}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600">Notes:</span>
+                    <span className="ml-2 font-medium">{data.arrinfo.notes || "No Notes"}</span>
+                </div>
+            </div>
         </div>
     )
 }
