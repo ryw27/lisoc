@@ -1,81 +1,101 @@
 "use client";
-import { arrangement, seasons } from "@/app/lib/db/schema";
-import { InferSelectModel } from "drizzle-orm";
+import { createContext, useReducer, useState } from "react";
+import { PlusIcon, ChevronUp, ChevronDown } from "lucide-react";
 import SemesterViewBox from "./sem-view-box";
 import SemesterControlsPopover from "./sem-control-popover";
-import { type selectOptions, type classWithStudents, type uiClasses, type studentView, type IdMaps, arrangementSchema } from "@/app/lib/semester/sem-schemas";
-import { PlusIcon } from "lucide-react";
-import { createContext, useState } from "react";
-import SemClassEditor from "./sem-class-editor";
-import { z } from "zod/v4";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  type selectOptions,
+  type fullSemClassesData,
+  type IdMaps,
+  type fullRegClass,
+  type threeSeason,
+} from "@/app/lib/semester/sem-schemas";
+import { seasons } from "@/app/lib/db/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 type semViewProps = {
-    season: InferSelectModel<typeof seasons>
-    classDataWithStudents: classWithStudents[]
+    fullData: fullSemClassesData
+    academicYear: threeSeason;
     selectOptions: selectOptions
     idMaps: IdMaps;
-    insertArr: (data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) => Promise<InferSelectModel<typeof arrangement>>;
-    updateArr: (data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) => Promise<InferSelectModel<typeof arrangement>>;
 }
 
-export type uiClassStudents = uiClasses & {
-    students: studentView[]
+export type fullRegID = fullRegClass & { id: string }
+export type fullSemDataID = fullRegID[]
+export type Action = 
+    | { type: "hydrate", classes: fullSemDataID}
+    | { type: "add", draft?: Partial<fullRegID> }
+    | { type: "update", id: string, update: fullRegID }
+    | { type: "remove", id: string }
+
+function reducer(state: fullSemDataID, action: Action) {
+    switch (action.type) {
+        case "hydrate":
+            return action.classes;
+        case "add": 
+            return [...state, { id: crypto.randomUUID(), ...action.draft } as fullRegID];
+        case "update":
+            return state.map((c) => (c.id === action.id ? action.update : c));
+        case "remove":
+            return state.filter((c) => c.id !== action.id);
+        default:
+            return state;
+    }
 }
 
-
-
-export const OptionContext = createContext<{season: InferSelectModel<typeof seasons>, selectOptions: selectOptions, idMaps: IdMaps} | null>(null); 
+export const SeasonOptionContext = createContext<{seasons: threeSeason, selectOptions: selectOptions, idMaps: IdMaps} | null>(null); 
 
 // Start with a general class overview that is clickable. Each one expands into a data table of students
 // Season is always the academic year.
-export default function SemesterView({ season, classDataWithStudents, selectOptions, idMaps, insertArr, updateArr }: semViewProps) {
-    const [uiState, setUIState] = useState<uiClassStudents[]>(() => {
-        return classDataWithStudents.map(item => {
-            return {
-                ...item,
-                arrangeid: item.arrangeid,
-                season: { seasonid: season.seasonid, seasonnamecn: season.seasonnamecn, seasonnameeng: season.seasonnameeng },
-                class: { classid: item.class.classid, classnamecn: item.class.classnamecn, classnameen: item.class.classnameen },
-                teacher: { teacherid: item.teacher.teacherid, namecn: item.teacher.namecn || "", namelasten: item.teacher.namelasten || "", namefirsten: item.teacher.namefirsten || "" },
-                classroom: { roomid: item.classroom.roomid, roomno: item.classroom.roomno },
-                classtime: { timeid: item.classtime.timeid, period: item.classtime.period },
-                suitableterm: { termno: item.suitableterm.termno, suitableterm: item.suitableterm.suitableterm, suitabletermcn: item.suitableterm.suitabletermcn || "" },
-                students: item.students,
-            } satisfies uiClassStudents
-        })
-    })
-    
-    const [configuring, setConfiguring] = useState<{ editing: boolean; expanded: boolean }[]>(
-        Array(classDataWithStudents.length).fill({ editing: false, expanded: false })
-    )
-    
-    const [adding, setAdding] = useState<boolean>(false);
-    const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic'>('academic');
+export default function SemesterView({ fullData, academicYear, selectOptions, idMaps } : semViewProps) {
+    // Augment each fullData item with a uuid for local state management
+    const [regClasses, dispatch] = useReducer(
+        reducer,
+        fullData.map(item => ({
+            ...item,
+            id: crypto.randomUUID()
+        }))
+    );
+
+    console.log("full data", fullData);
+
+    const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic' | 'all'>('all');
+
+    const { year, fall, spring } = academicYear;
+    console.log(year.seasonid, fall.seasonid, spring.seasonid);
 
     // Filter classes based on current view, but return with original indices
     const getFilteredClassesWithIndices = () => {
-        const filtered: Array<{ item: uiClassStudents; originalIndex: number }> = [];
+        const filtered: Array<{ item: fullRegID }> = [];
         
-        uiState.forEach((item, index) => {
+        regClasses.forEach((item) => {
             let shouldInclude = true;
             
             switch (currentView) {
-                case 'fall':
-                    shouldInclude = season.beginseasonid === item.season.seasonid // If the academic year's fall sem is this items seasonid
+                case "fall":
+                    shouldInclude = fall.seasonid === item.arrinfo.seasonid // If the academic year's fall sem is this items seasonid
                     break;
-                case 'spring':
-                    shouldInclude = season.relatedseasonid === item.season.seasonid // If the academic year's spring sem is this item's seasonid
+                case "spring":
+                    shouldInclude = spring.seasonid === item.arrinfo.seasonid // If the academic year's spring sem is this item's seasonid
                     break;
-                case 'academic':
+                case "academic":
+                    shouldInclude = year.seasonid === item.arrinfo.seasonid; // If academic years seasonid is this item's seasonid
+                case "all":
+                    shouldInclude = true // Include all
                 default:
                     shouldInclude = true;
                     break;
             }
             
             if (shouldInclude) {
-                filtered.push({ item, originalIndex: index });
+                filtered.push({ item });
             }
         });
         
@@ -83,81 +103,87 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
     }
 
 
-    const getCurrentPhase = () => {
+    const getCurrentPhase = (term: InferSelectModel<typeof seasons>, termName: string) => {
         const curDate = new Date(Date.now());
-        if (curDate <= new Date(season.earlyregdate)) {
-            return "Registration has not begun";
-        } else if (curDate <= new Date(season.normalregdate)) {
-            return "Early registration";
-        } else if (curDate <= new Date(season.lateregdate1)) {
-            return "Normal registration";
-        } else if (curDate <= new Date(season.closeregdate)) {
-            return "Late registration";
-        } else if (curDate <= new Date(season.startdate)) {
-            return "Registration has closed";
-        } else if (curDate <= new Date(season.enddate)) {
-            return "Fall semester has begun";
+        if (curDate <= new Date(term.earlyregdate)) {
+            return `${termName} registration has not begun`;
+        } else if (curDate <= new Date(term.normalregdate)) {
+            return `${termName} early registration`;
+        } else if (curDate <= new Date(term.lateregdate1)) {
+            return `${termName} normal registration`;
+        } else if (curDate <= new Date(term.closeregdate)) {
+            return `${termName} late registration`;
+        } else if (curDate <= new Date(term.startdate)) {
+            return `${termName} registration has closed`;
+        } else if (curDate <= new Date(term.enddate)) {
+            return `${termName} semester in session`;
         } else {
-            return "Fall semester has ended";
+            return `${termName} semester has ended`;
         }
     }
 
-    const currentPhase = getCurrentPhase()
-
-
-
-
-    const cancelAddClass = () => {
-        setAdding(false);
+    const CurrentPhase = () => {
+        return (
+            <>
+                {(currentView !== "spring") && <h2 className="text-md font-semibold mb-1">Fall Phase: {getCurrentPhase(fall, "Fall")}</h2>}
+                {(currentView != "fall") && <h2 className="text-md font-semibold mb-1">Spring Phase: {getCurrentPhase(spring, "Spring")}</h2>}
+            </>
+        )
     }
 
+    const Dates = ({ term }: { term: InferSelectModel<typeof seasons> }) => {
+        return <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+            <div>
+                <span className="font-medium">Early Registration: </span>
+                {term.earlyregdate ? new Date(term.earlyregdate).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Normal Registration: </span>
+                {term.normalregdate ? new Date(term.normalregdate).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Late Registration 1: </span>
+                {term.lateregdate1 ? new Date(term.lateregdate1).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Late Registration 2: </span>
+                {term.lateregdate2 ? new Date(term.lateregdate2).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Close Registration: </span>
+                {term.closeregdate ? new Date(term.closeregdate).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Cancel Deadline: </span>
+                {term.canceldeadline ? new Date(term.canceldeadline).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Academic Year Start: </span>
+                {term.startdate ? new Date(term.startdate).toLocaleString() : "N/A"}
+            </div>
+            <div>
+                <span className="font-medium">Academic Year End: </span>
+                {term.enddate ? new Date(term.enddate).toLocaleString() : "N/A"}
+            </div>
+        </div>
+    }
+
+    const addClass = () => {
+        console.log("Adding class");
+    }
 
     return (
-        <OptionContext.Provider value={{ season: season, selectOptions: selectOptions, idMaps: idMaps}}>
+        <SeasonOptionContext.Provider value={{ seasons: academicYear, selectOptions: selectOptions, idMaps: idMaps}}>
             <div className="container mx-auto flex flex-col">
                 <div className="flex justify-between">
-                    <h1 className="font-bold text-3xl mb-4">{season.seasonnamecn}</h1>
+                    <h1 className="font-bold text-3xl mb-4">{year.seasonnamecn}</h1>
                     <SemesterControlsPopover />
                 </div>
-                
-
-
                 <div className="mb-4">
-                    <h2 className="text-md font-semibold mb-1">Current Phase: {currentPhase}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-                        <div>
-                            <span className="font-medium">Early Registration: </span>
-                            {season.earlyregdate ? new Date(season.earlyregdate).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Normal Registration: </span>
-                            {season.normalregdate ? new Date(season.normalregdate).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Late Registration 1: </span>
-                            {season.lateregdate1 ? new Date(season.lateregdate1).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Late Registration 2: </span>
-                            {season.lateregdate2 ? new Date(season.lateregdate2).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Close Registration: </span>
-                            {season.closeregdate ? new Date(season.closeregdate).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Cancel Deadline: </span>
-                            {season.canceldeadline ? new Date(season.canceldeadline).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Semester Start: </span>
-                            {season.startdate ? new Date(season.startdate).toLocaleString() : "N/A"}
-                        </div>
-                        <div>
-                            <span className="font-medium">Semester End: </span>
-                            {season.enddate ? new Date(season.enddate).toLocaleString() : "N/A"}
-                        </div>
-                    </div>
+                    <CurrentPhase />
+                    {(currentView === "academic" || currentView === "all") && <Dates term={year} />}
+                    {currentView === "fall" && <Dates term={fall} />}
+                    {currentView === "spring" && <Dates term={spring} />} 
                 </div>
 
                 {/* Add view selector */}
@@ -166,7 +192,7 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
                         <label htmlFor="view-select" className="block text-sm font-medium text-gray-700 mb-1">
                             View Semester
                         </label>
-                        <Select value={currentView} onValueChange={v => setCurrentView(v as 'academic' | 'fall' | 'spring')}>
+                        <Select value={currentView} onValueChange={v => setCurrentView(v as 'academic' | 'fall' | 'spring' | 'all')}>
                             <SelectTrigger id="view-select" className="flex flex-row items-center gap-2 [&>svg]:hidden">
                                 <div className="flex flex-col justify-center">
                                     <ChevronUp className="w-4 h-4 text-gray-400 -mb-1" />
@@ -175,43 +201,41 @@ export default function SemesterView({ season, classDataWithStudents, selectOpti
                                 <SelectValue placeholder="Select view" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="academic">Full Year</SelectItem>
+                                <SelectItem value="academic">Academic Year</SelectItem>
                                 <SelectItem value="fall">Fall</SelectItem>
                                 <SelectItem value="spring">Spring</SelectItem>
+                                <SelectItem value="all">Show All</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                
+
+                { /* Classes */} 
                 <div className="flex flex-col gap-2">
-                    {getFilteredClassesWithIndices().map(({ item: classItem, originalIndex }) => (
+                    {getFilteredClassesWithIndices().map(({ item: classItem }) => (
                         <SemesterViewBox
-                            key={`${classItem.arrangeid}-${classItem.class.classid}-${classItem.teacher.teacherid}`}
-                            idx={originalIndex}
-                            data={classItem}
-                            registrations={classItem.students}
-                            setUIState={setUIState}
-                            setConfiguring={setConfiguring}
-                            configuring={configuring}
+                            key={classItem.id}
+                            uuid={classItem.id}
+                            dataWithStudents={classItem}
+                            onAdd={(draft: fullRegID) => dispatch({ type: "add", draft: draft})}
+                            onEdit={(draft: fullRegID) => dispatch({ type: "update", id: classItem.id, update: draft})} 
+                            onDelete={() => dispatch({ type: "remove", id: classItem.id })}
                         />
                     ))}
 
-                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={() => setAdding(true)}>
+                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={addClass}>
                         <PlusIcon className="w-4 h-4" /> Add Class (TODO)
                     </button>
-                    {adding && 
+                    {/* {adding && 
                         <SemClassEditor
-                            cancelEdit={cancelAddClass}
-                            setUIState={setUIState}
-                            setConfiguring={setConfiguring}
                             editClass={(data) => insertArr(data, season)}
                             idx={-1}
                         />
 
-                    }
+                    } */}
                 </div>
             </div>
-        </OptionContext.Provider>
+        </SeasonOptionContext.Provider>
     )
 }
 
