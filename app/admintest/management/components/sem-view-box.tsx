@@ -1,131 +1,172 @@
 "use client";
-import { useContext, useState } from "react";
-import { Info, Pen } from "lucide-react";
-import { type studentView } from "@/app/lib/semester/sem-schemas";
+import React, { useContext, useRef, useState } from "react";
+import { Info, Edit, Trash2 } from "lucide-react";
+import { 
+    AlertDialog, 
+    AlertDialogTrigger, 
+    AlertDialogContent, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogFooter, 
+    AlertDialogCancel, 
+    AlertDialogAction 
+} from "@/components/ui/alert-dialog";
 import StudentTable from "./student-table";
 import SemClassEditor from "./sem-class-editor";
-import { type uiClassStudents, OptionContext } from "./sem-view";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { Action, SeasonOptionContext } from "./sem-view";
 import { updateArrangement, deleteClass } from "@/app/lib/semester/sem-actions";
+import { type fullRegID } from "./sem-view";
+import { type IdMaps, type uiClasses } from "@/app/lib/semester/sem-schemas";
+import { cn } from "@/lib/utils";
 
 type semViewBoxProps = {
-    idx: number;
-    data: uiClassStudents;
-    registrations: studentView[];
-    setUIState: React.Dispatch<React.SetStateAction<uiClassStudents[]>>;
-    setConfiguring: React.Dispatch<React.SetStateAction<{ editing: boolean, expanded: boolean}[]>>;
-    configuring: { editing: boolean, expanded: boolean }[];
+    uuid: string;
+    dataWithStudents: fullRegID;
+    onAdd: (draft: fullRegID) => void;
+    onEdit: (draft: fullRegID) => void;
+    onDelete: () => void;
 }
 
- 
-
-export default function SemesterViewBox({ idx, data, registrations, setUIState, setConfiguring, configuring }: semViewBoxProps) {
+export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDelete, onAdd }: semViewBoxProps) {
+    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
+    const [editing, setEditing] = useState<boolean>(false);
+    const [expanded, setExpanded] = useState<boolean>(false);
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
 
+    const [classShown, setClassShown] = useState<number>(-1); // Index, -1 is the reg class
 
     const handleDelete = async () => {
+        const snapshot = dataWithStudents;
         try {
-            await deleteClass(data);
-            setUIState(prev => prev.filter((_, i) => i !== idx));
+            onDelete(); // UI state
+            await deleteClass(regClassInfo);
         } catch (error) {
             console.error("Failed to delete class:", error);
+            onAdd(snapshot);
         }
     };
 
+    const regClassInfo = dataWithStudents.arrinfo;
+    const allClassrooms = dataWithStudents.classrooms
+    const regStudents = dataWithStudents.students
+
+
+    const totalPrice = regClassInfo.suitableterm === 2 
+                        ? Number(dataWithStudents.arrinfo.tuitionH) + Number(dataWithStudents.arrinfo.bookfeeH) + Number(dataWithStudents.arrinfo.specialfeeH)
+                        : Number(dataWithStudents.arrinfo.tuitionW) + Number(dataWithStudents.arrinfo.bookfeeW) + Number(dataWithStudents.arrinfo.specialfeeW)
+
+    const classTerm = regClassInfo.suitableterm === 2
+                        ? regClassInfo.seasonid === seasons.spring.seasonid ? "Spring" : "Fall"
+                        : "Full Year"
     return (
         <div
-            className={`flex flex-col border-2 border-gray cursor-pointer p-4  transition-colors duration-200 ${configuring[idx].expanded || configuring[idx].editing ? "" : "rounded-md hover:bg-gray-100"}`}
+            className={`flex flex-col border-2 border-gray cursor-pointer p-4 transition-colors duration-200 ${expanded || editing ? "" : "rounded-md hover:bg-gray-100"}`}
+            onClick={() => setExpanded(!expanded)}
         >
-            <div 
-                className="flex justify-between" 
-                onClick={() => setConfiguring(prev => {
-                    const newConfiguring = [...prev];
-                    newConfiguring[idx] = {
-                        ...newConfiguring[idx],
-                        expanded: !newConfiguring[idx].expanded
-                    };
-                    return newConfiguring;
-                })}
-            >
-                <div className="flex flex-col">
-                    <h1 className="text-md text-gray-500">Teacher {data.teacher.namecn}</h1>
-                    <h1 className="text-lg font-bold">{data.class.classnamecn}</h1>
-                    <h1 className="text-md text-gray-500">Room {data.classroom.roomno}</h1>
-                    <h1 className="text-md text-gray-500">Registered: {registrations.length} students</h1>
-                    <div className="flex gap-1">
-                        <button
-                            className="text-md text-gray-500 cursor-pointer"
-                            title="Show more class details"
-                            onClick={e => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setMoreInfo(!moreInfo);
-                            }}
-                            type="button"
-                            tabIndex={0}
-                            aria-label="Show more class details"
-                        >
-                            <Info className="w-4 h-4" />
-                        </button>
-                        {!moreInfo && <DeleteButton disabled={registrations.length > 0} onDelete={handleDelete} />}
-                    </div>
-                    {moreInfo && <MoreInfo data={data} />}
-                </div>
-                <div className="flex gap-2 justify-center items-center">
-                    {configuring[idx].expanded && (
-                        <button 
-                            className="flex gap-2 p-2 bg-blue-800 text-white rounded-md cursor-pointer hover:bg-blue-700"
-                        >
-                            Disperse
-                        </button>
-
-                    )}
+            {/* Name and Price */}
+            <div className="flex justify-between">
+                <h1 className="text-md font-bold">
+                    {idMaps.classMap[regClassInfo.classid].classnamecn}
+                </h1>
+                <h1 className="text-md font-bold">
+                    ${totalPrice}
+                </h1>
+            </div>
+            {/* Term and Edit + Trash buttons */}
+            <div className="flex justify-between">
+                <h1 className="text-md">{classTerm}</h1>
+                <div className="flex gap-1">
+                    {/* Edit */}
                     <button
-                        className="flex gap-2 p-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700"
+                        className="p-2 text-gray-600 cursor-pointer hover:text-blue-700"
                         onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
+                            setExpanded(false);
                             setMoreInfo(false);
-                            setConfiguring(prev => {
-                                const newConfiguring = [...prev];
-                                newConfiguring[idx] = {
-                                    ...newConfiguring[idx],
-                                    expanded: false,
-                                    editing: !newConfiguring[idx].editing
-                                };
-                                return newConfiguring;
-                            });
+                            setEditing(true);
                         }}
                     >
-                        <Pen /> Edit
+                        <Edit className="w-4 h-4"/>
                     </button>
+                    {/* Delete */}
+                    <DeleteButton disabled={regStudents.length > 0} onDelete={onDelete} />
                 </div>
             </div>
-            {configuring[idx].expanded && (
-                <StudentTable registrations={registrations}/>
-             )}
-             
-             {configuring[idx].editing && (
-                <SemClassEditor cancelEdit={() => setConfiguring(prev => {
-                    const newConfiguring = [...prev];
-                    newConfiguring[idx] = {
-                        ...newConfiguring[idx],
-                        editing: false
-                    };
-                    return newConfiguring;
-                })} setUIState={setUIState} setConfiguring={setConfiguring} editClass={updateArrangement} idx={idx} data={data}/>
-             )}
-
+            {/* More Info button */}
+            <div className="flex gap-1">
+                <button
+                    className="text-md text-gray-500 cursor-pointer"
+                    title="Show more class details"
+                    onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMoreInfo(!moreInfo);
+                        setExpanded(false);
+                    }}
+                    type="button"
+                    tabIndex={0}
+                    aria-label="Show more class details"
+                >
+                    <Info className="w-4 h-4" />
+                </button>
+            </div>
+            {/* More Info Box */}
+            {moreInfo && <MoreInfo data={dataWithStudents.arrinfo} idMaps={idMaps}/>}
+            {/* Student Registrations View */}
+            {expanded && (
+                <div className="flex flex-col space-y-2">
+                    <nav className="flex border-b space-x-6 justify-between">
+                        <div
+                            className={cn(
+                                "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
+                                (classShown === -1 && "border-blue-500 text-blue-600")
+                            )}
+                            onClick={e => {
+                                e.stopPropagation();
+                                setClassShown(-1);
+                            }}
+                        >
+                            {idMaps.classMap[regClassInfo.classid].classnamecn}
+                        </div>
+                        {allClassrooms.map((c, idx) => (
+                            <div
+                                key={`${idx}-${c.arrinfo.arrangeid}`}
+                                className={cn(
+                                    "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
+                                    (classShown === idx && "border-blue-500 text-blue-600")
+                                )}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    setClassShown(idx);
+                                }}
+                            >
+                                {idMaps.classMap[c.arrinfo.classid].classnamecn}
+                            </div>
+                        ))}
+                    </nav>
+                    <StudentTable registrations={classShown === -1 ? regStudents : allClassrooms[classShown].students} />
+                </div>
+            )}
+            {/* Class Editor */}
+            {editing && (
+                <SemClassEditor
+                    uuid={uuid}
+                    classes={[regClassInfo, ...allClassrooms.map(c => c.arrinfo)]}
+                    initialData={dataWithStudents}
+                    onEdit={onEdit}
+                    cancelEdit={() => setEditing(false)}
+                />
+            )}
         </div>
-    )
+    );
 }
 
-function MoreInfo({ data }: { data: uiClassStudents }) {
+function MoreInfo({ data, idMaps }: { data: uiClasses, idMaps: IdMaps}) {
     return (
         <div className="flex flex-col">
             <h1 className="text-md text-gray-500">Age Limit: {data.agelimit || "N/A"}</h1>
-            <h1 className="text-md text-gray-500">Suitable Term: {data.suitableterm.suitabletermcn || "N/A"}</h1>
+            <h1 className="text-md text-gray-500">Suitable Term: {idMaps.termMap[data.suitableterm].suitabletermcn || "N/A"}</h1>
             <h1 className="text-md text-gray-500">Waive Reg Fee: {data.waiveregfee ? "Yes" : "No"}</h1>
             <h1 className="text-md text-gray-500">Close Registration: {data.closeregistration ? "Yes" : "No"}</h1>
             <h1 className="text-md text-gray-500">Seat Limit: {data.seatlimit || "N/A"}</h1>
