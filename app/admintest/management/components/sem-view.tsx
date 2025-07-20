@@ -16,9 +16,12 @@ import {
   type IdMaps,
   type fullRegClass,
   type threeSeason,
+  arrangementSchema,
+  uiClasses,
 } from "@/app/lib/semester/sem-schemas";
 import { seasons } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
+import { z } from "zod/v4";
 
 type semViewProps = {
     fullData: fullSemClassesData
@@ -31,20 +34,56 @@ export type fullRegID = fullRegClass & { id: string }
 export type fullSemDataID = fullRegID[]
 export type Action = 
     | { type: "hydrate", classes: fullSemDataID}
-    | { type: "add", draft?: Partial<fullRegID> }
-    | { type: "update", id: string, update: fullRegID }
-    | { type: "remove", id: string }
+    | { type: "reg/add", regDraft: fullRegID }
+    | { type: "reg/update", id: string, next: fullRegID }
+    | { type: "reg/remove", id: string }
+    | { type: "class/add", id: string, roomDraft: Partial<uiClasses>}
+    | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> }
+    | { type: "class/remove", id: string, arrangeid: number }
+
+
+const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"]
 
 function reducer(state: fullSemDataID, action: Action) {
     switch (action.type) {
         case "hydrate":
             return action.classes;
-        case "add": 
-            return [...state, { id: crypto.randomUUID(), ...action.draft } as fullRegID];
-        case "update":
-            return state.map((c) => (c.id === action.id ? action.update : c));
-        case "remove":
+        case "reg/add": 
+            return [...state, { ...action.regDraft }];
+        case "reg/update":
+            const newRegClass = action.next;
+            newRegClass.classrooms.map((c) => {
+                // For each classroom, set fields from newRegClass.arrinfo if not in CLASS_UNIQUE_FIELDS
+                const newC = {
+                    ...c,
+                    arrinfo: {
+                        ...c.arrinfo,
+                        ...Object.fromEntries(
+                            Object.entries(newRegClass.arrinfo).filter(
+                                ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                            )
+                        ),
+                    }
+                }
+                return newC;
+            })
+            return state.map((c) => (c.id === action.id ? newRegClass : c));
+        case "reg/remove":
             return state.filter((c) => c.id !== action.id);
+        case "class/add":
+            return state.map((c) => (c.id === action.id ? {...c, classrooms: [...c.classrooms, action.roomDraft]} : c));
+        case "class/update":
+            const regClass = state.find((c) => c.id === action.id);
+            if (!regClass) throw new Error("Unable to find class in class/add dispatch action");
+            regClass.classrooms.map((c) => {
+                c.arrinfo.arrangeid === action.arrangeid ? {
+                    ...c.arrinfo,
+                    ...action.update
+                } : c
+            })
+            return state.map((c) => (c.id === action.id ? regClass : c));
+        case "class/remove":
+            return state.map((c) => (c.id === action.id ? {...c, classrooms: c.classrooms.filter((c) => c.arrinfo.arrangeid !== action.arrangeid)} : c));
         default:
             return state;
     }
@@ -64,7 +103,6 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         }))
     );
 
-    console.log("full data", fullData);
 
     const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic' | 'all'>('all');
 
@@ -74,7 +112,6 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
     // Filter classes based on current view, but return with original indices
     const getFilteredClassesWithIndices = () => {
         const filtered: Array<{ item: fullRegID }> = [];
-        
         regClasses.forEach((item) => {
             let shouldInclude = true;
             
@@ -87,6 +124,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     break;
                 case "academic":
                     shouldInclude = year.seasonid === item.arrinfo.seasonid; // If academic years seasonid is this item's seasonid
+                    break;
                 case "all":
                     shouldInclude = true // Include all
                 default:
@@ -217,9 +255,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                             key={classItem.id}
                             uuid={classItem.id}
                             dataWithStudents={classItem}
-                            onAdd={(draft: fullRegID) => dispatch({ type: "add", draft: draft})}
-                            onEdit={(draft: fullRegID) => dispatch({ type: "update", id: classItem.id, update: draft})} 
-                            onDelete={() => dispatch({ type: "remove", id: classItem.id })}
+                            dispatch={dispatch}
                         />
                     ))}
 
@@ -238,4 +274,3 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         </SeasonOptionContext.Provider>
     )
 }
-
