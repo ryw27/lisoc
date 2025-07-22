@@ -475,27 +475,21 @@ export async function canRegister(regData: uiClasses, tx: Transaction) {
 }
 
 // TODO: Check stuff with student
-export async function registerClass(arrData: uiClasses, season: InferSelectModel<typeof seasons>, family: familyObject, studentid: number) {
-    // Check user role
+export async function registerClass(arrData: uiClasses, season: InferSelectModel<typeof seasons>, balanceData: InferSelectModel<typeof familybalance> | null, family: familyObject, studentid: number) {
+    // 1. Check user role
     const user = await requireRole(["FAMILY"], { redirect: false });
     if (!user || new Date(user.expires) <= new Date(Date.now())) {
         throw new Error("Expired user session. Please login again");
     }
 
-    // Modify data sent in
-    // const fullData = {
-    //     ...data,
-    //     studentid: studentid,
-    // }
-
-    // const regData = registrationSchema.parse(fullData); // Parse with drizzle inferred insert schema
-
+    // 2. Begin transaction
     await db.transaction(async (tx) => {
+        // 3. Check if this registration is valid
         if (!canRegister(arrData, tx)) {
             throw new Error("Registration not allowed")
         }
 
-        // Check if student exists
+        // 4. Check if student exists
         const student = await tx.query.student.findFirst({
             where: (student, { eq, and }) => and(eq(student.studentid, studentid), eq(student.familyid, family.familyid))
         });
@@ -504,17 +498,17 @@ export async function registerClass(arrData: uiClasses, season: InferSelectModel
             throw new Error("Student not found");
         }
 
-        // Check for existing registration of this student
+        // 5. Check for existing registration of this student in this season
         const existingReg = await tx.query.classregistration.findFirst({
             where: (reg, { and, eq }) => and(eq(reg.studentid, student.studentid), eq(reg.seasonid, season.seasonid)) 
-            // Existing registration for this student in this season
         })
+
         // TODO: More comprehensive handling, especially with different periods or terms
         if (existingReg) {
-            throw new Error("[RegisterClass Action Error] This student is already enrolled in a class"); // Handle this in the component calling the function
+            throw new Error("[RegisterClass Action Error] This student is already enrolled in a class"); 
         }
 
-        // Insert into classregistration. Use postgres default values for most
+        // 6. Insert into classregistration. Use postgres default values for most
         const isyearclass = season.seasonid < season.beginseasonid && season.seasonid < season.relatedseasonid;
         const [inserted] = await tx
                 .insert(classregistration)
@@ -535,11 +529,16 @@ export async function registerClass(arrData: uiClasses, season: InferSelectModel
             throw new Error("Unknown registration error occured");
         }
 
+        // 7. Calculate full price
         const fullPrice = isyearclass ? 
-                            Number(arrData.tuitionH) + Number(arrData.bookfeeH) + Number(arrData.specialfeeH)
-                            : Number(arrData.tuitionW) + Number(arrData.bookfeeW) + Number(arrData.specialfeeW);
+                            Number(arrData.tuitionW) + Number(arrData.bookfeeW) + Number(arrData.specialfeeW)
+                            : Number(arrData.tuitionH) + Number(arrData.bookfeeH) + Number(arrData.specialfeeH);
 
-        // Create family balance
+        // 8. Check for existing balance
+        const existingBalance = balanceData; // Null if no balance exists for this season
+
+        // 9. Create family balance data
+        // TODO: Figure out what all this means
         const familyBalanceData: InferInsertModel<typeof familybalance> = {
             seasonid: season.seasonid,
             familyid: family.familyid,
@@ -571,14 +570,55 @@ export async function registerClass(arrData: uiClasses, season: InferSelectModel
             processfee: "0", // TODO: huh?
         };
 
-        const existingBalance = await tx.query.familybalance.findFirst({
-            where: (balance, { eq, and }) => and(eq(balance.familyid, family.familyid), eq(balance.seasonid, season.seasonid))
-        });
+        // 10. Update or insert 
         let balance;
         if (existingBalance) {
-            [balance] = await tx.update(familybalance).set({...familyBalanceData}).where(eq(familybalance.balanceid, existingBalance.balanceid)).returning();
+            // Simply need to update the tuition
+            [balance] = await tx.
+                    update(familybalance)
+                    .set({
+                        regfee: arrData.waiveregfee // TODO: Check if you need to add more reg fees, same for rest of fields
+                            ? "0"
+                            : (existingBalance.regfee
+                                ? (Number(existingBalance.regfee) + REGISTRATION_FEE).toString()
+                                : REGISTRATION_FEE.toString()),
+                        earlyregdiscount: (
+                            new Date(season.earlyregdate) <= new Date(toESTString(new Date())) &&
+                            new Date(toESTString(new Date())) < new Date(season.normalregdate)
+                        )
+                            ? existingBalance.earlyregdiscount
+                                ? (50 + Number(existingBalance.earlyregdiscount)).toString()
+                                : "50"
+                            : "0",
+
+                        lateregfee: (
+                            season.haslateregfee &&
+                            new Date(season.lateregdate1) <= new Date(toESTString(new Date())) &&
+                            new Date(toESTString(new Date())) < new Date(season.lateregdate2)
+                        )
+                            ? existingBalance.lateregfee
+                                ? (LATE_REG_FEE + Number(existingBalance.lateregfee)).toString()
+                                : LATE_REG_FEE.toString()
+                            : "0",
+                        extrafee4newfamily: (
+                            season.haslateregfee4newfamily &&
+                            new Date(season.date4newfamilytoregister) <= new Date(toESTString(new Date())) &&
+                            new Date(toESTString(new Date())) < new Date(season.lateregdate2)
+                        )
+                            ? existingBalance.extrafee4newfamily
+                                ? (LATE_REG_FEE + Number(existingBalance.extrafee4newfamily)).toString()
+                                : LATE_REG_FEE.toString()
+                            : "0",
+                        tuition: existingBalance.tuition ? (Number(existingBalance.tuition) + fullPrice).toString() : fullPrice.toString(),
+                        totalamount: existingBalance.totalamount ? (Number(existingBalance.totalamount) + fullPrice).toString() : fullPrice.toString(),
+                    })
+                    .where(eq(familybalance.balanceid, existingBalance.balanceid))
+                    .returning();
         } else {
-            [balance] = await tx.insert(familybalance).values(familyBalanceData).returning();
+            [balance] = await tx
+                .insert(familybalance)
+                .values(familyBalanceData)
+                .returning();
         }
 
         if (!balance) {
