@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Info, Edit, Trash2 } from "lucide-react";
 import { 
     AlertDialog, 
@@ -22,12 +22,10 @@ import { cn } from "@/lib/utils";
 type semViewBoxProps = {
     uuid: string;
     dataWithStudents: fullRegID;
-    onAdd: (draft: fullRegID) => void;
-    onEdit: (draft: fullRegID) => void;
-    onDelete: () => void;
+    dispatch: React.Dispatch<Action>;
 }
 
-export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDelete, onAdd }: semViewBoxProps) {
+export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: semViewBoxProps) {
     const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
     const [editing, setEditing] = useState<boolean>(false);
     const [expanded, setExpanded] = useState<boolean>(false);
@@ -38,17 +36,18 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
     const handleDelete = async () => {
         const snapshot = dataWithStudents;
         try {
-            onDelete(); // UI state
-            await deleteClass(regClassInfo);
+            dispatch({ type: "reg/remove", id: uuid });
+            await deleteClass(regClassInfo); // Server mutation
         } catch (error) {
             console.error("Failed to delete class:", error);
-            onAdd(snapshot);
+            dispatch({ type: "reg/add", regDraft: snapshot });
         }
     };
 
     const regClassInfo = dataWithStudents.arrinfo;
     const allClassrooms = dataWithStudents.classrooms
     const regStudents = dataWithStudents.students
+
 
 
     const totalPrice = regClassInfo.suitableterm === 2 
@@ -72,6 +71,10 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
                     ${totalPrice}
                 </h1>
             </div>
+
+            <div className="flex">
+                <p className="text-gray-600 text-md">Registrations: {regStudents.length}</p>
+            </div>
             {/* Term and Edit + Trash buttons */}
             <div className="flex justify-between">
                 <h1 className="text-md">{classTerm}</h1>
@@ -90,11 +93,11 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
                         <Edit className="w-4 h-4"/>
                     </button>
                     {/* Delete */}
-                    <DeleteButton disabled={regStudents.length > 0} onDelete={onDelete} />
+                    <DeleteButton disabled={regStudents.length > 0} onDelete={handleDelete} />
                 </div>
             </div>
             {/* More Info button */}
-            <div className="flex gap-1">
+            <div className="flex justify-between">
                 <button
                     className="text-md text-gray-500 cursor-pointer"
                     title="Show more class details"
@@ -110,6 +113,9 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
                 >
                     <Info className="w-4 h-4" />
                 </button>
+                {/* <div className="bg-green-500 rounded-md text-xs font-bold p-2">
+                    Automatic Distribution: Off
+                </div> */}
             </div>
             {/* More Info Box */}
             {moreInfo && <MoreInfo data={dataWithStudents} idMaps={idMaps}/>}
@@ -153,8 +159,8 @@ export default function SemesterViewBox({ uuid, dataWithStudents, onEdit, onDele
                 <SemClassEditor
                     uuid={uuid}
                     initialData={dataWithStudents}
-                    onEdit={onEdit}
-                    cancelEdit={() => setEditing(false)}
+                    dispatch={dispatch}
+                    endEdit={() => setEditing(false)}
                 />
             )}
         </div>

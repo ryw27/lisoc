@@ -2,7 +2,6 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Settings, Calendar, TriangleAlert, Power, Cog, AlertTriangle } from "lucide-react";
 import React, { useState, useContext } from "react";
-import { OptionContext } from "./sem-view"; 
 import { InferSelectModel } from "drizzle-orm";
 import { seasons } from "@/app/lib/db/schema";
 import { useForm, Controller } from "react-hook-form";
@@ -12,11 +11,11 @@ import { Input } from "@/components/ui/input";
 import { updateDates, registerControls } from "@/app/lib/semester/sem-actions";
 import { Switch } from "@/components/ui/switch";
 import { z } from "zod/v4";
-import { useFormState } from "react-dom";
+import { SeasonOptionContext } from "./sem-view";
 
 type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS"
 export default function SemesterControlsPopover() {
-    const { selectOptions, idMaps, season } = useContext(OptionContext)!;
+    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
     const [settings, setSettings] = useState<settingOptions>("HOME")
     return (
         <Popover>

@@ -1,7 +1,8 @@
 import { pgEnum, timestamp } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
-export const userRole = pgEnum("user_role", ['ADMIN', 'TEACHER', 'FAMILY'])
+
+export const userRoles = pgEnum("user_roles", ['FAMILY', 'TEACHER', 'ADMINUSER'])
 
 export const status = pgEnum("status", ["Active", "Inactive"])
 

@@ -1,8 +1,6 @@
-import SessionManager from "@/components/session-manager";
 
 export default function SettingsPage() {
   return (
-    <SessionManager requireRole={["TEACHER", "STUDENT", "PARENT"]}>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
@@ -38,6 +36,5 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </SessionManager>
   );
 } 

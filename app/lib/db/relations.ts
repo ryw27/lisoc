@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { users, family, teacher, adminuser, classtype, classes, arrangement, legacyTeacher, classrooms, seasons, classtime, agerestriction, classregistration, legacyFamily, regstatus, student, dutyassignment, dutystatus, familybalance, familybalancestatus, familybalancetype, parentdutyPb, schoolcalendar, studentscore, scorefactors, studentscorefactor, legacyAdminuser, studentscorecomment, studentscorerating, scoreratingfactors, scorerating, regchangerequest, requeststatus, adminuserrole, adminrole } from "../../app/lib/db/schema";
+import { users, family, teacher, adminuser, classtype, classes, arrangement, legacyTeacher, classrooms, seasons, classtime, agerestriction, classregistration, legacyFamily, regstatus, student, dutyassignment, dutystatus, familybalance, familybalancestatus, familybalancetype, parentdutyPb, schoolcalendar, studentscore, scorefactors, studentscorefactor, legacyAdminuser, studentscorecomment, studentscorerating, scoreratingfactors, scorerating, regchangerequest, requeststatus, adminuserrole, adminrole, suitableterm } from "@/app/lib/db/schema";
 
 export const familyRelations = relations(family, ({one, many}) => ({
 	user: one(users, {
@@ -13,10 +13,10 @@ export const familyRelations = relations(family, ({one, many}) => ({
 	regchangerequests: many(regchangerequest),
 }));
 
-export const usersRelations = relations(users, ({many}) => ({
-	families: many(family),
-	teachers: many(teacher),
-	adminusers: many(adminuser),
+export const usersRelations = relations(users, ({one}) => ({
+	families: one(family),
+	teachers: one(teacher),
+	adminusers: one(adminuser),
 }));
 
 export const teacherRelations = relations(teacher, ({one, many}) => ({
@@ -45,6 +45,7 @@ export const classesRelations = relations(classes, ({one, many}) => ({
 	studentscores: many(studentscore),
 	studentscorecomments: many(studentscorecomment),
 	studentscoreratings: many(studentscorerating),
+	classes: many(classes)
 }));
 
 export const classtypeRelations = relations(classtype, ({one, many}) => ({
@@ -55,7 +56,11 @@ export const classtypeRelations = relations(classtype, ({one, many}) => ({
 	}),
 }));
 
-export const arrangementRelations = relations(arrangement, ({one}) => ({
+export const suitabletermRelations = relations(suitableterm, ({many}) => ({
+	arrangements: many(arrangement),
+}));
+
+export const arrangementRelations = relations(arrangement, ({one, many}) => ({
 	teacher: one(teacher, {
 		fields: [arrangement.teacherid],
 		references: [teacher.teacherid]
@@ -79,6 +84,10 @@ export const arrangementRelations = relations(arrangement, ({one}) => ({
 	classtime: one(classtime, {
 		fields: [arrangement.timeid],
 		references: [classtime.timeid]
+	}),
+	suitableterm: one(suitableterm, {
+		fields: [arrangement.suitableterm],
+		references: [suitableterm.termno]
 	}),
 }));
 

@@ -3,11 +3,11 @@ import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils";
-import { studentObject } from "@/app/admintest/dashboard/data/(people-pages)/students/student-helpers";
+import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
 import { useRouter } from "next/navigation";
 
-export default function RegisterButton({ regSpecificClass, students }: { regSpecificClass: (student: string) => Promise<void>, students: studentObject[] }) {
-    const [selectedStudent, setSelectedStudent] = useState<string>("");
+export default function RegisterButton({ regSpecificClass, students }: { regSpecificClass: (studentid: number) => Promise<void>, students: studentObject[] }) {
+    const [selectedStudent, setSelectedStudent] = useState<number>(); // Should be the student ID, ensure Select value is the student ID
     const [error, setError] = useState<string | null>(null)
     const router = useRouter();
 
@@ -26,7 +26,7 @@ export default function RegisterButton({ regSpecificClass, students }: { regSpec
                 <AlertDialogHeader>
                     <AlertDialogTitle>Select Student</AlertDialogTitle>
                     <AlertDialogDescription>
-                            <Select onValueChange={setSelectedStudent} value={selectedStudent}>
+                            <Select onValueChange={(value: string) => setSelectedStudent(Number(value))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Choose a student to register" />
                                 </SelectTrigger>
@@ -41,11 +41,11 @@ export default function RegisterButton({ regSpecificClass, students }: { regSpec
                                                     <span className="font-medium">
                                                         {student.namefirsten} {student.namelasten}
                                                     </span>
-                                                    {student.namecn && (
+                                                    ({student.namecn && (
                                                         <span className="text-sm text-muted-foreground">
                                                             {student.namecn}
                                                         </span>
-                                                    )}
+                                                    )})
                                                 </div>
                                             </SelectItem>
                                         ))
@@ -69,7 +69,7 @@ export default function RegisterButton({ regSpecificClass, students }: { regSpec
                         onClick={async () => {
                             try {
                                 setError(null);
-                                await regSpecificClass(selectedStudent);
+                                await regSpecificClass(selectedStudent as number); // Disabled when no selected student
                                 router.push("/dashboard/registration/payment");
                             } catch (err) {
                                 setError(err instanceof Error ? err.message : 'An error occurred while registering');

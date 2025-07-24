@@ -3,6 +3,14 @@ import { sql } from "drizzle-orm"
 import { userRoles } from "./db_types"
 
 
+export const registration_drafts = pgTable("registration_drafts", {
+	email: varchar({ length: 255 }).notNull(),
+	name: varchar({ length: 50 }).notNull(),
+	password: varchar({ length: 100 }).notNull(),
+	expires: timestamp({ withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP + INTERVAL '72 hours'`).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.email, table.name] }),
+]);
 
 export const users = pgTable("users", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -52,9 +60,9 @@ export const family = pgTable("family", {
 
 export const teacher = pgTable("teacher", {
 	teacherid: integer().primaryKey().generatedAlwaysAsIdentity({ name: "teacher_teacherid_seq1", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
-	namecn: varchar({ length: 50 }),
-	namelasten: varchar({ length: 50 }),
-	namefirsten: varchar({ length: 50 }),
+	namecn: varchar({ length: 50 }).notNull(),
+	namelasten: varchar({ length: 50 }).notNull(),
+	namefirsten: varchar({ length: 50 }).notNull(),
 	teacherindex: integer(),
 	classtypeid: smallint(),
 	status: varchar({ length: 50 }).default('Active').notNull(),
@@ -140,6 +148,7 @@ export const classes = pgTable("classes", {
 	classindex: numeric({ precision: 9, scale:  2 }).default('500'),
 	ageid: smallint().default(0),
 	typeid: smallint().notNull(),
+	gradeclassid: integer(),
 	classno: numeric({ precision: 8, scale:  0 }).default('0').notNull(),
 	classnamecn: varchar({ length: 50 }).notNull(),
 	classupid: integer().notNull(),
@@ -158,6 +167,11 @@ export const classes = pgTable("classes", {
 			foreignColumns: [classtype.typeid],
 			name: "fk_classes_classtype"
 		}),
+	foreignKey({
+		columns: [table.gradeclassid],
+		foreignColumns: [table.classid],
+		name: "fk_classes_classid"
+	})
 ]);
 
 export const agelist = pgTable("agelist", {
@@ -220,7 +234,7 @@ export const arrangement = pgTable("arrangement", {
 	waiveregfee: boolean().default(false).notNull(),
 	activestatus: varchar({ length: 20 }).default('Active').notNull(),
 	regstatus: varchar({ length: 20 }).default('Open').notNull(),
-	closeregistration: boolean().default(false),
+	closeregistration: boolean().default(false).notNull(),
 	notes: varchar({ length: 250 }).default(''),
 	lastmodify: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updateby: varchar({ length: 50 }).default('').notNull(),
@@ -230,6 +244,7 @@ export const arrangement = pgTable("arrangement", {
 	tuitionH: numeric("tuition_h", { precision: 9, scale:  2 }).default('0'),
 	specialfeeH: numeric("specialfee_h", { precision: 9, scale:  2 }).default('0'),
 	bookfeeH: numeric("bookfee_h", { precision: 9, scale:  2 }).default('0'),
+	isregclass: boolean().notNull().default(false),
 }, (table) => [
 	foreignKey({
 			columns: [table.teacherid],
@@ -261,6 +276,11 @@ export const arrangement = pgTable("arrangement", {
 			foreignColumns: [classtime.timeid],
 			name: "fk_arrangement_sessions"
 		}),
+	foreignKey({
+		columns: [table.suitableterm],
+		foreignColumns: [suitableterm.termno],
+		name: "fk_arrangement_termno"
+	})
 ]);
 
 export const classtime = pgTable("classtime", {
@@ -507,16 +527,16 @@ export const familybalance = pgTable("familybalance", {
 	seasonid: smallint().default(0).notNull(),
 	familyid: integer().notNull(),
 	yearclass: smallint().default(0).notNull(),
-	yearclass4Child: smallint().default(0).notNull(),
+	yearclass4child: smallint().default(0).notNull(),
 	semesterclass: smallint().default(0).notNull(),
-	semesterclass4Child: smallint().default(0).notNull(),
+	semesterclass4child: smallint().default(0).notNull(),
 	childnum: smallint().default(0).notNull(),
 	childnumRegfee: smallint("childnum_regfee").default(0).notNull(),
 	studentnum: smallint().default(0).notNull(),
 	regfee: numeric({ precision: 9, scale:  2 }).default('0'),
 	earlyregdiscount: numeric({ precision: 9, scale:  2 }).default('0'),
 	lateregfee: numeric({ precision: 9, scale:  2 }).default('0'),
-	extrafee4Newfamily: numeric({ precision: 9, scale:  2 }).default('0'),
+	extrafee4newfamily: numeric({ precision: 9, scale:  2 }).default('0'),
 	managementfee: numeric({ precision: 9, scale:  2 }).default('0'),
 	dutyfee: numeric({ precision: 9, scale:  2 }).default('0'),
 	cleaningfee: numeric({ precision: 9, scale:  2 }).default('0'),
@@ -753,7 +773,7 @@ export const seasons = pgTable("seasons", {
 	relatedseasonid: integer().default(0).notNull(),
 	beginseasonid: integer().default(0).notNull(),
 	haslateregfee: boolean().default(true).notNull(),
-	haslateregfee4Newfamily: boolean().default(true).notNull(),
+	haslateregfee4newfamily: boolean().default(true).notNull(),
 	hasdutyfee: boolean().default(true).notNull(),
 	startdate: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00').notNull(),
 	enddate: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00').notNull(),
@@ -765,12 +785,12 @@ export const seasons = pgTable("seasons", {
 	canceldeadline: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00').notNull(),
 	hasdeadline: boolean().default(true).notNull(),
 	status: varchar({ length: 50 }).default('Inactive').notNull(),
-	open4Register: boolean().default(false).notNull(),
+	open4register: boolean().default(false).notNull(),
 	showadmissionnotice: boolean().default(false).notNull(),
 	showteachername: boolean().default(true).notNull(),
-	days4Showteachername: smallint().default(0).notNull(),
+	days4showteachername: smallint().default(0).notNull(),
 	allownewfamilytoregister: boolean().default(true).notNull(),
-	date4Newfamilytoregister: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00').notNull(),
+	date4newfamilytoregister: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00').notNull(),
 	notes: text().default(''),
 	createddate: timestamp({ mode: 'string' }).default('1900-01-01 00:00:00'),
 	lastmodifieddate: timestamp({ mode: 'string' }).defaultNow(),

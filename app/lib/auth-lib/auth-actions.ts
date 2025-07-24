@@ -2,7 +2,7 @@
 
 import { auth, signIn, signOut } from "./auth";
 import { db } from "../db";
-import { family, registration_drafts, teacher, users } from "../db/schema";
+import { family, teacher, users } from "../db/schema";
 import bcrypt from "bcrypt"
 import { randomInt } from "crypto";
 import { transporter } from "@/lib/nodemailer";
@@ -25,6 +25,7 @@ import { eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { pgadapter } from "./auth";
 import { z } from "zod";
+import { registration_drafts } from "../db/schema";
 
 // export type authMSG = 
 //     | { ok: false, msg: string}
@@ -35,7 +36,7 @@ const SITE_LINK = "localhost:3000"; // TODO: change to actual link
 // -----------------------------------------------------------------------------------------------------------------------------------
 // Login functions 
 // -----------------------------------------------------------------------------------------------------------------------------------
-// TODO: Learn wtf is going on with server side signIn
+// Only for server page logins. Client side logins are handled by auth.js
 export async function login(formData: FormData, isAdminForm: boolean, isTeacherForm: boolean) {
     const { emailUsername, password } = loginSchema.parse(Object.fromEntries(formData));
     const provider = isAdminForm ? "admin-credentials" : isTeacherForm ? "teacher-credentials" : "family-credentials";
@@ -62,6 +63,7 @@ export async function login(formData: FormData, isAdminForm: boolean, isTeacherF
 // -----------------------------------------------------------------------------------------------------------------------------------
 // Logout function 
 // -----------------------------------------------------------------------------------------------------------------------------------
+// Only for server page logouts. Client side logouts are handled by auth.js
 export async function logout() {
     await signOut();
     redirect("/");
@@ -99,11 +101,13 @@ export async function requireRole(allowed: ("ADMIN" | "TEACHER" | "FAMILY")[], o
 export async function emailToCode(data: z.infer<typeof emailSchema>) {
     // Parse incoming data
     const userData = emailSchema.parse(data);
+    console.log(userData)
 
     // unique check
     const unique = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.email, userData.email)
     })
+    console.log(unique)
 
     if (unique) { // Email exists
         throw new Error("Email already exists")
@@ -133,7 +137,7 @@ export async function resendCode(data: z.infer<typeof emailSchema>) {
 
 // STEP 2: Send a verification email using NodeMailer
 export async function sendRegEmail(emailTo: string, token: string) {
-    await transporter.sendMail({
+    const mail = await transporter.sendMail({
         from: "LISOC Registration <regadmin@lisoc.org>",
         to: emailTo,
         subject: "LISOC Account Registration Verification",
@@ -142,6 +146,7 @@ export async function sendRegEmail(emailTo: string, token: string) {
             <p> If you are not trying to register, please ignore this email </p>
         `
     });
+
 }
 // Step 3: Check the inputted code. 
 export async function checkCode(data: z.infer<typeof codeSchema>, email: string) {
@@ -169,11 +174,11 @@ export async function registerDraft(data: z.infer<typeof userPassSchema>, email:
     const draftData = userPassSchema.parse(data);
     emailSchema.parse({ email: email });
 
-    const { username, password } = draftData;
+    const { password, username } = draftData;
 
     // Check if username already exists
     const usernameUnique = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.username, username)
+        where: (users, { eq }) => eq(users.name, username)
     })
 
     if (usernameUnique) {
@@ -185,11 +190,11 @@ export async function registerDraft(data: z.infer<typeof userPassSchema>, email:
         .insert(registration_drafts)
         .values({
             email: email,
-            username: username,
+            name: username,
             password: await bcrypt.hash(password, 10),
         })
         .onConflictDoUpdate({
-            target: [registration_drafts.email, registration_drafts.username],
+            target: [registration_drafts.email, registration_drafts.name],
             set: {
                 password: await bcrypt.hash(password, 10),
                 expires: new Date(Date.now() + 1000 * 60 * 60 * 72).toISOString()
@@ -209,7 +214,7 @@ export async function fullRegister(
     const { address, city, state, zip, phone, ...parsedData } = info;
 
     const draft = await db.query.registration_drafts.findFirst({
-        where: (registration_drafts, { and, eq }) => and(eq(registration_drafts.email, regData.email), eq(registration_drafts.username, regData.username))
+        where: (registration_drafts, { and, eq }) => and(eq(registration_drafts.email, regData.email), eq(registration_drafts.name, regData.username))
     })    
 
     if (!draft || new Date(draft.expires) < new Date(Date.now())) {
@@ -217,22 +222,21 @@ export async function fullRegister(
     }
 
     // Delete the draft
-    await db.delete(registration_drafts).where(and(eq(registration_drafts.email, draft.email), eq(registration_drafts.username, draft.username)));
+    await db.delete(registration_drafts).where(and(eq(registration_drafts.email, draft.email), eq(registration_drafts.name, draft.name)));
 
     const newUser = await db
         .insert(users)
         .values({
             roles: [isTeacher ? 'TEACHER' : 'FAMILY'],
-            emailverified: new Date(Date.now()).toISOString(),
+            emailVerified: new Date(Date.now()).toISOString(),
             createon: new Date(Date.now()).toISOString(),
-            ischangepwdnext: false,
             address: address,
             city: city,
             state: state,
             zip: zip,
             phone: phone,
             email: draft.email,
-            username: draft.username,
+            name: draft.name,
             password: draft.password,
         })
         .returning({ id: users.id })
@@ -247,7 +251,7 @@ export async function fullRegister(
 }
 
 // Helper function
-export async function checkExistence(input: string, column: "username" | "email"): Promise<boolean> {
+export async function checkExistence(input: string, column: "name" | "email"): Promise<boolean> {
     const result = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users[column], input)
     })
@@ -292,7 +296,7 @@ export async function requestReset(data: z.infer<typeof forgotPassSchema>) {
     } else if (isUsername) {
         // Input is a username - need to find the associated email
         const user = await db.query.users.findFirst({
-            where: (users, { eq }) => eq(users.username, input)
+            where: (users, { eq }) => eq(users.name, input)
         });
         
         if (!user) {
@@ -303,10 +307,10 @@ export async function requestReset(data: z.infer<typeof forgotPassSchema>) {
         throw new Error("Invalid Email or Username")
     }
 
-    await db
-        .update(users)
-        .set({ ischangepwdnext: true})
-        .where(eq(users.email, userEmail!))
+    // await db
+    //     .update(users)
+    //     .set({ ischangepwdnext: true})
+    //     .where(eq(users.email, userEmail!))
 
     const uuidCode = uuid();
 
@@ -336,7 +340,6 @@ export async function resetPassword(data: z.infer<typeof resetPassSchema>) {
     await db
         .update(users)
         .set({
-            ischangepwdnext: false,
             password: pwdhash
         })
         .where(eq(users.email, email));

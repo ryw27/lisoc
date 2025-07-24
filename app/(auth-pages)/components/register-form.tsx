@@ -64,15 +64,14 @@ export default function RegisterForm({
 
         try {
             await requestCode(data);
+            setCredentials({ email: data.email, username: "" });
+            setStep("CODE");
         } catch (error) {
             emailForm.setError("email", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         } finally {
             setBusy(false);
         }
 
-        setCredentials({ email: data.email, username: "" });
-        setStep("CODE");
-        setBusy(false);
     }
 
     // -----------------------------------------------------------
@@ -88,13 +87,13 @@ export default function RegisterForm({
         setBusy(true);
         try {
             await checkCode(data, credentials!.email as string);
+            setStep("CREDENTIALS");
         } catch (error) {
             codeForm.setError("code", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         } finally {
             setBusy(false);
         }
 
-        setStep("CREDENTIALS");
     }
 
     
@@ -111,14 +110,14 @@ export default function RegisterForm({
         setBusy(true);
         try {
             await registerDraft(data, credentials!.email as string);
+            setCredentials({ email: credentials!.email, username: data.username });
+            setStep("PROFILE");
         } catch (error) {
             credForm.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
         } finally {
             setBusy(false);
         }
 
-        setCredentials({ email: credentials!.email, username: data.username });
-        setStep("PROFILE");
     }
 
     return (

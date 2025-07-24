@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, Bell, HelpCircle, ChevronDown, Sun, Moon, Settings, User, LogOut } from "lucide-react";
+import LogoutButton from "./logout-button";
 
 export default function Header() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -98,10 +99,7 @@ export default function Header() {
                                         </button>
                                     </div>
                                     <div className="py-1">
-                                        <a href="#" className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                            <LogOut className="mr-3 h-4 w-4 text-red-500" />
-                                            <span>Sign out</span>
-                                        </a>
+                                        <LogoutButton />
                                     </div>
                                 </div>
                             )}

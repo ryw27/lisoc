@@ -276,7 +276,7 @@ export function makeOperations<
 
 					// Insert and return
 					const [inserted] = await tx.insert(anyTable).values(insertItem).returning();
-					return inserted[primaryKey] as PKVal<N>;
+					return inserted[primaryKey as keyof typeof inserted] as PKVal<N>;
 				});
 			} catch (error) {
 				console.error(error);
@@ -339,7 +339,7 @@ export function makeOperations<
 					
 					if (!updated) throw new Error(`Failed to update ${tableName} with ID ${id}`);
 
-					return updated[primaryKey] as PKVal<N>;
+					return updated[primaryKey as keyof typeof updated] as PKVal<N>;
 				});
 			} catch (error) {
 				console.error(error);

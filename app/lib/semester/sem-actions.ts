@@ -1,10 +1,10 @@
 "use server";
 import { db } from "../db";
-import { arrangement, classregistration, familybalance, seasons, suitableterm, student } from "../db/schema";
+import { arrangement, classregistration, familybalance, seasons, student } from "../db/schema";
 import type { InferInsertModel } from "drizzle-orm";
 import { requireRole } from "../auth-lib/auth-actions";
 import { and, desc, eq, InferSelectModel, or } from "drizzle-orm";
-import { startSemFormSchema, type uiClasses, type selectOptions, arrangementSchema, IdMaps, seasonDatesSchema, seasonRegSettingsSchema, type term, registrationSchema } from "./sem-schemas";
+import { startSemFormSchema, type uiClasses, type selectOptions, arrangementSchema, IdMaps, seasonDatesSchema, seasonRegSettingsSchema, type term, registrationSchema, checkApplySchema, arrangementArraySchema } from "./sem-schemas";
 import { inSpring } from "./sem-utils";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
@@ -323,90 +323,105 @@ export async function getTermVariables(parsedData: z.infer<typeof arrangementSch
     return { seasonid, activestatus, regstatus };
 }
 
-export async function addArrangement(data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) {
+export async function addArrangement(data: z.infer<typeof arrangementArraySchema>, season: InferSelectModel<typeof seasons>) {
     // Auth check 
     // const user = await requireRole(["ADMIN"]);
 
     // Parse data
-    const parsedData = arrangementSchema.parse(data);
+    const parsedArray = arrangementArraySchema.parse(data);
 
     return await db.transaction(async (tx) => {
-        const { seasonid, activestatus, regstatus } = await getTermVariables(parsedData, season, tx);
+        for (const data of parsedArray.classrooms) {
+            const parsedData = arrangementSchema.parse(data);
+            const { seasonid, activestatus, regstatus } = await getTermVariables(parsedData, season, tx);
+            console.log(parsedData.roomid);
 
-        const inserted = await tx
-            .insert(arrangement)
-            .values({
-                seasonid: seasonid,
-                classid: parsedData.classid,
-                teacherid: parsedData.teacherid,
-                roomid: parsedData.roomid,
-                timeid: parsedData.timeid,
-                seatlimit: parsedData.seatlimit,
-                agelimit: parsedData.agelimit,
-                suitableterm: parsedData.suitableterm,
-                waiveregfee: parsedData.waiveregfee,
-                activestatus: activestatus,
-                regstatus: regstatus,
-                closeregistration: parsedData.closeregistration,
-                tuitionW: parsedData.tuitionW.toString(),
-                bookfeeW: parsedData.bookfeeW.toString(),
-                specialfeeW: parsedData.specialfeeW.toString(),
-                tuitionH: parsedData.tuitionH.toString(),
-                bookfeeH: parsedData.bookfeeH.toString(),
-                specialfeeH: parsedData.specialfeeH.toString(),
-                notes: parsedData.notes ?? "",
-                lastmodify: toESTString(new Date()),
-                updateby: "admin"
-            })
-            .returning();
-        return inserted[0];
+            const inserted = await tx
+                .insert(arrangement)
+                .values({
+                    seasonid: seasonid,
+                    classid: parsedData.classid,
+                    teacherid: parsedData.teacherid,
+                    roomid: parsedData.roomid,
+                    timeid: parsedData.timeid,
+                    seatlimit: parsedData.seatlimit,
+                    agelimit: parsedData.agelimit,
+                    suitableterm: parsedData.suitableterm,
+                    waiveregfee: parsedData.waiveregfee,
+                    activestatus: activestatus,
+                    regstatus: regstatus,
+                    closeregistration: parsedData.closeregistration,
+                    tuitionW: parsedData.tuitionW.toString(),
+                    bookfeeW: parsedData.bookfeeW.toString(),
+                    specialfeeW: parsedData.specialfeeW.toString(),
+                    tuitionH: parsedData.tuitionH.toString(),
+                    bookfeeH: parsedData.bookfeeH.toString(),
+                    specialfeeH: parsedData.specialfeeH.toString(),
+                    notes: parsedData.notes ?? "",
+                    lastmodify: toESTString(new Date()),
+                    isregclass: true,
+                    updateby: "admin"
+                })
+                .returning();
+            return inserted[0];
+        }
+        revalidatePath(`/admintest/management/semester`);
     })
 }
 
 
 // TODO: Check this 
-export async function updateArrangement(data: z.infer<typeof arrangementSchema>, season: InferSelectModel<typeof seasons>) {
+export async function updateArrangement(data: z.infer<typeof arrangementArraySchema>, season: InferSelectModel<typeof seasons>) {
     return await db.transaction(async (tx) => {
-        const parsedData = arrangementSchema.parse(data);
-
+        const parsedArray = arrangementArraySchema.parse(data);
         // Ensure arrangeid is present and valid. It should since it's an update
-        if (typeof parsedData.arrangeid !== "number" || isNaN(parsedData.arrangeid)) {
-            throw new Error("Update data does not contain a valid arrange ID identifier");
+        for (const data of parsedArray.classrooms) {
+            const parsedData = arrangementSchema.parse(data);
+
+            if (typeof parsedData.arrangeid !== "number" || isNaN(parsedData.arrangeid)) {
+                throw new Error("Update data does not contain a valid arrange ID identifier");
+            }
+
+            // If suitable term is changed
+            const { seasonid, activestatus, regstatus } = await getTermVariables(parsedData, season, tx);
+
+            const updated = await tx
+                .update(arrangement)
+                .set({
+                    activestatus: activestatus,
+                    regstatus: regstatus,
+                    seasonid: seasonid,
+                    classid: parsedData.classid,
+                    teacherid: parsedData.teacherid,
+                    roomid: parsedData.roomid,
+                    timeid: parsedData.timeid,
+                    seatlimit: parsedData.seatlimit,
+                    agelimit: parsedData.agelimit,
+                    tuitionW: parsedData.tuitionW.toString(),
+                    bookfeeW: parsedData.bookfeeW.toString(),
+                    specialfeeW: parsedData.specialfeeW.toString(),
+                    tuitionH: parsedData.tuitionH.toString(),
+                    bookfeeH: parsedData.bookfeeH.toString(),
+                    specialfeeH: parsedData.specialfeeH.toString(),
+                    lastmodify: toESTString(new Date()),
+                    updateby: "admin", // user.user.name ?? user.user.email ?? "Unknown",
+                })
+                .where(eq(arrangement.arrangeid, parsedData.arrangeid))
+                .returning();
+
+            if (!updated || updated.length === 0) {
+                throw new Error("Unknown DB error occurred with class update");
+            }
         }
-
-        // If suitbaleterm is changed
-        const { seasonid, activestatus, regstatus } = await getTermVariables(parsedData, season, tx);
-
-        const updated = await tx
-            .update(arrangement)
-            .set({
-                activestatus: activestatus,
-                regstatus: regstatus,
-                seasonid: seasonid,
-                classid: parsedData.classid,
-                teacherid: parsedData.teacherid,
-                roomid: parsedData.roomid,
-                timeid: parsedData.timeid,
-                seatlimit: parsedData.seatlimit,
-                agelimit: parsedData.agelimit,
-                tuitionW: parsedData.tuitionW.toString(),
-                bookfeeW: parsedData.bookfeeW.toString(),
-                specialfeeW: parsedData.specialfeeW.toString(),
-                tuitionH: parsedData.tuitionH.toString(),
-                bookfeeH: parsedData.bookfeeH.toString(),
-                specialfeeH: parsedData.specialfeeH.toString(),
-                lastmodify: toESTString(new Date()),
-                updateby: "admin", // user.user.name ?? user.user.email ?? "Unknown",
-            })
-            .where(eq(arrangement.arrangeid, parsedData.arrangeid))
-            .returning();
-
-        if (!updated || updated.length === 0) {
-            throw new Error("Unknown DB error occurred with class update");
-        }
-
-        return updated[0];
     })
+}
+
+export async function getSubClassrooms(regclassid: number) {
+    const classrooms = await db.query.classes.findMany({
+        where: (c, { eq }) => eq(c.gradeclassid, regclassid)
+    });
+
+    return classrooms
 }
 
 // TODO: Change based on new format
@@ -639,6 +654,56 @@ export async function registerClass(arrData: uiClasses, season: InferSelectModel
     })
 }
 
+export async function dropRegistration(regid: number, orgTuition: number) {
+    await db.transaction(async (tx) => {
+        const reg = await tx.query.classregistration.findFirst({
+            where: (r, { eq }) => eq(r.regid, regid),
+            with: {
+                season: { }
+            }
+        });
+        if (!reg) {
+            throw new Error("Registration not found");
+        }
+        // 3 possibilities
+        // 1. Delete the reg
+        // 2. Drop out
+        // 3. Refund 
+        // If after cancel deadline, drop out. If before, delete and refund
+        const pastCancel = new Date(toESTString(new Date())) >= new Date(reg.season.canceldeadline);
+        if (pastCancel) {
+            await tx
+                .update(classregistration)
+                .set({
+                    statusid: 4, // Dropout. Check validity of this
+                    previousstatusid: reg.statusid
+                })
+                .where(eq(classregistration.regid, regid))
+            // No refund :(
+        } else {
+            await tx
+                .delete(classregistration)
+                .where(eq(classregistration.regid, regid));
+            const orgBalance = await tx.query.familybalance.findFirst({
+                where: (fb, { and, eq }) => and(eq(fb.familyid, reg.familyid), eq(fb.seasonid, reg.seasonid))
+            });
+            // Paranoia 
+            if (!orgBalance) {
+                throw new Error("Original family balance corresponding to this registration was not found");
+            }
+
+            await tx 
+                .update(familybalance)
+                .set({
+                    tuition: (Number(orgBalance.tuition) - orgTuition).toString(),
+                    totalamount: (Number(orgBalance.totalamount) - orgTuition).toString()
+                })
+                .where(and(eq(familybalance.familyid, reg.familyid), eq(familybalance.seasonid, reg.seasonid)));
+        }
+        revalidatePath("/admintest/management/semester");
+        revalidatePath("/dashboard/classes");
+    })
+}
 
 export async function getSelectOptions() {
     const teachers = await db.query.teacher.findMany({
@@ -825,7 +890,44 @@ export async function registerControls(data: z.infer<typeof seasonRegSettingsSch
     })
 }
 
+export async function applyCheck(data: z.infer<typeof checkApplySchema>, family: familyObject) {
+    const parsed = checkApplySchema.parse(data);
+    await db.transaction(async (tx) => {
+        const fb = await tx.query.familybalance.findFirst({
+            where: (fb, { and, eq }) => and(eq(fb.familyid, family.familyid), eq(fb.balanceid, parsed.balanceid))
+        })
+        if (!fb) {
+            throw new Error("No family balance found")
+        }
+        const [updated] = await tx
+            .update(familybalance)
+            .set({
+                checkno: parsed.checkNo,
+                totalamount: (Number(fb.totalamount) - parsed.amount).toString(),
+                tuition: (Number(fb.tuition) - parsed.amount).toString()
+            })
+            .where(eq(familybalance.balanceid, fb.balanceid)).returning();
+            
+        const classreg = await tx.query.classregistration.findFirst({
+            where: (cr, { eq }) => and(eq(cr.familyid, family.familyid), eq(cr.seasonid, fb.seasonid))
+        });
 
+        if (!classreg) {
+            throw new Error("Cannot find corresponding registrations");
+        }
+
+        await tx
+            .update(classregistration)
+            .set({
+                statusid: 2,
+                previousstatusid: classreg.statusid,
+                familybalanceid: fb.balanceid
+            })
+            .where(eq(classregistration.regid, classreg.regid));
+
+        revalidatePath(`admintest/management/${fb.familyid}`);
+    })
+}
 
 // FAmily stuff and student stuff
 export async function createStudent(data: z.infer<typeof studentSchema>, familyid: number) {

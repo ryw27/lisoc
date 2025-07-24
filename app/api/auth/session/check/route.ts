@@ -1,5 +1,5 @@
 import { db } from "@/app/lib/db";
-import { auth } from "@/app/lib/auth";
+import { auth } from "@/app/lib/auth-lib/auth";
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 

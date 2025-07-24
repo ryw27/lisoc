@@ -1,0 +1,20 @@
+import { db } from "@/app/lib/db"
+import { seasons } from "@/app/lib/db/schema"
+import { eq } from "drizzle-orm"
+
+export default async function SemestersPage() {
+    const semesters = await db
+        .select()
+        .from(seasons)
+        .where(eq(seasons.status, "Active"))
+        .limit(1)
+        .execute()
+
+
+    return (
+        <div>
+            <h1>Semesters</h1>
+            <pre>{JSON.stringify(semesters, null, 2)}</pre>
+        </div>
+    )
+}

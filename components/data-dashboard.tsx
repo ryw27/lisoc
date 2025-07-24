@@ -1,4 +1,4 @@
-import DataTable from "@/components/data-table";
+import DataTable from "@/components/data-table/data-table";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import HorizontalNav from "./horizontal-nav";

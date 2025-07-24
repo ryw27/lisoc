@@ -4,9 +4,8 @@ import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import SemesterView from "../components/sem-view";
 import { getSelectOptions, Transaction } from "@/app/lib/semester/sem-actions";
-import { type fullArrData, type studentView, type fullSemClassesData, fullClassStudents } from "@/app/lib/semester/sem-schemas";
+import { type studentView, type fullSemClassesData, fullClassStudents, fullRegClass } from "@/app/lib/semester/sem-schemas";
 import { InferSelectModel } from "drizzle-orm";
-import { updateArrangement, addArrangement } from "@/app/lib/semester/sem-actions";
 import { arrangement, classregistration, seasons, student } from "@/app/lib/db/schema";
 
 
@@ -45,15 +44,23 @@ export default async function SemesterPage() {
     } 
 
     if (active.length !== 2) {
-        throw new Error("Active seasons must be 3");
+        throw new Error("Active seasons must be 2");
     }
 
     const { year, sem } = { year: active[0], sem: active[1] };
 
     const relatedSeason = await db.query.seasons.findFirst({
         where: (season, { eq }) => eq(season.seasonid, year.relatedseasonid),
-        columns: { startdate: true }
     });
+
+    if (!relatedSeason) {
+        throw new Error("No spring semester");
+        return (
+            <div>
+                Error occured. Please report.
+            </div>
+        )
+    }
 
     const isSpring = relatedSeason?.startdate
         ? new Date(relatedSeason.startdate).getTime() <= Date.now()
@@ -63,7 +70,7 @@ export default async function SemesterPage() {
     // All reg classes for the year, both full, fall, and spring
     const classData = await db.query.arrangement.findMany({
         where: (arr, { and, or, eq }) => and(
-            or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, sem.seasonid)),
+            or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, sem.seasonid), eq(arr.seasonid, relatedSeason.seasonid)),
             eq(arr.isregclass, true)
         ),
         orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
@@ -112,7 +119,6 @@ export default async function SemesterPage() {
 
     // Get student view data and transform into data table form
     const getStudentsAndClassrooms = async (regClass: InferSelectModel<typeof arrangement>): Promise<fullClassStudents & { classrooms: fullClassStudents[] }> => {
-        // 
         // Get the students who have registered. These are attached to regclasses like 3R because of how we queried for classData 13 lines up.
         // This is done pre or post dispersal. All registrations are first sent to R classes.
         return await db.transaction(async (tx) => {
@@ -191,13 +197,12 @@ export default async function SemesterPage() {
                 arrinfo: regClass,
                 students: regStudentView,
                 classrooms: studentsofClasses
-            } satisfies fullClassStudents & { classrooms: fullClassStudents[]}
+            } satisfies fullRegClass
 
             return dataview;
         })
 
     }
-    console.log(classData);
 
     // Fetch all student data upfront
     const classDataWithStudents: fullSemClassesData = await Promise.all(
@@ -207,18 +212,18 @@ export default async function SemesterPage() {
         })
     );
 
-    console.log(classDataWithStudents);
+    // console.log(classDataWithStudents);
 
     const { options, idMaps } = await getSelectOptions();
 
+    const threeTerms = { year: year, fall: sem, spring: relatedSeason }
+
     return (
         <SemesterView 
-            season={year}
-            fullSemClassData={classDataWithStudents}
+            academicYear={threeTerms}
+            fullData={classDataWithStudents}
             selectOptions={options}
             idMaps={idMaps}
-            insertArr={addArrangement}
-            updateArr={updateArrangement}
         />
     )
 }

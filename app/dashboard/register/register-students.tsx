@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
-import { arrangement, classregistration, family, familybalance, student } from "@/app/lib/db/schema"
+import { arrangement, classregistration, family, student } from "@/app/lib/db/schema"
 import { InferSelectModel } from "drizzle-orm"
-import { IdMaps, selectOptions, threeSeason, type uiClasses } from "@/app/lib/semester/sem-schemas"
+import { IdMaps, newRegSchema, threeBalances, type threeSeason, type uiClasses } from "@/app/lib/semester/sem-schemas"
 import { 
     Select, 
     SelectContent, 
@@ -20,7 +20,6 @@ import RegTable from "../components/reg-table";
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[]
-    totalBalance: number  
     family: InferSelectModel<typeof family>
     students: InferSelectModel<typeof student>[]
     registerSpring: boolean
@@ -28,9 +27,8 @@ type RegStudentProps = {
     fallArrs: InferSelectModel<typeof arrangement>[]
     yearArrs: InferSelectModel<typeof arrangement>[]
     springArrs: InferSelectModel<typeof arrangement>[]
-    selectOptions: selectOptions
     idMaps: IdMaps
-    balances: InferSelectModel<typeof familybalance>[]
+    balances: threeBalances
 }
 
 // For reference
@@ -71,7 +69,6 @@ const removePeriod = (current: { first: number, second: number }, period: number
 
 export default function RegisterStudent({
     registrations,
-    totalBalance,
     family,
     students,
     registerSpring,
@@ -79,7 +76,6 @@ export default function RegisterStudent({
     fallArrs,
     yearArrs,
     springArrs,
-    selectOptions,
     idMaps,
     balances
 }: RegStudentProps) {
@@ -121,33 +117,6 @@ export default function RegisterStudent({
         }
         return []
     }
-    const newRegSchema = z.object({
-        studentid: z.coerce.number().min(0),
-        registeredClasses: z.array(
-            z.object({
-                seasonid: z.number().int().optional(),
-                arrid: z.number().int().optional()
-            }).refine(
-                v =>
-                    (v.seasonid === undefined && v.arrid === undefined) ||
-                    (v.seasonid !== undefined && v.arrid !== undefined),
-                {
-                    message: "Both season and class must be provided",
-                }
-            )
-        )
-    }).transform(({ studentid, registeredClasses}) => ({
-        studentid,
-        registeredClasses: registeredClasses.filter(
-            (s): s is { seasonid: number; arrid: number } =>
-                typeof s.seasonid === "number" && typeof s.arrid === "number"
-        ),
-    })).refine(
-        data => 
-            data.registeredClasses.length >= 1 && 
-            data.registeredClasses.length <= 3,
-            { message: "Pick 1 - 3 classes" }
-    );
 
     const regForm = useForm({
         resolver: zodResolver(newRegSchema),
@@ -219,17 +188,21 @@ export default function RegisterStudent({
             for (let i = 0; i < formData.registeredClasses.length; i++) {
                 let classSeason;
                 let arrangementData;
+                let balanceData;
                 if (formData.registeredClasses[i].seasonid === season.year.seasonid) {
                     classSeason = season.year;
                     arrangementData = yearArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
+                    balanceData = balances.year;
                 } else if (formData.registeredClasses[i].seasonid === season.fall.seasonid) {
                     classSeason = season.fall;
                     arrangementData = fallArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
+                    balanceData = balances.fall;
                 } else {
                     classSeason = season.spring;
                     arrangementData = springArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
+                    balanceData = balances.spring;
                 }
-                await registerClass(arrangementData as uiClasses, classSeason, family, formData.studentid);
+                await registerClass(arrangementData as uiClasses, classSeason, balanceData, family, formData.studentid);
             }
         } catch (err) {
             console.error("Registration submission error: ", err);
@@ -372,6 +345,20 @@ export default function RegisterStudent({
         )
     }
 
+    const calculateTotal = () => {
+        return Number(balances.year?.totalamount || 0) + Number(balances.fall?.totalamount || 0) + Number(balances.spring?.totalamount || 0);
+    //     return Number(balance.childnumRegfee)
+    //         + Number(balance.regfee) 
+    //         - Number(balance.earlyregdiscount) 
+    //         + Number(balance.lateregfee)
+    //         + Number(isNewFamily ? balance.extrafee4newfamily : 0)
+    //         + Number(balance.managementfee)
+    //         + Number(balance.dutyfee)
+    //         + Number(balance.cleaningfee)
+    //         + Number(balance.otherfee)
+    //         + Number(balance.tuition)
+    // }
+    }
     return (
         <div className="flex flex-col">
             <form onSubmit={regForm.handleSubmit(onSubmit)} className="border-1 border-black p-4">
@@ -470,11 +457,11 @@ export default function RegisterStudent({
                 </div>
             </form>
             <div className="mt-5">
-                <RegTable registrations={registrations} idMaps={idMaps} students={students} season={season} balances={balances}/>
+                <RegTable registrations={registrations} idMaps={idMaps} students={students} season={season} balances={balances} fallArrs={fallArrs} yearArrs={yearArrs} springArrs={springArrs}/>
             </div>
             <div className="mt-5 flex self-end">
                 <p className="font-bold">
-                    Total Balance: {totalBalance}
+                    Total Balance: {calculateTotal()}
                 </p>
             </div>
         </div>

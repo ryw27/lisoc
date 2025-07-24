@@ -1,29 +1,34 @@
 import React from 'react';
 import SideNav from '@/components/sidenav';
-import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book } from 'lucide-react';
+import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book, Search } from 'lucide-react';
 import LogoutButton from '@/components/logout-button';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 import Header from '@/components/header';
 
-
+const beginlink = "/admintest"
 const navItems = [
     {
         header: "Management",
         items: [
             {
                 label: "Home",
-                href: ["/admintest/dashboard"],
+                href: [beginlink],
                 icon: <Home className="w-4 h-4 " />
             },
             {
                 label: "Semester Management",
-                href: ["/admintest/dashboard/management/semester"],
+                href: [`${beginlink}/management/semester`],
                 icon: <Calendar className="w-4 h-4" />
             },
             {
                 label: "Feedback",
-                href: ["/admintest/dashboard/management/feedback"],
+                href: [`${beginlink}/management/feedback`],
                 icon: <MessageCircle className="w-4 h-4" />
+            },
+            {
+                label: "Family Search",
+                href: [`${beginlink}/management/find-family`],
+                icon: <Search className="w-4 h-4" />
             }
         ],
     },
@@ -33,17 +38,17 @@ const navItems = [
         items: [
             {
                 label: "Billing", // Collect Money and payments, payment for this semester, processing refunds, family balance
-                href: ["/admintest/dashboard/accounting/billing"],
+                href: [`${beginlink}/accounting/billing`],
                 icon: <CreditCard className="w-4 h-4 " />
             }, 
             {
                 label: "Payments", // Invoices for this semester, creating fees owed to the school
-                href: ["/admintest/dashboard/accounting/payments"],
+                href: [`${beginlink}/accounting/payments`],
                 icon: <FileText className="w-4 h-4 " />
             },
             {
                 label: "Transaction Reports", // Comprehensive financial transactions, including analysis, payments, refunds, family balnaces, and school balances
-                href: ["/admintest/dashboard/accounting/transaction-reports"],
+                href: [`${beginlink}/accounting/transaction-reports`],
                 icon: <Receipt className="w-4 h-4 " />
             }, 
         ],
@@ -53,22 +58,22 @@ const navItems = [
         items: [ 
             {
                 label: "Class View",
-                href: ["/admintest/dashboard/data/classes", "/admintest/dashboard/data/classrooms"],
+                href: [`${beginlink}/data/classes`, `${beginlink}/data/classrooms`],
                 icon: <School className="w-4 h-4" />
             },
             {
                 label: "People View",
-                href: ["/admintest/dashboard/data/teachers", "/admintest/dashboard/data/students", "/admintest/dashboard/data/families", "/admintest/dashboard/data/administrators"],
+                href: [`${beginlink}/data/teachers`, `${beginlink}/data/students`, `${beginlink}/data/families`, `${beginlink}/data/administrators`],
                 icon: <Users className="w-4 h-4 " />
             },
             {
                 label: "Semester View",
-                href: ["/admintest/dashboard/data/semesters", "/admintest/dashboard/data/arrangements"],
+                href: [`${beginlink}/data/semesters`, `${beginlink}/data/arrangements`],
                 icon: <FaChalkboardTeacher className="w-4 h-4" />
             },
             {
                 label: "Transactions View",
-                href: ["/admintest/dashboard/data/transactions"],
+                href: [`${beginlink}/data/transactions`],
                 icon: <DollarSign className="w-4 h-4" />
             }
         ]
@@ -78,17 +83,17 @@ const navItems = [
         items: [
             {
                 label: "Settings",
-                href: ["/admintest/dashboard/settings"],
+                href: [`${beginlink}/settings`],
                 icon: <Settings className="w-4 h-4 " />
             },
             {
                 label: "Site Guide",
-                href: ["/admintest/dashboard/site-guide"],
+                href: [`${beginlink}/site-guide`],
                 icon: <Book className="w-4 h-4" />
             },
             {
                 label: "Logout",
-                href: ["/logout"],
+                href: [`${beginlink}/logout`],
                 icon: <LogoutButton />
             }
         ]

@@ -1,33 +1,66 @@
-import SessionManager from "@/components/session-manager";
-import { requireRole } from "../lib/actions";
-import ParentDashboard from "./components/parent-dashboard";
-import TeacherDashboard from "./components/teacher-dashboard";
+import { requireRole } from "@/app/lib/auth-lib/auth-actions"
+import { redirect } from "next/navigation";
+import { db } from "../lib/db";
+import { or } from "drizzle-orm";
 
 export default async function Dashboard() {
-    const parent = await requireRole(["PARENT"])
-    const teacher = await requireRole(["TEACHER"])
+    // Check if allowed here.
+    const auth = await requireRole(["FAMILY"], { redirect: false });
+    if (!auth) {
+        redirect("/forbidden");
+    }
+
+    const userInfo = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, auth.user.email as string)
+    })
+
+
+    if (!userInfo) {
+        redirect("/forbidden")
+    }
+
+    const familyInfo = await db.query.family.findFirst({
+        where: (family, { eq }) => eq(family.userid, userInfo.id)
+    })
+
+    if (!familyInfo) {
+        redirect("/forbidden");
+    }
+    
     
     return (
-        <SessionManager requireRole={["TEACHER", "PARENT", "STUDENT"]}>
-            <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground">
-                        Welcome to your dashboard.
-                    </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-md shadow-sm border border-gray-200">
-                    {teacher && <TeacherDashboard />}
-                    {parent && <ParentDashboard />}
-                    {!teacher && !parent && (
-                        <div className="text-center py-8">
-                            <h2 className="text-lg font-medium mb-2">Welcome to your dashboard</h2>
-                            <p className="text-gray-500">Your personalized content will appear here.</p>
+        <div className="flex flex-col space-y-2 container mx-auto w-full">
+            <h1 className="">User Info</h1>
+            {userInfo && Object.entries(userInfo).map(([key, value]) => {
+                return (
+                    key !== "password" && (
+                        <div key={key} className="flex gap-2">
+                            <label className="font-bold">
+                                {key}
+                            </label>
+                            <div className="">
+                                {value}
+                            </div>
                         </div>
-                    )}
-                </div>
-            </div>
-        </SessionManager>
+                    )
+                )                
+            })}
+            <h1 className="">User Info</h1>
+            {familyInfo && Object.entries(familyInfo).map(([key, value]) => {
+                return (
+                    key !== "password" && (
+                        <div key={key} className="flex gap-2">
+                            <label className="font-bold">
+                                {key}
+                            </label>
+                            <div className="">
+                                {value}
+                            </div>
+                        </div>
+                    )
+                )                
+            })}
+ 
+        </div>
     );
 }

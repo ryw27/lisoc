@@ -21,6 +21,7 @@ import {
 } from "@/app/lib/semester/sem-schemas";
 import { seasons } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
+import SemClassEditor from "./sem-class-editor";
 import { z } from "zod/v4";
 
 type semViewProps = {
@@ -35,55 +36,103 @@ export type fullSemDataID = fullRegID[]
 export type Action = 
     | { type: "hydrate", classes: fullSemDataID}
     | { type: "reg/add", regDraft: fullRegID }
-    | { type: "reg/update", id: string, next: fullRegID }
+    | { type: "reg/update", id: string, next: Partial<uiClasses> }
     | { type: "reg/remove", id: string }
-    | { type: "class/add", id: string, roomDraft: Partial<uiClasses>}
+    | { type: "class/add", id: string, roomDraft: Partial<uiClasses> }
     | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> }
     | { type: "class/remove", id: string, arrangeid: number }
 
 
 const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"]
 
-function reducer(state: fullSemDataID, action: Action) {
+function reducer(state: fullSemDataID, action: Action): fullSemDataID {
     switch (action.type) {
         case "hydrate":
             return action.classes;
         case "reg/add": 
             return [...state, { ...action.regDraft }];
-        case "reg/update":
-            const newRegClass = action.next;
-            newRegClass.classrooms.map((c) => {
-                // For each classroom, set fields from newRegClass.arrinfo if not in CLASS_UNIQUE_FIELDS
-                const newC = {
-                    ...c,
+        case "reg/update": {
+            // Only update non-unique fields for all classrooms in the reg class
+            return state.map((regClass) => {
+                if (regClass.id !== action.id) return regClass;
+                const nonUniqueUpdates = Object.fromEntries(
+                    Object.entries(action.next ?? {}).filter(
+                        ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                    )
+                );
+                return {
+                    ...regClass,
                     arrinfo: {
-                        ...c.arrinfo,
-                        ...Object.fromEntries(
-                            Object.entries(newRegClass.arrinfo).filter(
-                                ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
-                            )
-                        ),
-                    }
-                }
-                return newC;
-            })
-            return state.map((c) => (c.id === action.id ? newRegClass : c));
+                        ...regClass.arrinfo,
+                        ...nonUniqueUpdates,
+                    },
+                    classrooms: regClass.classrooms.map((classroom) => ({
+                        ...classroom,
+                        arrinfo: {
+                            ...classroom.arrinfo,
+                            ...nonUniqueUpdates,
+                        },
+                    })),
+                };
+            });
+        }
         case "reg/remove":
             return state.filter((c) => c.id !== action.id);
         case "class/add":
-            return state.map((c) => (c.id === action.id ? {...c, classrooms: [...c.classrooms, action.roomDraft]} : c));
+            return state.map((regClass) =>
+                regClass.id === action.id
+                    ? {
+                        ...regClass,
+                        classrooms: [
+                            ...regClass.classrooms,
+                            {
+                                arrinfo: {
+                                    ...Object.fromEntries(
+                                        Object.entries(regClass.arrinfo).filter(
+                                            ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                                        )
+                                    ),
+                                    ...Object.fromEntries(
+                                        Object.entries(action.roomDraft).filter(
+                                            ([key]) => CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                                        )
+                                    ) as any,
+                                },
+                                students: [],
+                            }
+                        ]
+                    }
+                    : regClass
+            );
         case "class/update":
-            const regClass = state.find((c) => c.id === action.id);
-            if (!regClass) throw new Error("Unable to find class in class/add dispatch action");
-            regClass.classrooms.map((c) => {
-                c.arrinfo.arrangeid === action.arrangeid ? {
-                    ...c.arrinfo,
-                    ...action.update
-                } : c
-            })
-            return state.map((c) => (c.id === action.id ? regClass : c));
+            return state.map((regClass) => {
+                if (regClass.id !== action.id) return regClass;
+                return {
+                    ...regClass,
+                    classrooms: regClass.classrooms.map((classroom) =>
+                        classroom.arrinfo.arrangeid === action.arrangeid
+                            ? {
+                                ...classroom,
+                                arrinfo: {
+                                    ...classroom.arrinfo,
+                                    ...action.update,
+                                },
+                            }
+                            : classroom
+                    ),
+                };
+            });
         case "class/remove":
-            return state.map((c) => (c.id === action.id ? {...c, classrooms: c.classrooms.filter((c) => c.arrinfo.arrangeid !== action.arrangeid)} : c));
+            return state.map((regClass) =>
+                regClass.id === action.id
+                    ? {
+                        ...regClass,
+                        classrooms: regClass.classrooms.filter(
+                            (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
+                        ),
+                    }
+                    : regClass
+            );
         default:
             return state;
     }
@@ -105,9 +154,9 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
 
 
     const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic' | 'all'>('all');
+    const [adding, setAdding] = useState<boolean>(false);
 
     const { year, fall, spring } = academicYear;
-    console.log(year.seasonid, fall.seasonid, spring.seasonid);
 
     // Filter classes based on current view, but return with original indices
     const getFilteredClassesWithIndices = () => {
@@ -206,9 +255,6 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         </div>
     }
 
-    const addClass = () => {
-        console.log("Adding class");
-    }
 
     return (
         <SeasonOptionContext.Provider value={{ seasons: academicYear, selectOptions: selectOptions, idMaps: idMaps}}>
@@ -259,16 +305,23 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                         />
                     ))}
 
-                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={addClass}>
+                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={() => setAdding(true)}>
                         <PlusIcon className="w-4 h-4" /> Add Class (TODO)
                     </button>
-                    {/* {adding && 
+                    {adding && 
                         <SemClassEditor
-                            editClass={(data) => insertArr(data, season)}
-                            idx={-1}
+                            uuid="ADDING"
+                            initialData={{
+                                id: "ADDING",
+                                arrinfo: {} as uiClasses,
+                                students: [],
+                                classrooms: []
+                            } satisfies fullRegID}
+                            dispatch={dispatch}
+                            endEdit={() => setAdding(false)}
                         />
 
-                    } */}
+                    }
                 </div>
             </div>
         </SeasonOptionContext.Provider>

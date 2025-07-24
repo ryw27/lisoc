@@ -1,47 +1,56 @@
 import RegisterButton from "./register-button"
-import { draftClasses } from "@/app/lib/semester/sem-schemas"
-import { studentObject } from "@/app/admintest/dashboard/data/(people-pages)/students/student-helpers";
-import { classregistration, seasons } from "@/app/lib/db/schema";
-import { registerClass } from "@/app/lib/semester/sem-actions";
-import { InferSelectModel } from "drizzle-orm";
+import { type threeSeason, type uiClasses } from "@/app/lib/semester/sem-schemas"
+import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
+import { classregistration } from "@/app/lib/db/schema";
+import { getSelectOptions, registerClass } from "@/app/lib/semester/sem-actions";
+import { familyObject } from "@/app/admintest/data/(people-pages)/families/family-helpers";
 
 
 
-export default function RegClassBox({ classData, students, season }: { classData: draftClasses, students: studentObject[], season: InferSelectModel<typeof seasons> }) {
+export default async function RegClassBox({ classData, students, season, family }: { classData: uiClasses, students: studentObject[], season: threeSeason, family: familyObject }) {
+    // TODO: More efficient here?
+    const { options, idMaps } = await getSelectOptions();
 
-    const regSpecificClass = async (student: string) => {
+    const regSpecificClass = async (studentid: number) => {
         "use server";
-        const sid = students.filter(obj => obj.namecn === student);
-        if (sid.length > 1 || sid.length <= 0) throw new Error("Invalid student names");
-        const regObject = {
-            studentid: sid[0].studentid,
-            arrangeid: classData.arrangeid,
-            seasonid: classData.season.seasonid,
-            isyearclass: true,
-            classid: classData.class.classid,
-            registerdate: new Date(Date.now()).toISOString(),
-            statusid: 1, // "Submitted"
-            previousstatusid: null,
-            familybalanceid: 1, // TODO: how to find this? Needs a placeholder
-            familyid: students[0].familyid,
-            newbalanceid: 5, // TODO: huh?
-            isdropspring: false,
-            byadmin: false,
-            userid: "idk" // TODO: how to get this?
-        } satisfies typeof classregistration.$inferInsert;
+        let insertSeasonID = season.year.seasonid;
+        let seasonidx = "year";
+        if (classData.seasonid === season.spring.seasonid) {
+            insertSeasonID = season.spring.seasonid;
+            seasonidx = "spring";
+        } else if (classData.seasonid === season.fall.seasonid) {
+            insertSeasonID = season.fall.seasonid;
+            seasonidx = "fall";
+        }
 
-        await registerClass(regObject, classData, season);
+        // const regObject = {
+        //     studentid: studentid,
+        //     arrangeid: classData.arrangeid,
+        //     seasonid: insertSeasonID,
+        //     isyearclass: true,
+        //     classid: classData.classid,
+        //     registerdate: new Date(Date.now()).toISOString(),
+        //     statusid: 1, // "Submitted"
+        //     familybalanceid: 1, // Needs a placeholder
+        //     familyid: family.familyid,
+        //     isdropspring: false,
+        //     byadmin: false,
+        // } satisfies typeof classregistration.$inferInsert;
+
+
+        // Try catch in the original page
+        await registerClass(classData, season[seasonidx as keyof threeSeason], family, studentid);
     }
 
     return (
         <div className="flex gap-6 p-2">
             <div className="flex flex-col">
                 <label className="font-bold text-gray-400">Class Name</label>
-                <p className="font-bold">{classData.class.classnamecn}</p>
+                <p className="font-bold">{idMaps.classMap[classData.classid].classnamecn}</p>
             </div>
             <div className="flex flex-col">
                 <label className="font-bold text-gray-400">Teacher</label>
-                <p className="font-bold">{classData.teacher.namecn}</p>
+                <p className="font-bold">{idMaps.teacherMap[classData.teacherid].namecn}</p>
             </div>
             <div>
                 <label className="font-bold text-gray-400">Fee</label>

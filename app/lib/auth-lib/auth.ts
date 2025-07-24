@@ -6,18 +6,20 @@ import bcrypt from "bcrypt"
 import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
 import { credSchema, loginSchema } from "./auth-schema"
-import { JWT } from "next-auth/jwt";
 import authConfig from "@/auth.config"
+import { JWT } from "next-auth/jwt"
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
     interface User { 
         role: "ADMIN" | "TEACHER" | "FAMILY"
+        userid: string;
     } 
 
     interface Session {
         user: {
             role: User["role"]
+            userid: User["userid"]
         } & DefaultSession["user"]
     }
 }
@@ -25,6 +27,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
     interface JWT { 
         role: "ADMIN" | "TEACHER" | "FAMILY"
+        userid: string; 
     }
 }
 
@@ -66,9 +69,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         where: (users, { eq }) =>
                             isEmail
                                 ? eq(users.email, emailUsername)
-                                : eq(users.username, emailUsername),
+                                : eq(users.name, emailUsername),
                     });
-                    if (!result || !result.emailVerified || !result.roles.includes("ADMIN")) {
+                    if (!result || !result.emailVerified || !result.roles.includes("ADMINUSER")) {
                         return null;
                     }
 
@@ -76,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, adminuser.password);
                     if (!valid) return null;
                     
-                    return { id: adminuser.id.toString(), email: adminuser.email || "", username: adminuser.username || "", role: "ADMIN" };
+                    return { userid: adminuser.id.toString(), email: adminuser.email || "", username: adminuser.name || "", role: "ADMIN" };
                 } else {
                     return null;
                 }
@@ -114,7 +117,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         where: (users, { eq }) =>
                             isEmail
                                 ? eq(users.email, emailUsername)
-                                : eq(users.username, emailUsername),
+                                : eq(users.name, emailUsername),
                     });
                     if (!result || !result.emailVerified || !result.roles.includes("TEACHER")) {
                         return null;
@@ -124,7 +127,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, teacheruser.password);
                     if (!valid) return null;
                     
-                    return { id: teacheruser.id.toString(), email: teacheruser.email || "", username: teacheruser.username || "", role: "TEACHER" };
+                    return { userid: teacheruser.id.toString(), email: teacheruser.email || "", username: teacheruser.name || "", role: "TEACHER" };
                 } else {
                     return null;
                 }
@@ -162,9 +165,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         where: (users, { eq }) =>
                             isEmail
                                 ? eq(users.email, emailUsername)
-                                : eq(users.username, emailUsername),
+                                : eq(users.name, emailUsername),
                     });
-                    if (!result || !result.emailVerified) { //|| !result.roles.includes("FAMILY")) {
+                    if (!result || !result.emailVerified || !result.roles.includes("FAMILY")) {
                         return null;
                     }
 
@@ -172,7 +175,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, familyuser.password);
                     if (!valid) return null;
                     
-                    return { id: familyuser.id.toString(), email: familyuser.email || "", username: familyuser.username || "", role: "FAMILY" };
+                    return { userid: familyuser.id.toString(), email: familyuser.email || "", username: familyuser.name || "", role: "FAMILY" };
                 } else {
                     return null;
                 }
