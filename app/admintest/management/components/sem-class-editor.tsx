@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { 
     Select, 
     SelectItem, 
@@ -15,6 +15,7 @@ import { arrangementArraySchema, arrangementSchema, type uiClasses } from "@/app
 import { type Action, type fullRegID, SeasonOptionContext } from "./sem-view";
 import { addArrangement, updateArrangement, getSubClassrooms } from "@/app/lib/semester/sem-actions";
 import { cn } from "@/lib/utils";
+import { classObject } from "../../data/(class-pages)/classes/class-helpers";
 
 
 type semClassEditorProps = {
@@ -55,10 +56,36 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
 
     const { fields, append, remove, update } = useFieldArray({ control: editForm.control, name: "classrooms" })
 
+    // TODO: Uncomment when gradeclassid is ready
+    // const [childClasses, setChildClasses] = useState<classObject[]>([]);
+
+    // useEffect(() => {
+    //     let isMounted = true;
+    //     const fetchChildClasses = async () => {
+    //         if (initialData?.arrinfo?.classid) {
+    //             try {
+    //                 const result = await getSubClassrooms(initialData.arrinfo.classid);
+    //                 if (isMounted) setChildClasses(result);
+    //             } catch (err) {
+    //                 setChildClasses([]);
+    //             }
+    //         } else {
+    //             setChildClasses([]);
+    //         }
+    //     };
+    //     fetchChildClasses();
+    //     return () => { isMounted = false; };
+    // }, [initialData]);
+
+    const [childClasses, setChildClasses] = useState<number[]>([]);
+    useEffect(() => {
+        setChildClasses([1, 2, 4, 6, 8, 12]);
+    }, [])
+
     const onAddClassroom = async () => {
         const newIndex = fields.length;
         append({
-            classid: 1,
+            classid: childClasses[newIndex - 1], //.classid
             teacherid: 7,
             roomid: 59,
             seatlimit: 0,
@@ -74,8 +101,13 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
             closeregistration: fields[0].closeregistration,
             waiveregfee: fields[0].waiveregfee,
             isregclass: false,
-        })
+        });
         setClassEdited(newIndex);
+
+        // editForm.setValue(`classrooms.${newIndex}.classid`, childClasses[newIndex - 1], {
+        //     shouldDirty: true,
+        //     shouldValidate: true,
+        // });
     }
 
     const onSubmit = async (formData: z.infer<typeof arrangementArraySchema>) => {
@@ -90,7 +122,6 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                 if (Array.isArray(dirtyClassrooms)) {
                     dirtyClassrooms.map((c, idx) => {
                         if (formData.classrooms[idx].isregclass && c) {
-                            console.log("changing");
                             // Convert numeric tuition fields to strings for uiClasses type
                             const convertedData = {
                                 ...formData.classrooms[idx],
@@ -102,7 +133,6 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                                 bookfeeH: formData.classrooms[idx].bookfeeH?.toString() || null,
                             };
                             dispatch({ type: "reg/update", id: uuid, next: convertedData});
-                            console.log("changed");
                         } else {
                             if (c.seatlimit || c.teacherid || c.roomid) {
                                 const convertedUpdate = {
@@ -193,9 +223,19 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     }
 
     // Roomid, teacherid, classid, notes are unique to each classroom. The rest are shared and are received from the initial data to ensure consistency.
+    const seatLimitSum = fields.slice(1).reduce(
+        (sum, classroom) => sum + (Number(classroom.seatlimit) || 0),
+        0
+    );
+
+    // Update reg class seat limit when other classroom limits change
+    useEffect(() => {
+        editForm.setValue(`classrooms.0.seatlimit`, seatLimitSum);
+    }, [seatLimitSum, classEdited, editForm]);
+
     const getDefaultValue = (key: keyof uiClasses) => {
         if (key === "seatlimit") {
-            return classEdited === 0 ? seatLimitSum : (fields[classEdited] as unknown as uiClasses)?.seatlimit?.toString() || "0";
+            return classEdited === 0 ? seatLimitSum.toString() : (fields[classEdited] as unknown as uiClasses)?.seatlimit?.toString() || "0";
         }
         if (key !== "roomid" && key !== "teacherid" && key !== "classid" && key !== "notes") {
             return (fields[0] as unknown as uiClasses)?.[key]?.toString() || "0";
@@ -210,13 +250,8 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     const arrInfo = isEmptyObject(initialData.arrinfo) ? null : initialData.arrinfo || null;
 
     const classrooms = initialData.classrooms || null
-    const seatLimitSum = initialData.classrooms.reduce(
-        (sum, classroom) => sum + (classroom.arrinfo.seatlimit ?? 0),
-        0
-    ) ?? 0;
 
-    console.log(fields);
-    console.log(classEdited);
+
     return (
         <div className="mt-2 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <button
@@ -230,308 +265,365 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                 Add Classroom
             </button>
             <form className="mt-2" onSubmit={editForm.handleSubmit(onSubmit)} >
-                <label className="block text-sm text-gray-400 font-bold mb-2">Class Name </label>
-                <Controller
-                    name={`classrooms.${classEdited}.classid`}
-                    control={editForm.control}
-                    render={({ field }) => (
-                        <Select
-                            required
-                            aria-required
-                            value={field.value !== undefined ? `${field.value}, ${classEdited}` : undefined}
-                            onValueChange={(value) => {
-                                 const [classid, index] = value.split(", ");
-                                 console.log("Values: ", classid, index);
-                                 field.onChange(Number(classid));
-                                 setClassEdited(Number(index));
-                             }}
-                        >
-                            <SelectTrigger className="w-full border rounded p-1">
-                                <SelectValue placeholder="Select a class" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[200px] overflow-y-auto">
-                                {uuid !== "ADDING" ? (
-                                    <>
-                                        {fields.map((obj, index) => {
-                                            const field = obj as z.infer<typeof arrangementSchema>;
-                                            return (
-                                                <SelectItem key={obj.id} value={`${field.classid}, ${index}`}>
-                                                    {classMap[field.classid].classnamecn}
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </>
-                                ) : (
-                                    <>
-                                        {selectOptions.classes.map((obj) => (
-                                            <SelectItem key={obj.classid} value={`${obj.classid}, 0`}>
-                                                {classMap[obj.classid].classnamecn}
-                                            </SelectItem>
-                                        ))}
-                                    </>
+                {/* Field selector */}
+                <div className="mb-4">
+                    <label className="block text-sm text-gray-400 font-bold mb-2">Select Field to Edit:</label>
+                    <div className="flex gap-2 flex-wrap">
+                        {fields.map((field, idx) => (
+                            <button
+                                key={field.id}
+                                type="button"
+                                onClick={() => setClassEdited(idx)}
+                                className={cn(
+                                    "px-3 py-1 rounded text-sm font-medium transition-colors",
+                                    classEdited === idx
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 )}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-
-                {classEdited !== 0 && (
-                    <>
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Teacher</label>
-                        <Controller
-                            name={`classrooms.${classEdited}.teacherid`}
-                            control={editForm.control}
-                            render={({ field }) => (
-                                <Select required aria-required value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select a teacher" />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-[200px] overflow-y-auto">
-                                        {selectOptions.teachers.map((obj: { teacherid: number; namecn: string | null}) => (
-                                            <SelectItem key={obj.teacherid} value={obj.teacherid.toString()}>{obj.namecn}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </>
-                )}
-
-                {classEdited !== 0 && (
-                    <>
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Classroom</label>
-                        <Controller
-                            name={`classrooms.${classEdited}.roomid`}
-                            control={editForm.control}
-                            render={({ field }) => (
-                                <Select required aria-required value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select a classroom" />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-[200px] overflow-y-auto">
-                                        {selectOptions.rooms.map((obj: { roomid: number; roomno: string }) => (
-                                            <SelectItem key={obj.roomid} value={obj.roomid.toString()}>{obj.roomno}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </>
-                )}
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Seat Limit</label>
-                <Input
-                    type="number"
-                    required
-                    aria-required
-                    {...editForm.register(`classrooms.${classEdited}.seatlimit`)}
-                    defaultValue={getDefaultValue("seatlimit")}
-                    disabled={classEdited === 0}
-                    className={cn(`border rounded p-1 ${classEdited === 0 ? "cursor-disabled" : ""}`)}
-                />
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Tuition (Whole Year)</label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.tuitionW`)}
-                    disabled={classEdited !== 0}
-                    required
-                    aria-required
-                    defaultValue={getDefaultValue("tuitionW")}
-                    className="border rounded p-1"
-                />
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Book Fee (Whole Year)</label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.bookfeeW`)}
-                    defaultValue={getDefaultValue("bookfeeW")}
-                    disabled={classEdited !== 0}
-                    required
-                    aria-required
-                    className="border rounded p-1"
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee Year (Whole Year) </label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.specialfeeW`)}
-                    defaultValue={getDefaultValue("specialfeeW")}
-                    disabled={classEdited !== 0}
-                    required
-                    aria-required
-                    className="border rounded p-1"
-                />
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Tuition (Half Year)</label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.tuitionH`)}
-                    defaultValue={getDefaultValue("tuitionH")}
-                    disabled={classEdited !== 0}
-                    required
-                    aria-required
-                    className="border rounded p-1"
-                />
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Book Fee (Half Year)</label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.bookfeeH`)}
-                    defaultValue={getDefaultValue("bookfeeH")}
-                    disabled={classEdited !== 0}
-                    required
-                    aria-required
-                    className="border rounded p-1"
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee (Half Year) </label>
-                <Input
-                    type="number" 
-                    {...editForm.register(`classrooms.${classEdited}.specialfeeH`)}
-                    defaultValue={getDefaultValue("specialfeeH")}
-                    disabled={classEdited !== 0}
-                    className="border rounded p-1"
-                />
-
-
-                <label className="block text-sm text-gray-400 font-bold mb-2">Age Limit</label>
-                <Input
-                    type="number" 
-                    required
-                    aria-required
-                    {...editForm.register(`classrooms.${classEdited}.agelimit`)}
-                    defaultValue={getDefaultValue("agelimit")}
-                    disabled={classEdited !== 0}
-                    className="border rounded p-1"
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Class Time</label>
-                <Controller
-                    name={`classrooms.${classEdited}.timeid`}
-                    control={editForm.control}
-                    render={({ field }) => (
-                        <Select
-                            required
-                            aria-required
-                            value={field.value?.toString() || "0"}
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            disabled={classEdited !== 0}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a time" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[200px] overflow-y-auto">
-                                {selectOptions.times.map((time: { timeid: number; period: string | null }) => (
-                                    <SelectItem key={time.timeid} value={time.timeid.toString()}>
-                                        {time.period}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Suitable Term</label>
-                <Controller
-                    name={`classrooms.${classEdited}.suitableterm`}
-                    control={editForm.control}
-                    render={({ field }) => (
-                        <Select
-                            required
-                            aria-required
-                            value={field.value?.toString() || "0"}
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            disabled={classEdited !== 0}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a time" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[200px] overflow-y-auto">
-                                {selectOptions.terms.map((term: { termno: number; suitableterm: string | null }) => (
-                                    <SelectItem key={term.termno} value={term.termno.toString()}>
-                                        {term.suitableterm}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Close Registration</label>
-                <Controller
-                    name={`classrooms.${classEdited}.closeregistration`}
-                    control={editForm.control}
-                    render={({ field }) => (
-                        <Select
-                            required
-                            aria-required
-                            value={field.value?.toString() || "false"}
-                            onValueChange={(value) => field.onChange(value === "true" ? true : false)}
-                            disabled={classEdited !== 0}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a time" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[200px] overflow-y-auto">
-                                <SelectItem key={"true-closeregistration"} value={"true"}>
-                                    Yes
-                                </SelectItem>
-                                <SelectItem key={"false-closeregistration"} value={"false"}>
-                                    No
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                <label className="block text-sm text-gray-400 font-bold mb-2">Waive Registration Fee</label>
-                <Controller
-                    name={`classrooms.${classEdited}.waiveregfee`}
-                    control={editForm.control}
-                    render={({ field }) => (
-                        <Select
-                            required
-                            aria-required
-                            value={field.value?.toString() || "false"}
-                            onValueChange={(value) => field.onChange(value === "true" ? true : false)}
-                            disabled={classEdited !== 0}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a time" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[200px] overflow-y-auto">
-                                <SelectItem key={"true-waiveregfee"} value={"true"}>
-                                    Yes
-                                </SelectItem>
-                                <SelectItem key={"false-waiveregfee"} value={"false"}>
-                                    No
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                <div className="flex justify-end mt-2 gap-2">
-                    <button
-                        type="button"
-                        onClick={endEdit}
-                        className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className={cn("bg-blue-600 text-sm text-white font-bold px-4 py-2 rounded-md", (!editForm.formState.isValid || editForm.formState.isSubmitting) ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer")}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                        }}
-                        type="submit"
-                        disabled={!editForm.formState.isValid || editForm.formState.isSubmitting}
-                    >
-                        {editForm.formState.isSubmitting ? "Saving..." : "Save"}
-                    </button>
-                </div>
-                {Object.keys(editForm.formState.errors).length > 0 && (
-                    <div className="mt-2 text-red-600 text-sm">
-                        {Object.entries(editForm.formState.errors).map(([field, error]) =>
-                            error && typeof error === "object" && "message" in error ? (
-                                <div key={field}>{(error as { message?: string }).message}</div>
-                            ) : null
-                        )}
+                            >
+                                {idx === 0 ? "Reg Class" : `Field ${idx}`} ({classMap[(field.classid as number)]?.classnamecn ?? `Class ${field.classid}`})
+                            </button>
+                        ))}
                     </div>
+                </div>
+
+                {fields.map((field, idx) =>
+                    idx === classEdited ? (
+                        <React.Fragment key={field.id}>
+                            {/* <label className="block text-sm text-gray-400 font-bold mb-2">
+                                Class Name {classEdited === 0 ? "(Reg Class)" : ""}
+                            </label>
+                            <Controller
+                                name={`classrooms.${idx}.classid`}
+                                control={editForm.control}
+                                render={({ field }) => (
+                                    <Select
+                                        required
+                                        aria-required
+                                        value={field.value?.toString()}
+                                        onValueChange={value => {
+                                            field.onChange(Number(value));
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full border rounded p-1">
+                                            <SelectValue placeholder="Select a class" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                                            {uuid !== "ADDING"
+                                                ? fields.map((obj) => (
+                                                    <SelectItem key={obj.id} value={(obj.classid as number).toString()}>
+                                                        {classMap[obj.classid as number]?.classnamecn ?? `Class ${obj.classid}`}
+                                                    </SelectItem>
+                                                ))
+                                                : selectOptions.classes.map((obj) => (
+                                                    <SelectItem key={obj.classid} value={obj.classid.toString()}>
+                                                        {classMap[obj.classid]?.classnamecn ?? `Class ${obj.classid}`}
+                                                    </SelectItem>
+                                                ))
+                                            }
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            /> */}
+                            {classEdited !== 0 && (
+                                <div className="flex flex-row gap-4 mb-4">
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-sm text-gray-400 font-bold mb-2">Teacher</label>
+                                        <Controller
+                                            name={`classrooms.${classEdited}.teacherid`}
+                                            control={editForm.control}
+                                            render={({ field }) => (
+                                                <Select
+                                                    required
+                                                    aria-required
+                                                    value={field.value?.toString()}
+                                                    onValueChange={value => field.onChange(Number(value))}
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Select a teacher" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                        {selectOptions.teachers.map((obj: { teacherid: number; namecn: string | null }) => (
+                                                            <SelectItem key={obj.teacherid} value={obj.teacherid.toString()}>
+                                                                {obj.namecn}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-sm text-gray-400 font-bold mb-2">Classroom</label>
+                                        <Controller
+                                            name={`classrooms.${classEdited}.roomid`}
+                                            control={editForm.control}
+                                            render={({ field }) => (
+                                                <Select
+                                                    required
+                                                    aria-required
+                                                    value={field.value?.toString()}
+                                                    onValueChange={value => field.onChange(Number(value))}
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Select a classroom" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                        {selectOptions.rooms.map((obj: { roomid: number; roomno: string }) => (
+                                                            <SelectItem key={obj.roomid} value={obj.roomid.toString()}>
+                                                                {obj.roomno}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <label className="block text-sm text-gray-400 font-bold mb-2">Seat Limit</label>
+                                <Input
+                                    type="number"
+                                    required
+                                    aria-required
+                                    disabled={classEdited === 0}
+                                    {...editForm.register(`classrooms.${classEdited}.seatlimit`)}
+                                    defaultValue={getDefaultValue("seatlimit")}
+                                    className={cn("border rounded p-1")}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 mb-2">
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Tuition (Whole Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.tuitionW`)}
+                                        disabled={classEdited !== 0}
+                                        required
+                                        aria-required
+                                        defaultValue={getDefaultValue("tuitionW")}
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Book Fee (Whole Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.bookfeeW`)}
+                                        defaultValue={getDefaultValue("bookfeeW")}
+                                        disabled={classEdited !== 0}
+                                        required
+                                        aria-required
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee (Whole Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.specialfeeW`)}
+                                        defaultValue={getDefaultValue("specialfeeW")}
+                                        disabled={classEdited !== 0}
+                                        required
+                                        aria-required
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mb-2">
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Tuition (Half Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.tuitionH`)}
+                                        defaultValue={getDefaultValue("tuitionH")}
+                                        disabled={classEdited !== 0}
+                                        required
+                                        aria-required
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Book Fee (Half Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.bookfeeH`)}
+                                        defaultValue={getDefaultValue("bookfeeH")}
+                                        disabled={classEdited !== 0}
+                                        required
+                                        aria-required
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                                <div className="w-1/3">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Special Fee (Half Year)</label>
+                                    <Input
+                                        type="number"
+                                        {...editForm.register(`classrooms.${classEdited}.specialfeeH`)}
+                                        defaultValue={getDefaultValue("specialfeeH")}
+                                        disabled={classEdited !== 0}
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 mb-2">
+                                <div className="w-1/2">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Age Limit</label>
+                                    <Input
+                                        type="number"
+                                        required
+                                        aria-required
+                                        {...editForm.register(`classrooms.${classEdited}.agelimit`)}
+                                        defaultValue={getDefaultValue("agelimit")}
+                                        disabled={classEdited !== 0}
+                                        className="border rounded p-1"
+                                    />
+                                </div>
+                                <div className="w-1/2">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Class Time</label>
+                                    <Controller
+                                        name={`classrooms.${classEdited}.timeid`}
+                                        control={editForm.control}
+                                        render={({ field }) => (
+                                            <Select
+                                                required
+                                                aria-required
+                                                value={field.value?.toString() || "0"}
+                                                onValueChange={(value) => field.onChange(Number(value))}
+                                                disabled={classEdited !== 0}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select a time" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    {selectOptions.times.map((time: { timeid: number; period: string | null }) => (
+                                                        <SelectItem key={time.timeid} value={time.timeid.toString()}>
+                                                            {time.period}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mb-2">
+                                <div className="w-1/2">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Close Registration</label>
+                                    <Controller
+                                        name={`classrooms.${classEdited}.closeregistration`}
+                                        control={editForm.control}
+                                        render={({ field }) => (
+                                            <Select
+                                                required
+                                                aria-required
+                                                value={field.value?.toString() || "false"}
+                                                onValueChange={(value) => field.onChange(value === "true" ? true : false)}
+                                                disabled={classEdited !== 0}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select a time" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    <SelectItem key={"true-closeregistration"} value={"true"}>
+                                                        Yes
+                                                    </SelectItem>
+                                                    <SelectItem key={"false-closeregistration"} value={"false"}>
+                                                        No
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </div>
+                                <div className="w-1/2">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Waive Registration Fee</label>
+                                    <Controller
+                                        name={`classrooms.${classEdited}.waiveregfee`}
+                                        control={editForm.control}
+                                        render={({ field }) => (
+                                            <Select
+                                                required
+                                                aria-required
+                                                value={field.value?.toString() || "false"}
+                                                onValueChange={(value) => field.onChange(value === "true" ? true : false)}
+                                                disabled={classEdited !== 0}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select a time" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    <SelectItem key={"true-waiveregfee"} value={"true"}>
+                                                        Yes
+                                                    </SelectItem>
+                                                    <SelectItem key={"false-waiveregfee"} value={"false"}>
+                                                        No
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            <label className="block text-sm text-gray-400 font-bold mb-2">Suitable Term</label>
+                            <Controller
+                                name={`classrooms.${classEdited}.suitableterm`}
+                                control={editForm.control}
+                                render={({ field }) => (
+                                    <Select
+                                        required
+                                        aria-required
+                                        value={field.value?.toString() || "0"}
+                                        onValueChange={(value) => field.onChange(Number(value))}
+                                        disabled={classEdited !== 0}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select a time" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                                            {selectOptions.terms.map((term: { termno: number; suitableterm: string | null }) => (
+                                                <SelectItem key={term.termno} value={term.termno.toString()}>
+                                                    {term.suitableterm}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+
+                            <div className="flex justify-end mt-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={endEdit}
+                                    className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className={cn("bg-blue-600 text-sm text-white font-bold px-4 py-2 rounded-md", (!editForm.formState.isValid || editForm.formState.isSubmitting) ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer")}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                    }}
+                                    type="submit"
+                                    disabled={!editForm.formState.isValid || editForm.formState.isSubmitting}
+                                >
+                                    {editForm.formState.isSubmitting ? "Saving..." : "Save"}
+                                </button>
+                            </div>
+                            {Object.keys(editForm.formState.errors).length > 0 && (
+                                <div className="mt-2 text-red-600 text-sm">
+                                    {Object.entries(editForm.formState.errors).map(([field, error]) =>
+                                        error && typeof error === "object" && "message" in error ? (
+                                            <div key={field}>{(error as { message?: string }).message}</div>
+                                        ) : null
+                                    )}
+                                </div>
+                            )}
+                        </React.Fragment>
+                    ) : null
                 )}
             </form>
         </div>
