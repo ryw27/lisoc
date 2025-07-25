@@ -14,7 +14,7 @@ import {
 import StudentTable from "./student-table";
 import SemClassEditor from "./sem-class-editor";
 import { Action, SeasonOptionContext } from "./sem-view";
-import { deleteClass, distributeStudents } from "@/app/lib/semester/sem-actions";
+import { deleteClass, distributeStudents, rollbackDistribution } from "@/app/lib/semester/sem-actions";
 import { type fullRegID } from "./sem-view";
 import { type IdMaps } from "@/app/lib/semester/sem-schemas";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,15 @@ function distributeEvenly(data: fullRegID) {
     return { moved, newData };
 }
 
+function rollbackReg(data: fullRegID) {
+    const newData = structuredClone(data);
+    const allStudents = data.classrooms.flatMap((c) => c.students);
+
+    newData.students = allStudents;
+    newData.classrooms.map((c) => c.students = [])
+    return newData;
+}
+
 export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: semViewBoxProps) {
     const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
     const [editing, setEditing] = useState<boolean>(false);
@@ -87,15 +96,40 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
         }
     }
 
+    const rollback = async () => {
+        const snapshot = dataWithStudents;
+        try {
+            const newData = rollbackReg(dataWithStudents);
+            dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
+            const { id, ...dataWithoutID } = dataWithStudents;
+            rollbackDistribution(dataWithStudents);
+        } catch (err) {
+            dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
+            console.error(err);
+        }
+    }
+
     const regClassInfo = dataWithStudents.arrinfo;
     const allClassrooms = dataWithStudents.classrooms
     const regStudents = dataWithStudents.students
 
 
 
-    const totalPrice = regClassInfo.suitableterm === 2 
-                        ? Number(dataWithStudents.arrinfo.tuitionH) + Number(dataWithStudents.arrinfo.bookfeeH) + Number(dataWithStudents.arrinfo.specialfeeH)
-                        : Number(dataWithStudents.arrinfo.tuitionW) + Number(dataWithStudents.arrinfo.bookfeeW) + Number(dataWithStudents.arrinfo.specialfeeW)
+    const totalPrice =
+        regClassInfo.suitableterm === 2
+            ? Number(dataWithStudents.arrinfo.tuitionH ?? 0) +
+              Number(dataWithStudents.arrinfo.bookfeeH ?? 0) +
+              Number(dataWithStudents.arrinfo.specialfeeH ?? 0)
+            : Number(dataWithStudents.arrinfo.tuitionW ?? 0) +
+              Number(dataWithStudents.arrinfo.bookfeeW ?? 0) +
+              Number(dataWithStudents.arrinfo.specialfeeW ?? 0);
+
+    const totalRegistrations =
+        regStudents.length +
+        allClassrooms.reduce(
+            (acc, c) => acc + (Array.isArray(c.students) ? c.students.length : 0),
+            0
+        );
 
     const classTerm = regClassInfo.suitableterm === 2
                         ? regClassInfo.seasonid === seasons.spring.seasonid ? "Spring" : "Fall"
@@ -113,7 +147,21 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
                 <div className="flex gap-2 items-center">
                     <button
                         type="button"
-                        className="px-3 py-1 rounded-md font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className=" cursor-pointer px-3 py-1 rounded-md font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+                        title="Rollback distribution"
+                        tabIndex={0}
+                        aria-label="Disperse students"
+                        onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            rollback();
+                        }}
+                    >
+                        Rollback  
+                    </button>
+                    <button
+                        type="button"
+                        className="cursor-pointer px-3 py-1 rounded-md font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
                         title="Disperse students into classrooms"
                         tabIndex={0}
                         aria-label="Disperse students"
@@ -132,7 +180,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
             </div>
 
             <div className="flex">
-                <p className="text-gray-600 text-md">Registrations: {regStudents.length}</p>
+                <p className="text-gray-600 text-md">Registrations: {totalRegistrations}</p>
             </div>
             {/* Term and Edit + Trash buttons */}
             <div className="flex justify-between">
