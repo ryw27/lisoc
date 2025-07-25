@@ -4,13 +4,14 @@ import { arrangement, classregistration, familybalance, seasons, student } from 
 import type { InferInsertModel } from "drizzle-orm";
 import { requireRole } from "../auth-lib/auth-actions";
 import { and, desc, eq, InferSelectModel, or } from "drizzle-orm";
-import { startSemFormSchema, type uiClasses, type selectOptions, arrangementSchema, IdMaps, seasonDatesSchema, seasonRegSettingsSchema, type term, registrationSchema, checkApplySchema, arrangementArraySchema } from "./sem-schemas";
+import { startSemFormSchema, type uiClasses, type selectOptions, arrangementSchema, IdMaps, seasonDatesSchema, seasonRegSettingsSchema, type term, registrationSchema, checkApplySchema, arrangementArraySchema, fullRegClass } from "./sem-schemas";
 import { inSpring } from "./sem-utils";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { toESTString } from "@/lib/utils";
 import { studentSchema } from "./sem-schemas";
 import { familyObject } from "@/app/admintest/data/(people-pages)/families/family-helpers"; 
+import { ArrowDownRightFromCircle } from "lucide-react";
 
 const SEMESTERONLY_SUITBALETERM_FOREIGNKEY = 2;
 const REGISTRATION_FEE = 0;
@@ -675,6 +676,26 @@ export async function registerClass(arrData: uiClasses, season: InferSelectModel
         revalidatePath("/admintest/management/semester");
         revalidatePath("/dashboard/classes");
         return inserted;
+    })
+}
+
+export async function distributeStudents(data: fullRegClass, moved: { studentid: number, toarrangeid: number, toclassid: number }[]) {
+    // Update class registrations from regclass to actual classroom
+    await db.transaction(async (tx) => {
+        for (const student of moved) {
+            await tx
+                .update(classregistration)
+                .set({
+                    arrangeid: student.toarrangeid,
+                    classid: student.toclassid,
+                    lastmodify: toESTString(new Date())
+                })
+                .where(and(
+                    eq(classregistration.studentid, student.studentid), 
+                    eq(classregistration.seasonid, data.arrinfo.seasonid),
+                    eq(classregistration.arrangeid, data.arrinfo.arrangeid as number) // Should be in registrations. If not, this is the wrong function
+                ))
+        }
     })
 }
 
