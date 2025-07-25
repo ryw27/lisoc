@@ -26,6 +26,7 @@ type regRow = {
     classid: number;
     studentid: number;
     teacherid: number;
+    roomid: number;
     classroom: number;
     period: number;
     seasonid: number;
@@ -174,6 +175,7 @@ export default function RegTable({ students, season, registrations, idMaps, bala
                 classid: arrangement?.classid || 0,
                 studentid: reg.studentid,
                 teacherid: arrangement?.teacherid || 0,
+                roomid: arrangement?.roomid || 0,
                 classroom: arrangement?.roomid || 0,
                 period: arrangement?.timeid || 0,
                 seasonid: arrangement?.seasonid || 0,
