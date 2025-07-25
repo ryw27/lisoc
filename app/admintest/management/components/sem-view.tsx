@@ -16,13 +16,11 @@ import {
   type IdMaps,
   type fullRegClass,
   type threeSeason,
-  arrangementSchema,
   uiClasses,
 } from "@/app/lib/semester/sem-schemas";
 import { seasons } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import SemClassEditor from "./sem-class-editor";
-import { z } from "zod/v4";
 
 type semViewProps = {
     fullData: fullSemClassesData
@@ -41,6 +39,7 @@ export type Action =
     | { type: "class/add", id: string, roomDraft: Partial<uiClasses> }
     | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> }
     | { type: "class/remove", id: string, arrangeid: number }
+    | { type: "reg/distribute", id: string, newDistr: fullRegID }
 
 
 const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"]
@@ -133,6 +132,8 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                     }
                     : regClass
             );
+        case "reg/distribute":
+            return state.map((regClass) => regClass.id === action.id ? action.newDistr : regClass);
         default:
             return state;
     }
