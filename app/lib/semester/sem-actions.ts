@@ -372,45 +372,69 @@ export async function addArrangement(data: z.infer<typeof arrangementArraySchema
 
 // TODO: Check this 
 export async function updateArrangement(data: z.infer<typeof arrangementArraySchema>, season: InferSelectModel<typeof seasons>) {
+    // const user = await requireRole(["ADMIN"]);
     return await db.transaction(async (tx) => {
         const parsedArray = arrangementArraySchema.parse(data);
         // Ensure arrangeid is present and valid. It should since it's an update
+        const { seasonid, activestatus, regstatus } = await getTermVariables(parsedArray.classrooms[0], season, tx);
+        const regClassObject = {
+            ...parsedArray.classrooms[0],
+            seasonid: seasonid,
+            activestatus: activestatus,
+            regstatus: regstatus,
+            tuitionW: parsedArray.classrooms[0].tuitionW?.toString() ?? null,
+            specialfeeW: parsedArray.classrooms[0].specialfeeW?.toString() ?? null,
+            bookfeeW: parsedArray.classrooms[0].bookfeeW?.toString() ?? null,
+            tuitionH: parsedArray.classrooms[0].tuitionH?.toString() ?? null,
+            specialfeeH: parsedArray.classrooms[0].specialfeeH?.toString() ?? null,
+            bookfeeH: parsedArray.classrooms[0].bookfeeH?.toString() ?? null,
+            lastmodify: toESTString(new Date()),
+            updateby: "testaccount"
+        } satisfies InferInsertModel<typeof arrangement>;
+
         for (const data of parsedArray.classrooms) {
             const parsedData = arrangementSchema.parse(data);
-
-            if (typeof parsedData.arrangeid !== "number" || isNaN(parsedData.arrangeid)) {
-                throw new Error("Update data does not contain a valid arrange ID identifier");
-            }
-
-            // If suitable term is changed
-            const { seasonid, activestatus, regstatus } = await getTermVariables(parsedData, season, tx);
-
-            const updated = await tx
-                .update(arrangement)
-                .set({
-                    activestatus: activestatus,
-                    regstatus: regstatus,
-                    seasonid: seasonid,
-                    classid: parsedData.classid,
-                    teacherid: parsedData.teacherid,
-                    roomid: parsedData.roomid,
-                    timeid: parsedData.timeid,
-                    seatlimit: parsedData.seatlimit,
-                    agelimit: parsedData.agelimit,
-                    tuitionW: parsedData.tuitionW.toString(),
-                    bookfeeW: parsedData.bookfeeW.toString(),
-                    specialfeeW: parsedData.specialfeeW.toString(),
-                    tuitionH: parsedData.tuitionH.toString(),
-                    bookfeeH: parsedData.bookfeeH.toString(),
-                    specialfeeH: parsedData.specialfeeH.toString(),
-                    lastmodify: toESTString(new Date()),
-                    updateby: "admin", // user.user.name ?? user.user.email ?? "Unknown",
-                })
-                .where(eq(arrangement.arrangeid, parsedData.arrangeid))
-                .returning();
-
-            if (!updated || updated.length === 0) {
-                throw new Error("Unknown DB error occurred with class update");
+            if (parsedData.isregclass) {
+                if (typeof parsedData.arrangeid !== "number" || isNaN(parsedData.arrangeid)) {
+                    throw new Error("Update data does not contain a valid arrange ID identifier");
+                }
+                const { arrangeid, ...updateData } = regClassObject;
+                const updated = await tx
+                    .update(arrangement)
+                    .set({
+                        ...updateData
+                    })
+                    .where(eq(arrangement.arrangeid, parsedData.arrangeid))
+                    .returning();
+            } else {
+                // Either updating or adding
+                if (parsedData.arrangeid) {
+                    // Update
+                    const { arrangeid, ...updateData } = regClassObject;
+                    const updated = await tx
+                        .update(arrangement)
+                        .set({
+                            ...updateData, // Handles update to the three important columns for non reg classes
+                            isregclass: false,
+                            classid: parsedData.classid,
+                            teacherid: parsedData.teacherid,
+                            roomid: parsedData.roomid,
+                            seatlimit: parsedData.seatlimit
+                        })
+                        .where(eq(arrangement.arrangeid, parsedData.arrangeid));
+                } else {
+                    const { arrangeid, ...updateData } = regClassObject;
+                    await tx
+                        .insert(arrangement)
+                        .values({
+                            ...updateData,
+                            isregclass: false,
+                            classid: parsedData.classid,
+                            teacherid: parsedData.teacherid,
+                            roomid: parsedData.roomid,
+                            seatlimit: parsedData.seatlimit
+                        })
+                }
             }
         }
     })
