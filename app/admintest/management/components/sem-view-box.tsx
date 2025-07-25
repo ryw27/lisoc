@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useState } from "react";
 import { Info, Edit, Trash2 } from "lucide-react";
 import { 
     AlertDialog, 
@@ -14,15 +14,44 @@ import {
 import StudentTable from "./student-table";
 import SemClassEditor from "./sem-class-editor";
 import { Action, SeasonOptionContext } from "./sem-view";
-import { updateArrangement, deleteClass } from "@/app/lib/semester/sem-actions";
+import { deleteClass, distributeStudents } from "@/app/lib/semester/sem-actions";
 import { type fullRegID } from "./sem-view";
-import { type IdMaps, type uiClasses } from "@/app/lib/semester/sem-schemas";
+import { type IdMaps } from "@/app/lib/semester/sem-schemas";
 import { cn } from "@/lib/utils";
 
 type semViewBoxProps = {
     uuid: string;
     dataWithStudents: fullRegID;
     dispatch: React.Dispatch<Action>;
+}
+
+function distributeEvenly(data: fullRegID) {
+    // Create deep copy to avoid mutating original
+    const newData = structuredClone(data);
+    const availableSeats = newData.classrooms.map((c) => ({
+        available: (c.arrinfo.seatlimit || 0) - c.students.length
+    })).filter(c => c.available > 0);
+     
+    const moved = []
+    
+    let classIndex = 0;
+    while (newData.students.length > 0) {
+        const cur = newData.students.shift()!; // Remove first student
+        while (availableSeats[classIndex].available === 0) {
+            classIndex  = (classIndex + 1) % availableSeats.length;
+        }
+        newData.classrooms[classIndex].students.push(cur);
+        availableSeats[classIndex].available -= 1;
+
+        moved.push({ 
+            studentid: cur.studentid, 
+            toarrangeid: newData.classrooms[classIndex].arrinfo.arrangeid as number,
+            toclassid: newData.classrooms[classIndex].arrinfo.classid 
+        })
+        classIndex = (classIndex + 1) % availableSeats.length;
+    }
+    
+    return { moved, newData };
 }
 
 export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: semViewBoxProps) {
@@ -43,6 +72,20 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
             dispatch({ type: "reg/add", regDraft: snapshot });
         }
     };
+
+    const distribute = async () => {
+        const snapshot = dataWithStudents;
+        try {
+            const { moved, newData } = distributeEvenly(dataWithStudents);
+            dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
+            // Remove the id property before passing to distributeStudents
+            const { id, ...distributedDataWithoutId } = newData;
+            distributeStudents(distributedDataWithoutId, moved);
+        } catch (err) {
+            dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
+            console.error(err);
+        }
+    }
 
     const regClassInfo = dataWithStudents.arrinfo;
     const allClassrooms = dataWithStudents.classrooms
@@ -67,9 +110,25 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
                 <h1 className="text-md font-bold">
                     {idMaps.classMap[regClassInfo.classid].classnamecn}
                 </h1>
-                <h1 className="text-md font-bold">
-                    ${totalPrice}
-                </h1>
+                <div className="flex gap-2 items-center">
+                    <button
+                        type="button"
+                        className="px-3 py-1 rounded-md font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        title="Disperse students into classrooms"
+                        tabIndex={0}
+                        aria-label="Disperse students"
+                        onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            distribute();
+                        }}
+                    >
+                        Distribute
+                    </button>
+                    <h1 className="text-md font-bold">
+                        ${totalPrice}
+                    </h1>
+                </div>
             </div>
 
             <div className="flex">
