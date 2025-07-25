@@ -122,7 +122,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
             {/* Student Registrations View */}
             {expanded && (
                 <div className="flex flex-col space-y-2">
-                    <nav className="flex border-b space-x-6 justify-between">
+                    <nav className="flex border-b space-x-6">
                         <div
                             className={cn(
                                 "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
