@@ -107,13 +107,13 @@ export default function RegisterStudent({
 
     const getValidClasses = (idx: 0 | 1 | 2) => {
         if (selectedSemester[idx] === 0) {
-            return [...yearArrs, ...fallArrs, ...springArrs]
+            return [...yearArrs, ...fallArrs, ...springArrs].filter(c => c.isregclass)
         } else if (selectedSemester[idx] === season.year.seasonid) {
-            return yearArrs
+            return yearArrs.filter(c => c.isregclass)
         } else if (selectedSemester[idx] === season.fall.seasonid) {
-            return fallArrs
+            return fallArrs.filter(c => c.isregclass)
         } else if (selectedSemester[idx] === season.spring.seasonid) {
-            return springArrs
+            return springArrs.filter(c => c.isregclass)
         }
         return []
     }
