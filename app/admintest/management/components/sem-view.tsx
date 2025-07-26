@@ -303,6 +303,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                             uuid={classItem.id}
                             dataWithStudents={classItem}
                             dispatch={dispatch}
+                            reducerState={regClasses}
                         />
                     ))}
 

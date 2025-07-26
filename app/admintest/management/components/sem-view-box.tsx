@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import StudentTable from "./student-table";
 import SemClassEditor from "./sem-class-editor";
-import { Action, SeasonOptionContext } from "./sem-view";
+import { type Action, type fullSemDataID, SeasonOptionContext } from "./sem-view";
 import { deleteClass, distributeStudents, rollbackDistribution } from "@/app/lib/semester/sem-actions";
 import { type fullRegID } from "./sem-view";
 import { type IdMaps } from "@/app/lib/semester/sem-schemas";
@@ -23,6 +23,7 @@ type semViewBoxProps = {
     uuid: string;
     dataWithStudents: fullRegID;
     dispatch: React.Dispatch<Action>;
+    reducerState: fullSemDataID
 }
 
 function distributeEvenly(data: fullRegID) {
@@ -31,6 +32,9 @@ function distributeEvenly(data: fullRegID) {
     const availableSeats = newData.classrooms.map((c) => ({
         available: (c.arrinfo.seatlimit || 0) - c.students.length
     })).filter(c => c.available > 0);
+    if (availableSeats.length === 0) {
+        throw new Error("No available seats");
+    }
      
     const moved = []
     
@@ -63,12 +67,12 @@ function rollbackReg(data: fullRegID) {
     return newData;
 }
 
-export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: semViewBoxProps) {
+export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, reducerState }: semViewBoxProps) {
     const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
     const [editing, setEditing] = useState<boolean>(false);
     const [expanded, setExpanded] = useState<boolean>(false);
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
-
+    const [error, setError] = useState<string | null>(null);
     const [classShown, setClassShown] = useState<number>(-1); // Index, -1 is the reg class
 
     const handleDelete = async () => {
@@ -90,8 +94,10 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
             // Remove the id property before passing to distributeStudents
             const { id, ...distributedDataWithoutId } = newData;
             distributeStudents(distributedDataWithoutId, moved);
+            setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
+            setError("Failed to distribute students, please check the seat limit");
             console.error(err);
         }
     }
@@ -103,8 +109,10 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             const { id, ...dataWithoutID } = dataWithStudents;
             rollbackDistribution(dataWithStudents);
+            setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
+            setError("Failed to rollback distribution");
             console.error(err);
         }
     }
@@ -177,6 +185,9 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
                         ${totalPrice}
                     </h1>
                 </div>
+            </div>
+            <div className="flex self-end">
+                {error && <p className="text-red-500 text-md">{error}</p>}
             </div>
 
             <div className="flex">
@@ -258,7 +269,11 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch }: se
                             </div>
                         ))}
                     </nav>
-                    <StudentTable registrations={classShown === -1 ? regStudents : allClassrooms[classShown].students} />
+                    <StudentTable 
+                        reducerState={reducerState} 
+                        curClass={dataWithStudents}
+                        registrations={classShown === -1 ? regStudents : allClassrooms[classShown].students} 
+                    />
                 </div>
             )}
             {/* Class Editor */}
