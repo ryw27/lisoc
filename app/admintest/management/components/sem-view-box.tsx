@@ -62,7 +62,7 @@ function rollbackReg(data: fullRegID) {
     const newData = structuredClone(data);
     const allStudents = data.classrooms.flatMap((c) => c.students);
 
-    newData.students = allStudents;
+    newData.students = [...newData.students, ...allStudents];
     newData.classrooms.map((c) => c.students = [])
     return newData;
 }
@@ -270,6 +270,8 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                         ))}
                     </nav>
                     <StudentTable 
+                        uuid={uuid}
+                        dispatch={dispatch}
                         reducerState={reducerState} 
                         curClass={dataWithStudents}
                         registrations={classShown === -1 ? regStudents : allClassrooms[classShown].students} 
