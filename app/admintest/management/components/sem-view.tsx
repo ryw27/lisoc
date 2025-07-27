@@ -33,13 +33,13 @@ export type fullRegID = fullRegClass & { id: string }
 export type fullSemDataID = fullRegID[]
 export type Action = 
     | { type: "hydrate", classes: fullSemDataID}
-    | { type: "reg/add", regDraft: fullRegID }
-    | { type: "reg/update", id: string, next: Partial<uiClasses> }
-    | { type: "reg/remove", id: string }
-    | { type: "class/add", id: string, roomDraft: Partial<uiClasses> }
-    | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> }
-    | { type: "class/remove", id: string, arrangeid: number }
-    | { type: "reg/distribute", id: string, newDistr: fullRegID }
+    | { type: "reg/add", regDraft: fullRegID } // Add a whole new class
+    | { type: "reg/update", id: string, next: Partial<uiClasses> } // Arrangement information
+    | { type: "reg/remove", id: string } // Remove a whole class
+    | { type: "class/add", id: string, roomDraft: Partial<uiClasses> } // Add a new classroom (non reg class)
+    | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> } // Edit a classroom (only the teacher, room, seat limit)
+    | { type: "class/remove", id: string, arrangeid: number } // Remove a classroom
+    | { type: "reg/distribute", id: string, newDistr: fullRegID } // Distribute students, requires full object
 
 
 const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"]
