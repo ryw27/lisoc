@@ -454,7 +454,7 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                                     <SelectContent>
                                         <>
                                             {phase === "intraTransfer"
-                                                ? curClass.classrooms.map((item, idx) => (
+                                                ? [...curClass.classrooms, curClass].map((item, idx) => (
                                                     <SelectItem key={idx} value={`${item.arrinfo.arrangeid}, ${item.arrinfo.classid}`}>
                                                         {idMaps.classMap[item.arrinfo.classid].classnamecn}
                                                     </SelectItem>
