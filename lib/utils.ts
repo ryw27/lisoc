@@ -15,3 +15,11 @@ export function cn(...inputs: ClassValue[]) {
 export function toESTString(date: Date) {
 	return formatInTimeZone(date, 'America/New_York', "yyyy-MM-dd'T'HH:mm:ssXXX")
 }
+
+// ----------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------
+
+export const SEMESTERONLY_SUITBALETERM_FOREIGNKEY = 2;
+export const REGISTRATION_FEE = 0;
+export const LATE_REG_FEE = 0;
