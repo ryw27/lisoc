@@ -21,6 +21,8 @@ import {
 import { seasons } from "@/app/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import SemClassEditor from "./sem-class-editor";
+import Link from "next/link";
+import { FaRegQuestionCircle } from "react-icons/fa";
 
 type semViewProps = {
     fullData: fullSemClassesData
@@ -262,7 +264,15 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
             <div className="container mx-auto flex flex-col">
                 <div className="flex justify-between">
                     <h1 className="font-bold text-3xl mb-4">{year.seasonnamecn}</h1>
-                    <SemesterControlsPopover />
+                    <div className="flex gap-2">
+                        <Link 
+                            className="flex gap-2 bg-red-600 p-4 rounded-md text-white items-center" 
+                            href="/admintest/management/regchangerequests"
+                        >
+                            <FaRegQuestionCircle /> Reg Change Requests
+                        </Link>
+                        <SemesterControlsPopover />
+                    </div>
                 </div>
                 <div className="mb-4">
                     <CurrentPhase />
