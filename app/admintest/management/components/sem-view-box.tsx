@@ -251,7 +251,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                                 setClassShown(-1);
                             }}
                         >
-                            {idMaps.classMap[regClassInfo.classid].classnamecn}
+                            Registrations {/* idMaps.classMap[regClassInfo.classid].classnamecn */}
                         </div>
                         {allClassrooms.map((c, idx) => (
                             <div
@@ -265,10 +265,25 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                                     setClassShown(idx);
                                 }}
                             >
-                                {idMaps.classMap[c.arrinfo.classid].classnamecn}
+                                {`Class ${idx + 1}`} 
+                                {/* idMaps.classMap[c.arrinfo.classid].classnamecn */}
                             </div>
                         ))}
                     </nav>
+                    {classShown !== -1 && (
+                        <div className="grid grid-cols-3">
+                            <p>
+                                Teacher: {idMaps.teacherMap[dataWithStudents.classrooms[classShown].arrinfo.teacherid].namecn || "N/A"}
+                            </p>
+                            <p>
+                                Room: {idMaps.roomMap[dataWithStudents.classrooms[classShown].arrinfo.roomid].roomno || "N/A"}
+                            </p>
+                            <p>
+                                Seat Limit: {dataWithStudents.classrooms[classShown].arrinfo.seatlimit || "N/A"}
+                            </p>
+                        </div>
+
+                    )}
                     <StudentTable 
                         uuid={uuid}
                         dispatch={dispatch}
