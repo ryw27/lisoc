@@ -113,44 +113,70 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     const onSubmit = async (formData: z.infer<typeof arrangementArraySchema>) => {
         const snapshot = initialData;
         const new_uuid = crypto.randomUUID();
+        console.log(formData);
         try {
             // Safely check if classrooms is defined and is an array
             if (uuid !== "ADDING") {
                 const dirtyClassrooms = editForm.formState.dirtyFields.classrooms;
                 console.log("dirty ", dirtyClassrooms)
                 // 1. Optimistic update
-                if (Array.isArray(dirtyClassrooms)) {
-                    dirtyClassrooms.map((c, idx) => {
-                        if (formData.classrooms[idx].isregclass && c) {
-                            // Convert numeric tuition fields to strings for uiClasses type
+                // Process all classrooms to handle both updates and additions
+                // Note that the structure of form data is different than most data in this domain: All classrooms, including the reg class are in formData.classrooms
+                // It is at index 0 for simplicity. ONLY FOR THIS FORM DATA. 
+                formData.classrooms.forEach((classroom, idx) => {
+                    // Skip the reg class (index 0) - handle it separately if needed
+                    if (idx === 0 && classroom.isregclass) {
+                        // Only update reg class if it's dirty
+                        if (dirtyClassrooms && Array.isArray(dirtyClassrooms) && dirtyClassrooms[idx]) {
                             const convertedData = {
-                                ...formData.classrooms[idx],
-                                tuitionW: formData.classrooms[idx].tuitionW?.toString() || null,
-                                specialfeeW: formData.classrooms[idx].specialfeeW?.toString() || null,
-                                bookfeeW: formData.classrooms[idx].bookfeeW?.toString() || null,
-                                tuitionH: formData.classrooms[idx].tuitionH?.toString() || null,
-                                specialfeeH: formData.classrooms[idx].specialfeeH?.toString() || null,
-                                bookfeeH: formData.classrooms[idx].bookfeeH?.toString() || null,
+                                ...classroom,
+                                tuitionW: classroom.tuitionW?.toString() || null,
+                                specialfeeW: classroom.specialfeeW?.toString() || null,
+                                bookfeeW: classroom.bookfeeW?.toString() || null,
+                                tuitionH: classroom.tuitionH?.toString() || null,
+                                specialfeeH: classroom.specialfeeH?.toString() || null,
+                                bookfeeH: classroom.bookfeeH?.toString() || null,
                             };
                             dispatch({ type: "reg/update", id: uuid, next: convertedData});
-                        } else {
-                            if (c.seatlimit || c.teacherid || c.roomid) {
-                                const convertedUpdate = {
-                                    ...formData.classrooms[idx],
-                                    tuitionW: formData.classrooms[idx].tuitionW?.toString() || null,
-                                    specialfeeW: formData.classrooms[idx].specialfeeW?.toString() || null,
-                                    bookfeeW: formData.classrooms[idx].bookfeeW?.toString() || null,
-                                    tuitionH: formData.classrooms[idx].tuitionH?.toString() || null,
-                                    specialfeeH: formData.classrooms[idx].specialfeeH?.toString() || null,
-                                    bookfeeH: formData.classrooms[idx].bookfeeH?.toString() || null,
-                                };
-                                dispatch({type: "class/update", id: uuid, arrangeid: formData.classrooms[idx].arrangeid as number, update: convertedUpdate });
-                            } else {
-                                throw new Error("Other fields have been updated for non reg class")
-                            }
                         }
-                    })
-                }
+                        return;
+                    }
+
+                    // For non-reg classrooms, check if it's an update or addition
+                    const isDirty = dirtyClassrooms && Array.isArray(dirtyClassrooms) && dirtyClassrooms[idx];
+                    const hasArrangeid = classroom.arrangeid !== undefined && classroom.arrangeid !== null;
+                    
+                    if (isDirty || !hasArrangeid) {
+                        const convertedClassroom = {
+                            ...classroom,
+                            tuitionW: classroom.tuitionW?.toString() || null,
+                            specialfeeW: classroom.specialfeeW?.toString() || null,
+                            bookfeeW: classroom.bookfeeW?.toString() || null,
+                            tuitionH: classroom.tuitionH?.toString() || null,
+                            specialfeeH: classroom.specialfeeH?.toString() || null,
+                            bookfeeH: classroom.bookfeeH?.toString() || null,
+                        };
+
+                        if (hasArrangeid) {
+                            // Existing classroom - update it
+                            dispatch({
+                                type: "class/update", 
+                                id: uuid, 
+                                arrangeid: classroom.arrangeid as number, 
+                                update: convertedClassroom 
+                            });
+                        } else {
+                            // New classroom - add it
+                            // Server action will create the arrangeid
+                            // TODO: Check this; I think this may cause errors if I don't revalidate since certain actions requiring arrangeid technically won't get it as the arrangeid won't arrive on the client until a revalidation
+                            dispatch({
+                                type: "class/add", 
+                                id: uuid, 
+                                roomDraft: convertedClassroom 
+                            });
+                        }
+                    }
+                });
                 // Server update
                 await updateArrangement(formData, seasons.year);
             } else {
@@ -290,41 +316,51 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                 {fields.map((field, idx) =>
                     idx === classEdited ? (
                         <React.Fragment key={field.id}>
-                            {/* <label className="block text-sm text-gray-400 font-bold mb-2">
-                                Class Name {classEdited === 0 ? "(Reg Class)" : ""}
-                            </label>
-                            <Controller
-                                name={`classrooms.${idx}.classid`}
-                                control={editForm.control}
-                                render={({ field }) => (
-                                    <Select
-                                        required
-                                        aria-required
-                                        value={field.value?.toString()}
-                                        onValueChange={value => {
-                                            field.onChange(Number(value));
-                                        }}
-                                    >
-                                        <SelectTrigger className="w-full border rounded p-1">
-                                            <SelectValue placeholder="Select a class" />
-                                        </SelectTrigger>
-                                        <SelectContent className="max-h-[200px] overflow-y-auto">
-                                            {uuid !== "ADDING"
-                                                ? fields.map((obj) => (
-                                                    <SelectItem key={obj.id} value={(obj.classid as number).toString()}>
-                                                        {classMap[obj.classid as number]?.classnamecn ?? `Class ${obj.classid}`}
-                                                    </SelectItem>
-                                                ))
-                                                : selectOptions.classes.map((obj) => (
-                                                    <SelectItem key={obj.classid} value={obj.classid.toString()}>
-                                                        {classMap[obj.classid]?.classnamecn ?? `Class ${obj.classid}`}
-                                                    </SelectItem>
-                                                ))
-                                            }
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            /> */}
+                            {uuid === "ADDING" && (
+                                <>
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">
+                                        Class Name {classEdited === 0 ? "(Reg Class)" : ""}
+                                    </label>
+                                    <Controller
+                                        name={`classrooms.${idx}.classid`}
+                                        control={editForm.control}
+                                        render={({ field }) => (
+                                            <Select
+                                                required
+                                                aria-required
+                                                value={field.value?.toString()}
+                                                onValueChange={value => {
+                                                    field.onChange(Number(value));
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-full border rounded p-1">
+                                                    <SelectValue placeholder="Select a class" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    {selectOptions.classes.map((obj) => (
+                                                        <SelectItem key={obj.classid} value={obj.classid.toString()}>
+                                                            {classMap[obj.classid]?.classnamecn ?? `Class ${obj.classid}`}
+                                                        </SelectItem>
+                                                    ))}
+                                                    {/* {uuid !== "ADDING"
+                                                        ? fields.map((obj) => (
+                                                            <SelectItem key={obj.id} value={(obj.classid as number).toString()}>
+                                                                {classMap[obj.classid as number]?.classnamecn ?? `Class ${obj.classid}`}
+                                                            </SelectItem>
+                                                        ))
+                                                        : selectOptions.classes.map((obj) => (
+                                                            <SelectItem key={obj.classid} value={obj.classid.toString()}>
+                                                                {classMap[obj.classid]?.classnamecn ?? `Class ${obj.classid}`}
+                                                            </SelectItem>
+                                                        ))
+                                                    } */}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </>
+                            )}
+
                             {classEdited !== 0 && (
                                 <div className="flex flex-row gap-4 mb-4">
                                     <div className="flex-1 min-w-0">
