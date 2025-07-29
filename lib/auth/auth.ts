@@ -5,7 +5,7 @@ import { pool } from "../db"
 import bcrypt from "bcrypt"
 import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
-import { credSchema, loginSchema } from "./auth-schema"
+import { credSchema, loginSchema } from "../../app/lib/auth-lib/auth-schema"
 import authConfig from "@/auth.config"
 import { JWT } from "next-auth/jwt"
 
