@@ -1,6 +1,6 @@
 import { pgTable, unique, uuid, varchar, timestamp, text, foreignKey, integer, boolean, index, smallint, serial, bigint, numeric, char, uniqueIndex, primaryKey, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
-import { userRoles } from "./db_types.ts"
+import { userRoles } from "./db-types"
 
 
 export const registration_drafts = pgTable("registration_drafts", {
