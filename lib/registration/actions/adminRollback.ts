@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { toESTString } from "@/lib/utils";
 import { fullRegClass } from "@/lib/registration/types";
 
@@ -24,12 +24,14 @@ export async function adminRollback(data: fullRegClass) {
                         classid: data.arrinfo.classid,
                         lastmodify: toESTString(new Date())
                     })
-                    .where(and(
-                        eq(classregistration.studentid, student.studentid), 
-                        eq(classregistration.seasonid, data.arrinfo.seasonid),
+                    .where(or(
+                        and(
+                            eq(classregistration.studentid, student.studentid), 
+                            eq(classregistration.seasonid, data.arrinfo.seasonid),
+                            eq(classregistration.classid, classroom.arrinfo.classid)
+                        ),
                         eq(classregistration.arrangeid, classroom.arrinfo.arrangeid) 
                     ))
-                    .returning()
             }
         }
     })
