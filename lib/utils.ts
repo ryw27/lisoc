@@ -20,6 +20,7 @@ export function toESTString(date: Date) {
 // Constants
 // ----------------------------------------------------------------
 
+export const SITE_LINK = "localhost:3000"; // TODO: change to actual link
 export const SEMESTERONLY_SUITBALETERM_FOREIGNKEY = 2;
 export const REGISTRATION_FEE = 0;
 export const LATE_REG_FEE = 0;
