@@ -13,15 +13,15 @@ import {
     AlertDialogTitle, 
     AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import { Input } from "./ui/input";
-import { Textarea } from './ui/textarea';
+import { Input } from "../ui/input";
+import { Textarea } from '../ui/textarea';
 import { 
     Select, 
     SelectContent, 
     SelectValue, 
     SelectTrigger, 
     SelectItem 
-} from "./ui/select";
+} from "../ui/select";
 import OptionsContext from '@/app/lib/semester/sem-context';
 import { arrangementSchema, startSemFormSchema } from '@/app/lib/semester/sem-schemas';
 import { z } from 'zod/v4';

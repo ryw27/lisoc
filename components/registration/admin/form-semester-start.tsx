@@ -16,14 +16,14 @@ import {
 } from "@/app/lib/semester/sem-schemas";
 import { cn } from '@/lib/utils';
 import OptionsContext from '@/app/lib/semester/sem-context';
-import SemesterClassBox from './sem-class-box';
+import SemesterClassBox from './form-class-box';
 import { useRouter } from 'next/navigation';
 import { PlusIcon } from 'lucide-react';
 import { seasons } from '@/app/lib/db/schema';
 import { DrizzleError, InferSelectModel } from 'drizzle-orm';
 import { toESTString } from '@/lib/utils';
-import { Input } from './ui/input';
-import { Switch } from './ui/switch';
+import { Input } from '../ui/input';
+import { Switch } from '../ui/switch';
 
 
 type semesterClassesProps = {
