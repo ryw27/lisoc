@@ -1,31 +1,50 @@
 import { db } from "@/lib/db";
 import { regchangerequest } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireRole } from "@/app/lib/auth-lib/auth-actions";
-import { toESTString } from "@/lib/utils";
+// import { requireRole } from "@/app/lib/auth-lib/auth-actions";
+import { REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED, toESTString } from "@/lib/utils";
 
 // TODO: Check
-export async function adminRejectRequest(requestid: number) {
-    const user = await requireRole(["ADMIN"]);
+export async function adminRejectRequest(requestid: number, registerid: number) {
+    // TODO: Parse data
+    // const user = await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
-        await tx.query.regchangerequest.findFirst({
+        // 1. Get the request
+        const famRequest = await tx.query.regchangerequest.findFirst({
             where: (rgr, { eq }) => eq(rgr.requestid, requestid)
         });
-
-        const adminuser = await tx.query.adminuser.findFirst({
-            where: (u, { eq }) => eq(u.userid, user.user.userid)
+        if (!famRequest) {
+            throw new Error("Cannot find reg change request");
+        }
+        if (famRequest.reqstatusid !== REQUEST_STATUS_PENDING) {
+            throw new Error("Reg change request has already been processed");
+        }
+        
+        // 2. Find the old registration
+        const oldReg = await tx.query.classregistration.findFirst({
+            where: (cr, { eq }) => eq(cr.regid, registerid)
         });
-
-        if (!adminuser) {
-            throw new Error("Admin does not exist");
+        if (!oldReg) {
+            throw new Error("Cannot find original registration");
         }
 
+        // 3. Check if the old registration is actually only submitted, not paid 
+        if (oldReg.statusid !== REGSTATUS_REGISTERED) {
+            await tx
+                .delete(regchangerequest)
+                .where(eq(regchangerequest.requestid, requestid));
+            throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
+        }
+
+        // 4. Update the regchange status
+        // TODO: Add adminid
         await tx
             .update(regchangerequest)
             .set({
-                regstatusid: 3,
+                reqstatusid: REQUEST_STATUS_REJECTED,
                 processdate: toESTString(new Date()),
-                adminuserid: String(adminuser.adminid)
+                lastmodify: toESTString(new Date()),
+                adminmemo: "Denied reg change request"
             })
             .where(eq(regchangerequest.requestid, requestid))
     })
