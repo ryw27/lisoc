@@ -14,3 +14,5 @@ export { getPreviousSeason } from "./actions/getPreviousSeason";
 export { updateDates } from "./actions/updateDates";
 // Update Reg Controls
 export { updateRegControls } from "./actions/updateRegControls";
+// Get select options
+export { getSelectOptions } from "./actions/getSelectOptions";
