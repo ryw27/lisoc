@@ -36,15 +36,77 @@ export const seasonRegSettingsSchema = z.object({
     isspring: z.boolean().optional()
 })
 
-// Schema for starting a new semester
-export const startSemFormSchema = z.object({
+export const seasonSchema = z.object({
     seasonnamecn: z.string()
         .min(1, { message: "Season name is required." }),
     seasonnameen: z.string()
         .min(1, { message: "Season name is required." }),
     ...seasonDatesSchema.shape,
     ...seasonRegSettingsSchema.shape,
+})
+
+// Schema for starting a new semester
+export const startSemFormSchema = z.object({
+    ...seasonSchema.shape,
     classes: z.array(arrangementSchema).min(1)
+})
+
+export const familySchema = z.object({
+    familyid: z.number().positive(),
+    fatherfirsten: z
+        .string()
+        .max(72, { message: "Father's first name is too long" })
+        .optional(),
+    fatherlasten: z
+        .string()
+        .max(72, { message: "Father's last name is too long" })
+        .optional(),
+    fathernamecn: z
+        .string()
+        .max(50, { message: "Mother Chinese name is too long" })
+        .optional(),
+    motherlasten: z
+        .string()
+        .max(72, { message: "Mother's last name is too long" })
+        .optional(),
+    motherfirsten: z
+        .string()
+        .max(72, { message: "Mother's first name is too long" })
+        .optional(),
+    mothernamecn: z
+        .string()
+        .max(50, { message: "Mother Chinese name is too long" })
+        .optional(),
+    contact: z
+        .string()
+        .max(25, { message: "Contact is too long" })
+        .optional(),
+    address1: z
+        .string()
+        .max(100, { message: "Address is too long" })
+        .optional(),
+    officephone: z
+        .string()
+        .max(50, { message: "Office phone number is too long" })
+        .optional(),
+    cellphone: z
+        .string()
+        .max(50, { message: "Cell phone number is too long" })
+        .optional(),
+    email2: z
+        .string()
+        .max(100, { message: "Email is too long" })
+        .optional(),
+    status: z.boolean(),
+    remark: z
+        .string()
+        .max(200, { message: "Remark is too long" })
+        .optional(),
+    schoolmember: z
+        .string()
+        .max(50, { message: "School member is too long" })
+        .optional(),
+    userid: z.uuid()
 })
 
 

@@ -1,6 +1,5 @@
 import { 
     seasonObj, 
-    fambalanceObj 
 } from "../shared/types";
 
 
@@ -67,14 +66,15 @@ export type studentStatus =
     | "Registered"
     | "Dropout" 
     | "Dropout Spring"
+    | "Transferred"
     | "Pending Drop"
     | {}
 
-export type studentView = {
+export type adminStudentView = {
     regid: number;
     studentid: number;
     registerDate: string; 
-    dropped: studentStatus;
+    status: studentStatus;
     familyid: number;
     namecn: string;
     namelasten: string;
@@ -87,7 +87,7 @@ export type studentView = {
 // New semester page overhaul. Probably the final. 
 export type fullClassStudents = {
     arrinfo: uiClasses;
-    students: studentView[];
+    students: adminStudentView[];
 }
 
 export type fullRegClass = fullClassStudents & {
@@ -97,4 +97,18 @@ export type fullRegClass = fullClassStudents & {
 // For each reg class
 export type fullSemClassesData = fullRegClass[]
 
-export type threeBalances = { year: fambalanceObj | null, fall: fambalanceObj | null, spring: fambalanceObj | null }
+
+export type uniqueRegistration = {
+    seasonid: number; 
+    classid: number;
+    familyid: number;
+    studentid: number;
+}
+
+export type uniqueRegRequests = {
+    seasonid: number;
+    familyid: number;
+    studentid: number;
+}
+
+export type regKind = "early" | "normal" | "late1" | "late2" | "closed" | "noclosereg" | "exception" 
