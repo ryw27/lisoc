@@ -4,18 +4,51 @@ import {
     uiClasses, 
     selectOptions, 
     IdMaps,
+    regKind,
+    uniqueRegistration,
 } from "@/lib/registration/types";
 import { seasonObj } from "@/lib/shared/types";
 import { z } from "zod/v4";
 import { eq } from "drizzle-orm";
 import { arrangementSchema } from "@/lib/shared/validation";
-import { SEMESTERONLY_SUITBALETERM_FOREIGNKEY } from "@/lib/utils";
+import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 
-type Transaction = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
+//-----------------------------------------------------------------------------------------
+//  DESC: None of these should be used, except by server actions. 
+//  Most of this is business logic or reusable db calls
+//-----------------------------------------------------------------------------------------
 
-export function inSpring(springSeason: seasonObj): boolean {
-    return new Date(Date.now()) >= new Date(springSeason.earlyregdate);
+
+export type Transaction = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
+
+export function inReg(season: seasonObj, closereg: boolean): boolean {
+    const now = new Date(toESTString(new Date()))
+    if (closereg === false) return true;
+    return now >= new Date(season.earlyregdate) && now <= new Date(season.closeregdate);
 } 
+
+export function inSession(season: seasonObj): boolean {
+    const now = new Date(toESTString(new Date()))
+    return now >= new Date(season.startdate) && now <= new Date(season.enddate);
+}
+
+export async function isLateReg(tx: Transaction, arrData: uiClasses)  {
+    const { year, fall, spring } = await getThreeSeasons(tx);
+    const now = new Date(toESTString(new Date()))
+    if (year.seasonid === arrData.seasonid) return (now <= new Date(year.closeregdate) && now >= new Date(year.lateregdate1))
+    if (fall.seasonid === arrData.seasonid) return (now <= new Date(fall.closeregdate) && now >= new Date(fall.lateregdate1))
+    if (spring.seasonid === arrData.seasonid) return (now <= new Date(spring.closeregdate) && now >= new Date(spring.lateregdate1))
+    throw new Error("Cannot find class season");
+}
+
+export async function isEarlyReg(tx: Transaction, arrData: uiClasses) {
+    const { year, fall, spring } = await getThreeSeasons(tx);
+    const now = new Date(toESTString(new Date()))
+    if (year.seasonid === arrData.seasonid) return (now <= new Date(year.normalregdate) && now >= new Date(year.earlyregdate))
+    if (fall.seasonid === arrData.seasonid) return (now <= new Date(fall.normalregdate) && now >= new Date(fall.earlyregdate))
+    if (spring.seasonid === arrData.seasonid) return (now <= new Date(spring.normalregdate) && now >= new Date(spring.earlyregdate))
+    throw new Error("Cannot find class season");
+}
 
 export async function getSeasonDrafts(tx: Transaction, seasonid: number) {
     const seasonRows = await tx.query.arrangement.findMany({
@@ -32,35 +65,6 @@ export async function getSeasonDrafts(tx: Transaction, seasonid: number) {
     return seasonRows;
 }
 
-export async function getTermVariables(parsedData: z.infer<typeof arrangementSchema>, season: seasonObj, tx: Transaction) {
-    let seasonid = season.seasonid;
-    let activestatus = "Active";
-    let regstatus = "Open";
-    if (parsedData.suitableterm === SEMESTERONLY_SUITBALETERM_FOREIGNKEY) { // ID Number for the semester only key in suitbaleterms. Term should exist if first part is true
-        if ("term" in parsedData) {
-            // Get the spring semester to check if spring semester is right now
-            const springSem = await tx.query.seasons.findFirst({
-                where: (seasons, { eq }) => eq(seasons.seasonid, season.relatedseasonid)
-            });
-            // Spring semester validity check
-            if (!springSem || !springSem.isspring || springSem.relatedseasonid !== season.seasonid) {
-                throw new Error("[AddArrangement Action Error]: Spring semester not correctly set or wrong season passed in");
-            }
-            if (parsedData.term === "SPRING") {
-                seasonid = season.relatedseasonid;
-                ({ regstatus, activestatus } = inSpring(springSem) ? { regstatus: "Open", activestatus: "Active" } : { regstatus: "Close", activestatus: "Inactive" });
-            } else {
-                // Archival purposes in case
-                seasonid = season.beginseasonid; 
-                ({ regstatus, activestatus } = inSpring(springSem) ? { regstatus: "Close", activestatus: "Inactive" } : { regstatus: "Open", activestatus: "Active" });
-            }
-        } else {
-            throw new Error("Term does not exist on data despite semester only input");
-        }
-    }
-    return { seasonid, activestatus, regstatus };
-}
-
 export async function getSubClassrooms(regclassid: number) {
     const classrooms = await db.query.classes.findMany({
         where: (c, { eq }) => eq(c.gradeclassid, regclassid)
@@ -69,37 +73,189 @@ export async function getSubClassrooms(regclassid: number) {
     return classrooms
 }
 
-export async function canRegister(regData: uiClasses, tx: Transaction) {
-    // Check if valid 
+export async function getTermVariables(
+    parsedData: z.infer<typeof arrangementSchema>,
+    season: seasonObj,
+    tx: Transaction
+) {
+    const { year, fall, spring } = await getThreeSeasons(tx);
+    const now = new Date(toESTString(new Date()));
+    let seasonid = season.seasonid;
+
+    if (seasonid === year.seasonid) {
+        // Full academic year
+        return {
+            seasonid: year.seasonid,
+            activestatus: inSession(year) ? "Active" : "Inactive",
+            regstatus: inReg(year, parsedData.closeregistration) ? "Open" : "Closed"
+        };
+    }
+
+    if (seasonid === spring.seasonid) {
+        return {
+            seasonid: spring.seasonid,
+            activestatus: inSession(spring) ? "Active" : "Inactive",
+            regstatus: inReg(spring, parsedData.closeregistration) ? "Open" : "Closed"
+        };
+    }
+
+    if (seasonid === fall.seasonid) {
+        return {
+            seasonid: fall.seasonid,
+            activestatus: inSession(fall) ? "Active" : "Inactive",
+            regstatus: inReg(fall, parsedData.closeregistration) ? "Open" : "Closed"
+        };
+    }
+
+    throw new Error("No valid season found");
+}
+
+
+
+// TODO: This is slightly suspicious and relies on a lot of things going correct. See if a better, more reliable solution can be found
+export async function getThreeSeasons(tx: Transaction) {
+    const year = await tx.query.seasons.findFirst({
+        where: (s, { eq }) => eq(s.status, "Active"),
+        orderBy: (s, { asc }) => asc(s.seasonid)
+    });
+
+    if (!year) {
+        throw new Error("No active year found");
+    }
+
+    const terms = await tx.query.seasons.findMany({
+        where: (s, { or, eq }) => or(
+            eq(s.seasonid, year.beginseasonid),
+            eq(s.seasonid, year.relatedseasonid)
+        ),
+        orderBy: (s, { asc }) => asc(s.seasonid)
+    });
+
+    return { year: year, fall: terms[0], spring: terms[1] };
+}
+
+export async function getArrSeason(tx: Transaction, arrData: uiClasses): Promise<"year" | "fall" | "spring"> {
+    const { year, fall, spring } = await getThreeSeasons(tx);
+    const seasonid = arrData.seasonid;
+    if (seasonid === year.seasonid) return "year";
+    if (seasonid === fall.seasonid) return "fall";
+    if (seasonid === spring.seasonid) return "spring"
+    throw new Error("No valid season found");
+}
+
+export async function getTotalPrice(tx: Transaction, arrData: uiClasses, season?: "year" | "fall" | "spring") {
+    // in practice these should never be null
+    if (season) {
+        const totalPrice = season === "year" 
+            ? Number(arrData.tuitionW) || 0 + Number(arrData.bookfeeW) || 0 + Number(arrData.specialfeeW) || 0 
+            : Number(arrData.tuitionH) || 0 + Number(arrData.bookfeeH) || 0 + Number(arrData.specialfeeH) || 0 
+        return totalPrice;
+    } else {
+        const totalPrice = (await getArrSeason(tx, arrData)) === "year" 
+            ? Number(arrData.tuitionW) || 0 + Number(arrData.bookfeeW) || 0 + Number(arrData.specialfeeW) || 0 
+            : Number(arrData.tuitionH) || 0 + Number(arrData.bookfeeH) || 0 + Number(arrData.specialfeeH) || 0 
+        return totalPrice;
+    }
+}
+
+// TODO: Business logic of half term registration in a full class has not been incorporated. A bunch of functions, mostly here, require this.
+export async function canRegister(tx: Transaction, regData: uiClasses, arrSeason: seasonObj): Promise<regKind> {
+    // 1. Check if valid arrangement
     const arrangement = await tx.query.arrangement.findFirst({
         where: (arr, { eq }) => eq(arr.arrangeid, regData.arrangeid as number),
-        with: {
-            season: {}
-        }
     });
 
     if (!arrangement) {
-        throw new Error("No arrangement found for registered class")
+        throw new Error("No arrangement found for registered class");
     }
 
-    const now = new Date(Date.now());
-    // Spring class and fall
-    const springSem = inSpring(arrangement.season);
-    if (springSem && !arrangement.season.isspring) {
-        return false;
-    }
-    // Fall class and spring
-    else if (!springSem && arrangement.season.isspring) {
-        return false;
+    // 2. Get current date in eastern time
+    const now = new Date(toESTString(new Date()));
+    const { earlyregdate, closeregdate, lateregdate1, lateregdate2, normalregdate } = arrSeason;
+
+    if (arrangement.closeregistration !== true) {
+        return "noclosereg";
     }
 
-    // Check for valid registration date - as long as it's after early reg and before late reg
-    if (now <= new Date(arrangement.season.earlyregdate) || now >= new Date(arrangement.season.lateregdate1)) {
+    // Registration closed if before early reg or after close reg
+    if (now < new Date(earlyregdate) || now > new Date(closeregdate)) {
+        return "closed";
+    }
+
+    // Late2 registration period
+    if (now >= new Date(lateregdate2)) {
+        return "late2";
+    }
+
+    // Late1 registration period
+    if (now >= new Date(lateregdate1)) {
+        return "late1";
+    }
+
+    // Normal registration period
+    if (now >= new Date(normalregdate)) {
+        return "normal";
+    }
+
+    // Early registration period
+    if (now >= new Date(earlyregdate)) {
+        return "early";
+    }
+
+    // Fallback: closed
+    return "closed";
+}
+
+// Ensures that a registration for a given timeline (class time) does not conflict with existing registrations.
+// Returns true if registration is allowed, false otherwise.
+export async function ensureTimeline(
+    tx: Transaction,
+    curtimeid: number,
+    regInfo: uniqueRegistration
+): Promise<boolean> {
+    // If the class time is "both periods", check for any registration for this student/family/class/season
+    if (curtimeid === CLASSTIME_PERIOD_BOTH_TIMEID) {
+        const reg = await tx.query.classregistration.findFirst({
+            where: (cr, { and, or, eq }) =>
+                and(
+                    eq(cr.seasonid, regInfo.seasonid),
+                    eq(cr.familyid, regInfo.familyid),
+                    eq(cr.studentid, regInfo.studentid),
+                    eq(cr.classid, regInfo.classid),
+                    or(eq(cr.statusid, 1), eq(cr.statusid, 2))  // Submitted or registered, still being considered or already paid
+                ),
+        });
+        return !reg;
+    }
+
+    // For a specific class time, check if the student is already registered for this class/time/season/family
+    const reg = await tx.query.classregistration.findFirst({
+        where: (cr, { and, eq }) =>
+            and(
+                eq(cr.seasonid, regInfo.seasonid),
+                eq(cr.familyid, regInfo.familyid),
+                eq(cr.studentid, regInfo.studentid),
+                eq(cr.classid, regInfo.classid)
+            ),
+        with: {
+            class: {
+                with: {
+                    arrangements: {
+                        columns: { timeid: true }
+                    }
+                }
+            }
+        }
+    });
+
+    // If registration exists, check if any arrangement matches the current time id
+    if (reg?.class?.arrangements?.some(a => a.timeid === curtimeid)) {
         return false;
     }
 
     return true;
 }
+
 
 
 // Select Options and idMaps for dropdowns
