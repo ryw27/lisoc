@@ -18,8 +18,9 @@ import {
     REGSTATUS_TRANSFERRED, 
     toESTString 
 } from "@/lib/utils";
-import { getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../helpers";
+import { canTransferOutandIn, getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../helpers";
 import { famBalanceInsert } from "@/lib/shared/types";
+import { revalidatePath } from "next/cache";
 
 
 export async function adminTransferStudent(regid: number, studentid: number, familyid: number, newArrange: uiClasses, override: boolean) {
@@ -61,8 +62,14 @@ export async function adminTransferStudent(regid: number, studentid: number, fam
         }
 
         // 4. Check if it's past cancel deadline and there is no admin override
-        if (new Date(oldArr.season.canceldeadline) <= new Date(toESTString(new Date())) && !override) {
-            throw new Error("Transfer is not allowed. Cancel deadline has passed");
+        const newArrSeason = await tx.query.seasons.findFirst({
+            where: (s, { eq }) => eq(s.seasonid, newArrange.seasonid)
+        });
+        if (!newArrSeason) {
+            throw new Error("Cannot find corresponding season for arrangement");
+        }
+        if (!canTransferOutandIn(oldArr.season, newArrSeason, newArrange.closeregistration) && !override) {
+            throw new Error("Transfer is not allowed. Either cancel deadline for old class has passed, or new class registration hasn't opened");
         }
 
         // 5. Check if they haven't paid yet. In this case just delete the old registration
@@ -173,11 +180,25 @@ export async function adminTransferStudent(regid: number, studentid: number, fam
             .values(newBalVals)
             .returning();
 
+        // 10. Update the new classregistration with the family balance id
         await tx
             .update(classregistration)
             .set({
                 familybalanceid: newRegBal.balanceid
             })
+            .where(eq(classregistration.regid, newReg.regid));
+
+        //11. Set the newbalanceid for old registration to this balance
+        await tx
+            .update(classregistration)
+            .set({
+                newbalanceid: newRegBal.balanceid
+            })
+            .where(eq(classregistration.regid, oldReg.regid));
+
+        // 12. Revalidate
+        revalidatePath("/admintest/management/semester");
+        revalidatePath("/dashboard/register");
 
         return newRegBal;
     })
