@@ -21,11 +21,35 @@ import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 
 export type Transaction = Parameters<Parameters<typeof db["transaction"]>[0]>[0];
 
-export function inReg(season: seasonObj, closereg: boolean): boolean {
-    const now = new Date(toESTString(new Date()))
-    if (closereg === false) return true;
-    return now >= new Date(season.earlyregdate) && now <= new Date(season.closeregdate);
-} 
+export function canDrop(season: Partial<seasonObj>) {
+    if (!season.canceldeadline) {
+        throw new Error("Old season must have cancel deadline field");
+    }
+    const now = new Date(toESTString(new Date()));
+    return now <= new Date(season.canceldeadline)
+}
+
+export function canTransferOutandIn(oldSeason: Partial<seasonObj>, newSeason: Partial<seasonObj>, closereg: boolean): boolean {
+    if (!oldSeason.canceldeadline) {
+        throw new Error("Old season must have cancel deadline field");
+    }
+    if (!newSeason.earlyregdate || !newSeason.closeregdate) {
+        throw new Error("New season must have earlyregdate and closeregdate fields");
+    }
+    const now = new Date(toESTString(new Date()));
+    return now <= new Date(oldSeason.canceldeadline) && inReg(newSeason, closereg);
+}
+
+export function inReg(season: Partial<seasonObj>, closereg: boolean): boolean {
+    if (!season.earlyregdate || !season.closeregdate) {
+        throw new Error("Season must have earlyregdate and closeregdate");
+    }
+    if (!closereg) return true;
+    const now = new Date(toESTString(new Date()));
+    const early = new Date(season.earlyregdate);
+    const close = new Date(season.closeregdate);
+    return now >= early && now <= close;
+}
 
 export function inSession(season: seasonObj): boolean {
     const now = new Date(toESTString(new Date()))
