@@ -59,7 +59,7 @@ export async function adminRegister(
         }
 
         // 5. Register student
-        const arrSeason = await getArrSeason(arrData);
+        const arrSeason = await getArrSeason(tx, arrData);
         const [newReg] = await tx
             .insert(classregistration)
             .values({
@@ -78,7 +78,7 @@ export async function adminRegister(
             .returning()
         
         // 6. Open family balance
-        const classPrice = getTotalPrice(arrData, arrSeason);
+        const classPrice = getTotalPrice(tx, arrData, arrSeason);
         // Let defaults fill the rest
         const familyBalanceData: famBalanceInsert = {
             appliedregid: newReg.regid,
