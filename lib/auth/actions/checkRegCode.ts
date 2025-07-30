@@ -5,7 +5,7 @@ import { z } from "zod/v4";
 
 
 // Step 3: Check the inputted code. 
-export async function checkCode(data: z.infer<typeof codeSchema>, email: string) {
+export async function checkRegCode(data: z.infer<typeof codeSchema>, email: string) {
     emailSchema.parse({ email: email });
     const codeData = codeSchema.parse(data);
 

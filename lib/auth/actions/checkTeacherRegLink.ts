@@ -3,7 +3,7 @@ import { uuidSchema } from "../validation";
 import { db } from "@/lib/db";
 
 
-export async function checkLink(email: string, token: string): Promise<boolean> {
+export async function checkTeacherRegLink(email: string, token: string): Promise<boolean> {
     emailSchema.parse({ email: email });
     uuidSchema.parse({ uuid: token });
 

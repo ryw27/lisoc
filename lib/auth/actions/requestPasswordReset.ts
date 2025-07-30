@@ -6,7 +6,7 @@ import { pgadapter } from "../auth";
 import { checkExistence, sendFPEmail } from "../helpers";
 import { v4 as uuid } from "uuid";
 
-export async function requestReset(data: z.infer<typeof forgotPassSchema>) {
+export async function requestPasswordReset(data: z.infer<typeof forgotPassSchema>) {
     const fpCheck = forgotPassSchema.parse(data);
     const input = fpCheck.emailUsername;
 

@@ -3,7 +3,7 @@ import { emailSchema, usernameSchema } from "@/lib/auth/validation";
 import { signIn } from "../auth";
 
 // Only for server page logins. Client side logins are handled by auth.js
-export async function login(formData: FormData, isAdminForm: boolean, isTeacherForm: boolean) {
+export async function serverLogin(formData: FormData, isAdminForm: boolean, isTeacherForm: boolean) {
     const { emailUsername, password } = loginSchema.parse(Object.fromEntries(formData));
     const provider = isAdminForm ? "admin-credentials" : isTeacherForm ? "teacher-credentials" : "family-credentials";
 

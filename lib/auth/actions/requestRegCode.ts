@@ -7,7 +7,7 @@ import { z } from "zod/v4";
 
 
 // STEP 1: Enter email. If valid, request a code using the auth.js PostgresAdapter
-export async function emailToCode(data: z.infer<typeof emailSchema>) {
+export async function requestRegCode(data: z.infer<typeof emailSchema>) {
     // Parse incoming data
     const userData = emailSchema.parse(data);
 

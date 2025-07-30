@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 
 
 // STEP 5: Register the user into the database
-export async function fullRegister(
+export async function fullRegisterFamily(
     data: z.infer<typeof teacherSchema> | z.infer<typeof familySchema>, 
     regData: z.infer<typeof nameEmailSchema>, 
     isTeacher: boolean

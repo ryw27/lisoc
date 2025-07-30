@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 
 
 // Step 4: Register the username, email, and password into drafts 
-export async function registerDraft(data: z.infer<typeof userPassSchema>, email: string) {
+export async function registerDraftFamily(data: z.infer<typeof userPassSchema>, email: string) {
     const draftData = userPassSchema.parse(data);
     emailSchema.parse({ email: email });
 
