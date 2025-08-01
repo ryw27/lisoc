@@ -2,27 +2,24 @@ import { type NextAuthConfig } from "next-auth";
 
 export default { 
     callbacks: {
-        async session({ session, token }) {
-            if (session.user) {
-                session.user.role = token.role;
-                session.user.userid = token.userid ?? token.sub;
-            }
-            return session;
-        },
         async jwt({ token, user }) {
             if (user) {
-                token.role = user.role;
-                token.userid = user.userid ?? user.id;
-                token.sub = user.userid ?? user.id;
-            }
-            // Ensure at least one of token.userid or token.sub is present
-            if (!token.userid && token.sub) {
-                token.userid = token.sub;
-            }
-            if (!token.sub && token.userid) {
-                token.sub = token.userid;
+                token.sub = user.id; // primary identifier
+                token.role = user.role;  // role
+                // Only if available
+                token.email = user.email;
+                token.name = user.name;
             }
             return token;
+        },
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.id = token.sub;
+                session.user.role = token.role;
+                session.user.name = token.name;
+                session.user.email = token.email ?? "No email";
+            }
+            return session;
         },
     },
     session: {

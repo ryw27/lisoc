@@ -10,26 +10,22 @@ import authConfig from "@/auth.config"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { type JWT } from "next-auth/jwt"
 
-
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
     interface User { 
+        id: string;
         role: "ADMIN" | "TEACHER" | "FAMILY"
-        userid: string;
     } 
 
     interface Session {
-        user: {
-            role: User["role"]
-            userid: User["userid"]
-        } & DefaultSession["user"]
+        user: User & DefaultSession["user"]
     }
 }
 
 declare module "next-auth/jwt" {
     interface JWT { 
-        role: "ADMIN" | "TEACHER" | "FAMILY"
-        userid: string; 
+        sub: string; // user id
+        role: "ADMIN" | "TEACHER" | "FAMILY";
     }
 }
 
@@ -83,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, adminuser.password);
                     if (!valid) return null;
                     
-                    return { userid: adminuser.id.toString(), email: adminuser.email || "", username: adminuser.name || "", role: "ADMIN" };
+                    return { id: adminuser.id.toString(), email: adminuser.email || "", name: adminuser.name || "", role: "ADMIN" };
                 } else {
                     return null;
                 }
@@ -131,7 +127,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, teacheruser.password);
                     if (!valid) return null;
                     
-                    return { userid: teacheruser.id.toString(), email: teacheruser.email || "", username: teacheruser.name || "", role: "TEACHER" };
+                    return { id: teacheruser.id.toString(), email: teacheruser.email || "", name: teacheruser.name || "", role: "TEACHER" };
                 } else {
                     return null;
                 }
@@ -179,7 +175,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const valid = await bcrypt.compare(password, familyuser.password);
                     if (!valid) return null;
                     
-                    return { userid: familyuser.id.toString(), email: familyuser.email || "", username: familyuser.name || "", role: "FAMILY" };
+                    return { id: familyuser.id.toString(), email: familyuser.email || "", name: familyuser.name || "", role: "FAMILY" };
                 } else {
                     return null;
                 }
