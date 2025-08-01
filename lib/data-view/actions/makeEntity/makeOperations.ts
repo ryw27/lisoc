@@ -19,12 +19,13 @@ import { ZodSchema } from "zod";
 import * as schema from "@/lib/db/schema";
 import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
 import { ZodError } from "zod";
+import { Transaction } from "@/lib/registration/helpers";
 
 export async function uniqueCheck<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema>(
 	table: T,
 	entity_name: string,
 	itemToCheck: z.infer<FormSchema>, // ✅ Fixed: Use inferred type, not ZodSchema
-	tx: PgTransaction<any, typeof schema, any>,
+	tx: Transaction,
 	uniqueConstraints: uniqueCheckFields<N, T, FormSchema>[],
 	// Included if updating
 	PKCol?: AnyPgColumn, // Type safe from driver function
@@ -131,11 +132,11 @@ export function makeOperations<
 
 	// Must do to satisfy drizzle since N is a union type which drizzle complains about
 	// Strict type checking on parameters means it's not a big deal, we already know the table and prim key at this point is fine
-	const anyTable = table as unknown as AnyPgTable;
-	const pkCol = (table as any)[primaryKey as PK] as AnyPgColumn;
+	const anyTable = table as AnyPgTable;
+	const columns = getTableColumns(anyTable);
+	const pkCol = columns[primaryKey as string] as AnyPgColumn;
 
 	// Check if need to add updatedBy and createdBy fields
-	const columns = getTableColumns(anyTable);
 	const hasCreateBy = "createby" in columns;
 	const hasUpdateBy = "updateby" in columns;
 

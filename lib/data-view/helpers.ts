@@ -12,7 +12,7 @@ import { toESTString } from "../utils";
  * @returns True if the column is a PgColumn, false otherwise - used to filter out non-column properties like enableRLS
  */
 export function isPgColumn(column: AnyPgColumn) {
-  return !!column && typeof column === 'object' && 'dataType' in (column as any);
+  return !!column && typeof column === 'object' && 'dataType' in column;
 }
 
 // Build SQL from parsed filters

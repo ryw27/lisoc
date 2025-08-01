@@ -78,7 +78,9 @@ export function generateColumnDefs<T extends object>(
       const baseFilter = defaultFilter(columnType);
       
       if (columnType === 'enum' && (column as PgColumn).getSQLType()?.toLowerCase().includes('boolean')) {
-        (baseFilter as any).options = ['true', 'false'];
+        if (baseFilter.type === 'enum') { // Will be true 
+          baseFilter.options = ['true', 'false'];
+        }
       }
       
       return {
