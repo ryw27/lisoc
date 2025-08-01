@@ -38,6 +38,8 @@ export const FAMILYBALANCE_TYPE_OTHER = 6;
 export const FAMILYBALANCE_TYPE_TRANSFER = 8;
 export const FAMILYBALANCE_TYPE_PAYMENT = 3;
 export const FAMILYBALANCE_TYPE_DROPOUT = 9;
+export const FAMILYBALANCE_TYPE_SCHOOL_CHECK = 5;
+
 
 
 // Family balance status
