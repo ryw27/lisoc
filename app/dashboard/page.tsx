@@ -1,7 +1,6 @@
-import { requireRole } from "@/app/lib/auth-lib/auth-actions"
+import { requireRole } from "@/lib/auth/actions/requireRole"
 import { redirect } from "next/navigation";
-import { db } from "../lib/db";
-import { or } from "drizzle-orm";
+import { db } from "@/lib/db";
 
 export default async function Dashboard() {
     // Check if allowed here.

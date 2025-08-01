@@ -1,8 +1,8 @@
-import { db } from "@/app/lib/db";
-import RegClassForm from "../components/reg-class-form";
-import { getCurrentSeason } from "@/app/lib/semester/sem-actions";
-import { requireRole } from "@/app/lib/auth-lib/auth-actions";
-import { threeSeason } from "@/app/lib/semester/sem-schemas";
+import { db } from "@/lib/db";
+import RegClassForm from "@/components/registration/family/CHANGE_reg-class-form";
+import { getCurrentSeason } from "@/lib/registration/semester/actions/getCurrentSeason";
+import { requireRole } from "@/lib/auth/actions/requireRole";
+import { type threeSeasons } from "@/lib/registration/types";
 
 export default async function CourseListPage() {
     // Check auth 
@@ -63,7 +63,7 @@ export default async function CourseListPage() {
 
 
         const allArrangements = [...arrangementsYear, ...arrangementsFall, ...arrangementsSpring];
-        const allSeasons = { year: academicYear, fall: fall, spring: spring } satisfies threeSeason
+        const allSeasons = { year: academicYear, fall: fall, spring: spring } satisfies threeSeasons;
 
         return (
                 <RegClassForm

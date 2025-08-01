@@ -1,9 +1,9 @@
-import { classes } from "@/app/lib/db/schema";
+import { classes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import { allClassRows, updateClassRow } from "../../class-helpers";
-import EditEntity, { EditFormField } from "@/components/edit-entity";
+import EditEntity, { EditFormField } from "@/components/data-view/edit-entity";
 
 export default async function ClassEditPage({
     params,

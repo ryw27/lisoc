@@ -1,4 +1,4 @@
-import AddEntity, { FormField } from '@/components/add-entity'
+import AddEntity, { FormField } from '@/components/data-view/add-entity'
 import { insertFamilyRow } from '../family-helpers'
 
 export default async function AddFamily({
@@ -56,31 +56,10 @@ export default async function AddFamily({
             required: false
         },
         {
-            name: "address2",
-            label: "Address Line 2",
+            name: "address1",
+            label: "Address Line 1",
             type: "text",
-            placeholder: "Enter address line 2...",
-            required: false
-        },
-        {
-            name: "phonealt",
-            label: "Alt Phone",
-            type: "text",
-            placeholder: "Enter alternative phone...",
-            required: false
-        },
-        {
-            name: "emailalt",
-            label: "Alt Email",
-            type: "text",
-            placeholder: "Enter alternative email...",
-            required: false
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            placeholder: "Enter any notes...",
+            placeholder: "Enter address line 1...",
             required: false
         }
     ];

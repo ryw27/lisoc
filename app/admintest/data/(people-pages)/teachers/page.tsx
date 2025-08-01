@@ -1,7 +1,8 @@
 import { teacherColumns, teacherObject } from './teacher-helpers'
-import DataDashboard from "@/components/data-dashboard"
+import DataDashboard from "@/components/data-view/data-dashboard"
 import { deleteTeacherRows, pageTeacherRows } from './teacher-helpers'
-import { parseParams, type SearchParams } from '@/app/lib/handle-params'
+import { type SearchParams } from '@/lib/data-view/types'
+import { parseParams } from '@/lib/data-view/'
 
 //--------------------------------
 //-- Page Component for teachers
@@ -31,7 +32,7 @@ export default async function TeachersPage({
             data={rows as teacherObject[]}
             columns={teacherColumns}
             totalCount={totalCount}
-            tableName="teachers"
+            tableName="teacher"
             addLink="/admintest/dashboard/data/teachers/add-teacher"
             addText="Add Teacher"
             deleteAction={deleteTeacherRows}

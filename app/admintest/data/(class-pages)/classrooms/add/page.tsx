@@ -1,4 +1,4 @@
-import AddEntity, { FormField } from '@/components/add-entity'
+import AddEntity, { FormField } from '@/components/data-view/add-entity'
 import { insertClassroomRow } from '../classroom-helpers'
 
 export default async function AddClassroom({

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
-import { checkLink, resetPassword } from "@/app/lib/auth-lib/auth-actions";
-import ResetPasswordForm from "../components/reset-password-form";
+import { checkResetLink, resetPassword } from "@/lib/auth";
+import ResetPasswordForm from "@/components/auth/reset-password-form";
 
 export default async function ResetPassword({
     searchParams
@@ -12,7 +12,7 @@ export default async function ResetPassword({
         return notFound();
     }
 
-    const res = await checkLink(params.email, params.token);
+    const res = await checkResetLink(params.email, params.token);
 
     if (res) {
         return <ResetPasswordForm userEmail={params.email} userToken={params.token} resetPassword={resetPassword}/>;

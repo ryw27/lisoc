@@ -1,6 +1,6 @@
-import EditEntity, { EditFormField } from '@/components/edit-entity'
+import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idAdministratorRow, updateAdministratorRow } from '../../admin-helpers'
-import { allFamilyRows } from '../../../families/family-helpers'
+import { allFamilyRows, familyObject } from '../../../families/family-helpers'
 
 export default async function EditAdministratorPage({
     params,
@@ -22,7 +22,7 @@ export default async function EditAdministratorPage({
     const families = await allFamilyRows();
     const familyOptions = [
         { value: "", label: "Not linked" },
-        ...families.map((family: any) => ({
+        ...families.map((family: familyObject) => ({
             value: family.familyid.toString(),
             label: `Family ${family.familyid}`
         }))

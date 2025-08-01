@@ -1,6 +1,6 @@
-import EditEntity, { EditFormField } from '@/components/edit-entity'
+import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idTeacherRow, updateTeacherRow } from '../../teacher-helpers'
-import { allFamilyRows } from '../../../families/family-helpers'
+import { allFamilyRows, familyObject } from '../../../families/family-helpers'
 
 export default async function EditTeacherPage({
     params,
@@ -22,7 +22,7 @@ export default async function EditTeacherPage({
     const families = await allFamilyRows();
     const familyOptions = [
         { value: "", label: "Not linked" },
-        ...families.map((family: any) => ({
+        ...families.map((family: familyObject) => ({
             value: family.familyid.toString(),
             label: `Family ${family.familyid}`
         }))
@@ -38,55 +38,13 @@ export default async function EditTeacherPage({
             defaultValue: currentTeacher.namecn
         },
         {
-            name: "namelasten",
-            label: "Last Name",
-            type: "text",
-            required: true,
-            defaultValue: currentTeacher.namelasten
-        },
-        {
-            name: "namefirsten",
-            label: "First Name",
-            type: "text",
-            required: true,
-            defaultValue: currentTeacher.namefirsten
-        },
-        {
-            name: "address2",
-            label: "Address Line 2",
+            name: "address1",
+            label: "Address Line 1",
             type: "text",
             required: false,
-            defaultValue: currentTeacher.address2 || ""
+            defaultValue: currentTeacher.address1 || ""
         },
-        {
-            name: "phonealt",
-            label: "Alt Phone",
-            type: "text",
-            required: false,
-            defaultValue: currentTeacher.phonealt || ""
-        },
-        {
-            name: "emailalt",
-            label: "Alt Email",
-            type: "text",
-            required: false,
-            defaultValue: currentTeacher.emailalt || ""
-        },
-        {
-            name: "familyid",
-            label: "Family",
-            type: "select",
-            required: false,
-            options: familyOptions,
-            defaultValue: currentTeacher.familyid?.toString() || ""
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            required: false,
-            defaultValue: currentTeacher.notes || ""
-        }
+
     ];
 
     async function handleSubmit(formData: FormData) {
@@ -96,7 +54,7 @@ export default async function EditTeacherPage({
 
     return (
         <EditEntity
-            title={`Edit Teacher: ${currentTeacher.namecn}`}
+            title={`Edit Teacher: ${currentTeacher.namefirsten} ${currentTeacher.namelasten}`}
             fields={fields}
             submitAction={handleSubmit}
             gobacklink={`/admintest/dashboard/data/teachers/${teacher_id}`}

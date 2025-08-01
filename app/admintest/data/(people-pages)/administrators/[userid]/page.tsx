@@ -1,6 +1,6 @@
-import { adminuser } from '@/app/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/entity-id';
-import { Table } from '@/app/lib/entity-types';
+import { adminuser } from '@/lib/db/schema';
+import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
+import { Table } from '@/lib/data-view/types';
 import { administratorTable } from '../admin-helpers';
 
 interface AdministratorPageProps {
@@ -26,65 +26,28 @@ export default async function AdministratorPage({ params }: AdministratorPagePro
                     key: "userid"
                 },
                 {
-                    label: "Role ID",
-                    key: "roleid"
-                },
-                {
                     label: "Name (CN)",
                     key: "namecn"
                 },
-                {
-                    label: "Last Name",
-                    key: "namelasten"
-                },
-                {
-                    label: "First Name",
-                    key: "namefirsten"
-                },
-                {
-                    label: "Family ID",
-                    key: "familyid",
-                    fallback: "Not linked"
-                }
             ]
         },
         {
             label: "Status & Management",
             display: [
                 {
-                    label: "Address Line 2",
-                    key: "address2",
-                    fallback: "Not provided"
-                },
-                {
                     label: "Status",
                     key: "status",
-                    formatter: (value: any) => value ? "Active" : "Inactive"
+                    formatter: (value) => value ? "Active" : "Inactive"
                 },
                 {
                     label: "Change Password Next Login",
                     key: "ischangepwdnext",
-                    formatter: (value: any) => value ? "Yes" : "No"
+                    formatter: (value) => value ? "Yes" : "No"
                 },
                 {
-                    label: "Created By",
+                    label: "Create By",
                     key: "createby",
-                    fallback: "Unknown"
-                },
-                {
-                    label: "Updated By",
-                    key: "updateby",
-                    fallback: "Unknown"
-                },
-                {
-                    label: "Updated On",
-                    key: "updateon",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Never updated"
-                },
-                {
-                    label: "Notes",
-                    key: "notes",
-                    fallback: "No notes available"
+                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Never created"
                 }
             ]
         }

@@ -1,10 +1,8 @@
-import { family } from "@/app/lib/db/schema";
-import { generateColumnDefs } from "@/app/lib/column-actions";
+import { family } from "@/lib/db/schema";
+import { generateColumnDefs } from "@/lib/data-view";
 import { z } from 'zod';
-import { formatISO } from "date-fns";
-import { makeEntity, EntityConfig } from "@/app/lib/entity-config";
-import { type Extras, type uniqueCheckFields } from "@/app/lib/data-actions";
-import { parsedParams } from "@/app/lib/handle-params";
+import { makeEntity } from "@/lib/data-view/actions/makeEntity/makeEntity";
+import { type Extras, type uniqueCheckFields, type parsedParams, type EntityConfig } from "@/lib/data-view/types";
 
 //----------------------------------------------------------------------------------------
 // FAMILIES
@@ -18,10 +16,7 @@ export const familyFormSchema = z.object({
     motherfirsten: z.string().optional(),
     motherlasten: z.string().optional(),
     mothernamecn: z.string().optional(),
-    address2: z.string().optional(),
-    phonealt: z.string().optional(),
-    emailalt: z.string().optional(),
-    notes: z.string().optional()
+    address1: z.string().optional(),
 })
 
 // Type of any family insertions: for compile-time type checking
@@ -53,20 +48,8 @@ export const familyColumns = generateColumnDefs<familyObject>(family, {
     mothernamecn: {
         header: "Mother Name (CN)",
     },
-    address2: {
-        header: "Address Line 2",
-    },
-    phonealt: {
-        header: "Alt Phone",
-    },
-    emailalt: {
-        header: "Alt Email",
-    },
-    lastmodify: {
-        header: "Last Modified",
-    },
-    notes: {
-        header: "Notes",
+    address1: {
+        header: "Address Line 1",
     },
 });
 
@@ -74,11 +57,9 @@ const familyUniqueConstraints: uniqueCheckFields<"family", familyTable, typeof f
 
 const insertExtras: Extras<"family", familyTable>= {
     "userid": "", // This will be set elsewhere
-    "lastmodify": formatISO(new Date())
 }
 
 const updateExtras: Extras<"family", familyTable>= {
-    "lastmodify": formatISO(new Date())
 }
 
 export const familyConfig: EntityConfig<"family", familyTable> = makeEntity({

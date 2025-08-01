@@ -1,6 +1,6 @@
-import { emailToCode, checkCode, registerDraft, resendCode, fullRegister } from '@/app/lib/auth-lib/auth-actions';
-import RegisterForm from '../../components/register-form';
-import { db } from '@/app/lib/db';
+import { checkRegCode, requestRegCode, registerDraftFamily, fullRegisterFamily, resendCode } from '@/lib/auth';
+import RegisterForm from '@/components/auth/register-form';
+import { db } from '@/lib/db';
 import { z } from 'zod';
 
 
@@ -18,8 +18,8 @@ export default async function RegisterPage({
         return <div className="w-full h-full flex justify-center mt-15">Invalid registration link</div>;
     }
 
-    const teacherReg = await db.query.teacher_registration.findFirst({
-        where: (teacher_registration, { eq }) => eq(teacher_registration.linkuuid, parsedUUID.data)
+    const teacherReg = await db.query.registration_drafts.findFirst({
+        where: (registration_drafts, { eq }) => eq(registration_drafts.email, parsedUUID.data)
     });
 
     if (!teacherReg) {
@@ -28,11 +28,11 @@ export default async function RegisterPage({
 
     return (
         <RegisterForm 
-            requestCode={emailToCode}
+            requestCode={requestRegCode}
             resendCode={resendCode}
-            checkCode={checkCode}
-            registerDraft={registerDraft}
-            fullRegister={fullRegister}
+            checkCode={checkRegCode}
+            registerDraft={registerDraftFamily}
+            fullRegister={fullRegisterFamily}
             isTeacher={true}
             inStep={"CREDENTIALS"}
             inCredentials={{ email: teacherReg.email, username: "" }}

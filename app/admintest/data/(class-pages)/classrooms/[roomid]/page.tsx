@@ -1,6 +1,6 @@
-import { classrooms } from '@/app/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/entity-id';
-import { Table } from '@/app/lib/entity-types';
+import { classrooms } from '@/lib/db/schema';
+import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
+import { Table } from '@/lib/data-view/types';
 import { classroomTable } from '../classroom-helpers';
 
 interface ClassroomPageProps {

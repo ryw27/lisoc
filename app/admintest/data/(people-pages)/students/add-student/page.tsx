@@ -1,6 +1,6 @@
-import AddEntity, { FormField } from '@/components/add-entity'
+import AddEntity, { FormField } from '@/components/data-view/add-entity'
 import { insertStudentRow } from '../student-helpers'
-import { allStudentRows } from '../student-helpers'
+import { allStudentRows, studentObject } from '../student-helpers'
 
 export default async function AddStudent({
     searchParams,
@@ -14,7 +14,7 @@ export default async function AddStudent({
 
     // Get data for select options
     const students = await allStudentRows();
-    const studentOptions = students.map((student: any) => ({
+    const studentOptions = students.map((student: studentObject) => ({
         value: student.studentid.toString(),
         label: `Student ${student.studentid}`
     }));

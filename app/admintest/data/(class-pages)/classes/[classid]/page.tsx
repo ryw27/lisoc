@@ -1,6 +1,6 @@
-import { classes } from '@/app/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/entity-id';
-import { Table } from '@/app/lib/entity-types';
+import { classes } from '@/lib/db/schema';
+import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
+import { Table } from '@/lib/data-view/types';
 import { classTable } from '../class-helpers';
 
 interface ClassPageProps {
@@ -62,12 +62,12 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 {
                     label: "Last Modified",
                     key: "lastmodify",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
+                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
                 },
                 {
                     label: "Created On",
                     key: "createon",
-                    formatter: (value: any) => new Date(value as string).toLocaleDateString()
+                    formatter: (value) => new Date(value as string).toLocaleDateString()
                 },
                 {
                     label: "Created By",
@@ -80,7 +80,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 {
                     label: "Updated On",
                     key: "updateon",
-                    formatter: (value: any) => new Date(value as string).toLocaleDateString()
+                    formatter: (value) => new Date(value as string).toLocaleDateString()
                 }
             ]
         }

@@ -1,6 +1,6 @@
-import AddEntity, { FormField } from '@/components/add-entity'
+import AddEntity, { FormField } from '@/components/data-view/add-entity'
 import { insertTeacherRow } from '../teacher-helpers'
-import { allTeacherRows } from '../teacher-helpers'
+import { allTeacherRows, teacherObject } from '../teacher-helpers'
 
 export default async function AddTeacher({
     searchParams,
@@ -16,7 +16,7 @@ export default async function AddTeacher({
     const teachers = await allTeacherRows();
     const teacherOptions = [
         { value: "", label: "Not linked" },
-        ...teachers.map((teacher: any) => ({
+        ...teachers.map((teacher: teacherObject) => ({
             value: teacher.teacherid.toString(),
             label: `Teacher ${teacher.teacherid}`
         }))

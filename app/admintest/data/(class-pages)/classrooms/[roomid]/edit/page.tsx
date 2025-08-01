@@ -1,4 +1,4 @@
-import EditEntity, { EditFormField } from '@/components/edit-entity'
+import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idClassroomRow, updateClassroomRow } from '../../classroom-helpers'
 
 export default async function EditClassroomPage({

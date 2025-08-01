@@ -1,9 +1,8 @@
-import { classrooms } from "@/app/lib/db/schema";
-import { generateColumnDefs } from "@/app/lib/column-actions";
+import { classrooms } from "@/lib/db/schema";
 import { z } from 'zod';
-import { makeEntity, EntityConfig } from "@/app/lib/entity-config";
-import { type Extras, type uniqueCheckFields } from "@/app/lib/data-actions";
-import { parsedParams } from "@/app/lib/handle-params";
+import { makeEntity } from "@/lib/data-view/actions/makeEntity/makeEntity";
+import { type Extras, type uniqueCheckFields, type parsedParams, type EntityConfig } from "@/lib/data-view/types";
+import { generateColumnDefs } from "@/lib/data-view";
 
 //----------------------------------------------------------------------------------------
 // CLASSROOMS

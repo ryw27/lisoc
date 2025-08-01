@@ -1,7 +1,8 @@
 import { classColumns, classObject } from './class-helpers'
-import DataDashboard from "@/components/data-dashboard"
+import DataDashboard from "@/components/data-view/data-dashboard"
 import { deleteClassRows, pageClassRows } from './class-helpers'
-import { parseParams, type SearchParams } from '@/app/lib/handle-params'
+import { type SearchParams } from '@/lib/data-view/types'
+import { parseParams } from '@/lib/data-view/'
 
 //--------------------------------
 //-- Page Component for classes

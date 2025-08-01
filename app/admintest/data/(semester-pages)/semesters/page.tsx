@@ -1,5 +1,5 @@
-import { db } from "@/app/lib/db"
-import { seasons } from "@/app/lib/db/schema"
+import { db } from "@/lib/db"
+import { seasons } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export default async function SemestersPage() {

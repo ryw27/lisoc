@@ -1,4 +1,4 @@
-import EditEntity, { EditFormField } from '@/components/edit-entity'
+import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idFamilyRow, updateFamilyRow } from '../../family-helpers'
 
 export default async function EditFamilyPage({
@@ -62,32 +62,11 @@ export default async function EditFamilyPage({
             defaultValue: currentFamily.mothernamecn || ""
         },
         {
-            name: "address2",
-            label: "Address Line 2",
+            name: "address1",
+            label: "Address Line 1",
             type: "text",
             required: false,
-            defaultValue: currentFamily.address2 || ""
-        },
-        {
-            name: "phonealt",
-            label: "Alt Phone",
-            type: "text",
-            required: false,
-            defaultValue: currentFamily.phonealt || ""
-        },
-        {
-            name: "emailalt",
-            label: "Alt Email",
-            type: "text",
-            required: false,
-            defaultValue: currentFamily.emailalt || ""
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            required: false,
-            defaultValue: currentFamily.notes || ""
+            defaultValue: currentFamily.address1 || ""
         }
     ];
 

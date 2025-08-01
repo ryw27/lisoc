@@ -1,10 +1,9 @@
-import { student } from "@/app/lib/db/schema";
-import { generateColumnDefs } from "@/app/lib/column-actions";
+import { student } from "@/lib/db/schema";
+import { generateColumnDefs } from "@/lib/data-view";
 import { z } from 'zod';
 import { formatISO } from "date-fns";
-import { makeEntity, EntityConfig } from "@/app/lib/entity-config";
-import { type Extras, type enrichFields, type uniqueCheckFields } from "@/app/lib/data-actions";
-import { parsedParams } from "@/app/lib/handle-params";
+import { makeEntity } from "@/lib/data-view/actions/makeEntity/makeEntity";
+import { type Extras, type enrichFields, type uniqueCheckFields, type parsedParams, type EntityConfig } from "@/lib/data-view/types";
 
 
 

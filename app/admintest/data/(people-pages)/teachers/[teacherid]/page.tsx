@@ -1,7 +1,7 @@
-import { teachers } from '@/app/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/entity-id';
-import { Table } from '@/app/lib/entity-types';
+import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
+import { Table } from '@/lib/data-view/types';
 import { teacherTable } from '../teacher-helpers';
+import { teacher } from '@/lib/db/schema';
 
 interface TeacherPageProps {
     params: Promise<{
@@ -13,7 +13,7 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
     const teacher_id = parseInt((await params).teacherid);
 
     // Define display sections with type-safe keys using the table schema
-    const displaySections: displaySectionGroup<'teachers', Table<"teachers">>[] = [
+    const displaySections: displaySectionGroup<'teacher', Table<"teacher">>[] = [
         {
             label: "Teacher Information",
             display: [
@@ -37,34 +37,14 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
                     label: "First Name",
                     key: "namefirsten"
                 },
-                {
-                    label: "Class ID",
-                    key: "classid",
-                    fallback: "Not assigned"
-                },
-                {
-                    label: "Family ID",
-                    key: "familyid",
-                    fallback: "Not linked"
-                }
             ]
         },
         {
             label: "Contact Information",
             display: [
                 {
-                    label: "Address Line 2",
-                    key: "address2",
-                    fallback: "Not provided"
-                },
-                {
-                    label: "Alt Phone",
-                    key: "phonealt",
-                    fallback: "Not provided"
-                },
-                {
-                    label: "Alt Email",
-                    key: "emailalt",
+                    label: "Address Line 1",
+                    key: "address1",
                     fallback: "Not provided"
                 },
                 {
@@ -76,25 +56,15 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
                     label: "Updated By",
                     key: "updateby",
                     fallback: "Unknown"
-                },
-                {
-                    label: "Updated On",
-                    key: "updateon",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Never updated"
-                },
-                {
-                    label: "Notes",
-                    key: "notes",
-                    fallback: "No notes available"
                 }
             ]
         }
     ];
 
     return (
-        <EntityId<"teachers", teacherTable, 'teacherid'>
-            table={teachers}
-            tableName="teachers"
+        <EntityId<"teacher", teacherTable, 'teacherid'>
+            table={teacher}
+            tableName="teacher"
             primaryKey="teacherid"
             titleCol="namecn"
             displaySections={displaySections}

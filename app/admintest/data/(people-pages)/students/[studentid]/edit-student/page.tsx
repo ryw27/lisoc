@@ -1,6 +1,6 @@
-import EditEntity, { EditFormField } from '@/components/edit-entity'
+import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idStudentRow, updateStudentRow } from '../../student-helpers'
-import { allFamilyRows } from '../../../families/family-helpers'
+import { allFamilyRows, familyObject } from '../../../families/family-helpers'
 
 export default async function EditStudentPage({
     params,
@@ -20,7 +20,7 @@ export default async function EditStudentPage({
 
     // Get data for select options
     const families = await allFamilyRows();
-    const familyOptions = families.map((family: any) => ({
+    const familyOptions = families.map((family: familyObject) => ({
         value: family.familyid.toString(),
         label: `Family ${family.familyid}`
     }));
@@ -59,20 +59,6 @@ export default async function EditStudentPage({
             type: "text",
             required: false,
             defaultValue: currentStudent.namecn || ""
-        },
-        {
-            name: "namelasten",
-            label: "Last Name",
-            type: "text",
-            required: true,
-            defaultValue: currentStudent.namelasten
-        },
-        {
-            name: "namefirsten",
-            label: "First Name",
-            type: "text",
-            required: true,
-            defaultValue: currentStudent.namefirsten
         },
         {
             name: "gender",
@@ -117,13 +103,6 @@ export default async function EditStudentPage({
             type: "number",
             required: false,
             defaultValue: currentStudent.upgradable.toString()
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            required: false,
-            defaultValue: currentStudent.notes || ""
         }
     ];
 
@@ -134,7 +113,7 @@ export default async function EditStudentPage({
 
     return (
         <EditEntity
-            title={`Edit Student: ${currentStudent.namefirsten} ${currentStudent.namelasten}`}
+            title={`Edit Student: ${currentStudent.namecn}`}
             fields={fields}
             submitAction={handleSubmit}
             gobacklink={`/admintest/dashboard/data/students/${student_id}`}

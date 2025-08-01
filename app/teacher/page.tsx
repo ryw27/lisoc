@@ -1,11 +1,11 @@
-import { db } from "../lib/db";
-import { requireRole } from "../lib/auth-lib/auth-actions";
+import { db } from "@/lib/db";
+import { requireRole } from "@/lib/auth/actions/requireRole";
 import { redirect } from "next/navigation";
 
 export default async function TeacherPage() {
     const user = await requireRole(["TEACHER"], { redirect: true });
     const teacher = await db.query.teacher.findFirst({
-        where: (teacher, { eq }) => eq(teacher.userid, user.user.id!)
+        where: (teacher, { eq }) => eq(teacher.userid, user.user.userid)
     });
 
     if (!teacher) {
@@ -50,21 +50,21 @@ export default async function TeacherPage() {
                     }
                 })
                 return (
-                    <div className="flex flex-col gap-2">
+                    <div key={c.arrangeid} className="flex flex-col gap-2">
                         <h1 className="font-bold">Class {idx.toString()}</h1>
                         <p>{c.class.classnamecn}</p>
                         <p>{c.classroom.roomno}</p>
                         <h1 className="font-bold">Students</h1>
                         {students.map((s) => {
                             return (
-                                <>
+                                <div key={s.regid}>
                                     <p>
                                         {s.student?.namecn}
                                     </p>
                                     <p>
                                         {s.student?.namefirsten} {s.student?.namelasten}
                                     </p>
-                                </>
+                                </div>
                             )
                         })}
                     </div>

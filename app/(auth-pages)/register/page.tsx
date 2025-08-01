@@ -1,15 +1,21 @@
-import { emailToCode, checkCode, registerDraft, resendCode, fullRegister } from '@/app/lib/auth-lib/auth-actions';
-import RegisterForm from '@/app/(auth-pages)/components/register-form';
+import { 
+    registerDraftFamily,
+    checkRegCode,
+    requestRegCode,
+    fullRegisterFamily,
+    resendCode
+} from '@/lib/auth';
+import RegisterForm from '@/components/auth/register-form';
 
 
 export default function RegisterPage() {
     return (
         <RegisterForm 
-            requestCode={emailToCode}
+            requestCode={requestRegCode}
             resendCode={resendCode}
-            checkCode={checkCode}
-            registerDraft={registerDraft}
-            fullRegister={fullRegister}
+            checkCode={checkRegCode}
+            registerDraft={registerDraftFamily}
+            fullRegister={fullRegisterFamily}
             isTeacher={false}
         />
     )

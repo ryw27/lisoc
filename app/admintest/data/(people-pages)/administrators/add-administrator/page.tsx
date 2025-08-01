@@ -1,6 +1,6 @@
-import AddEntity, { FormField } from '@/components/add-entity'
+import AddEntity, { FormField } from '@/components/data-view/add-entity'
 import { insertAdministratorRow } from '../admin-helpers'
-import { allAdministratorRows } from '../admin-helpers'
+import { allAdministratorRows, administratorObject } from '../admin-helpers'
 
 export default async function AddAdministrator({
     searchParams,
@@ -16,7 +16,7 @@ export default async function AddAdministrator({
     const administrators = await allAdministratorRows();
     const administratorOptions = [
         { value: "", label: "Not linked" },
-        ...administrators.map((administrator: any) => ({
+        ...administrators.map((administrator: administratorObject) => ({
             value: administrator.administratorid.toString(),
             label: `Administrator ${administrator.administratorid}`
         }))
@@ -69,10 +69,10 @@ export default async function AddAdministrator({
             required: true
         },
         {
-            name: "address2",
-            label: "Address Line 2",
+            name: "address1",
+            label: "Address Line 1",
             type: "text",
-            placeholder: "Enter address line 2...",
+            placeholder: "Enter address line 1...",
             required: false
         },
         {
@@ -96,13 +96,6 @@ export default async function AddAdministrator({
             options: changePasswordOptions,
             required: true
         },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            placeholder: "Enter any notes...",
-            required: false
-        }
     ];
 
     return (

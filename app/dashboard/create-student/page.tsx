@@ -1,7 +1,7 @@
-import { requireRole } from "@/app/lib/auth-lib/auth-actions";
-import CreateStudentForm from "./create-student-form";
+import { requireRole } from "@/lib/auth/actions/requireRole";
+import CreateStudentForm from "../../../components/family/create-student-form";
 import { redirect } from "next/navigation";
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 
 export default async function CreateStudent() {
     const user = await requireRole(["FAMILY"], { redirect: false });

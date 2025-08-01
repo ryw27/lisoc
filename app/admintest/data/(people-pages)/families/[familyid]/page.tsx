@@ -1,6 +1,6 @@
-import { family } from '@/app/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/entity-id';
-import { Table } from '@/app/lib/entity-types';
+import { family } from '@/lib/db/schema';
+import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
+import { Table } from '@/lib/data-view/types';
 import { familyTable } from '../family-helpers';
 
 interface FamilyPageProps {
@@ -61,29 +61,9 @@ export default async function FamilyPage({ params }: FamilyPageProps) {
             label: "Contact Information",
             display: [
                 {
-                    label: "Address Line 2",
-                    key: "address2",
+                    label: "Address Line 1",
+                    key: "address1",
                     fallback: "Not provided"
-                },
-                {
-                    label: "Alt Phone",
-                    key: "phonealt",
-                    fallback: "Not provided"
-                },
-                {
-                    label: "Alt Email",
-                    key: "emailalt",
-                    fallback: "Not provided"
-                },
-                {
-                    label: "Last Modified",
-                    key: "lastmodify",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
-                },
-                {
-                    label: "Notes",
-                    key: "notes",
-                    fallback: "No notes available"
                 }
             ]
         }

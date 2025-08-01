@@ -1,10 +1,9 @@
-import { teacher} from "@/app/lib/db/schema";
-import { generateColumnDefs } from "@/app/lib/column-actions";
+import { teacher} from "@/lib/db/schema";
+import { generateColumnDefs } from "@/lib/data-view";
 import { z } from 'zod';
-import { makeEntity, EntityConfig } from "@/app/lib/entity-config";
-import { type Extras, type enrichFields, type uniqueCheckFields } from "@/app/lib/data-actions";
-import { parsedParams } from "@/app/lib/handle-params";
-import { PKVal } from "@/app/lib/entity-types";
+import { makeEntity } from "@/lib/data-view/actions/makeEntity/makeEntity";
+import { type Extras, type enrichFields, type uniqueCheckFields, type parsedParams, type EntityConfig } from "@/lib/data-view/types";
+import { PKVal } from "@/lib/data-view/types";
 
 //----------------------------------------------------------------------------------------
 // TEACHERS
@@ -13,8 +12,7 @@ import { PKVal } from "@/app/lib/entity-types";
 // Form Schema: Form schema for teacher - updated to match current schema
 export const teacherFormSchema = z.object({
     namecn: z.string().min(1),
-    namelasten: z.string().min(1),
-    namefirsten: z.string().min(1),
+    address1: z.string().min(1),
 })
 
 // Type of any teacher insertions: for compile-time type checking
@@ -32,19 +30,8 @@ export const teacherColumns = generateColumnDefs<teacherObject>(teacher, {
         header: "Name (CN)",
         enableHiding: false
     },
-    namelasten: {
-        header: "Last Name",
-        enableHiding: false
-    },
-    namefirsten: {
-        header: "First Name",
-        enableHiding: false
-    },
-    createby: {
-        header: "Created By",
-    },
-    updateby: {
-        header: "Updated By",
+    address1: {
+        header: "Address Line 1",
     },
 });
 

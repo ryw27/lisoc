@@ -1,9 +1,9 @@
-import ForgotPasswordForm from "../components/forgot-password-form";
-import { requestReset } from "@/app/lib/auth-lib/auth-actions"; 
+import ForgotPasswordForm from "@/components/auth/forgot-password-form";
+import { requestPasswordReset } from "@/lib/auth/actions/requestPasswordReset"; 
 
 export default function ForgotPassword() {
 
     return (
-        <ForgotPasswordForm requestReset={requestReset}/>
+        <ForgotPasswordForm requestReset={requestPasswordReset}/>
     )
 }

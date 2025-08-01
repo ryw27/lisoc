@@ -1,30 +1,26 @@
-import { requireRole } from "@/app/lib/auth-lib/auth-actions";
-import { db } from "@/app/lib/db";
-import { threeBalances, threeSeason } from "@/app/lib/semester/sem-schemas";
-import RegisterStudent from "./register-students";
-import { getSelectOptions } from "@/app/lib/semester/sem-actions";
+import { requireRole } from "@/lib/auth/actions/requireRole";
+import { db } from "@/lib/db";
+import { type threeSeasons } from "@/lib/registration/types";
+import RegisterStudent from "@/components/registration/family/register-students";
+import { getSelectOptions } from "@/lib/registration/semester";
+import { redirect } from "next/navigation";
+import calculateBalance from "@/lib/family/actions/calculateBalance";
 
 export default async function RegisterPage() {
     // 1. Get User
     const user = await requireRole(["FAMILY"], { redirect: true });
-    if (!user) {
-        return <div>Unauthorized</div>;
-    }
     const userRow = await db.query.users.findFirst({
         where: (u, { eq }) => eq(u.id, user.user.userid)
     });
     if (!userRow) {
-        return <div>Unauthorized</div>;
+        redirect("/login");
     }
 
-    // Get all arrangements for the active season
-    // TODO: standardize season fetching
-    // Get academic year season
+    // 2. Get active school year
     const activeYear = await db.query.seasons.findFirst({
         where: (season, { eq }) => eq(season.status, "Active"),
         orderBy: (season, { asc }) => [asc(season.seasonid)]
     });
-
     if (!activeYear) {
         return (
             <div>
@@ -33,24 +29,25 @@ export default async function RegisterPage() {
         )
     }
 
-    const curFall = await db.query.seasons.findFirst({
-        where: (season, { eq }) => eq(season.seasonid, activeYear.beginseasonid)
+    // 3. Get fall and spring
+    const terms = await db.query.seasons.findMany({
+        where: (s, { or, eq }) => or(
+            eq(s.seasonid, activeYear.beginseasonid),
+            eq(s.seasonid, activeYear.relatedseasonid)
+        ),
+        orderBy: (s, { asc }) => asc(s.seasonid)
     });
-    if (!curFall) {
-        throw new Error("Cannot find fall");
+    if (terms.length !== 2) {
+        return (
+            <div>
+                Error occured. Please report.
+            </div>
+        )
     }
 
-    const curSpring = await db.query.seasons.findFirst({
-        where: (season, { eq }) => eq(season.seasonid, activeYear.relatedseasonid)
-    });
+    const seasons = { year: activeYear, fall: terms[0], spring: terms[1] } satisfies threeSeasons;
 
-    if (!curSpring) {
-        throw new Error("Cannot find spring");
-    }
-
-
-    const seasons = { year: activeYear, fall: curFall, spring: curSpring } satisfies threeSeason;
-
+    // 4. Get arrangements for each separate term
     const yearArrangements = await db.query.arrangement.findMany({
         where: (arrangement, { eq }) => eq(arrangement.seasonid, seasons.year.seasonid)
     });
@@ -63,29 +60,26 @@ export default async function RegisterPage() {
         where: (arrangement, { eq }) => eq(arrangement.seasonid, seasons.spring.seasonid)
     });
 
-    // Get current time in EST (America/New_York) for accurate registration comparison
-    // TODO: Standardize
-    const nowEST = new Date(
-        new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
-    );
+    const allArrs = { year: yearArrangements, fall: fallArrangements, spring: springArrangements };
 
-    const registerSpring = nowEST >= new Date(curSpring.earlyregdate);
 
+    // 5. Get family and students
     const userFamily = await db.query.family.findFirst({
         where: (family, { eq }) => eq(family.userid, user.user.userid)
     });
-
     if (!userFamily) {
         throw new Error("No family found on register page")
     }
-
     const userStudents = await db.query.student.findMany({
         where: (student, { eq }) => eq(student.familyid, userFamily.familyid)
     })
 
-    const { options, idMaps } = await getSelectOptions()
+
+    // 6. Get select options and idMaps
+    const { idMaps } = await getSelectOptions()
 
 
+    // 7. Get existing class registrations
     const classregistrations = await db.query.classregistration.findMany({
         where: (reg, { or, and, eq }) => and(
             eq(reg.familyid, userFamily.familyid), 
@@ -94,48 +88,27 @@ export default async function RegisterPage() {
     })
 
 
-    // Fetch family balances for each season in parallel, keyed by seasonid
-    const familyBalances = await Promise.all([
-        db.query.familybalance.findFirst({
-            where: (fb, { eq, and }) => and(
-                eq(fb.familyid, userFamily.familyid),
-                eq(fb.seasonid, seasons.year.seasonid)
-            )
-        }),
-        db.query.familybalance.findFirst({
-            where: (fb, { eq, and }) => and(
-                eq(fb.familyid, userFamily.familyid),
-                eq(fb.seasonid, seasons.fall.seasonid)
-            )
-        }),
-        db.query.familybalance.findFirst({
-            where: (fb, { eq, and }) => and(
-                eq(fb.familyid, userFamily.familyid),
-                eq(fb.seasonid, seasons.spring.seasonid)
-            )
-        }),
-    ]);
-    const balances = {
-        year: familyBalances[0] ?? null,
-        fall: familyBalances[1] ?? null,
-        spring: familyBalances[2] ?? null
-    } satisfies threeBalances;
+    // 8. Get existing reg change requests
+    const regchangerequests = await db.query.regchangerequest.findMany({
+        where: (rcr, { and, or, eq }) => and(
+            eq(rcr.familyid, userFamily.familyid), 
+            or(eq(rcr.seasonid, seasons.year.seasonid), eq(rcr.seasonid, seasons.fall.seasonid), eq(rcr.seasonid, seasons.spring.seasonid))
+        )
+    })
 
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const isNewFamily = new Date(userRow.createon!) > oneDayAgo;
+    // 9. Get total balances
+    const balancePrices = await calculateBalance(userFamily, seasons);
 
     return (
         <RegisterStudent 
-            registrations={classregistrations}
+            seasons={seasons} 
+            threeArrs={allArrs}
             family={userFamily}
             students={userStudents}
-            registerSpring={registerSpring} 
-            season={seasons} 
-            yearArrs={yearArrangements} 
-            fallArrs={fallArrangements} 
-            springArrs={springArrangements}
+            registrations={classregistrations}
+            regchangerequests={regchangerequests}
+            termPrices={balancePrices}
             idMaps={idMaps}
-            balances={balances}
         />
     )
 }
