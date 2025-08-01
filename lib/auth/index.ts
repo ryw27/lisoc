@@ -1,7 +1,9 @@
 export { checkRegCode } from "./actions/checkRegCode";
 export { checkTeacherRegLink } from "./actions/checkTeacherRegLink";
+export { checkResetLink } from "./actions/checkResetLink";
 export { fullRegisterFamily } from "./actions/fullRegisterFamily";
 export { registerDraftFamily } from "./actions/registerDraftFamily";
+export { resendCode } from "./actions/resendCode";
 export { requestPasswordReset } from "./actions/requestPasswordReset";
 export { requestRegCode } from "./actions/requestRegCode";
 export { requireRole } from "./actions/requireRole";

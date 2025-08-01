@@ -1,3 +1,4 @@
+"use server";
 import { codeSchema } from "../validation";
 import { emailSchema } from "../validation";
 import { pgadapter } from "../auth";

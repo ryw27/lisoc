@@ -1,3 +1,4 @@
+"use server";
 import { resetPassSchema } from "../validation";
 import { pgadapter } from "../auth";
 import { z } from "zod/v4";

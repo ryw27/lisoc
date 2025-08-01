@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { emailSchema } from "../validation";
 import { randomInt } from "crypto";
@@ -29,15 +30,4 @@ export async function requestRegCode(data: z.infer<typeof emailSchema>) {
     })
 
     await sendRegEmail(email, code);
-}
-
-export async function resendCode(data: z.infer<typeof emailSchema>) {
-    const userEmail = (emailSchema.parse(data)).email
-    const code = randomInt(100000, 1000000).toString();
-    await pgadapter.createVerificationToken({
-        token: code,
-        identifier: userEmail,
-        expires: new Date(Date.now() + 10 * 60 * 1000) 
-    })
-    await sendRegEmail(userEmail, code)
 }

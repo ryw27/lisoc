@@ -5,9 +5,9 @@ import { pool } from "../db"
 import bcrypt from "bcrypt"
 import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
-import { credSchema, loginSchema } from "../../app/lib/auth-lib/auth-schema"
+import { credSchema, loginSchema } from "@/lib/auth/validation"
 import authConfig from "@/auth.config"
-import { JWT } from "next-auth/jwt"
+
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
@@ -24,7 +24,7 @@ declare module "next-auth" {
     }
 }
 
-declare module "next-auth/jwt" {
+declare module "next-auth" {
     interface JWT { 
         role: "ADMIN" | "TEACHER" | "FAMILY"
         userid: string; 

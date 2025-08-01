@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { teacherSchema, familySchema, nameEmailSchema } from "../validation";
 import { teacher, family, users, registration_drafts } from "@/lib/db/schema";

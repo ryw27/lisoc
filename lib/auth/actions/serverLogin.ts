@@ -1,3 +1,4 @@
+"use server";
 import { loginSchema } from "@/lib/auth/validation";
 import { emailSchema, usernameSchema } from "@/lib/auth/validation";
 import { signIn } from "../auth";

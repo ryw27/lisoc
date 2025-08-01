@@ -1,3 +1,4 @@
+"use server";
 import { forgotPassSchema } from "../validation";
 import { emailSchema, usernameSchema } from "../validation";
 import { db } from "@/lib/db";
