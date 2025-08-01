@@ -97,7 +97,7 @@ export const suitabletermRelations = relations(suitableterm, ({many}) => ({
 	arrangements: many(arrangement),
 }));
 
-export const arrangementRelations = relations(arrangement, ({one, many}) => ({
+export const arrangementRelations = relations(arrangement, ({one}) => ({
 	teacher: one(teacher, {
 		fields: [arrangement.teacherid],
 		references: [teacher.teacherid]
