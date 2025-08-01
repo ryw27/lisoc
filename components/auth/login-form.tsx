@@ -3,13 +3,13 @@ import Link from 'next/link';
 import Logo from '@/components/logo';
 import { FcGoogle } from "react-icons/fc";
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { FormInput, FormSubmit, FormError } from './form-components'
 import { z } from 'zod';
 import { emailSchema, loginSchema, usernameSchema } from '@/lib/auth/validation';
 import { signIn } from "next-auth/react"
+import { CredentialsSignin } from 'next-auth';
 
 
 type LoginFormProps = {
@@ -19,7 +19,6 @@ type LoginFormProps = {
 
 export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps) {
     const [busy, setBusy] = useState(false);
-    const router = useRouter();
 
     const loginForm = useForm({
         mode: "onChange",
@@ -27,8 +26,9 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
     })
 
     const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+        // Set busy and reset the error message
         setBusy(true);
-
+        loginForm.setError("root", { message: undefined });
         try {
             const provider = isAdminForm ? "admin-credentials" : isTeacherForm ? "teacher-credentials" : "family-credentials";
 
@@ -38,45 +38,45 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
             if (!isEmail && !isUsername) {
                 throw new Error("Invalid email or username")
             }
+            
+            const redirectURL = isAdminForm 
+                                ? "/admin" 
+                                : isTeacherForm
+                                    ? "/teacher"
+                                    : "/dashboard"
 
             const credSubmitObj = isEmail ? 
             {
                 email: data.emailUsername,
                 password: data.password,
-                redirect: false as const
+                redirectTo: redirectURL
             } : 
             {
                 username: data.emailUsername,
                 password: data.password,
-                redirect: false as const
+                redirectTo: redirectURL
             }
 
-            const result = await signIn(provider, credSubmitObj);
+            await signIn(provider, credSubmitObj);
 
-            if (!result.ok) {
-                throw new Error("Invalid credentials")
-            }
-
-            // Redirect based on provider
-            if (isAdminForm) {
-                router.push("/admin/dashboard");
-            } else if (isTeacherForm) {
-                router.push("/teacher/dashboard");
-            } else {
-                router.push("/dashboard");
-            }
         } catch (error) {
-            loginForm.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
-        } finally {
+            const errorMSG = error instanceof CredentialsSignin 
+                ? "Invalid credentials"
+                : error instanceof Error
+                    ? error.message
+                    : "An unexpected error occured. Please try again"
+            loginForm.setError("root", { message: errorMSG });
             setBusy(false);
-        }
+        } 
     };
+
 
     return (
         <main className="flex flex-col h-screen w-screen items-center justify-center bg-background">
             <Logo/>
 
-            <h1 className="text-2xl font-bold mb-10 mt-10 text-left">Log in to your account</h1>
+            <h1 className="text-2xl font-bold mb-10 mt-10 text-left">Log in to your account {isAdminForm ? "(Admin)" : isTeacherForm ? "(Teacher)" : ""} </h1>
+            
 
             <button title="Not implemented yet" className="flex justify-center items-center rounded-sm text-lg font-medium text-black border-2 border-gray-200 w-1/5 py-2 px-1">
                 <FcGoogle className="w-5 h-5 mr-2" />
