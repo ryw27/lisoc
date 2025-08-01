@@ -1,13 +1,13 @@
 "use client";
 import { FcGoogle } from "react-icons/fc";
-import { Button } from "../../../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { FormSubmit, FormInput, FormError } from "./form-components"
 import Logo from "@/components/logo";
 import React, { useState } from "react";
 import ResendCodeButton from './resend-code-button'
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { codeSchema, emailSchema, familySchema, nameEmailSchema, teacherSchema, userPassSchema } from "@/app/lib/auth-lib/auth-schema";
+import { codeSchema, emailSchema, familySchema, nameEmailSchema, teacherSchema, userPassSchema } from "@/lib/auth/validation";
 import { z } from "zod";
 import FamilyForm from "./family-form";
 import TeacherForm from "./teacher-form";
@@ -171,7 +171,7 @@ export default function RegisterForm({
                     
                     <ResendCodeButton 
                         resendCode={resendCode}
-                        defaultCooldown={30}
+                        // defaultCooldown={30}
                         email={credentials!.email!}
                     />
                 </form>

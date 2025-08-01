@@ -2,7 +2,7 @@
 import { FormSubmit, FormInput, FormError } from "./form-components"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { resetPassSchema } from "@/app/lib/auth-lib/auth-schema"
+import { resetPassSchema } from "@/lib/auth/validation"
 import { z } from "zod"
 import { useState } from "react";
 import Logo from "@/components/logo";
@@ -59,7 +59,7 @@ export default function ResetPasswordForm({ userEmail, userToken, resetPassword 
                         label="Confirm Password"
                         type="password"
                         register={rpForm.register("confirmPassword")}
-                        extras={{ placeholder: "Confirm Password" }}
+                        // extras={{ placeholder: "Confirm Password" }}
                     />
                     <FormError
                         error={rpForm.formState.errors.email?.message}

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormInput, FormError, FormSubmit } from "./form-components";
-import { nameEmailSchema, teacherSchema } from "@/app/lib/auth-lib/auth-schema";
+import { nameEmailSchema, teacherSchema } from "@/lib/auth/validation";
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
 
 export default function TeacherForm({

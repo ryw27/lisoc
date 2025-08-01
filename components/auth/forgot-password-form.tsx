@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { forgotPassSchema } from "@/app/lib/auth-lib/auth-schema";
+import { forgotPassSchema } from "@/lib/auth/validation";
 
 type FPFormParams = {
     requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<void>;
