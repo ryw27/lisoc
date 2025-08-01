@@ -1,5 +1,5 @@
 import { SQL, asc, desc, getTableColumns, eq, and, ne, inArray, sql, InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { PgTransaction, AnyPgTable, AnyPgColumn } from "drizzle-orm/pg-core";
+import { AnyPgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import { 
     TableName, 
     Table, 

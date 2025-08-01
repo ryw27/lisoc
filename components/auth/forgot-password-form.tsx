@@ -71,7 +71,7 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
             )}
 
 
-            <p className="text-gray-500 text-center mt-5 text-sm">Don''t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up</Link></p>
+            <p className="text-gray-500 text-center mt-5 text-sm">Don&apos;t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up</Link></p>
         </main>
     )
 }

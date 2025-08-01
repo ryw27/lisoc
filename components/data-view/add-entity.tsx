@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Textarea } from '@/components/ui/textarea'
-import { Table, TableName } from '@/lib/data-view/types'
+// import { Table, TableName } from '@/lib/data-view/types'
 
 export interface SelectOption {
     value: string

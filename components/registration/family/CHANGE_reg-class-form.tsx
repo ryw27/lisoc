@@ -3,7 +3,7 @@ import { type threeSeasons, type uiClasses } from "@/lib/registration/types";
 import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
 import { db } from "@/lib/db";
 import { InferSelectModel } from "drizzle-orm";
-import { family, familybalance } from "@/lib/db/schema";
+import { family } from "@/lib/db/schema";
 
 
 type regClassFormProps = {
@@ -57,9 +57,9 @@ export default async function RegClassForm({
     //         + Number(balance.tuition)
     // }
 
-    const calculateTotalBalance = (balances: InferSelectModel<typeof familybalance>[]) => {
-        return balances.reduce((acc, balance) => acc + Number(balance.totalamount) , 0);
-    }
+    // const calculateTotalBalance = (balances: InferSelectModel<typeof familybalance>[]) => {
+    //     return balances.reduce((acc, balance) => acc + Number(balance.totalamount) , 0);
+    // }
 
     return (
         <div className="flex flex-col container mx-auto">

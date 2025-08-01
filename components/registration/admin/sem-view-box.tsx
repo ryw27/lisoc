@@ -97,6 +97,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             // Remove the id property before passing to distributeStudents
             const { id: _id, ...distributedDataWithoutId } = newData;
+            void _id; // Suppress unused variable warning
             await adminDistribute(distributedDataWithoutId, moved);
             setError(null);
         } catch (err) {
@@ -112,6 +113,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             const newData = rollbackReg(dataWithStudents);
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             const { id: _id, ...dataWithoutID } = dataWithStudents;
+            void _id; // Suppress unused variable warning
             await adminRollback(dataWithoutID);
             setError(null);
         } catch (err) {
