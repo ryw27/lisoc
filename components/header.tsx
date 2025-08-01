@@ -1,7 +1,6 @@
 'use client';
-
 import { useState } from "react";
-import { Search, Bell, HelpCircle, ChevronDown, Sun, Moon, Settings, User, LogOut } from "lucide-react";
+import { Search, ChevronDown, Sun, Moon, Settings, User } from "lucide-react";
 import LogoutButton from "./logout-button";
 
 export default function Header() {

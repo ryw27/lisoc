@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { 
     Select, 
     SelectItem, 
@@ -11,11 +11,12 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { z } from "zod/v4";
-import { arrangementArraySchema, arrangementSchema, type uiClasses } from "@/app/lib/semester/sem-schemas";
-import { type Action, type fullRegID, SeasonOptionContext } from "./sem-view";
-import { addArrangement, updateArrangement, getSubClassrooms } from "@/app/lib/semester/sem-actions";
+import { arrangementArraySchema } from "@/lib/registration/validation";
+import { uiClasses } from "@/lib/registration/types";
+import { type Action, type fullRegID } from "./sem-view";
+import { createArrangement, editArrangement } from "@/lib/registration/semester";
 import { cn } from "@/lib/utils";
-import { classObject } from "../../data/(class-pages)/classes/class-helpers";
+import { useRegistrationContext } from "@/lib/registration/registration-context";
 
 
 type semClassEditorProps = {
@@ -28,11 +29,11 @@ type semClassEditorProps = {
 
 
 export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }: semClassEditorProps) {
-    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
-    const { classMap, teacherMap, roomMap, termMap, timeMap } = idMaps;
+    const { seasons, selectOptions, idMaps } = useRegistrationContext();
+    const { classMap } = idMaps;
 
     const [classEdited, setClassEdited] = useState<number>(0);
-    const [addClassroom, setAddClassroom] = useState<boolean>(false);
+    // const [addClassroom, setAddClassroom] = useState<boolean>(false);
 
     const editForm = useForm({
         resolver: zodResolver(arrangementArraySchema),
@@ -45,7 +46,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                         roomid: uuid === "ADDING" ? 59 : initialData.arrinfo.roomid,
                         isregclass: true
                     },
-                    ...(initialData.classrooms?.map(c => ({
+                    ...(initialData.classrooms?.map((c) => ({
                         ...c.arrinfo,
                     })) ?? [])
                 ]
@@ -54,7 +55,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     })
 
 
-    const { fields, append, remove, update } = useFieldArray({ control: editForm.control, name: "classrooms" })
+    const { fields, append } = useFieldArray({ control: editForm.control, name: "classrooms" })
 
     // TODO: Uncomment when gradeclassid is ready
     // const [childClasses, setChildClasses] = useState<classObject[]>([]);
@@ -113,12 +114,10 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     const onSubmit = async (formData: z.infer<typeof arrangementArraySchema>) => {
         const snapshot = initialData;
         const new_uuid = crypto.randomUUID();
-        console.log(formData);
         try {
             // Safely check if classrooms is defined and is an array
             if (uuid !== "ADDING") {
                 const dirtyClassrooms = editForm.formState.dirtyFields.classrooms;
-                console.log("dirty ", dirtyClassrooms)
                 // 1. Optimistic update
                 // Process all classrooms to handle both updates and additions
                 // Note that the structure of form data is different than most data in this domain: All classrooms, including the reg class are in formData.classrooms
@@ -178,7 +177,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                     }
                 });
                 // Server update
-                await updateArrangement(formData, seasons.year);
+                await editArrangement(formData, seasons.year);
             } else {
                 let seasonid;
                 if (formData.classrooms[0].suitableterm === 2) {
@@ -225,14 +224,14 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
 
                 dispatch({ type: "reg/add", regDraft: regDraft });
 
-                await addArrangement(formData, seasons.year);
+                await createArrangement(formData, seasons.year);
             }
             endEdit();
         } catch (error) {
             // Revert optimistic update in case of error
             if (uuid !== "adding") {
                 dispatch({ type: "reg/update", id: uuid, next: snapshot.arrinfo })
-                snapshot.classrooms.map((c, idx) => {
+                snapshot.classrooms.map((c) => {
                     if (c.arrinfo.arrangeid) { // Should be true at all times
                         dispatch({ type: "class/update", id: uuid, arrangeid: c.arrinfo.arrangeid, update: c.arrinfo });
                     } else {
@@ -273,9 +272,9 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     const isEmptyObject = (obj: unknown): boolean =>
         !!obj && typeof obj === "object" && !Array.isArray(obj) && Object.keys(obj).length === 0;
 
-    const arrInfo = isEmptyObject(initialData.arrinfo) ? null : initialData.arrinfo || null;
+    // const arrInfo = isEmptyObject(initialData.arrinfo) ? null : initialData.arrinfo || null;
 
-    const classrooms = initialData.classrooms || null
+    // const classrooms = initialData.classrooms || null
 
 
     return (

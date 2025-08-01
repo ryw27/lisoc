@@ -3,7 +3,7 @@ import ColumnSelect from "./column-select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { DownloadIcon, UploadIcon, RowsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FilterableColumn } from "@/app/lib/column-types";
+import { FilterableColumn } from "@/lib/data-view/types";
 import Filter from "@/components/data-table/filter";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -45,7 +45,13 @@ export default function TableHeader<TData>({ columns, columnDefs }: TableHeaderP
             </div>
             <div className="flex gap-2">        
                 <DropdownMenu onOpenChange={(open) => {
-                    if (open) pageSize <= 0 || !Number.isInteger(pageSize) ? setPageSizeError("Invalid Page Size") : setPageSizeError('');
+                    if (open) {
+                        if (pageSize <= 0 || !Number.isInteger(pageSize)) {
+                            setPageSizeError("Invalid Page Size");
+                        } else {
+                            setPageSizeError('');
+                        }
+                    }
                 }}>
                     <DropdownMenuTrigger className={cn(
                         "flex items-center gap-2 text-sm",

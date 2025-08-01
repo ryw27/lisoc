@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import FilterBox from "./filter-box";
-import { FilterableColumn } from "@/app/lib/column-types";
+import { FilterableColumn } from "@/lib/data-view/types";
 import React, { useMemo, useReducer, useState } from 'react';
 import { startOfToday, sub, formatISO, Duration, parseISO, isValid } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -84,7 +84,7 @@ function validateEntry(entry: filterEntry, colType: 'text' | 'enum' | 'number' |
     case 'in the last': {
       const n = Number(entry.val);
       if (!n || n <= 0) return 'Positive number required';
-      if (!entry.aux || !unitOptions.includes(entry.aux as any)) return 'Unit missing';
+      if (!entry.aux || !unitOptions.includes(entry.aux as typeof unitOptions[number])) return 'Unit missing';
       return null;
     }
 

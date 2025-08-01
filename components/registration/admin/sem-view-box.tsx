@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import { Info, Edit, Trash2 } from "lucide-react";
 import { 
     AlertDialog, 
@@ -11,13 +11,15 @@ import {
     AlertDialogCancel, 
     AlertDialogAction 
 } from "@/components/ui/alert-dialog";
-import StudentTable from "../../../app/admintest/management/components/student-table";
+import StudentTable from "./sem-student-table";
 import SemClassEditor from "./sem-class-editor";
-import { type Action, type fullSemDataID, SeasonOptionContext } from "./sem-view";
-import { deleteClass, distributeStudents, rollbackDistribution } from "@/app/lib/semester/sem-actions";
+import { type Action, type fullSemDataID } from "./sem-view";
+import { adminDistribute, adminRollback } from "@/lib/registration/";
+import { deleteArrangement } from "@/lib/registration/semester";
 import { type fullRegID } from "./sem-view";
-import { type IdMaps } from "@/app/lib/semester/sem-schemas";
+import { type IdMaps } from "@/lib/registration/types";
 import { cn } from "@/lib/utils";
+import { useRegistrationContext } from "@/lib/registration/registration-context";
 
 type semViewBoxProps = {
     uuid: string;
@@ -26,6 +28,7 @@ type semViewBoxProps = {
     reducerState: fullSemDataID
 }
 
+// TODO: Create new classes if out of capacity?
 function distributeEvenly(data: fullRegID) {
     // Create deep copy to avoid mutating original
     const newData = structuredClone(data);
@@ -68,7 +71,7 @@ function rollbackReg(data: fullRegID) {
 }
 
 export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, reducerState }: semViewBoxProps) {
-    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
+    const { seasons, idMaps } = useRegistrationContext();
     const [editing, setEditing] = useState<boolean>(false);
     const [expanded, setExpanded] = useState<boolean>(false);
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
@@ -79,7 +82,8 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
         const snapshot = dataWithStudents;
         try {
             dispatch({ type: "reg/remove", id: uuid });
-            await deleteClass(regClassInfo); // Server mutation
+            const adminOverride = true;
+            await deleteArrangement(regClassInfo, adminOverride); // Server mutation
         } catch (error) {
             console.error("Failed to delete class:", error);
             dispatch({ type: "reg/add", regDraft: snapshot });
@@ -93,7 +97,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             // Remove the id property before passing to distributeStudents
             const { id, ...distributedDataWithoutId } = newData;
-            distributeStudents(distributedDataWithoutId, moved);
+            adminDistribute(distributedDataWithoutId, moved);
             setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
@@ -108,7 +112,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             const newData = rollbackReg(dataWithStudents);
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             const { id, ...dataWithoutID } = dataWithStudents;
-            rollbackDistribution(dataWithStudents);
+            adminRollback(dataWithStudents);
             setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
@@ -118,8 +122,9 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
     }
 
     const regClassInfo = dataWithStudents.arrinfo;
-    const allClassrooms = dataWithStudents.classrooms
-    const regStudents = dataWithStudents.students
+    const allClassrooms = dataWithStudents.classrooms;
+    const regStudents = dataWithStudents.students;
+    const droppedStudents = dataWithStudents.dropped;
 
 
 
@@ -241,6 +246,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             {expanded && (
                 <div className="flex flex-col space-y-2">
                     <nav className="flex border-b space-x-6">
+                        { /* Registrations */ }
                         <div
                             className={cn(
                                 "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
@@ -253,6 +259,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                         >
                             Registrations {/* idMaps.classMap[regClassInfo.classid].classnamecn */}
                         </div>
+                        { /* Classrooms */ }
                         {allClassrooms.map((c, idx) => (
                             <div
                                 key={`${idx}-${c.arrinfo.arrangeid}`}
@@ -269,8 +276,21 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                                 {/* idMaps.classMap[c.arrinfo.classid].classnamecn */}
                             </div>
                         ))}
+                        { /* Dropped */ }
+                        <div
+                            className={cn(
+                                "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
+                                (classShown === allClassrooms.length && "border-blue-500 text-blue-600")
+                            )}
+                            onClick={e => {
+                                e.stopPropagation();
+                                setClassShown(allClassrooms.length);
+                            }}
+                        >
+                            Dropped {/* idMaps.classMap[regClassInfo.classid].classnamecn */}
+                        </div>
                     </nav>
-                    {classShown !== -1 && (
+                    {classShown !== -1 && classShown !== allClassrooms.length && (
                         <div className="grid grid-cols-3">
                             <p>
                                 Teacher: {idMaps.teacherMap[dataWithStudents.classrooms[classShown].arrinfo.teacherid].namecn || "N/A"}
@@ -289,7 +309,11 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                         dispatch={dispatch}
                         reducerState={reducerState} 
                         curClass={dataWithStudents}
-                        registrations={classShown === -1 ? regStudents : allClassrooms[classShown].students} 
+                        registrations={classShown === -1 
+                                        ? regStudents 
+                                        : classShown === allClassrooms.length 
+                                            ? droppedStudents
+                                            : allClassrooms[classShown].students} 
                     />
                 </div>
             )}

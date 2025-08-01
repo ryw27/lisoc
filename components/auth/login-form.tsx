@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { FormInput, FormSubmit, FormError } from './form-components'
 import { z } from 'zod';
-import { emailSchema, loginSchema, usernameSchema } from '@/app/lib/auth-lib/auth-schema';
+import { emailSchema, loginSchema, usernameSchema } from '@/lib/auth/validation';
 import { signIn } from "next-auth/react"
 
 
@@ -102,8 +102,12 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
                 </FormSubmit>
                 {loginForm.formState.errors.root && <FormError error={loginForm.formState.errors.root.message} />}
             </form>
-            <p className="text-gray-500 text-center mt-5 text-sm">Don't have an account? <Link href="/signup" className="font-bold text-blue-500 underline">Sign up</Link></p>
-            <p className="text-gray-500 text-center mt-5 text-sm">Login for admin <Link href="/login" className="font-bold text-blue-500 underline">Link</Link></p>
+            <p className="text-gray-500 text-center mt-5 text-sm">
+                Don&apos;t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up</Link>
+            </p>
+            <p className="text-gray-500 text-center mt-5 text-sm">
+                Login for admin <Link href="/login/admin" className="font-bold text-blue-500 underline">Link</Link>
+            </p>
         </main>
     )
 }

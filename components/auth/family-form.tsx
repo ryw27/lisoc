@@ -1,6 +1,6 @@
 "use client";
 import { FormInput, FormError, FormSubmit } from './form-components';
-import { familySchema, nameEmailSchema } from '@/app/lib/auth-lib/auth-schema';
+import { familySchema, nameEmailSchema } from '@/lib/auth/validation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

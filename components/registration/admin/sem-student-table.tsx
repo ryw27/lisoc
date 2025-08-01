@@ -3,10 +3,8 @@ import {
     ColumnDef, 
     useReactTable, 
     getCoreRowModel, 
-    flexRender, 
     SortingState, 
     getSortedRowModel,
-    ColumnPinningState
 } from "@tanstack/react-table";
 import {
   Select,
@@ -20,16 +18,17 @@ import {
     PopoverContent, 
     PopoverTrigger 
 } from "@/components/ui/popover";
-import { studentView, uiClasses } from "@/app/lib/semester/sem-schemas";
+import { adminStudentView, uiClasses } from "@/lib/registration/types";
 import { cn } from "@/lib/utils";
-import React, { useState, useContext } from "react";
-import { SeasonOptionContext } from "../../../../components/registration/admin/sem-view";
+import React, { useState } from "react";
 import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
-import { Action, fullRegID, fullSemDataID } from "../../../../components/registration/admin/sem-view";
-import { adminTransferStudent, adminDeleteRegistration } from "@/app/lib/semester/sem-actions";
+import { Action, fullRegID, fullSemDataID } from "./sem-view";
+import { adminTransferStudent, adminDropRegistration } from "@/lib/registration/regchanges";
+import { useRegistrationContext } from "@/lib/registration/registration-context";
+import { ClientTable } from "@/components/client-table";
 
 
-const columns: ColumnDef<studentView>[] = [
+const columns: ColumnDef<adminStudentView>[] = [
     {
         accessorKey: "regid",
         header: "RegID",
@@ -84,7 +83,7 @@ const columns: ColumnDef<studentView>[] = [
         sortingFn: "alphanumeric"
     },
     {
-        accessorKey: "dropped",
+        accessorKey: "status",
         header: "Status",
         sortingFn: "alphanumeric"
     },
@@ -97,7 +96,7 @@ const columns: ColumnDef<studentView>[] = [
 
 
 type studentTableProps = {
-    registrations: studentView[];
+    registrations: adminStudentView[];
     curClass: fullRegID;
     reducerState: fullSemDataID;
     dispatch: React.Dispatch<Action>;
@@ -105,7 +104,7 @@ type studentTableProps = {
 }
 
 // Helper function to find a student in the current class or its classrooms
-const findStudentInClass = (regid: number, curClass: fullRegID): studentView | null => {
+const findStudentInClass = (regid: number, curClass: fullRegID): adminStudentView | null => {
     // Check main class students first
     const studentInMain = curClass.students.find(s => s.regid === regid);
     if (studentInMain) return studentInMain;
@@ -203,20 +202,55 @@ const handleIntraClassTransfer = (
     };
 };
 
+// Helper function to update regids after transfer
+const updateRegIdInClass = (
+    oldRegId: number,
+    newRegId: number,
+    classData: fullRegID
+): fullRegID => {
+    return {
+        ...classData,
+        students: classData.students.map(student =>
+            student.regid === oldRegId
+                ? { ...student, regid: newRegId }
+                : student
+        ),
+        classrooms: classData.classrooms.map(classroom => ({
+            ...classroom,
+            students: classroom.students.map(student =>
+                student.regid === oldRegId
+                    ? { ...student, regid: newRegId }
+                    : student
+            ),
+        })),
+    };
+};
+
+// Helper function to add student to target class with new regid
+const addStudentToTargetClass = (
+    studentData: adminStudentView,
+    newRegId: number,
+    targetClass: fullRegID
+): fullRegID => {
+    return {
+        ...targetClass,
+        students: [
+            ...targetClass.students,
+            { ...studentData, regid: newRegId }
+        ],
+    };
+};
+
 export default function StudentTable({ registrations, reducerState, curClass, dispatch, uuid }: studentTableProps) {
-    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
+    const { idMaps } = useRegistrationContext();
     const [sorting, setSorting] = useState<SortingState>([
         {
             id: "registerDate",
             desc: true
         }
     ]);
-    const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
-        right: ['edit']
-    });
 
-
-    const editColumn: ColumnDef<studentView> = {
+    const editColumn: ColumnDef<adminStudentView> = {
         id: "edit",
         header: "",
         cell: ({ row }) => {
@@ -241,6 +275,8 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                 
                 try {
                     const regid = row.original.regid;
+                    const studentid = row.original.studentid;
+                    const familyid = row.original.familyid;
                     const [arrangeIdStr, classIdStr] = selectedIds.split(", ");
                     
                     // Validation
@@ -262,7 +298,7 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                         // Snapshot current class for rollback
                         sourceSnapshot = { ...curClass };
                         
-                        // Find target arrangement within current class
+                        // Find target arrangement within current class. Either one of the constituents or the reg class
                         newArrangeObj = curClass.classrooms.find(
                             c => c.arrinfo.arrangeid === newArrangeId
                         )?.arrinfo ?? curClass.arrinfo;
@@ -311,12 +347,39 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                     }
 
                     // Call the server action
-                    await adminTransferStudent(regid, curClass.arrinfo, newArrangeObj);
-                    resetState();
+                    const adminOverride = true;
+                    // make sure phase matches adminTransferStudents
+                    const newRegObj = await adminTransferStudent(regid, studentid, familyid, newArrangeObj, adminOverride, phase as "intraTransfer" | "classTransfer");
                     
+                    if (phase === "intraTransfer") {
+                        // Update the current class with new regid
+                        const updatedClass = updateRegIdInClass(regid, newRegObj.regid, updatedCurClass);
+                        dispatch({
+                            type: "reg/distribute",
+                            id: curClass.id,
+                            newDistr: updatedClass,
+                        });
+                    } else {
+                        // Inter-class transfer: add student to target class with new regid
+                        if (!sourceSnapshot || !targetSnapshot) {
+                            throw new Error("Missing snapshots for inter-class transfer");
+                        }
+                        const studentData = findStudentInClass(regid, sourceSnapshot)!;
+                        const updatedTargetClass = addStudentToTargetClass(
+                            studentData,
+                            newRegObj.regid,
+                            targetSnapshot
+                        );
+                        dispatch({
+                            type: "reg/distribute",
+                            id: targetSnapshot.id,
+                            newDistr: updatedTargetClass,
+                        });
+                    }
+                        
+                    resetState();
                 } catch (error) {
                     console.error("Transfer failed:", error);
-                    
                     // Rollback optimistic updates
                     if (sourceSnapshot) {
                         dispatch({ type: "reg/distribute", id: curClass.id, newDistr: sourceSnapshot });
@@ -338,13 +401,15 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                 setBusy(true);
                 try {
                     const regid = row.original.regid;
+                    const studentid = row.original.studentid;
                     
                     // Remove student from local state immediately for better UX
                     const updatedCurClass = removeStudentFromClass(regid, curClass);
                     dispatch({ type: "reg/distribute", id: curClass.id, newDistr: updatedCurClass });
                     
                     // Call server action
-                    await adminDeleteRegistration(regid, curClass.arrinfo);
+                    const adminOverride = true;
+                    await adminDropRegistration(regid, studentid, adminOverride);
                     resetState();
                 } catch (error) {
                     console.error("Delete failed:", error);
@@ -504,77 +569,22 @@ export default function StudentTable({ registrations, reducerState, curClass, di
             )
         }
     }
-    const table = useReactTable<studentView>({
+
+    const table = useReactTable<adminStudentView>({
         data: registrations,
         columns: [...columns, editColumn], 
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         enableSorting: true,
         onSortingChange: setSorting,
-        state: { sorting, columnPinning }
+        state: { sorting, columnPinning: {
+            right: ['edit']
+        }}
     });
 
     return (
-        <div className="overflow-x-auto w-full overflow-y-auto">
-            <table className="min-w-full table-fixed relative">
-                {/* Header */}
-                <thead className="border-b border-gray-200">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}> 
-                            {headerGroup.headers.map((header) => (
-                                <th 
-                                    key={header.id}
-                                    className={cn(
-                                        "whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider",
-                                        header.id === 'select' && 'w-12',
-                                        header.column.getIsPinned() === 'left' && 'sticky left-0 z-10 bg-white',
-                                        header.column.getIsPinned() === 'right' && 'sticky right-0 z-10 bg-white'
-                                    )}
-                                    onClick={header.column.getToggleSortingHandler()}
-                                    aria-sort={
-                                        header.column.getIsSorted() === 'desc' ? 'descending' :
-                                        header.column.getIsSorted() === 'asc' ? 'ascending' :
-                                        'none'
-                                    }
-                                >
-                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                    {{
-                                        asc: ' ↑',
-                                        desc: ' ↓',
-                                    }[header.column.getIsSorted() as string] ?? null}
-                                </th>
-                            ))}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                    {/* Table rows */}
-                    {table.getRowModel().rows.map((row) => (
-                        <tr 
-                            key={row.id}
-                            className={cn(
-                                "cursor-pointer hover:bg-blue-50 transition-colors",
-                                row.getIsSelected() && 'bg-blue-50'
-                            )}
-                        >
-                            {row.getVisibleCells().map((cell) => (
-                                <td 
-                                    key={cell.id}
-                                    className={cn(
-                                        "px-3 py-1 text-sm text-gray-600",
-                                        cell.column.id === 'select' ? 'w-12' : 'whitespace-nowrap',
-                                        cell.column.getIsPinned() === 'left' && `sticky left-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`,
-                                        cell.column.getIsPinned() === 'right' && `sticky right-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`
-                                    )}
-                                    tabIndex={0}
-                                >
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <ClientTable
+            table={table}
+        />
     )
 }

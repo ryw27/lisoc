@@ -1,6 +1,17 @@
 import { Input } from "@/components/ui/input";
+import type { UseFormRegisterReturn } from "react-hook-form";
+import type { ComponentProps } from "react";
 
-export function FormInput({ label, type, extras, register, required }: { label: string; type: string; extras?: any; register?: any, required?: boolean }) {
+interface FormInputProps {
+  label: string;
+  type: string;
+  extras?: Omit<ComponentProps<"input">, "type" | "name" | "placeholder" | "className" | "required" | "aria-required" | "aria-invalid">;
+  register?: UseFormRegisterReturn;
+  required?: boolean;
+  error?: string;
+}
+
+export function FormInput({ label, type, extras, register, required, error }: FormInputProps) {
     return (
     <div className="flex flex-col w-full">
         <label className="block text-sm text-gray-400 font-bold mb-2">{label}</label>
@@ -11,7 +22,7 @@ export function FormInput({ label, type, extras, register, required }: { label: 
             className="rounded-sm mb-3 px-2 py-4 !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
             required={required}
             aria-required={required}
-            aria-invalid={!!register?.errors?.message}
+            aria-invalid={!!error}
             {...register}
             {...extras}
         /> 
@@ -19,7 +30,9 @@ export function FormInput({ label, type, extras, register, required }: { label: 
     )
 }
 
-export function FormError({error}: { error: any}) {
+export function FormError({error}: { error?: string | null }) {
+    if (!error) return null;
+    
     return (
         <p className="text-sm text-red-600">{error}</p>
     )

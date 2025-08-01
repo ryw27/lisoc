@@ -8,22 +8,18 @@ import {
 } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
-import {
-  startSemFormSchema,
-  type uiClasses,
-  type selectOptions,
-  type IdMaps
-} from "@/app/lib/semester/sem-schemas";
+import { startSemFormSchema } from "@/lib/registration/validation";
+import { uiClasses, selectOptions, IdMaps } from "@/lib/registration/types";
 import { cn } from '@/lib/utils';
-import OptionsContext from '@/app/lib/semester/sem-context';
 import SemesterClassBox from './form-class-box';
 import { useRouter } from 'next/navigation';
 import { PlusIcon } from 'lucide-react';
-import { seasons } from '@/app/lib/db/schema';
+import { seasons } from '@/lib/db/schema';
 import { DrizzleError, InferSelectModel } from 'drizzle-orm';
 import { toESTString } from '@/lib/utils';
-import { Input } from '../ui/input';
-import { Switch } from '../ui/switch';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { createContext } from "react";
 
 
 type semesterClassesProps = {
@@ -31,8 +27,12 @@ type semesterClassesProps = {
     selectOptions: selectOptions;
     idMaps: IdMaps;
     lastSeason: InferSelectModel<typeof seasons>[];
-    startSemester: (data: z.infer<typeof startSemFormSchema>) => Promise<any>
+    startSemester: (data: z.infer<typeof startSemFormSchema>) => Promise<void>
 }
+
+const MapsAndOptionsProvider = createContext<{ selectOptions: selectOptions; idMaps: IdMaps;} | null>(null);
+
+type FormType = UseFormReturn<z.infer<typeof startSemFormSchema>>;
 
 export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSeason, startSemester } : semesterClassesProps) {
     const router = useRouter();
@@ -92,17 +92,12 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
     const onSemSubmit = async (data: z.infer<typeof startSemFormSchema>) => {
         try {
             console.log("Submitting semester data: ", data)
-            const result = await startSemester(data)
+            await startSemester(data)
             
             // Add success feedback and navigation
-            if (!result) {
-                console.error("Start semester returned error" )
-                semClassForm.setError("root", { message: "Unknown error occured"})
-            } else {
-                console.log("Semester started successfully!")
-                // Navigate to success page or show success message
-                router.push("/admintest/semester")
-            }
+            console.log("Semester started successfully!")
+            // Navigate to success page or show success message
+            router.push("/admintest/semester")
         } catch (err) {
             if (err instanceof DrizzleError) {
                 console.error("Drizzle semester start error.")
@@ -118,15 +113,15 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
 
 
     return (
-        <OptionsContext.Provider value={{selectOptions, idMaps}}>
+        <MapsAndOptionsProvider.Provider value={{selectOptions, idMaps}}>
             <div className="flex flex-col">
                 <h1 className="font-bold text-2xl mb-2">Start Semester Form</h1>
                 {/* Form should submit semClassesSchema shape*/}
                 <FormProvider {...semClassForm}>
                     <form onSubmit={semClassForm.handleSubmit(onSemSubmit)} className="flex flex-col gap-1">
-                        
-                        <NameAndDates semClassForm={semClassForm as any} />
-                        <RegSettingsForm semClassForm={semClassForm as any} />
+                        { /* TODO: I have no idea how to resolve this without casting */} 
+                        <NameAndDates semClassForm={semClassForm as FormType} /> 
+                        <RegSettingsForm semClassForm={semClassForm as FormType} />
 
                         {/* Individual Classes */}
                         <h2 className="font-bold text-xl p-4">Classes</h2>
@@ -181,11 +176,11 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                     </form>
                 </FormProvider>
             </div>
-        </OptionsContext.Provider>
+        </MapsAndOptionsProvider.Provider>
     )
 }
 
-function NameAndDates({ semClassForm }: {semClassForm: UseFormReturn<z.infer<typeof startSemFormSchema>>}) {
+function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
     return (
         <>
             {/* Names */ }
@@ -376,7 +371,7 @@ function NameAndDates({ semClassForm }: {semClassForm: UseFormReturn<z.infer<typ
 }
 
 interface RegSettingsFormProps {
-    semClassForm: UseFormReturn<z.infer<typeof startSemFormSchema>>;
+    semClassForm: FormType;
 }
 
 export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {

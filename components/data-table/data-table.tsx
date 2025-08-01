@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import TableHeader from "./table-header";
-import { FilterableColumn } from "@/app/lib/column-actions";
+import { FilterableColumn } from "@/lib/data-view/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog'
-import { TableName, PKVal, PKName, Table } from "@/app/lib/entity-types";
+import { TableName, PKVal, PKName, Table } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
 
 // Strict typing for DataTable props
@@ -51,6 +51,25 @@ export default function DataTable<
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    // Helper function to set default column visibility
+    const setDefaultColumnVisibility = () => {
+        const initialVisibility: Record<string, boolean> = {};
+        
+        // Set all columns to hidden by default
+        columns.forEach((column) => {
+            initialVisibility[column.id] = false;
+        });
+        
+        // Show special columns and non-hideable columns
+        columns.forEach((column) => {
+            if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
+                initialVisibility[column.id] = true;
+            }
+        });
+        
+        setColumnVisibility(initialVisibility);
+    };
+
     // Handle column visibility
     useEffect(() => {
         try {
@@ -73,26 +92,9 @@ export default function DataTable<
             console.error(`[DataTable] Error loading column visibility for ${tableName}:`, error);
             setDefaultColumnVisibility();
         }
-    }, [tableName, columns]);
+    }, [tableName, columns, setDefaultColumnVisibility]);
 
-    // Helper function to set default column visibility
-    const setDefaultColumnVisibility = () => {
-        const initialVisibility: Record<string, boolean> = {};
-        
-        // Set all columns to hidden by default
-        columns.forEach((column) => {
-            initialVisibility[column.id] = false;
-        });
-        
-        // Show special columns and non-hideable columns
-        columns.forEach((column) => {
-            if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
-                initialVisibility[column.id] = true;
-            }
-        });
-        
-        setColumnVisibility(initialVisibility);
-    };
+
 
     // Save column visibility
     useEffect(() => {
@@ -159,7 +161,7 @@ export default function DataTable<
             cell: ({ row }) => {
                 const handleEdit = () => {
                     try {
-                        const rowId = (row.original as any)[primaryKey];
+                        const rowId = (row.original as TData)[primaryKey as unknown as keyof TData];
                         if (rowId === undefined || rowId === null) {
                             console.error(`[DataTable] Primary key ${String(primaryKey)} not found in row data`);
                             return;
@@ -293,7 +295,7 @@ export default function DataTable<
 
             // Extract IDs with proper type safety
             const ids: PKVal<N>[] = selectedRows.map(row => {
-                const id = (row.original as any)[primaryKey];
+                const id = (row.original as TData)[primaryKey as unknown as keyof TData];
                 if (id === undefined || id === null) {
                     throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
                 }

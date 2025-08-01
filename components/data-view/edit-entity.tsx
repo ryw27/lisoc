@@ -136,6 +136,7 @@ export default async function EditEntity({
             default:
                 // TypeScript will ensure this is never reached
                 const _exhaustiveCheck: never = field
+                void _exhaustiveCheck
                 return null
         }
     }

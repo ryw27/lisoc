@@ -1,13 +1,13 @@
 import RegisterButton from "./register-button"
-import { type threeSeason, type uiClasses } from "@/app/lib/semester/sem-schemas"
+import { type uiClasses, type threeSeasons } from "@/lib/registration/types"
 import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
-import { classregistration } from "@/app/lib/db/schema";
-import { getSelectOptions, registerClass } from "@/app/lib/semester/sem-actions";
+import { getSelectOptions } from "@/lib/registration/semester";
+import { familyRegister } from "@/lib/registration";
 import { familyObject } from "@/app/admintest/data/(people-pages)/families/family-helpers";
 
 
 // TODO: Change this to the reg history
-export default async function RegClassBox({ classData, students, season, family }: { classData: uiClasses, students: studentObject[], season: threeSeason, family: familyObject }) {
+export default async function RegClassBox({ classData, students, season, family }: { classData: uiClasses, students: studentObject[], season: threeSeasons, family: familyObject }) {
     // TODO: More efficient here?
     const { options, idMaps } = await getSelectOptions();
 
@@ -39,7 +39,7 @@ export default async function RegClassBox({ classData, students, season, family 
 
 
         // Try catch in the original page
-        await registerClass(classData, season[seasonidx as keyof threeSeason], family, studentid);
+        await familyRegister(classData, season[seasonidx as keyof threeSeasons], family, studentid);
     }
 
     return (

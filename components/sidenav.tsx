@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils'; // assuming shadcn setup
+import { cn } from '@/lib/utils';
 import { ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -19,7 +19,6 @@ interface SideNavProps {
 
 export default function SideNav({ items }: SideNavProps) {
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [language, setLanguage] = useState('en');
   const pathname = usePathname();
 
   return (

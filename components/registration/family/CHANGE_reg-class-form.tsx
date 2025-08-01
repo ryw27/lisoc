@@ -1,15 +1,15 @@
-import RegClassBox from "./reg-class-box";
-import { type threeSeason, type uiClasses } from "@/app/lib/semester/sem-schemas";
+import RegClassBox from "./CHANGE_reg-class-box";
+import { type threeSeasons, type uiClasses } from "@/lib/registration/types";
 import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import { InferSelectModel } from "drizzle-orm";
-import { classregistration, family, familybalance } from "@/app/lib/db/schema";
+import { family, familybalance } from "@/lib/db/schema";
 
 
 type regClassFormProps = {
     arrangements: uiClasses[];
     students: studentObject[];
-    season: threeSeason;
+    season: threeSeasons;
     family: InferSelectModel<typeof family>
 }
 // TODO: Change this to the reg history

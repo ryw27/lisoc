@@ -1,8 +1,9 @@
 "use client";
 import React, { useState } from "react";
-import { arrangement, classregistration, family, student } from "@/lib/db/schema"
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema"
 import { InferSelectModel } from "drizzle-orm"
-import { IdMaps, selectOptions, threeBalances, type threeSeasons, type uiClasses } from "@/lib/registration/types"
+import { type IdMaps, type threeSeasons, type uiClasses } from "@/lib/registration/types"
+import { type balanceFees } from "@/lib/shared/types";
 import { newRegSchema } from "@/lib/registration/validation";
 import { 
     Select, 
@@ -20,17 +21,24 @@ import { familyRegister } from "@/lib/registration/";
 import RegTable from "./reg-table";
 
 type RegStudentProps = {
-    registrations: InferSelectModel<typeof classregistration>[]
-    family: InferSelectModel<typeof family>
-    students: InferSelectModel<typeof student>[]
-    registerSpring: boolean
-    season: threeSeasons
-    fallArrs: InferSelectModel<typeof arrangement>[]
-    yearArrs: InferSelectModel<typeof arrangement>[]
-    springArrs: InferSelectModel<typeof arrangement>[]
-    idMaps: IdMaps
-    selectOptions: selectOptions
-    balances: threeBalances
+    registrations: InferSelectModel<typeof classregistration>[];
+    family: InferSelectModel<typeof family>;
+    students: InferSelectModel<typeof student>[];
+    // registerSpring: boolean
+    seasons: threeSeasons;
+    threeArrs: {
+        year: InferSelectModel<typeof arrangement>[]
+        fall: InferSelectModel<typeof arrangement>[]
+        spring: InferSelectModel<typeof arrangement>[]
+    };
+    regchangerequests: InferSelectModel<typeof regchangerequest>[];
+    termPrices: {
+        yearPrices: balanceFees
+        fallPrices: balanceFees
+        springPrices: balanceFees
+    }
+    idMaps: IdMaps;
+    // selectOptions: selectOptions;
 }
 
 // For reference
@@ -73,14 +81,12 @@ export default function RegisterStudent({
     registrations,
     family,
     students,
-    registerSpring,
-    season,
-    fallArrs,
-    yearArrs,
-    springArrs,
+    seasons,
+    threeArrs,
+    regchangerequests,
+    termPrices,
     idMaps,
-    selectOptions,
-    balances
+    // selectOptions
 }: RegStudentProps) {
     // Student ID
     const [selectedStudent, setSelectedStudent] = useState<number>(0); 
@@ -100,7 +106,7 @@ export default function RegisterStudent({
     });
 
     // Periods to ensure no duplicates
-    const [periods, setPeriods] = useState<Record<number, { first: number, second: number }>>(() => {
+    const [_periods, setPeriods] = useState<Record<number, { first: number, second: number }>>(() => {
         const periods = {} as Record<number, { first: number, second: number }>;
         for (let i = 0; i < students.length; i++) {
             periods[students[i].studentid] = { first: 0, second: 0 };
@@ -110,13 +116,13 @@ export default function RegisterStudent({
 
     const getValidClasses = (idx: 0 | 1 | 2) => {
         if (selectedSemester[idx] === 0) {
-            return [...yearArrs, ...fallArrs, ...springArrs].filter(c => c.isregclass)
-        } else if (selectedSemester[idx] === season.year.seasonid) {
-            return yearArrs.filter(c => c.isregclass)
-        } else if (selectedSemester[idx] === season.fall.seasonid) {
-            return fallArrs.filter(c => c.isregclass)
-        } else if (selectedSemester[idx] === season.spring.seasonid) {
-            return springArrs.filter(c => c.isregclass)
+            return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(c => c.isregclass)
+        } else if (selectedSemester[idx] === seasons.year.seasonid) {
+            return threeArrs.year.filter(c => c.isregclass)
+        } else if (selectedSemester[idx] === seasons.fall.seasonid) {
+            return threeArrs.fall.filter(c => c.isregclass)
+        } else if (selectedSemester[idx] === seasons.spring.seasonid) {
+            return threeArrs.spring.filter(c => c.isregclass)
         }
         return []
     }
@@ -191,21 +197,17 @@ export default function RegisterStudent({
             for (let i = 0; i < formData.registeredClasses.length; i++) {
                 let classSeason;
                 let arrangementData;
-                let balanceData;
-                if (formData.registeredClasses[i].seasonid === season.year.seasonid) {
-                    classSeason = season.year;
-                    arrangementData = yearArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
-                    balanceData = balances.year;
-                } else if (formData.registeredClasses[i].seasonid === season.fall.seasonid) {
-                    classSeason = season.fall;
-                    arrangementData = fallArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
-                    balanceData = balances.fall;
+                if (formData.registeredClasses[i].seasonid === seasons.year.seasonid) {
+                    classSeason = seasons.year;
+                    arrangementData = threeArrs.year.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
+                } else if (formData.registeredClasses[i].seasonid === seasons.fall.seasonid) {
+                    classSeason = seasons.fall;
+                    arrangementData = threeArrs.fall.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
                 } else {
-                    classSeason = season.spring;
-                    arrangementData = springArrs.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
-                    balanceData = balances.spring;
+                    classSeason = seasons.spring;
+                    arrangementData = threeArrs.spring.find((c) => c.arrangeid === formData.registeredClasses[i].arrid);
                 }
-                await familyRegister(arrangementData as uiClasses, classSeason, balanceData, family, formData.studentid);
+                await familyRegister(arrangementData as uiClasses, classSeason, family, formData.studentid);
             }
         } catch (err) {
             console.error("Registration submission error: ", err);
@@ -238,14 +240,14 @@ export default function RegisterStudent({
                                     <SelectValue placeholder="Select a Semester" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem key={season.year.seasonid} value={String(season.year.seasonid)}>
-                                        {season.year.seasonnamecn}
+                                    <SelectItem key={seasons.year.seasonid} value={String(seasons.year.seasonid)}>
+                                        {seasons.year.seasonnamecn}
                                     </SelectItem>
-                                    <SelectItem key={season.fall.seasonid} value={String(season.fall.seasonid)}>
-                                        {season.fall.seasonnamecn}
+                                    <SelectItem key={seasons.fall.seasonid} value={String(seasons.fall.seasonid)}>
+                                        {seasons.fall.seasonnamecn}
                                     </SelectItem>
-                                    <SelectItem key={season.spring.seasonid} value={String(season.spring.seasonid)}>
-                                        {season.spring.seasonnamecn}
+                                    <SelectItem key={seasons.spring.seasonid} value={String(seasons.spring.seasonid)}>
+                                        {seasons.spring.seasonnamecn}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -348,20 +350,21 @@ export default function RegisterStudent({
         )
     }
 
-    const calculateTotal = () => {
-        return Number(balances.year?.totalamount || 0) + Number(balances.fall?.totalamount || 0) + Number(balances.spring?.totalamount || 0);
-    //     return Number(balance.childnumRegfee)
-    //         + Number(balance.regfee) 
-    //         - Number(balance.earlyregdiscount) 
-    //         + Number(balance.lateregfee)
-    //         + Number(isNewFamily ? balance.extrafee4newfamily : 0)
-    //         + Number(balance.managementfee)
-    //         + Number(balance.dutyfee)
-    //         + Number(balance.cleaningfee)
-    //         + Number(balance.otherfee)
-    //         + Number(balance.tuition)
-    // }
+    const calculateTotal = (term: "yearPrices" | "fallPrices" | "springPrices") => {
+        // TODO: Fix 
+        const total = Number(termPrices[term].childnumRegfee)
+            + Number(termPrices[term].regfee) 
+            - Number(termPrices[term].earlyregdiscount) 
+            + Number(termPrices[term].lateregfee)
+            + Number(termPrices[term].extrafee4newfamily)
+            + Number(termPrices[term].managementfee)
+            + Number(termPrices[term].dutyfee)
+            + Number(termPrices[term].cleaningfee)
+            + Number(termPrices[term].otherfee)
+            + Number(termPrices[term].tuition)
+        return total;
     }
+    
     return (
         <div className="flex flex-col">
             <form onSubmit={regForm.handleSubmit(onSubmit)} className="border-1 border-black p-4">
@@ -464,17 +467,16 @@ export default function RegisterStudent({
                     registrations={registrations} 
                     idMaps={idMaps} 
                     students={students} 
-                    season={season} 
-                    balances={balances} 
-                    fallArrs={fallArrs} 
-                    yearArrs={yearArrs} 
-                    springArrs={springArrs}
-                    selectOptions={selectOptions}
+                    family={family}
+                    seasons={seasons} 
+                    threeArrs={threeArrs}
+                    // selectOptions={selectOptions}
+                    regchangerequests={regchangerequests}
                 />
             </div>
             <div className="mt-5 flex self-end">
                 <p className="font-bold">
-                    Total Balance: {calculateTotal()}
+                    Total Balance: {calculateTotal("yearPrices") + calculateTotal("fallPrices") + calculateTotal("springPrices")}
                 </p>
             </div>
         </div>

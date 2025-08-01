@@ -1,14 +1,14 @@
 "use client";
 import { z } from 'zod';
-import { emailSchema } from '@/app/lib/auth-lib/auth-schema';
+import { emailSchema } from '@/lib/auth/validation';
 import { useState, useRef, useEffect } from 'react';
 
 type resendCodeProps = {
     resendCode: (data: z.infer<typeof emailSchema>) => Promise<void>;
     email: string;
-    defaultCooldown: number;
+    // defaultCooldown: number;
 }
-export default function ResendCodeButton({resendCode, email, defaultCooldown = 30}: resendCodeProps) {
+export default function ResendCodeButton({resendCode, email}: resendCodeProps) {
     const [remain, setRemain] = useState<number>(0);
     const [busy, setBusy]= useState<boolean>(false);
 
@@ -62,6 +62,7 @@ export default function ResendCodeButton({resendCode, email, defaultCooldown = 3
         } catch (error) {
             // Reset countdown on error so user can try again
             setRemain(0);
+            console.error(error);
         } finally {
             setBusy(false);
         }

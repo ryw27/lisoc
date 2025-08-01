@@ -3,8 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from 'zod/v4'
 import { Input } from "@/components/ui/input";
-import { createStudent } from "@/app/lib/semester/sem-actions";
-import { studentSchema } from "@/app/lib/semester/sem-schemas";
+import { createStudent } from "@/lib/family/actions/createStudent";
+import { studentSchema } from "@/lib/family/validation";
 
 
 export default function CreateStudentForm({ familyid }: { familyid: number }) {
@@ -19,13 +19,11 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
         try {
             const studentData = studentSchema.parse(data);
             const newStudent = await createStudent(studentData, familyid);
-            console.log(newStudent);
         } catch (error) {
             console.error(error);
         }
     }
 
-    console.log(studentForm.formState.errors);
 
 
     return (

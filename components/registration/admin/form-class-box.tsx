@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { Controller, useFormContext, useWatch, type FieldArrayWithId } from 'react-hook-form';
 import { Edit, Trash, Info } from 'lucide-react';
 import { 
@@ -13,18 +13,19 @@ import {
     AlertDialogTitle, 
     AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import { Input } from "../ui/input";
-import { Textarea } from '../ui/textarea';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
     Select, 
     SelectContent, 
     SelectValue, 
     SelectTrigger, 
     SelectItem 
-} from "../ui/select";
-import OptionsContext from '@/app/lib/semester/sem-context';
-import { arrangementSchema, startSemFormSchema } from '@/app/lib/semester/sem-schemas';
+} from "@/components/ui/select";
+import { startSemFormSchema } from '@/lib/registration/validation';
+import { arrangementSchema } from '@/lib/shared/validation';
 import { z } from 'zod/v4';
+import { useRegistrationContext } from '@/lib/registration/registration-context';
 
 
 type classBoxProps = {
@@ -88,7 +89,7 @@ export default function SemesterClassBox({
         control,
         name: `classes.${idx}`
     })
-    const { selectOptions, idMaps } = useContext(OptionsContext)!;
+    const { selectOptions, idMaps } = useRegistrationContext();
 
     
     const setField = <T,>(field: keyof z.infer<typeof arrangementSchema>, value: T) => {

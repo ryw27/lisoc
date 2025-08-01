@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { notFound } from "next/navigation";
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { Table, ColKey, TableName, PKName, ColVal } from "@/app/lib/entity-types";
+import { Table, ColKey, TableName, PKName, ColVal } from "@/lib/data-view/types";
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 
 

@@ -1,11 +1,11 @@
 import DataTable from "@/components/data-table/data-table";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import HorizontalNav from "./horizontal-nav";
-import { FilterableColumn } from "@/app/lib/column-actions";
-import { TableName, PKVal, PKName } from "@/app/lib/entity-types";
+import HorizontalNav from "../horizontal-nav";
+import { FilterableColumn } from "@/lib/data-view/types";
+import { TableName, PKVal, PKName } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
-import { Table } from "@/app/lib/entity-types";
+import { Table } from "@/lib/data-view/types";
 
 // Strict typing for the data dashboard props
 export interface DataDashboardProps<

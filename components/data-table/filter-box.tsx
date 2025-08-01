@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { ChevronDown, XIcon } from "lucide-react";
-import { FilterableColumn } from "@/app/lib/column-types";
+import { FilterableColumn } from "@/lib/data-view/types";
 import { filterEntry, filterMode } from "./filter";
 
 // Type definition that matches how columns are structured

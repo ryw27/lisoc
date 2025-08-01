@@ -1,18 +1,27 @@
-import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, SortingState, ColumnPinningState } from "@tanstack/react-table";
+import { 
+    ColumnDef, 
+    getCoreRowModel, 
+    getSortedRowModel, 
+    useReactTable, 
+    SortingState, 
+} from "@tanstack/react-table";
 import { 
     Popover, 
     PopoverContent, 
     PopoverTrigger 
 } from "@/components/ui/popover";
 import { InferSelectModel } from "drizzle-orm";
-import { classregistration } from "@/app/lib/db/schema";
-import { cn } from "@/lib/utils";
+import { classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import { IdMaps, selectOptions, threeBalances, threeSeason } from "@/app/lib/semester/sem-schemas";
-import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
-import { arrangement } from "@/app/lib/db/schema";
-import { PencilIcon, MoreHorizontal, TrashIcon, XIcon } from "lucide-react";
-import { dropRegistration, familyRequestTransfer } from "@/app/lib/semester/sem-actions";
+import { IdMaps, threeSeasons } from "@/lib/registration/types";
+import { arrangement } from "@/lib/db/schema";
+import { 
+    PencilIcon, 
+    MoreHorizontal, 
+    XIcon,
+} from "lucide-react";
+import { familyRequestDrop, familyRequestTransfer } from "@/lib/registration/regchanges";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,17 +39,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ClientTable } from "@/components/client-table";
 
 type regTableProps = {
-    students: studentObject[];
-    season: threeSeason;
+    students: InferSelectModel<typeof student>[];
+    seasons: threeSeasons;
     registrations: InferSelectModel<typeof classregistration>[];
-    balances: threeBalances;
-    fallArrs: InferSelectModel<typeof arrangement>[];
-    yearArrs: InferSelectModel<typeof arrangement>[];
-    springArrs: InferSelectModel<typeof arrangement>[];
-    selectOptions: selectOptions;
+    threeArrs: {
+        year: InferSelectModel<typeof arrangement>[];
+        fall: InferSelectModel<typeof arrangement>[];
+        spring: InferSelectModel<typeof arrangement>[];
+    }
+    // selectOptions: selectOptions;
     idMaps: IdMaps;
+    family: InferSelectModel<typeof family>;
+    regchangerequests: InferSelectModel<typeof regchangerequest>[];
 }
 
 type regRow = {
@@ -55,6 +68,7 @@ type regRow = {
     seasonid: number;
     tuition: number;
     status: number;
+    reqstatus: number;
 }
 
 
@@ -66,7 +80,13 @@ const regStatusMap = {
     5: "Dropout Spring"
 }
 
-export default function RegTable({ students, season, registrations, balances, fallArrs, yearArrs, springArrs, selectOptions, idMaps }: regTableProps) {
+const reqStatusMap = {
+  1: { reqstatus: "Pending", reqstatuscn: "待批准" },
+  2: { reqstatus: "Approved", reqstatuscn: "已批准" },
+  3: { reqstatus: "Rejected", reqstatuscn: "已拒绝" }
+} as const;
+
+export default function RegTable({ students, seasons, registrations, threeArrs, idMaps, family, regchangerequests }: regTableProps) {
     
     const columns: ColumnDef<regRow>[] = [
         {
@@ -133,7 +153,13 @@ export default function RegTable({ students, season, registrations, balances, fa
             header: "Semester",
             cell: ({ getValue }) => {
                 const seasonid = getValue() as number;
-                return season.year.seasonid === seasonid ? season.year.seasonnamecn : season.fall.seasonid === seasonid ? season.fall.seasonnamecn : season.spring.seasonnamecn || "N/A";
+                return seasons.year.seasonid === seasonid 
+                    ? seasons.year.seasonnamecn 
+                    : seasons.fall.seasonid === seasonid 
+                        ? seasons.fall.seasonnamecn 
+                        : seasons.spring.seasonid === seasonid 
+                            ? seasons.spring.seasonnamecn 
+                            : "N/A";
             },
             sortingFn: "alphanumeric"
         },
@@ -150,12 +176,24 @@ export default function RegTable({ students, season, registrations, balances, fa
                 return regStatusMap[statusid];
             },
             sortingFn: "alphanumeric"
+        },
+        {
+            accessorKey: "reqstatus",
+            header: "Req Status",
+            cell: ({ getValue }) => {
+                const reqstatusid = getValue() as 0 | 1 | 2 | 3;
+                if (reqstatusid === 0) {
+                    return "N/A";
+                }
+                return `${reqStatusMap[reqstatusid].reqstatus} request`
+            }
         }
     ];
 
-    const handleDelete = async (registration: number, tuition: number) => {
+    const handleDelete = async (registration: number, studentid: number) => {
         try {
-            await dropRegistration(registration, tuition);
+            const familyOverride = false;
+            await familyRequestDrop(registration, studentid, family.familyid, familyOverride);
         } catch (err) {
             console.error(err);
         }
@@ -167,11 +205,11 @@ export default function RegTable({ students, season, registrations, balances, fa
             cell: ({ row }) => {
                 const onDelete = () => {
                     const reg_id = row.original.regno;
-                    const tuition = row.original.tuition
-                    if (reg_id === undefined || reg_id === null || tuition === undefined || tuition === null) {
-                        throw new Error("Reg ID or tuition for registrations row not found");
+                    const studentid = row.original.studentid
+                    if (reg_id === undefined || reg_id === null || studentid === undefined || studentid === null) {
+                        throw new Error("Reg ID or studentid for registrations row not found");
                     } else {
-                        handleDelete(reg_id, tuition);
+                        handleDelete(reg_id, studentid);
                     }
                 } 
                 return (
@@ -188,21 +226,33 @@ export default function RegTable({ students, season, registrations, balances, fa
             id: "edit",
             cell: ({ row }) => {
                 const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+                const [newArrangeID, setNewArrangeID] = useState<number>(0);
                 const transferStudent = () => {
                     try {
-                        const reg_id = row.original.regno;
+                        const regid = row.original.regno;
                         const tuition = row.original.tuition
-                        const statusid = row.original.status
-                        if (reg_id === undefined || reg_id === null || tuition === undefined || tuition === null) {
+                        const studentid = row.original.studentid
+                        if (regid === undefined || regid === null || tuition === undefined || tuition === null) {
                             throw new Error("Reg ID or tuition for registrations row not found");
+                        } else if (newArrangeID === 0) {
+                            throw new Error("Cannot find new class being transferred to");
                         } else {
-                            familyRequestTransfer(reg_id);
+                            const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === newArrangeID);
+                            if (!arrObj) {
+                                throw new Error("Cannot find new class being transferred to");
+                            } else {
+                                familyRequestTransfer(regid, studentid, family.familyid, arrObj)
+                            }
                         } 
                     } catch (err) {
                         console.error(err);
                     }
                 }
                 const status = Number(row.original.status)
+                const transferDisabled = status === REGSTATUS_SUBMITTED 
+                                        || status === REGSTATUS_TRANSFERRED 
+                                        || status === REGSTATUS_DROPOUT 
+                                        || status === REGSTATUS_DROPOUT_SPRING
                 return (
                     <>
                         <Popover>
@@ -233,7 +283,7 @@ export default function RegTable({ students, season, registrations, balances, fa
                                             "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
                                             "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
                                             "focus:outline-none focus:bg-gray-100",
-                                            status !== 1 && status !== 2
+                                            transferDisabled
                                                 ? "cursor-not-allowed text-gray-300"
                                                 : "text-blue-500 hover:text-blue-600 cursor-pointer"
                                         )
@@ -242,7 +292,7 @@ export default function RegTable({ students, season, registrations, balances, fa
                                         e.stopPropagation();
                                         setTransferDialogOpen(true);
                                     }}
-                                    disabled={status !== 1 && status !== 2}
+                                    disabled={transferDisabled}
                                 >
                                     <PencilIcon className="w-4 h-4" /> Transfer
                                 </button>
@@ -260,16 +310,18 @@ export default function RegTable({ students, season, registrations, balances, fa
                                     <label htmlFor="transfer-class-select" className="block text-sm font-medium text-gray-700 mb-1">
                                         Choose new class
                                     </label>
-                                    <Select>
+                                    <Select
+                                        value={newArrangeID ? String(newArrangeID) : ""}
+                                        onValueChange={(value: string) => setNewArrangeID(Number(value))}
+                                    >
                                         <SelectTrigger id="transfer-class-select" className="w-full">
                                             <SelectValue placeholder="Select a class..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {/* Example options, replace with dynamic class list */}
-                                            {[...fallArrs, ...yearArrs, ...springArrs]
+                                            {[...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring]
                                                 .filter(cls => cls.isregclass)
                                                 .map(cls => (
-                                                    <SelectItem key={cls.classid} value={String(cls.classid)}>
+                                                    <SelectItem key={cls.arrangeid} value={String(cls.arrangeid)}>
                                                         {idMaps.classMap[cls.classid].classnamecn}
                                                     </SelectItem>
                                                 ))}
@@ -295,19 +347,15 @@ export default function RegTable({ students, season, registrations, balances, fa
         }
     ]);
 
-    const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
-        left: ['delete'],
-        right: ['edit']
-    });
-
     const arrangementMap = useMemo(() => {
-        const allArrs = [...yearArrs, ...fallArrs, ...springArrs];
+        const allArrs = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
         return new Map(allArrs.map(arr => [arr.arrangeid, arr]));
-    }, [yearArrs, fallArrs, springArrs]);
+    }, [threeArrs]);
 
     const tableData = useMemo(() => {
         return registrations.map((reg) => {
             const arrangement = arrangementMap.get(reg.arrangeid);
+            const regreq = regchangerequests.find((rcr) => rcr.regid === reg.regid);
             return {
                 regno: reg.regid,
                 registerdate: reg.registerdate,
@@ -319,7 +367,8 @@ export default function RegTable({ students, season, registrations, balances, fa
                 period: arrangement?.timeid || 0,
                 seasonid: arrangement?.seasonid || 0,
                 tuition: Number(arrangement?.tuitionW || 0) + Number(arrangement?.bookfeeW || 0) + Number(arrangement?.specialfeeW || 0),
-                status: reg.statusid as 1 | 2 | 3 | 4 | 5 || "Unknown"
+                status: reg.statusid as 1 | 2 | 3 | 4 | 5 || "Unknown",
+                reqstatus: regreq?.reqstatusid || 0
             }
         });
     }, [registrations, arrangementMap]);
@@ -333,74 +382,15 @@ export default function RegTable({ students, season, registrations, balances, fa
         getSortedRowModel: getSortedRowModel(),
         enableSorting: true,
         onSortingChange: setSorting,
-        state: { sorting, columnPinning }
+        state: { sorting, columnPinning: {
+            left: ['delete'],
+            right: ['edit']
+        }}
     });
 
     return (
-        <>
-            <div className="overflow-x-auto w-full overflow-y-auto">
-                <table className="min-w-full table-fixed relative">
-                    {/* Header */}
-                    <thead className="border-b border-gray-200">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}> 
-                                {headerGroup.headers.map((header) => (
-                                    <th 
-                                        key={header.id}
-                                        className={cn(
-                                            "whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider",
-                                            header.id === 'select' && 'w-12',
-                                            header.column.getIsPinned() === 'left' && 'sticky left-0 z-10 bg-white',
-                                            header.column.getIsPinned() === 'right' && 'sticky right-0 z-10 bg-white'
-                                        )}
-                                        onClick={header.column.getToggleSortingHandler()}
-                                        aria-sort={
-                                            header.column.getIsSorted() === 'desc' ? 'descending' :
-                                            header.column.getIsSorted() === 'asc' ? 'ascending' :
-                                            'none'
-                                        }
-                                    >
-                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                        {{
-                                            asc: ' ↑',
-                                            desc: ' ↓',
-                                        }[header.column.getIsSorted() as string] ?? null}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {/* Table rows */}
-                        {table.getRowModel().rows.map((row) => (
-                            <tr 
-                                key={row.id}
-                                className={cn(
-                                    "cursor-pointer hover:bg-blue-50 transition-colors",
-                                    row.getIsSelected() && 'bg-blue-50'
-                                )}
-                            >
-                                {row.getVisibleCells().map((cell) => (
-                                    <td 
-                                        key={cell.id}
-                                        className={cn(
-                                            "px-3 py-1 text-sm text-gray-600",
-                                            cell.column.id === 'select' ? 'w-12' : 'whitespace-nowrap',
-                                            cell.column.getIsPinned() === 'left' && `sticky left-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`,
-                                            cell.column.getIsPinned() === 'right' && `sticky right-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`
-                                        )}
-                                        tabIndex={0}
-                                    >
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-
-        </>
+        <ClientTable
+            table={table}
+        />
     )
 }

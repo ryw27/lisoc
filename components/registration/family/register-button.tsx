@@ -1,7 +1,23 @@
 "use client";
 import { useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
 import { useRouter } from "next/navigation";
@@ -32,7 +48,7 @@ export default function RegisterButton({ regSpecificClass, students }: { regSpec
                                 </SelectTrigger>
                                 <SelectContent>
                                     {hasStudents ? (
-                                        students.map((student: any) => (
+                                        students.map((student) => (
                                             <SelectItem 
                                                 key={student.studentid} 
                                                 value={student.studentid.toString()}

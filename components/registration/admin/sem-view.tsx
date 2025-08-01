@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useReducer, useState } from "react";
+import { useReducer, useState } from "react";
 import { PlusIcon, ChevronUp, ChevronDown } from "lucide-react";
 import SemesterViewBox from "./sem-view-box";
 import SemesterControlsPopover from "./sem-control-popover";
@@ -15,18 +15,19 @@ import {
   type fullSemClassesData,
   type IdMaps,
   type fullRegClass,
-  type threeSeason,
+  type threeSeasons,
   uiClasses,
-} from "@/app/lib/semester/sem-schemas";
-import { seasons } from "@/app/lib/db/schema";
+} from "@/lib/registration/types";
+import { seasons } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import SemClassEditor from "./sem-class-editor";
 import Link from "next/link";
 import { FaRegQuestionCircle } from "react-icons/fa";
+import { RegistrationProvider } from "@/lib/registration/registration-context";
 
 type semViewProps = {
     fullData: fullSemClassesData
-    academicYear: threeSeason;
+    academicYear: threeSeasons;
     selectOptions: selectOptions
     idMaps: IdMaps;
 }
@@ -141,7 +142,6 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
     }
 }
 
-export const SeasonOptionContext = createContext<{seasons: threeSeason, selectOptions: selectOptions, idMaps: IdMaps} | null>(null); 
 
 // Start with a general class overview that is clickable. Each one expands into a data table of students
 // Season is always the academic year.
@@ -260,7 +260,11 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
 
 
     return (
-        <SeasonOptionContext.Provider value={{ seasons: academicYear, selectOptions: selectOptions, idMaps: idMaps}}>
+        <RegistrationProvider value={{
+            seasons: academicYear,
+            selectOptions: selectOptions,
+            idMaps: idMaps
+        }}>
             <div className="container mx-auto flex flex-col">
                 <div className="flex justify-between">
                     <h1 className="font-bold text-3xl mb-4">{year.seasonnamecn}</h1>
@@ -327,7 +331,8 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                                 id: "ADDING",
                                 arrinfo: {} as uiClasses,
                                 students: [],
-                                classrooms: []
+                                classrooms: [],
+                                dropped: []
                             } satisfies fullRegID}
                             dispatch={dispatch}
                             endEdit={() => setAdding(false)}
@@ -336,6 +341,6 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     }
                 </div>
             </div>
-        </SeasonOptionContext.Provider>
+        </RegistrationProvider>
     )
 }

@@ -1,23 +1,23 @@
 "use client";
-import { family, regchangerequest, student, users } from "@/app/lib/db/schema";
+import { family, regchangerequest, student, users } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MoreHorizontal, CheckIcon, XIcon } from "lucide-react";
 import {
     ColumnDef,
     useReactTable,
-    ColumnPinningState,
     getCoreRowModel
 } from '@tanstack/react-table'
 import { ClientTable } from "@/components/client-table";
+import { adminApproveRequest, adminRejectRequest } from "@/lib/registration/regchanges";
 
 type regChangeRow = {
     regid: number;
     requestid: number;
-    // oldClass: number;
-    // newClass: number;
+    // oldclass: number
+    // newclass: number
     familyid: string;
     father: string;
     mother: string;
@@ -109,10 +109,6 @@ const columns: ColumnDef<regChangeRow>[] = [
     },
 ];
 export default function RegChangeTable({ requests, adminMap }: regChangeTableProps) {
-    const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
-        left: ["edit"]
-    })
-
     const editColumn: ColumnDef<regChangeRow> = {
         id: "edit",
         header: "",
@@ -127,8 +123,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                     const reqid = row.original.requestid;
                     const regid = row.original.regid;
                     // TODO: Implement server action for approving request
-                    // await adminApproveRequest(requestId);
-                    
+                    await adminApproveRequest(reqid, regid);
                     // Reset state on success
                     setBusy(false);
                 } catch (error) {
@@ -142,10 +137,11 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                 setBusy(true);
                 
                 try {
-                    const requestId = row.original.requestid;
+                    const reqid = row.original.requestid;
+                    const regid = row.original.regid;
                     // TODO: Implement server action for rejecting request
-                    // await adminRejectRequest(requestId);
-                    console.log("Rejecting request:", requestId);
+                    await adminRejectRequest(reqid, regid);
+                    console.log("Rejecting request:", reqid);
                     
                     // Reset state on success
                     setBusy(false);
@@ -233,7 +229,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const phone = user?.phone ?? "N/A";
             const email = user?.email ?? "N/A";
             const familyid = family?.familyid?.toString() ?? "N/A";
-            const reqStatus = r.reqstatusid ?? 1;
+            const reqStatus = r.reqstatusid ?? REQUEST_STATUS_PENDING;
             const firstReq = requests
                 .filter(req => req.familyid === r.familyid)
                 .sort((a, b) => new Date(a.submitdate ?? 0).getTime() - new Date(b.submitdate ?? 0).getTime())[0]?.submitdate ?? "";
@@ -259,7 +255,9 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
         }),
         columns: [...columns, editColumn], 
         getCoreRowModel: getCoreRowModel(),
-        state: { columnPinning }
+        state: {
+            columnPinning: { right: ["edit"] }
+        }
     });
 
     return (

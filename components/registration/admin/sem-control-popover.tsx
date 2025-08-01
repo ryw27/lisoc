@@ -1,21 +1,46 @@
 "use client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Settings, Calendar, TriangleAlert, Power, Cog, AlertTriangle } from "lucide-react";
-import React, { useState, useContext } from "react";
-import { InferSelectModel } from "drizzle-orm";
-import { seasons } from "@/app/lib/db/schema";
-import { useForm, Controller } from "react-hook-form";
+import React, { useState } from "react";
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover";
+import {
+  Settings,
+  Calendar,
+  Power,
+  Cog,
+  AlertTriangle,
+} from "lucide-react";
+import { 
+    useForm, 
+    Controller 
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { seasonDatesSchema, seasonRegSettingsSchema } from "@/app/lib/semester/sem-schemas";
-import { Input } from "@/components/ui/input";
-import { updateDates, registerControls } from "@/app/lib/semester/sem-actions";
-import { Switch } from "@/components/ui/switch";
 import { z } from "zod/v4";
-import { SeasonOptionContext } from "./sem-view";
+import { 
+    seasonDatesSchema,
+    seasonRegSettingsSchema
+} from "@/lib/registration/validation";
+import { Input } from "@/components/ui/input";
+import { 
+    updateDates, 
+    updateRegControls 
+} from "@/lib/registration/semester";
+import { Switch } from "@/components/ui/switch";
+import { threeSeasons } from "@/lib/registration/types";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+  SelectItem,
+} from "@/components/ui/select";
+import { useRegistrationContext } from "@/lib/registration/registration-context";
 
 type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS"
 export default function SemesterControlsPopover() {
-    const { seasons, selectOptions, idMaps } = useContext(SeasonOptionContext)!;
+    const { seasons } = useRegistrationContext();
     const [settings, setSettings] = useState<settingOptions>("HOME")
     return (
         <Popover>
@@ -29,8 +54,8 @@ export default function SemesterControlsPopover() {
             >
                 <div className="flex flex-col gap-4">
                     {settings === "HOME" && <HomeControls setSettings={setSettings} />}
-                    {settings === "DATES" && <DateControls setSettings={setSettings} season={season}/>}
-                    {settings === "REGISTRATION" && <RegistrationControls setSettings={setSettings} season={season}/>}
+                    {settings === "DATES" && <DateControls setSettings={setSettings} seasons={seasons}/>}
+                    {settings === "REGISTRATION" && <RegistrationControls setSettings={setSettings} season={seasons}/>}
                     {settings === "CONTROLS" && <Controls setSettings={setSettings} />}
                 </div>
             </PopoverContent>
@@ -63,16 +88,29 @@ function HomeControls({ setSettings }: {setSettings: React.Dispatch<React.SetSta
     )
 }
 
-function DateControls({ setSettings, season }: {setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, season: InferSelectModel<typeof seasons>}) {
+function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, seasons: threeSeasons}) {
+    // Simple function to format date for HTML date input (YYYY-MM-DD)
+    const formatDateForInput = (dateString: string | null) => {
+        if (!dateString) return "";
+        return new Date(dateString).toISOString().split('T')[0];
+    };
+    
     const dateForm = useForm({
         defaultValues: {
-            fallstart: season.startdate ? new Date(season.startdate) : undefined,
-            fallend: season.enddate ? new Date(season.enddate) : undefined,
-            earlyreg: season.earlyregdate ? new Date(season.earlyregdate) : undefined,
-            normalreg: season.normalregdate ? new Date(season.normalregdate) : undefined,
-            latereg: season.lateregdate1 ? new Date(season.lateregdate1) : undefined,
-            closereg: season.closeregdate ? new Date(season.closeregdate) : undefined,
-            canceldeadline: season.canceldeadline ? new Date(season.canceldeadline) : undefined,
+            fallstart: formatDateForInput(seasons.fall.startdate),
+            fallend: formatDateForInput(seasons.fall.enddate),
+            fallearlyreg: formatDateForInput(seasons.fall.earlyregdate),
+            fallnormalreg: formatDateForInput(seasons.fall.normalregdate),
+            falllatereg: formatDateForInput(seasons.fall.lateregdate1),
+            fallclosereg: formatDateForInput(seasons.fall.closeregdate),
+            fallcanceldeadline: formatDateForInput(seasons.fall.canceldeadline),
+            springstart: formatDateForInput(seasons.spring.startdate),
+            springend: formatDateForInput(seasons.spring.enddate),
+            springearlyreg: formatDateForInput(seasons.spring.earlyregdate),
+            springnormalreg: formatDateForInput(seasons.spring.normalregdate),
+            springlatereg: formatDateForInput(seasons.spring.lateregdate1),
+            springclosereg: formatDateForInput(seasons.spring.closeregdate),
+            springcanceldeadline: formatDateForInput(seasons.spring.canceldeadline),
         },
         resolver: zodResolver(seasonDatesSchema),
         mode: "all"
@@ -80,7 +118,16 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
 
     const onSubmit = async (data: z.infer<typeof seasonDatesSchema>) => {
         try {
-            await updateDates(data, season);
+            // Convert string dates back to Date objects for the API
+            const dateData = Object.fromEntries(
+                Object.entries(data).map(([key, value]) => [
+                    key, 
+                    value ? new Date(value as unknown as string) : undefined
+                ])
+            ) as z.infer<typeof seasonDatesSchema>;
+            
+            await updateDates(dateData, seasons.year);
+            setSettings("HOME");
         } catch (error) {
             dateForm.setError("root", {
                 type: "manual",
@@ -104,7 +151,7 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
                         <Input
                             id="fallstart"
                             type="date"
-                            {...dateForm.register("fallstart", { valueAsDate: true })}
+                            {...dateForm.register("fallstart")}
                         />
                         {dateForm.formState.errors.fallstart && (
                             <span className="text-xs text-red-500">{dateForm.formState.errors.fallstart.message}</span>
@@ -117,7 +164,7 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
                         <Input
                             id="fallend"
                             type="date"
-                            {...dateForm.register("fallend", { valueAsDate: true })}
+                            {...dateForm.register("fallend")}
                         />
                         {dateForm.formState.errors.fallend && (
                             <span className="text-xs text-red-500">{dateForm.formState.errors.fallend.message}</span>
@@ -130,7 +177,7 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
                         <Input
                             id="springstart"
                             type="date"
-                            {...dateForm.register("springstart", { valueAsDate: true })}
+                            {...dateForm.register("springstart")}
                         />
                         {dateForm.formState.errors.springstart && (
                             <span className="text-xs text-red-500">{dateForm.formState.errors.springstart.message}</span>
@@ -143,75 +190,148 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
                         <Input
                             id="springend"
                             type="date"
-                            {...dateForm.register("springend", { valueAsDate: true })}
+                            {...dateForm.register("springend")}
                         />
-                        {dateForm.formState.errors.fallend && (
+                        {dateForm.formState.errors.springend && (
                             <span className="text-xs text-red-500">{dateForm.formState.errors.springend?.message}</span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="earlyreg">
-                            Early Registration
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallearlyreg">
+                            Early Registration (Fall)
                         </label>
                         <Input
-                            id="earlyreg"
+                            id="fallearlyreg"
                             type="date"
-                            {...dateForm.register("earlyreg", { valueAsDate: true })}
+                            {...dateForm.register("fallearlyreg")}
                         />
-                        {dateForm.formState.errors.earlyreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.earlyreg.message}</span>
+                        {dateForm.formState.errors.fallearlyreg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallearlyreg.message}</span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="normalreg">
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallnormalreg">
                             Normal Registration
+                            (Fall)
                         </label>
                         <Input
-                            id="normalreg"
+                            id="fallnormalreg"
                             type="date"
-                            {...dateForm.register("normalreg", { valueAsDate: true })}
+                            {...dateForm.register("fallnormalreg")}
                         />
-                        {dateForm.formState.errors.normalreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.normalreg.message}</span>
+                        {dateForm.formState.errors.fallnormalreg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallnormalreg.message}</span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="latereg">
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="falllatereg">
                             Late Registration
+                            (Fall)
                         </label>
                         <Input
-                            id="latereg"
+                            id="falllatereg"
                             type="date"
-                            {...dateForm.register("latereg", { valueAsDate: true })}
+                            {...dateForm.register("falllatereg")}
                         />
-                        {dateForm.formState.errors.latereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.latereg.message}</span>
+                        {dateForm.formState.errors.falllatereg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.falllatereg.message}</span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="closereg">
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallclosereg">
                             Close Registration
+                            (Fall)
                         </label>
                         <Input
-                            id="closereg"
+                            id="fallclosereg"
                             type="date"
-                            {...dateForm.register("closereg", { valueAsDate: true })}
+                            {...dateForm.register("fallclosereg")}
                         />
-                        {dateForm.formState.errors.closereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.closereg.message}</span>
+                        {dateForm.formState.errors.fallclosereg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallclosereg.message}</span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="canceldeadline">
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallcanceldeadline">
                             Cancel Deadline
+                            (Fall)
                         </label>
                         <Input
-                            id="canceldeadline"
+                            id="fallcanceldeadline"
                             type="date"
-                            {...dateForm.register("canceldeadline", { valueAsDate: true })}
+                            {...dateForm.register("fallcanceldeadline")}
                         />
-                        {dateForm.formState.errors.canceldeadline && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.canceldeadline.message}</span>
+                        {dateForm.formState.errors.fallcanceldeadline && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallcanceldeadline.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springearlyreg">
+                            Early Registration (Spring)
+                        </label>
+                        <Input
+                            id="springearlyreg"
+                            type="date"
+                            {...dateForm.register("springearlyreg")}
+                        />
+                        {dateForm.formState.errors.springearlyreg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.springearlyreg.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springnormalreg">
+                            Normal Registration
+                            (Spring)
+                        </label>
+                        <Input
+                            id="springnormalreg"
+                            type="date"
+                            {...dateForm.register("springnormalreg")}
+                        />
+                        {dateForm.formState.errors.springnormalreg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.springnormalreg.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springlatereg">
+                            Late Registration
+                            (Spring)
+                        </label>
+                        <Input
+                            id="springlatereg"
+                            type="date"
+                            {...dateForm.register("springlatereg")}
+                        />
+                        {dateForm.formState.errors.springlatereg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.springlatereg.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springclosereg">
+                            Close Registration
+                            (Spring)
+                        </label>
+                        <Input
+                            id="springclosereg"
+                            type="date"
+                            {...dateForm.register("springclosereg")}
+                        />
+                        {dateForm.formState.errors.springclosereg && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.springclosereg.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springcanceldeadline">
+                            Cancel Deadline
+                            (Spring)
+                        </label>
+                        <Input
+                            id="springcanceldeadline"
+                            type="date"
+                            {...dateForm.register("springcanceldeadline")}
+                        />
+                        {dateForm.formState.errors.springcanceldeadline && (
+                            <span className="text-xs text-red-500">{dateForm.formState.errors.springcanceldeadline.message}</span>
                         )}
                     </div>
                 </div>
@@ -236,24 +356,37 @@ function DateControls({ setSettings, season }: {setSettings: React.Dispatch<Reac
     )
 }
 
-function RegistrationControls({ setSettings, season }: { setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, season : InferSelectModel<typeof seasons>}) {
+function RegistrationControls({ setSettings, season }: { setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, season: threeSeasons}) {
+    const [termEditing, setTermEditing] = useState<'fall' | 'spring' | 'year'>('year');
+
+    const changeTerm = (term: 'fall' | 'spring' | 'year') => {
+        setTermEditing(term);
+        reset(getTermRegSettings(term));
+    }
+
+    const getTermRegSettings = (term: 'fall' | 'spring' | 'year') => {
+        return {
+            isspring: season[term].isspring,
+            haslateregfee: season[term].haslateregfee,
+            haslateregfee4newfamily: season[term].haslateregfee4newfamily,
+            hasdutyfee: season[term].hasdutyfee,
+            showadmissionnotice: season[term].showadmissionnotice,
+            showteachername: season[term].showteachername,
+            days4showteachername: season[term].days4showteachername,
+            allownewfamilytoregister: season[term].allownewfamilytoregister,
+            date4newfamilytoregister: season[term].date4newfamilytoregister ? new Date(season[term].date4newfamilytoregister) : undefined,
+        }
+    }
     const {
         control,
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
+        reset,
         setError
     } = useForm({
         defaultValues: {
-            isspring: season.isspring,
-            haslateregfee: season.haslateregfee,
-            haslateregfee4newfamily: season.haslateregfee4newfamily,
-            hasdutyfee: season.hasdutyfee,
-            showadmissionnotice: season.showadmissionnotice,
-            showteachername: season.showteachername,
-            days4showteachername: season.days4showteachername,
-            allownewfamilytoregister: season.allownewfamilytoregister,
-            date4newfamilytoregister: new Date(season.date4newfamilytoregister),
+            ...getTermRegSettings("year")
         },
         resolver: zodResolver(seasonRegSettingsSchema),
         mode: "all",
@@ -268,7 +401,7 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
     // This is correct usage for the type:
     const onSubmit = async (data: z.infer<typeof seasonRegSettingsSchema>) => {
         try {
-            await registerControls(data, season);
+            await updateRegControls(data, season[termEditing], termEditing);
             setSettings("HOME");
         } catch (err) {
             setError("root", {
@@ -282,6 +415,27 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
     return (
         <>
             <h3 className="font-semibold text-gray-800 border-b pb-2">Registration Settings</h3>
+            <div className="mb-4">
+                <label htmlFor="term-select" className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Term
+                </label>
+                <Select
+                    value={termEditing}
+                    onValueChange={(value: 'year' | 'spring' | 'fall') => {
+                        setTermEditing(value);
+                        reset(getTermRegSettings(value));
+                    }}
+                >
+                    <SelectTrigger id="term-select" className="w-full">
+                        <SelectValue placeholder="Select term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="year">Academic Year</SelectItem>
+                        <SelectItem value="fall">Fall</SelectItem>
+                        <SelectItem value="spring">Spring</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
             <form
                 onSubmit={handleSubmit(onSubmit)}
                 className="flex flex-col gap-4 mt-4"
