@@ -1,22 +1,13 @@
 "use client";
-import { applyCheck } from "@/app/lib/semester/sem-actions";
+import { applyCheck } from "@/lib/payments/actions/adminApplyCheck";
 import { Input } from "@/components/ui/input";
-import { checkApplySchema } from "@/app/lib/semester/sem-schemas";
+import { checkApplySchema } from "@/lib/payments/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
-import { familyObject } from "../../data/(people-pages)/families/family-helpers";
+import { familyObj } from "@/lib/shared/types";
 
-interface ApplyFormState {
-  balanceId: string;
-  amount: string;
-  checkNo: string;
-  paidDate: string;
-}
-
-
-
-export default function ApplyButton({ family }: { family: familyObject }) {
+export default function ApplyButton({ family }: { family: familyObj }) {
     const today = new Date().toISOString().split('T')[0];
 
     const checkForm = useForm({
@@ -26,11 +17,8 @@ export default function ApplyButton({ family }: { family: familyObject }) {
         }
     })
 
-
-
     const onSubmit = async (formData: z.infer<typeof checkApplySchema>) => {
         try {
-            // console.log(formData);
             await applyCheck(formData, family);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);

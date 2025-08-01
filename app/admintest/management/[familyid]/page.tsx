@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import { Suspense } from "react";
 import { type FC } from 'react';
 import BalanceTable from "./balance-table";

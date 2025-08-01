@@ -1,4 +1,4 @@
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import { Input } from "@/components/ui/input"
 import { redirect } from "next/navigation"
 

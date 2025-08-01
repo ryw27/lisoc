@@ -1,22 +1,24 @@
-import { db } from "@/app/lib/db";
+import { db } from "@/lib/db";
 import Logo from "@/components/logo";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import SemesterView from "../components/sem-view";
-import { getSelectOptions, Transaction } from "@/app/lib/semester/sem-actions";
-import { type studentView, type fullSemClassesData, fullClassStudents, fullRegClass } from "@/app/lib/semester/sem-schemas";
+import SemesterView from "@/components/registration/admin/sem-view";
+import { getSelectOptions } from "@/lib/registration/semester";
+import { type Transaction } from "@/lib/registration/helpers";
+import { type adminStudentView, type fullSemClassesData, fullClassStudents, fullRegClass } from "@/lib/registration/types";
 import { InferSelectModel } from "drizzle-orm";
-import { arrangement, classregistration, seasons, student } from "@/app/lib/db/schema";
+import { arrangement, classregistration, student } from "@/lib/db/schema";
+import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
 
 
 export default async function SemesterPage() {
     // TODO: MAke sure this finds the academic year, not the semesters
-    const active = await db.query.seasons.findMany({
+    const activeYear = await db.query.seasons.findFirst({
         where: (seasons, { eq }) => eq(seasons.status, "Active"),
-        orderBy: (seasons, { asc }) => [asc(seasons.seasonid)]
+        orderBy: (seasons, { asc }) => asc(seasons.seasonid)
     });
 
-    if (active.length === 0 || !active || active.length !== 2) {
+    if (!activeYear) {
         return (
             <div className="flex flex-col">
                 <h1 className="text-3xl font-bold mb-6">
@@ -43,18 +45,15 @@ export default async function SemesterPage() {
         )
     } 
 
-    if (active.length !== 2) {
-        throw new Error("Active seasons must be 2");
-    }
-
-    const { year, sem } = { year: active[0], sem: active[1] };
-
-    const relatedSeason = await db.query.seasons.findFirst({
-        where: (season, { eq }) => eq(season.seasonid, year.relatedseasonid),
+    const terms = await db.query.seasons.findMany({
+        where: (s, { or, eq }) => or(
+            eq(s.seasonid, activeYear.beginseasonid),
+            eq(s.seasonid, activeYear.relatedseasonid)
+        ),
+        orderBy: (s, { asc }) => asc(s.seasonid)
     });
 
-    if (!relatedSeason) {
-        throw new Error("No spring semester");
+    if (terms.length !== 2) {
         return (
             <div>
                 Error occured. Please report.
@@ -62,15 +61,13 @@ export default async function SemesterPage() {
         )
     }
 
-    const isSpring = relatedSeason?.startdate
-        ? new Date(relatedSeason.startdate).getTime() <= Date.now()
-        : false;
+    const { year, fall, spring } = { year: activeYear, fall: terms[0], spring: terms[1] };
 
 
     // All reg classes for the year, both full, fall, and spring
     const classData = await db.query.arrangement.findMany({
         where: (arr, { and, or, eq }) => and(
-            or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, sem.seasonid), eq(arr.seasonid, relatedSeason.seasonid)),
+            or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, fall.seasonid), eq(arr.seasonid, spring.seasonid)),
             eq(arr.isregclass, true)
         ),
         orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
@@ -80,33 +77,31 @@ export default async function SemesterPage() {
     const getStudentView = async (tx: Transaction, studentReg: InferSelectModel<typeof classregistration> & { student: InferSelectModel<typeof student> } ) => {
         // TODO: More complete handling of whether a drop/transfer has occured
         // Check if dropped, request status id is 2 indicating approval
-        const requests = await db.query.regchangerequest.findFirst({
-            where: (reg, { and, eq }) => and(eq(reg.appliedid, studentReg.regid), eq(reg.reqstatusid, 2))
-        });
-
-        const reqStatusMap = {
-            1: "Pending Drop",
-            2: "Dropout",
-            3: "Submitted"
-        }
-
+        // const requests = await db.query.regchangerequest.findFirst({
+        //     where: (reg, { and, eq }) => and(eq(reg.appliedid, studentReg.regid), eq(reg.reqstatusid, 2))
+        // });
+        // const reqStatusMap = {
+        //     1: "Pending Drop",
+        //     2: "Dropout",
+        //     3: "Submitted"
+        // }
         const regStatusMap = {
             1: "Submitted",
             2: "Registered",
-            3: "Dropout", // Shouldn't get here
+            3: "Transferred", // Shouldn't get here
             4: "Dropout",
             5: "Dropout Spring"
         }
-
-        const status = requests ? 
-                        reqStatusMap[requests.reqstatusid as 1 | 2 | 3] 
-                        : regStatusMap[studentReg.statusid as 1 | 2 | 3 | 4 | 5]
+        // const status = requests ? 
+        //                 reqStatusMap[requests.reqstatusid as 1 | 2 | 3] 
+        //                 : regStatusMap[studentReg.statusid as 1 | 2 | 3 | 4 | 5]
+        const status = regStatusMap[studentReg.statusid as 1 | 2 | 3 | 4 | 5]; // The current regstatus ids we have
 
         return {
             regid: studentReg.regid,
             studentid: studentReg.studentid,
             registerDate: studentReg.registerdate,
-            dropped: status,
+            status: status,
             familyid: studentReg.familyid,
             namecn: studentReg.student.namecn,
             namelasten: studentReg.student.namelasten,
@@ -114,89 +109,106 @@ export default async function SemesterPage() {
             dob: studentReg.student.dob,
             gender: studentReg.student.gender || "Unknown",
             notes: studentReg.notes || ""
-        } satisfies studentView
+        } satisfies adminStudentView;
+    }
+
+    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>) => {
+        const regClassStudents = await tx.query.classregistration.findMany({
+            where: (studentreg, { and, or, eq }) => and(
+                eq(studentreg.classid, curClass.classid), 
+                eq(studentreg.seasonid, curClass.seasonid),
+                or(eq(studentreg.statusid, REGSTATUS_SUBMITTED), eq(studentreg.statusid, REGSTATUS_REGISTERED))
+            ),
+            with: {
+                student: {
+                    with: {
+                        family: true
+                    }
+                },
+            }
+        });
+
+        // Get the drops
+        const droppedStudents = await tx.query.classregistration.findMany({
+            where: (studentreg, { and, or, eq }) => and(
+                eq(studentreg.classid, curClass.classid), 
+                eq(studentreg.seasonid, curClass.seasonid),
+                or(
+                    eq(studentreg.statusid, REGSTATUS_TRANSFERRED), 
+                    eq(studentreg.statusid, REGSTATUS_DROPOUT), 
+                    eq(studentreg.statusid, REGSTATUS_DROPOUT_SPRING)
+                )
+            ),
+            with: {
+                student: {
+                    with: {
+                        family: true
+                    }
+                },
+            }
+        })
+        const [droppedStudentViews, regStudentViews] = await Promise.all([
+            Promise.all(droppedStudents.map((c) => getStudentView(tx, c))),
+            Promise.all(regClassStudents.map((c) => getStudentView(tx, c))),
+        ]);
+
+        return [droppedStudentViews, regStudentViews];
     }
 
     // Get student view data and transform into data table form
-    const getStudentsAndClassrooms = async (regClass: InferSelectModel<typeof arrangement>): Promise<fullClassStudents & { classrooms: fullClassStudents[] }> => {
+    const getStudentsAndClassrooms = async (regClass: InferSelectModel<typeof arrangement>): Promise<fullRegClass> => {
         // Get the students who have registered. These are attached to regclasses like 3R because of how we queried for classData 13 lines up.
         // This is done pre or post dispersal. All registrations are first sent to R classes.
         return await db.transaction(async (tx) => {
-            const regClassStudents = await tx.query.classregistration.findMany({
-                where: (studentreg, { and, eq, or }) => and(
-                    eq(studentreg.classid, regClass.classid), 
-                    or(eq(studentreg.seasonid, year.seasonid), eq(studentreg.seasonid, sem.seasonid))
-                ),
-                with: {
-                    student: {
-                        with: {
-                            family: true
-                        }
-                    },
-                }
-            });
+            // 1. Create an array for all dropped students which we want to store separately
+            const allDropped = []
+            // 2. Get student views for dropped students and students in reg.
+            // We have to run this for every class because students can drop while in reg class or any other constituent class
+            const [regDroppedStudents, regStudentViews] = await splitStudents(tx, regClass);
 
-            const regStudentView = await Promise.all(
-                regClassStudents.map((c) => {
-                    return getStudentView(tx, c);
-                })
-            );
+            allDropped.push(...regDroppedStudents);
 
-            // Get the specific classes of this reg class, i.e. 3A, 3B, 3C
+            // 3. Get the specific classes of this reg class, i.e. 3A, 3B, 3C
             // Check which classes have regclassid as a gradeclassid.
-            const specificRegClasses = await tx.query.classes.findMany({
+            const constiuentClassrooms = await tx.query.classes.findMany({
                 where: (classes, { eq }) => eq(classes.gradeclassid, regClass.classid),
                 columns: {
                     classid: true
                 }
             });
 
-            const studentsofClasses = []
+            // 4. Set up constituent classrooms as a list and loop
+            const constituentClassObjs = []
 
-            for (const gradeClass of specificRegClasses) {
-                // Find the arrangement in the academic year or the semester
+            for (const gradeClass of constiuentClassrooms) {
+                // 5. Find the arrangement in the academic year or the semester
                 const specificArrangement = await tx.query.arrangement.findFirst({
-                    where: (arr, { eq, or, and }) => and(
+                    where: (arr, { eq, and }) => and(
                         eq(arr.classid, gradeClass.classid), 
-                        or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, sem.seasonid))
+                        eq(arr.seasonid, regClass.seasonid) // Must have the same season 
                     )
                 });
-
                 if (!specificArrangement) {
                     continue;
                 }
-
-                const classStudents = await tx.query.classregistration.findMany({
-                    where: (studentreg, { and, eq, or }) => and(
-                        eq(studentreg.classid, specificArrangement.classid), 
-                        or(eq(studentreg.seasonid, year.seasonid), eq(studentreg.seasonid, sem.seasonid))
-                    ),
-                    with: {
-                        student: {
-                            with: {
-                                family: true
-                            }
-                        },
-                    }
-                }); 
-                const classViewStudents = await Promise.all(
-                    classStudents.map((c) => {
-                        return getStudentView(tx, c);
-                    })
-                );
-
+                // 6. Do this for the constituent classroom
+                const [droppedStudentViews, classStudentViews] = await splitStudents(tx, specificArrangement);
+                // 7. Create class obj
                 const classObj = {
                     arrinfo: specificArrangement,
-                    students: classViewStudents
+                    students: classStudentViews,
                 } satisfies fullClassStudents
 
-                studentsofClasses.push(classObj);
+                // 8. Push the values into the arrays
+                constituentClassObjs.push(classObj);
+                allDropped.push(...droppedStudentViews);
             }
 
             const dataview = {
                 arrinfo: regClass,
-                students: regStudentView,
-                classrooms: studentsofClasses
+                students: regStudentViews,
+                classrooms: constituentClassObjs,
+                dropped: allDropped
             } satisfies fullRegClass
 
             return dataview;
@@ -216,7 +228,7 @@ export default async function SemesterPage() {
 
     const { options, idMaps } = await getSelectOptions();
 
-    const threeTerms = { year: year, fall: sem, spring: relatedSeason }
+    const threeTerms = { year: year, fall: fall, spring: spring }
 
     return (
         <SemesterView 
