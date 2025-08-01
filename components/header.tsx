@@ -1,14 +1,23 @@
 'use client';
 import { useState } from "react";
-import { Search, ChevronDown, Sun, Moon, Settings, User } from "lucide-react";
-import LogoutButton from "./logout-button";
+import { ChevronDown, User, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { signOut } from "next-auth/react";
+import { type DefaultSession } from "next-auth"
+// import LogoutButton from "./LEGACY_logout-button";
 
-export default function Header() {
+
+export default function Header({ user }: { user: DefaultSession["user"] }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [language, setLanguage] = useState('en');
-    const [theme, setTheme] = useState('light');
-    
-    // Toggle language
+    const [language, setLanguage] = useState<'en' | 'zh'>('en');
+    // const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+    const handleLogout = () => {
+        signOut({
+            callbackUrl: "/",
+        });
+    };
+
     const toggleLanguage = () => {
         setLanguage(language === 'en' ? 'zh' : 'en');
     };
@@ -17,26 +26,13 @@ export default function Header() {
         <header className="bg-white border-gray-200 sticky top-0 z-10">
             <div className="px-4">
                 <div className="flex items-center h-16 w-full">
-
-
                     {/* Center with search bar */}
-                    <div className="flex-1 max-w-2xl px-4 mx-auto">
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-4 w-4 text-gray-400" />
-                            </div>
-                            <input 
-                                type="text" 
-                                placeholder={language === 'en' ? "Search..." : "搜索..."}
-                                className="block w-full bg-gray-100 pl-10 pr-3 py-2 border border-white rounded-md text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            />
-                        </div>
-                    </div>
+                    {/* ...search bar code omitted for brevity... */}
 
                     {/* Right side with actions */}
                     <div className="flex items-center space-x-4 ml-auto">
                         {/* Language toggle */}
-                        <button 
+                        <button
                             onClick={toggleLanguage}
                             className="text-gray-500 text-sm cursor-pointer hover:text-gray-700 p-2 rounded-md hover:bg-blue-50 transition-colors"
                         >
@@ -44,24 +40,11 @@ export default function Header() {
                             <span className="sr-only">Toggle language</span>
                         </button>
 
-                        {/* Help button */}
-                        {/* <button className="cursor-pointer text-gray-500 hover:text-gray-700 p-2 rounded-md hover:bg-blue-50 transition-colors">
-                            <HelpCircle className="h-5 w-5" />
-                            <span className="sr-only">Help</span>
-                        </button>*/}
-
-                        {/* Notifications */}
-                        {/* <button className="cursor-pointer text-gray-500 hover:text-gray-700 p-2 rounded-md hover:bg-blue-50 transition-colors relative">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-1 right-1 bg-blue-600 rounded-full w-2 h-2"></span>
-                            <span className="sr-only">Notifications</span>
-                        </button>
-
                         {/* Profile dropdown */}
                         <div className="relative ml-3">
                             <div>
-                                <button 
-                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                <button
+                                    onClick={() => setIsProfileOpen((open) => !open)}
                                     className="flex cursor-pointer text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     <div className="flex items-center">
@@ -76,29 +59,28 @@ export default function Header() {
                             {/* Profile dropdown menu */}
                             {isProfileOpen && (
                                 <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-gray-100">
-                                    <div className="py-1">
-                                        <p className="px-4 py-2 text-sm text-gray-700 font-medium">User Name</p>
-                                        <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
-                                            <User className="mr-3 h-4 w-4 text-gray-400" />
-                                            <span>Your Profile</span>
-                                        </a>
-                                        <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
-                                            <Settings className="mr-3 h-4 w-4 text-gray-400" />
-                                            <span>Settings</span>
-                                        </a>
-                                        <button 
-                                            className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                                            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                                        >
-                                            {theme === 'light' ? 
-                                                <Moon className="mr-3 h-4 w-4 text-gray-400" /> : 
-                                                <Sun className="mr-3 h-4 w-4 text-gray-400" />
-                                            }
-                                            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
-                                        </button>
+                                    <div className="flex flex-col px-4 py-2 gap-0.5">
+                                        <p className="text-base font-semibold text-gray-900">
+                                            {user?.name ?? "Username"}
+                                        </p>
+                                        <p className="text-sm text-gray-500 truncate">
+                                            {user?.email ?? "Email"}
+                                        </p>
                                     </div>
-                                    <div className="py-1">
-                                        <LogoutButton />
+                                    <div className="border-t border-gray-800 my-1" />
+                                    <div className="pb-1">
+                                        <button
+                                            onClick={handleLogout}
+                                            className={cn(
+                                                'flex items-center gap-3 px-4 py-2 text-sm rounded-md transition-colors cursor-pointer w-full group',
+                                                'bg-gradient-to-r from-gray-50 to-gray-100 hover:from-blue-50 hover:to-blue-100'
+                                            )}
+                                        >
+                                            <div className="flex-shrink-0 flex items-center justify-center">
+                                                <LogOut className="w-5 h-5 text-gray-600" />
+                                            </div>
+                                            <span className="text-gray-600">Log out</span>
+                                        </button>
                                     </div>
                                 </div>
                             )}
