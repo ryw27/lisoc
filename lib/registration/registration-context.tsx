@@ -7,7 +7,7 @@ import {
 
 
 type RegistrationContextType = {
-    season: threeSeasons;
+    seasons: threeSeasons;
     selectOptions: selectOptions;
     idMaps: IdMaps;
 }

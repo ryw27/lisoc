@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { seasonObj, famBalanceInsert } from "@/lib/shared/types";
 import { regKind, uiClasses } from "../types";

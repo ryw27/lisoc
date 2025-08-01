@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { 
     classregistration, 
@@ -18,14 +19,27 @@ import {
     REGSTATUS_TRANSFERRED, 
     toESTString 
 } from "@/lib/utils";
-import { canTransferOutandIn, getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../helpers";
+import { 
+    canTransferOutandIn, 
+    getArrSeason, 
+    getTotalPrice, 
+    isEarlyReg, 
+    isLateReg 
+} from "../../helpers";
 import { famBalanceInsert } from "@/lib/shared/types";
 import { revalidatePath } from "next/cache";
 
 
-export async function adminTransferStudent(regid: number, studentid: number, familyid: number, newArrange: uiClasses, override: boolean) {
+export async function adminTransferStudent(
+    regid: number, 
+    studentid: number, 
+    familyid: number, 
+    newArrange: uiClasses, 
+    override: boolean, 
+    type: "intraTransfer" | "classTransfer"
+) {
     // TODO: Parse data
-    await db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         // 1. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({
             where: (cr, { eq }) => and(eq(cr.regid, regid), eq(cr.studentid, studentid))
@@ -37,6 +51,20 @@ export async function adminTransferStudent(regid: number, studentid: number, fam
         // 2. Check if already transferred or dropped out
         if (oldReg.statusid !== REGSTATUS_SUBMITTED && oldReg.statusid !== REGSTATUS_REGISTERED) {
             throw new Error("Invalid registration. Student has already transferred or dropped this class");
+        }
+
+        if (type === "intraTransfer") {
+            // Just move the registration. No family balance changes. 
+            const [updatedOldReg] = await tx
+                .update(classregistration)
+                .set({
+                    arrangeid: newArrange.arrangeid,
+                    classid: newArrange.classid,
+                    lastmodify: toESTString(new Date()),
+                })
+                .where(eq(classregistration.regid, oldReg.regid))
+                .returning()
+            return updatedOldReg;
         }
 
         // 3. Find the old arrangement to check cancel deadline
@@ -200,6 +228,6 @@ export async function adminTransferStudent(regid: number, studentid: number, fam
         revalidatePath("/admintest/management/semester");
         revalidatePath("/dashboard/register");
 
-        return newRegBal;
+        return newReg;
     })
 }

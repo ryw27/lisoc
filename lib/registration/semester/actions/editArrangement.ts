@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { z } from "zod/v4";
@@ -22,11 +23,12 @@ export async function editArrangement(data: z.infer<typeof arrangementArraySchem
         }
 
         const { seasonid, activestatus, regstatus } = await getTermVariables(regClass, season, tx);
+        const { arrangeid, ...restRegClass } = regClass;
         const regClassObject = {
-            ...regClass,
-            seasonid: seasonid,
-            activestatus: activestatus,
-            regstatus: regstatus,
+            ...restRegClass,
+            seasonid,
+            activestatus,
+            regstatus,
             tuitionW: regClass.tuitionW?.toString() ?? null,
             specialfeeW: regClass.specialfeeW?.toString() ?? null,
             bookfeeW: regClass.bookfeeW?.toString() ?? null,
@@ -35,7 +37,7 @@ export async function editArrangement(data: z.infer<typeof arrangementArraySchem
             bookfeeH: regClass.bookfeeH?.toString() ?? null,
             lastmodify: toESTString(new Date()),
             updateby: "testaccount"
-        } satisfies arrangementInsert
+        } satisfies arrangementInsert;
 
         await tx
             .update(arrangement)

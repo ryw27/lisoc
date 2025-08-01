@@ -23,6 +23,17 @@ export const seasonDatesSchema = z.object({
     springcanceldeadline: z.coerce.date(),
 })
 
+export const oneSeasonDatesSchema = z.object({
+    startdate: z.coerce.date(),
+    enddate: z.coerce.date(),
+    earlyregdate: z.coerce.date(),
+    normalregdate: z.coerce.date(),
+    lateregdate1: z.coerce.date(),
+    lateregdate2: z.coerce.date(),
+    closeregdate: z.coerce.date(),
+    canceldeadline: z.coerce.date()
+})
+
 // Season reg settings
 export const seasonRegSettingsSchema = z.object({
     haslateregfee: z.boolean(),

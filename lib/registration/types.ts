@@ -92,6 +92,7 @@ export type fullClassStudents = {
 
 export type fullRegClass = fullClassStudents & {
     classrooms: fullClassStudents[]
+    dropped: adminStudentView[];
 }
 
 // For each reg class

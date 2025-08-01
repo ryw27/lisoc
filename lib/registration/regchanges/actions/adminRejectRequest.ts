@@ -1,8 +1,10 @@
+"use server";
 import { db } from "@/lib/db";
 import { regchangerequest } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 // import { requireRole } from "@/app/lib/auth-lib/auth-actions";
 import { REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED, toESTString } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 
 // TODO: Check
 export async function adminRejectRequest(requestid: number, registerid: number) {
@@ -33,7 +35,10 @@ export async function adminRejectRequest(requestid: number, registerid: number) 
             await tx
                 .delete(regchangerequest)
                 .where(eq(regchangerequest.requestid, requestid));
-            throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
+            revalidatePath("/dashboard/classes");
+            revalidatePath("/admintest/management/semester");
+            return;
+            // throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
         }
 
         // 4. Update the regchange status

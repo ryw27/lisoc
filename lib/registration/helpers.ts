@@ -2,8 +2,6 @@ import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { 
     uiClasses, 
-    selectOptions, 
-    IdMaps,
     regKind,
     uniqueRegistration,
 } from "@/lib/registration/types";
@@ -171,13 +169,14 @@ export async function getTotalPrice(tx: Transaction, arrData: uiClasses, season?
     // in practice these should never be null
     if (season) {
         const totalPrice = season === "year" 
-            ? Number(arrData.tuitionW) || 0 + Number(arrData.bookfeeW) || 0 + Number(arrData.specialfeeW) || 0 
-            : Number(arrData.tuitionH) || 0 + Number(arrData.bookfeeH) || 0 + Number(arrData.specialfeeH) || 0 
+            ? Number(arrData.tuitionW) + Number(arrData.bookfeeW) + Number(arrData.specialfeeW)
+            : Number(arrData.tuitionH) + Number(arrData.bookfeeH) + Number(arrData.specialfeeH)
         return totalPrice;
     } else {
-        const totalPrice = (await getArrSeason(tx, arrData)) === "year" 
-            ? Number(arrData.tuitionW) || 0 + Number(arrData.bookfeeW) || 0 + Number(arrData.specialfeeW) || 0 
-            : Number(arrData.tuitionH) || 0 + Number(arrData.bookfeeH) || 0 + Number(arrData.specialfeeH) || 0 
+        const term = await getArrSeason(tx, arrData);
+        const totalPrice = term === "year" 
+            ? Number(arrData.tuitionW) + Number(arrData.bookfeeW) + Number(arrData.specialfeeW)
+            : Number(arrData.tuitionH) + Number(arrData.bookfeeH) + Number(arrData.specialfeeH)
         return totalPrice;
     }
 }

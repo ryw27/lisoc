@@ -1,6 +1,7 @@
+"use server";
 import { db } from "@/lib/db";
 import { uiClasses } from "../../types";
-import { getSeasonDrafts } from "../helpers";
+import { getSeasonDrafts } from "../../helpers";
 
 
 export async function getCurrentSeason(seasonid: number): Promise<uiClasses[]> {

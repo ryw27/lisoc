@@ -1,7 +1,8 @@
+"use server";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
-import { getSeasonDrafts } from "../helpers";
+import { getSeasonDrafts } from "../../helpers";
 
 
 // export async function getPreviousSeason() {

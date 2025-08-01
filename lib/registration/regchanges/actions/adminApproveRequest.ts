@@ -1,9 +1,33 @@
+"use server";
 import { db } from "@/lib/db";
-import { regchangerequest, familybalance, classregistration } from "@/lib/db/schema";
+import {
+  regchangerequest,
+  familybalance,
+  classregistration,
+} from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { EARLY_REG_DISCOUNT, FAMILYBALANCE_STATUS_PENDING, FAMILYBALANCE_TYPE_PAYMENT, FAMILYBALANCE_TYPE_TRANSFER, LATE_REG_FEE_1, REGISTRATION_FEE, REGSTATUS_DROPOUT, REGSTATUS_REGISTERED, REGSTATUS_TRANSFERRED, REQUEST_STATUS_APPROVED, REQUEST_STATUS_PENDING, toESTString } from "@/lib/utils";
+import {
+  EARLY_REG_DISCOUNT,
+  FAMILYBALANCE_STATUS_PENDING,
+  FAMILYBALANCE_TYPE_PAYMENT,
+  FAMILYBALANCE_TYPE_TRANSFER,
+  LATE_REG_FEE_1,
+  REGISTRATION_FEE,
+  REGSTATUS_DROPOUT,
+  REGSTATUS_REGISTERED,
+  REGSTATUS_TRANSFERRED,
+  REQUEST_STATUS_APPROVED,
+  REQUEST_STATUS_PENDING,
+  toESTString,
+} from "@/lib/utils";
 import { famBalanceInsert } from "@/lib/shared/types";
-import { getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../helpers";
+import {
+  getArrSeason,
+  getTotalPrice,
+  isEarlyReg,
+  isLateReg,
+} from "../../helpers";
+import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 
 
@@ -38,7 +62,10 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             await tx
                 .delete(regchangerequest)
                 .where(eq(regchangerequest.requestid, requestid));
-            throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
+            revalidatePath("/dashboard/classes");
+            revalidatePath("/admintest/management/semester");
+            return;
+            // throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
         }
 
         // 5. Find original arrangement to obtain price. Rely on two methods in case.
@@ -136,7 +163,6 @@ export async function adminApproveRequest(requestid: number, registerid: number)
                     classid: newArrange.classid,
                     registerdate: now,
                     familyid: oldReg.familyid,
-                    byadmin: true,
                     notes: `Requested transfer of student ${oldReg.studentid}` 
                 })
                 .returning();
@@ -168,15 +194,24 @@ export async function adminApproveRequest(requestid: number, registerid: number)
                 .insert(familybalance)
                 .values(newBalVals)
                 .returning();
-            // 10. Update class registration
+            // 10. Update new reg
             await tx
                 .update(classregistration)
                 .set({
                     familybalanceid: newRegBal.balanceid
                 })
                 .where(eq(classregistration.regid, newReg.regid));
+            
+            // 11. Update old reg
+            await tx
+                .update(classregistration)
+                .set({
+                    statusid: orgReq.notes?.includes("transfer") ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT,
+                    previousstatusid: oldReg.statusid
+                })
+                .where(eq(classregistration.regid, oldReg.regid));
 
-            // 11. Update regchangerequest to link the new family balances together
+            // 12. Update regchangerequest to link the new family balances together
             await tx
                 .update(regchangerequest)
                 .set({

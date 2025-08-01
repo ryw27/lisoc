@@ -1,10 +1,10 @@
+"use server";
 import { db } from "@/lib/db";
 import { familybalance, classregistration } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireRole } from "@/lib/auth/actions/requireRole";
+// import { requireRole } from "@/lib/auth/actions/requireRole";
 import { 
     seasonObj,
-    fambalanceObj,
     familyObj,
     famBalanceInsert
 } from "@/lib/shared/types";
@@ -70,7 +70,7 @@ export async function familyRegister(
         }
 
         // 6. Insert into classregistration. Use postgres default values for most
-        const arrSeason = await getArrSeason(arrData);
+        const arrSeason = await getArrSeason(tx, arrData);
         const [newReg] = await tx
             .insert(classregistration)
             .values({
@@ -88,7 +88,7 @@ export async function familyRegister(
             .returning()
 
         // 7. Calculate full price
-        const classPrice = getTotalPrice(arrData, arrSeason);
+        const classPrice = await getTotalPrice(tx, arrData, arrSeason);
 
 
         // 8. Create family balance data

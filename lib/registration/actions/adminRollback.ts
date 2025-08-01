@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
 import { and, eq, or } from "drizzle-orm";
