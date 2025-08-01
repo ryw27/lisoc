@@ -23,7 +23,8 @@ export async function editArrangement(data: z.infer<typeof arrangementArraySchem
         }
 
         const { seasonid, activestatus, regstatus } = await getTermVariables(regClass, season, tx);
-        const { arrangeid, ...restRegClass } = regClass;
+        const { arrangeid: _arrangeid, ...restRegClass } = regClass;
+        void _arrangeid; // Suppress unused variable warning
         const regClassObject = {
             ...restRegClass,
             seasonid,

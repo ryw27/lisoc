@@ -96,8 +96,8 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             const { moved, newData } = distributeEvenly(dataWithStudents);
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
             // Remove the id property before passing to distributeStudents
-            const { id, ...distributedDataWithoutId } = newData;
-            adminDistribute(distributedDataWithoutId, moved);
+            const { id: _id, ...distributedDataWithoutId } = newData;
+            await adminDistribute(distributedDataWithoutId, moved);
             setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
@@ -111,8 +111,8 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
         try {
             const newData = rollbackReg(dataWithStudents);
             dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
-            const { id, ...dataWithoutID } = dataWithStudents;
-            adminRollback(dataWithStudents);
+            const { id: _id, ...dataWithoutID } = dataWithStudents;
+            await adminRollback(dataWithoutID);
             setError(null);
         } catch (err) {
             dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
@@ -305,7 +305,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
 
                     )}
                     <StudentTable 
-                        uuid={uuid}
+                        // uuid={uuid}
                         dispatch={dispatch}
                         reducerState={reducerState} 
                         curClass={dataWithStudents}

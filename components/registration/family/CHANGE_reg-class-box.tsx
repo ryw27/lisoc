@@ -9,17 +9,14 @@ import { familyObject } from "@/app/admintest/data/(people-pages)/families/famil
 // TODO: Change this to the reg history
 export default async function RegClassBox({ classData, students, season, family }: { classData: uiClasses, students: studentObject[], season: threeSeasons, family: familyObject }) {
     // TODO: More efficient here?
-    const { options, idMaps } = await getSelectOptions();
+    const { idMaps } = await getSelectOptions();
 
     const regSpecificClass = async (studentid: number) => {
         "use server";
-        let insertSeasonID = season.year.seasonid;
         let seasonidx = "year";
         if (classData.seasonid === season.spring.seasonid) {
-            insertSeasonID = season.spring.seasonid;
             seasonidx = "spring";
         } else if (classData.seasonid === season.fall.seasonid) {
-            insertSeasonID = season.fall.seasonid;
             seasonidx = "fall";
         }
 

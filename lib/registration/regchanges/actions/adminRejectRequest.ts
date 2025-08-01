@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { regchangerequest } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 // import { requireRole } from "@/app/lib/auth-lib/auth-actions";
-import { REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED, toESTString } from "@/lib/utils";
+import { REGSTATUS_REGISTERED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED, toESTString } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 // TODO: Check

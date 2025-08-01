@@ -74,10 +74,10 @@ export async function uniqueCheck<N extends TableName, T extends Table<N>, FormS
 // Form names for matching fields in field and actual schema for a table should be different. They should make sense to a reader
 export async function enrich<FormSchema extends ZodSchema>(
 	parsed: z.infer<FormSchema>,
-	tx: PgTransaction<any, typeof schema, any>,
+	tx: Transaction,
 	enrichFields: enrichFields<FormSchema>[] // Information should be in the foreign key table
-): Promise<Partial<Record<string, any>>> {
-	const enriched: Record<string, any> = {}
+): Promise<Partial<Record<string, string | number | boolean | null | undefined>>> {
+	const enriched: Record<string, string | number | boolean | null | undefined> = {}
 	
 	for (const field of enrichFields) {
 		const { formField, lookupTable, lookupField, returnField } = field;
@@ -103,7 +103,7 @@ export async function enrich<FormSchema extends ZodSchema>(
 		}
 
 		// Store the result using the return field name as key
-		enriched[formField as string] = (lookupResult.result);
+		enriched[formField as string] = (lookupResult.result as string | number | boolean | null | undefined);
 	}
 
 	return enriched;
@@ -127,7 +127,7 @@ export function makeOperations<
 	type RowSelect = InferSelectModel<T>;
 	type RowInsert = InferInsertModel<T>;
 
-	type PK = PKName<N, T>;
+	// type PK = PKName<N, T>;
 	type ID = PKVal<N>;
 
 	// Must do to satisfy drizzle since N is a union type which drizzle complains about

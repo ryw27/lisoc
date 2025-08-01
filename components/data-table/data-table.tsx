@@ -92,7 +92,7 @@ export default function DataTable<
             console.error(`[DataTable] Error loading column visibility for ${tableName}:`, error);
             setDefaultColumnVisibility();
         }
-    }, [tableName, columns, setDefaultColumnVisibility]);
+    }, [tableName, columns]);
 
 
 

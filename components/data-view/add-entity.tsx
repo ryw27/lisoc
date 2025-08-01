@@ -38,7 +38,7 @@ export type FormField =
         multiple?: boolean
     })
 
-export interface AddEntityProps<N extends TableName, T extends Table<N>> {
+export interface AddEntityProps {
     title: string
     description: string
     fields: FormField[]
@@ -48,14 +48,14 @@ export interface AddEntityProps<N extends TableName, T extends Table<N>> {
 }
 
 // TODO: Cache results in between errors
-export default function AddEntity<N extends TableName, T extends Table<N>>({
+export default function AddEntity({
     title,
     description,
     fields,
     submitAction,
     error,
     submitText = "Save",
-}: AddEntityProps<N, T>) {
+}: AddEntityProps) {
     
     const renderField = (field: FormField) => {
         const baseClasses = "rounded-sm !text-base h-9 [&::placeholder]:text-gray-400 [&::placeholder]:font-medium"
@@ -122,6 +122,7 @@ export default function AddEntity<N extends TableName, T extends Table<N>>({
             default:
                 // TypeScript will ensure this is never reached
                 const _exhaustiveCheck: never = field
+                void _exhaustiveCheck;
                 return null
         }
     }

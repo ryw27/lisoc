@@ -133,7 +133,7 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                 type: "manual",
                 message: "Failed to update dates. Please check the form for errors.",
             });
-            console.error("Error occured while updating dates");
+            console.error("Error occured while updating dates", error);
         }
     }
     return (
@@ -359,11 +359,6 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
 function RegistrationControls({ setSettings, season }: { setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, season: threeSeasons}) {
     const [termEditing, setTermEditing] = useState<'fall' | 'spring' | 'year'>('year');
 
-    const changeTerm = (term: 'fall' | 'spring' | 'year') => {
-        setTermEditing(term);
-        reset(getTermRegSettings(term));
-    }
-
     const getTermRegSettings = (term: 'fall' | 'spring' | 'year') => {
         return {
             isspring: season[term].isspring,
@@ -408,7 +403,7 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                 type: "manual",
                 message: "Failed to update registration settings. Please check the form for errors.",
             });
-            console.error("Error occured while updating registration settings");
+            console.error("Error occured while updating registration settings", err);
         }
     };
 

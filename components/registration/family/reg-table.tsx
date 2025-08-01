@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { InferSelectModel } from "drizzle-orm";
 import { classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED } from "@/lib/utils";
+import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { IdMaps, threeSeasons } from "@/lib/registration/types";
 import { arrangement } from "@/lib/db/schema";
@@ -221,12 +221,14 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
         }
     ]
 
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+    const [newArrangeID, setNewArrangeID] = useState<number>(0);
+
     const editColumn: ColumnDef<regRow>[] = [
         {
             id: "edit",
             cell: ({ row }) => {
-                const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-                const [newArrangeID, setNewArrangeID] = useState<number>(0);
+
                 const transferStudent = () => {
                     try {
                         const regid = row.original.regno;
@@ -371,7 +373,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                 reqstatus: regreq?.reqstatusid || 0
             }
         });
-    }, [registrations, arrangementMap]);
+    }, [registrations, arrangementMap, regchangerequests]);
 
 
 

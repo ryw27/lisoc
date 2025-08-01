@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { seasonObj, famBalanceInsert } from "@/lib/shared/types";
 import { regKind, uiClasses } from "../types";
 import { EARLY_REG_DISCOUNT, LATE_REG_FEE_1, LATE_REG_FEE_2, REGISTRATION_FEE, REGSTATUS_SUBMITTED, toESTString } from "@/lib/utils";
-import { canRegister, getArrSeason, getTotalPrice, Transaction } from "../helpers";
+import { canRegister, getArrSeason, getTotalPrice } from "../helpers";
 // import { z } from "zod/v4";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import { ensureTimeline } from "../helpers";

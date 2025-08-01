@@ -58,7 +58,7 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
             const parsedData = arrangementSchema.parse(parsedArray.classrooms[i]); 
             // 9. Insert
             // Remember that the only unique fields of classrooms are classid, teacherid, roomid, seatlimit, and notes
-            const inserted = await tx
+            await tx
                 .insert(arrangement)
                 .values({
                     ...regClassValues,
@@ -69,7 +69,6 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
                     notes: parsedData.notes ?? "",
                     isregclass: false,
                 })
-                .returning();
         }
 
         // 10. Revalidate

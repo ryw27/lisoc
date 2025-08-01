@@ -39,9 +39,9 @@ export default async function RegClassForm({
     if (!user) {
         throw new Error("User not found");
     }
-    // Subtract one day (24 * 60 * 60 * 1000 ms) from now. TODO: Standardize this
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const isNewFamily = new Date(user.createon!) > oneDayAgo;
+    
+    // const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // const isNewFamily = new Date(user.createon!) > oneDayAgo;
 
     // TODO: Needed? How to calculate totalamount? 
     // const calculateBalance = (balance: InferSelectModel<typeof familybalance>) => {

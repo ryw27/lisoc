@@ -1,4 +1,4 @@
-import { pgTable, unique, uuid, varchar, timestamp, text, foreignKey, integer, boolean, index, smallint, serial, bigint, numeric, char, uniqueIndex, primaryKey, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, unique, uuid, varchar, timestamp, text, foreignKey, integer, boolean, index, smallint, serial, bigint, numeric, char, uniqueIndex, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { userRoles } from "./db-types"
 

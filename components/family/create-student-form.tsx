@@ -18,7 +18,7 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
     const onSubmit = async (data: z.infer<typeof studentSchema>) => {
         try {
             const studentData = studentSchema.parse(data);
-            const newStudent = await createStudent(studentData, familyid);
+            await createStudent(studentData, familyid);
         } catch (error) {
             console.error(error);
         }

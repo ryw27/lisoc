@@ -65,13 +65,13 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
                     <p className="text-gray-700 font-bold">A link to reset your password has been sent to your email.
                         If you did not receive an email, please &thinsp;
                         <button onClick={tryFPAgain} className="text-blue-600 underline cursor-pointer">try again</button>
-                        &thinsp; or &thinsp; <Link href="/signup" className="font-bold text-blue-600 underline"> Sign up.</Link>
+                        &thinsp; or &thinsp; <Link href="/register" className="font-bold text-blue-600 underline"> Sign up.</Link>
                     </p>
                 </div>
             )}
 
 
-            <p className="text-gray-500 text-center mt-5 text-sm">Don't have an account? <Link href="/signup" className="font-bold text-blue-500 underline">Sign up</Link></p>
+            <p className="text-gray-500 text-center mt-5 text-sm">Don''t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up</Link></p>
         </main>
     )
 }

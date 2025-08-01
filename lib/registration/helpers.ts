@@ -101,8 +101,8 @@ export async function getTermVariables(
     tx: Transaction
 ) {
     const { year, fall, spring } = await getThreeSeasons(tx);
-    const now = new Date(toESTString(new Date()));
-    let seasonid = season.seasonid;
+    // const now = new Date(toESTString(new Date()));
+    const seasonid = season.seasonid;
 
     if (seasonid === year.seasonid) {
         // Full academic year

@@ -1,5 +1,5 @@
 "use server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import { 
@@ -19,7 +19,7 @@ import { Transaction } from "../../helpers";
 import { InferSelectModel } from "drizzle-orm";
 // import { requireRole } from "@/lib/auth";
 
-async function createRemoveFamBalanceVals(tx: Transaction, oldReg: InferSelectModel<typeof classregistration>, oldArr: uiClasses, deleteReg: boolean) {
+async function createRemoveFamBalanceVals(tx: Transaction, oldReg: InferSelectModel<typeof classregistration>, oldArr: uiClasses) {
     // TODO: Use a drop specific getPrice which uses getTotalPrice instead
     const oldTotalPrice = await getTotalPrice(tx, oldArr);
     // Made these outside of the insert because there's some weird typescript error which i'm pretty sure is a drizzle bug
@@ -89,8 +89,8 @@ export async function familyRequestTransfer(regid: number, studentid: number, fa
                 .delete(classregistration)
                 .where(eq(classregistration.regid, oldReg.regid));
 
-            const deleteReg = true;
-            const removeFamBalValues = await createRemoveFamBalanceVals(tx, oldReg, oldArr, deleteReg);
+            // const deleteReg = true;
+            const removeFamBalValues = await createRemoveFamBalanceVals(tx, oldReg, oldArr);
             await tx
                 .insert(familybalance)
                 .values(removeFamBalValues)

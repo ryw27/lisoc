@@ -427,7 +427,7 @@ export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {
                 <Controller
                     name={field.id as keyof z.infer<typeof startSemFormSchema>}
                     control={semClassForm.control}
-                    render={({ field: { onChange, value, ...fieldProps } }) => (
+                    render={() => (
                         <Input
                             id={field.id}
                             type={field.inputType}

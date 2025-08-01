@@ -177,7 +177,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
             result.push({ id: generateUUID(), col_id: baseCol, mode, val: rawVal });
         })
         return result;
-    }, [])
+    }, [columns, searchParams])
 
     const [drafts, dispatch] = useReducer(draftsReducer, initialDrafts);
 

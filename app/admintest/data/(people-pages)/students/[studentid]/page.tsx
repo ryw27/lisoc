@@ -61,7 +61,7 @@ export default async function StudentPage({ params }: StudentPageProps) {
                 {
                     label: "Date of Birth",
                     key: "dob",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Not provided"
+                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Not provided"
                 }
             ]
         },
@@ -71,17 +71,17 @@ export default async function StudentPage({ params }: StudentPageProps) {
                 {
                     label: "Active",
                     key: "active",
-                    formatter: (value: any) => value ? "Yes" : "No"
+                    formatter: (value) => value ? "Yes" : "No"
                 },
                 {
                     label: "Created Date",
                     key: "createddate",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Not available"
+                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Not available"
                 },
                 {
                     label: "Last Modified",
                     key: "lastmodify",
-                    formatter: (value: any) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
+                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
                 },
                 {
                     label: "Upgradable",

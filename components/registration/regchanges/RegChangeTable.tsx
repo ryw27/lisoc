@@ -109,11 +109,12 @@ const columns: ColumnDef<regChangeRow>[] = [
     },
 ];
 export default function RegChangeTable({ requests, adminMap }: regChangeTableProps) {
+    const [busy, setBusy] = useState<boolean>(false);
+    
     const editColumn: ColumnDef<regChangeRow> = {
         id: "edit",
         header: "",
         cell: ({ row }) => {
-            const [busy, setBusy] = useState<boolean>(false);
 
             const handleApprove = async () => {
                 if (busy) return;

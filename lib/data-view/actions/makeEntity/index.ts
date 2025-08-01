@@ -1,1 +1,1 @@
-import { makeEntity } from "./makeEntity";
+export { makeEntity } from "./makeEntity";

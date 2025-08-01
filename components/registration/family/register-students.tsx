@@ -106,7 +106,7 @@ export default function RegisterStudent({
     });
 
     // Periods to ensure no duplicates
-    const [_periods, setPeriods] = useState<Record<number, { first: number, second: number }>>(() => {
+    const [, setPeriods] = useState<Record<number, { first: number, second: number }>>(() => {
         const periods = {} as Record<number, { first: number, second: number }>;
         for (let i = 0; i < students.length; i++) {
             periods[students[i].studentid] = { first: 0, second: 0 };

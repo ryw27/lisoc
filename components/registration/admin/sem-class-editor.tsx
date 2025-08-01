@@ -269,8 +269,8 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
         }
     }
     // If arrInfo is an empty object, set it to null
-    const isEmptyObject = (obj: unknown): boolean =>
-        !!obj && typeof obj === "object" && !Array.isArray(obj) && Object.keys(obj).length === 0;
+    // const isEmptyObject = (obj: unknown): boolean =>
+    //     !!obj && typeof obj === "object" && !Array.isArray(obj) && Object.keys(obj).length === 0;
 
     // const arrInfo = isEmptyObject(initialData.arrinfo) ? null : initialData.arrinfo || null;
 

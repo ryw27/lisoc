@@ -1,6 +1,6 @@
 import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
 import { idTeacherRow, updateTeacherRow } from '../../teacher-helpers'
-import { allFamilyRows, familyObject } from '../../../families/family-helpers'
+import { allFamilyRows } from '../../../families/family-helpers'
 
 export default async function EditTeacherPage({
     params,
@@ -20,13 +20,13 @@ export default async function EditTeacherPage({
 
 
     const families = await allFamilyRows();
-    const familyOptions = [
-        { value: "", label: "Not linked" },
-        ...families.map((family: familyObject) => ({
-            value: family.familyid.toString(),
-            label: `Family ${family.familyid}`
-        }))
-    ];
+    // const familyOptions = [
+    //     { value: "", label: "Not linked" },
+    //     ...families.map((family: familyObject) => ({
+    //         value: family.familyid.toString(),
+    //         label: `Family ${family.familyid}`
+    //     }))
+    // ];
 
     // Define form fields with current values
     const fields: EditFormField[] = [

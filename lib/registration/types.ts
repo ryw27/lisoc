@@ -68,6 +68,7 @@ export type studentStatus =
     | "Dropout Spring"
     | "Transferred"
     | "Pending Drop"
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     | {}
 
 export type adminStudentView = {

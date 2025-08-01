@@ -49,7 +49,7 @@ function LabeledInput({
     type?: string;
     required?: boolean;
     disabled?: boolean;
-    inputClassName?: any 
+    inputClassName?: string 
 }) {
     const { register, formState: { errors }} = useFormContext<z.infer<typeof startSemFormSchema>>();
 
@@ -76,7 +76,6 @@ function LabeledInput({
 
 // TODO: Diagnose the white bar at the bottom issue 
 export default function SemesterClassBox({
-    field,
     idx,
     deleteSemClass,
 }: classBoxProps) {
@@ -92,8 +91,8 @@ export default function SemesterClassBox({
     const { selectOptions, idMaps } = useRegistrationContext();
 
     
-    const setField = <T,>(field: keyof z.infer<typeof arrangementSchema>, value: T) => {
-        setValue(`classes.${idx}.${field}`, value as any, { shouldValidate: true })
+    const setField = <T extends string | number | boolean | null | undefined>(field: keyof z.infer<typeof arrangementSchema>, value: T) => {
+        setValue(`classes.${idx}.${field}`, value, { shouldValidate: true })
     }
 
 
@@ -211,7 +210,7 @@ export default function SemesterClassBox({
         /> 
     )
 
-    const { classMap, teacherMap, roomMap, timeMap, termMap } = idMaps;
+    const { classMap, timeMap, termMap } = idMaps;
 
     const totalPrice = classValues.suitableterm !== 2 ? 
         Number(classValues.tuitionW) + Number(classValues.bookfeeW) + Number(classValues.specialfeeW) 

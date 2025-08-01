@@ -100,7 +100,7 @@ type studentTableProps = {
     curClass: fullRegID;
     reducerState: fullSemDataID;
     dispatch: React.Dispatch<Action>;
-    uuid: string;
+    // uuid: string;
 }
 
 // Helper function to find a student in the current class or its classrooms
@@ -241,7 +241,7 @@ const addStudentToTargetClass = (
     };
 };
 
-export default function StudentTable({ registrations, reducerState, curClass, dispatch, uuid }: studentTableProps) {
+export default function StudentTable({ registrations, reducerState, curClass, dispatch }: studentTableProps) {
     const { idMaps } = useRegistrationContext();
     const [sorting, setSorting] = useState<SortingState>([
         {
@@ -250,13 +250,14 @@ export default function StudentTable({ registrations, reducerState, curClass, di
         }
     ]);
 
+    const [phase, setPhase] = useState<"transfer" | "selectType" | "classTransfer" | "intraTransfer">("transfer");
+    const [selectedIds, setSelectedIds] = useState<string>("");
+    const [busy, setBusy] = useState<boolean>(false);
+
     const editColumn: ColumnDef<adminStudentView> = {
         id: "edit",
         header: "",
         cell: ({ row }) => {
-            const [phase, setPhase] = useState<"transfer" | "selectType" | "classTransfer" | "intraTransfer">("transfer");
-            const [selectedIds, setSelectedIds] = useState<string>("");
-            const [busy, setBusy] = useState<boolean>(false);
 
             const resetState = () => {
                 setBusy(false);
