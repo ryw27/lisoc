@@ -11,6 +11,23 @@ import {
     classregistration
 } from "../db/schema"
 
+// All types of fees 
+export type balanceFees = {
+    childnumRegfee: number;
+    regfee: number;
+    earlyregdiscount: number;
+    lateregfee: number;
+    extrafee4newfamily: number;
+    managementfee: number;
+    dutyfee: number;
+    cleaningfee: number;
+    otherfee: number;
+    tuition: number;
+    groupdiscount: number;
+    processfee: number;
+    totalamount: number;
+}
+
 
 // Season
 export type seasonObj = InferSelectModel<typeof seasons>;
