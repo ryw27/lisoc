@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { student } from "@/lib/db/schema";
 import { z } from "zod/v4";
