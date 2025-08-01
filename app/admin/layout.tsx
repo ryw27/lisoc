@@ -1,9 +1,9 @@
 import React from 'react';
 import SideNav from '@/components/sidenav';
-import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book, Search } from 'lucide-react';
-import LogoutButton from '@/components/logout-button';
+import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book, Search, LogOut } from 'lucide-react';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 import Header from '@/components/header';
+import { requireRole } from '@/lib/auth';
 
 const beginlink = "/admin"
 const navItems = [
@@ -94,19 +94,20 @@ const navItems = [
             {
                 label: "Logout",
                 href: [`${beginlink}/logout`],
-                icon: <LogoutButton />
+                icon: <LogOut className="w-4 h-4" />
             }
         ]
     }, 
 ]
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const user = await requireRole(["ADMIN"]);
     return (
         <div className="flex h-screen">
             <div className="fixed h-screen">
                 <SideNav items={navItems} />
             </div>
             <div className="flex flex-col flex-1 overflow-hidden ml-64">
-                <Header />
+                <Header user={user.user}  />
                 <main className="flex-1 overflow-auto p-6 bg-white">
                     {children}
                 </main>

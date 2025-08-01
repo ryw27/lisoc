@@ -2,6 +2,7 @@ import React from 'react';
 import SideNav from '@/components/sidenav';
 import Header from '@/components/header';
 import { HomeIcon, UserIcon, SettingsIcon, FileTextIcon, BookOpenIcon } from 'lucide-react';
+import { requireRole } from '@/lib/auth';
 
 const DASHBOARD = "/dashboard";
 const navItems = [
@@ -42,14 +43,15 @@ const navItems = [
   },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const user = await requireRole(["FAMILY"]);
     return (
       <div className="flex h-screen">
         <div className="fixed h-screen">
             <SideNav items={navItems} />
         </div>
         <div className="flex flex-col flex-1 overflow-hidden ml-64">
-            <Header />
+            <Header user={user.user} />
             <main className="flex-1 overflow-auto p-6 bg-white">
                 {children}
             </main>
