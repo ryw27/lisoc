@@ -19,7 +19,7 @@ export function toESTString(date: Date) {
 // Constants
 // ----------------------------------------------------------------
 
-export const SITE_LINK = "localhost:3000"; // TODO: change to actual link
+export const SITE_LINK = "https://lisoc.vercel.app"; // TODO: change to actual link
 
 // Teacher
 export const UNKNOWN_TEACHERID = 7;

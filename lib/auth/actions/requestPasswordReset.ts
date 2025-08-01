@@ -33,6 +33,7 @@ export async function requestPasswordReset(data: z.infer<typeof forgotPassSchema
         if (!user) {
             throw new Error("Account does not exist")
         }
+        console.log(user);
         userEmail = user.email;
     } else {
         throw new Error("Invalid Email or Username")
@@ -44,6 +45,7 @@ export async function requestPasswordReset(data: z.infer<typeof forgotPassSchema
     //     .where(eq(users.email, userEmail!))
 
     const uuidCode = uuid();
+    console.log("identifier", userEmail)
 
     await pgadapter.createVerificationToken({
         token: uuidCode,

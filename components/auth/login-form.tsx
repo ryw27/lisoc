@@ -39,12 +39,19 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
                 throw new Error("Invalid email or username")
             }
 
-            const result = await signIn(provider, {
-                username: isUsername ? data.emailUsername : null,
-                email: isEmail ? data.emailUsername : null,
+            const credSubmitObj = isEmail ? 
+            {
+                email: data.emailUsername,
                 password: data.password,
-                redirect: false,
-            });
+                redirect: false as const
+            } : 
+            {
+                username: data.emailUsername,
+                password: data.password,
+                redirect: false as const
+            }
+
+            const result = await signIn(provider, credSubmitObj);
 
             if (!result.ok) {
                 throw new Error("Invalid credentials")

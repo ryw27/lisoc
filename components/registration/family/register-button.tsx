@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
+import { studentObject } from "@/app/admin/data/(people-pages)/students/student-helpers";
 import { useRouter } from "next/navigation";
 
 export default function RegisterButton({ regSpecificClass, students }: { regSpecificClass: (studentid: number) => Promise<void>, students: studentObject[] }) {

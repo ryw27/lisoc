@@ -1,9 +1,9 @@
 import RegisterButton from "./register-button"
 import { type uiClasses, type threeSeasons } from "@/lib/registration/types"
-import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
+import { studentObject } from "@/app/admin/data/(people-pages)/students/student-helpers";
 import { getSelectOptions } from "@/lib/registration/semester";
 import { familyRegister } from "@/lib/registration";
-import { familyObject } from "@/app/admintest/data/(people-pages)/families/family-helpers";
+import { familyObject } from "@/app/admin/data/(people-pages)/families/family-helpers";
 
 
 // TODO: Change this to the reg history

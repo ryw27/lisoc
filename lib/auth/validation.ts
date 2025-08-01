@@ -55,8 +55,8 @@ export const loginSchema = z.object({
 })
 
 export const credSchema = z.object({
-    email: emailSchema.shape.email.nullable(),
-    username: usernameSchema.shape.username.nullable(),
+    email: emailSchema.shape.email.optional(),
+    username: usernameSchema.shape.username.optional(),
     password: passwordSchema.shape.password
 })
 

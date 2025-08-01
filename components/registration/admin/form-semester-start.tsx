@@ -20,6 +20,7 @@ import { toESTString } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { createContext } from "react";
+import { createSemester } from "@/lib/registration/semester";
 
 
 type semesterClassesProps = {
@@ -27,14 +28,14 @@ type semesterClassesProps = {
     selectOptions: selectOptions;
     idMaps: IdMaps;
     lastSeason: InferSelectModel<typeof seasons>[];
-    startSemester: (data: z.infer<typeof startSemFormSchema>) => Promise<void>
+    // startSemester: (data: z.infer<typeof startSemFormSchema>) => Promise<void>
 }
 
 const MapsAndOptionsProvider = createContext<{ selectOptions: selectOptions; idMaps: IdMaps;} | null>(null);
 
 type FormType = UseFormReturn<z.infer<typeof startSemFormSchema>>;
 
-export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSeason, startSemester } : semesterClassesProps) {
+export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSeason } : semesterClassesProps) {
     const router = useRouter();
     const getInputDateForm = (date: string | undefined) => {
         // new Date(field.value).toISOString().slice(0, 10)
@@ -92,7 +93,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
     const onSemSubmit = async (data: z.infer<typeof startSemFormSchema>) => {
         try {
             console.log("Submitting semester data: ", data)
-            await startSemester(data)
+            await createSemester(data)
             
             // Add success feedback and navigation
             console.log("Semester started successfully!")

@@ -1,6 +1,6 @@
 import RegClassBox from "./CHANGE_reg-class-box";
 import { type threeSeasons, type uiClasses } from "@/lib/registration/types";
-import { studentObject } from "@/app/admintest/data/(people-pages)/students/student-helpers";
+import { studentObject } from "@/app/admin/data/(people-pages)/students/student-helpers";
 import { db } from "@/lib/db";
 import { InferSelectModel } from "drizzle-orm";
 import { family } from "@/lib/db/schema";

@@ -7,6 +7,8 @@ import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
 import { credSchema, loginSchema } from "@/lib/auth/validation"
 import authConfig from "@/auth.config"
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { type JWT } from "next-auth/jwt"
 
 
 //Declare module for session user but it's not working idk why lol
@@ -24,7 +26,7 @@ declare module "next-auth" {
     }
 }
 
-declare module "next-auth" {
+declare module "next-auth/jwt" {
     interface JWT { 
         role: "ADMIN" | "TEACHER" | "FAMILY"
         userid: string; 
@@ -62,6 +64,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     emailUsername: identifier,
                     password: credData.password,
                 });
+                console.log(parsedCredentials.data);
 
                 if (parsedCredentials.success) {
                     const { emailUsername, password } = parsedCredentials.data;
@@ -76,6 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     }
 
                     const adminuser = result;
+
                     const valid = await bcrypt.compare(password, adminuser.password);
                     if (!valid) return null;
                     

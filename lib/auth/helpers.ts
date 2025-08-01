@@ -30,7 +30,7 @@ export async function sendFPEmail(emailTo: string, uuid: string) {
         to: emailTo,
         subject: "LISOC Forgot Password Link",
         html: `
-            <p> Reset your password with the following <a href=${SITE_LINK}/reset-password?token=${uuid}&email=${emailTo}> link </a> </p>
+            <p> Reset your password with the following <a href="${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)}"> link </a> </p>
             <p> If you are not trying to reset your password, please ignore this email </p>
         `
     });   
