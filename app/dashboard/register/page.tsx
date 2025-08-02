@@ -10,7 +10,7 @@ export default async function RegisterPage() {
     // 1. Get User
     const user = await requireRole(["FAMILY"], { redirect: true });
     const userRow = await db.query.users.findFirst({
-        where: (u, { eq }) => eq(u.id, user.user.userid)
+        where: (u, { eq }) => eq(u.id, user.user.id)
     });
     if (!userRow) {
         redirect("/login");
@@ -65,7 +65,7 @@ export default async function RegisterPage() {
 
     // 5. Get family and students
     const userFamily = await db.query.family.findFirst({
-        where: (family, { eq }) => eq(family.userid, user.user.userid)
+        where: (family, { eq }) => eq(family.userid, user.user.id)
     });
     if (!userFamily) {
         throw new Error("No family found on register page")
