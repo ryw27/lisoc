@@ -1,86 +1,111 @@
-import { db } from "@/lib/db";
-import RegClassForm from "@/components/registration/family/CHANGE_reg-class-form";
-import { getCurrentSeason } from "@/lib/registration/semester/actions/getCurrentSeason";
+import InfoBoxClass from "@/components/registration/family/info-box-class";
 import { requireRole } from "@/lib/auth/actions/requireRole";
-import { type threeSeasons } from "@/lib/registration/types";
+import { db } from "@/lib/db";
+import { getThreeSeasons } from "@/lib/registration/helpers";
+import { adminApproveRequest } from "@/lib/registration/regchanges";
+import Link from "next/link";
 
 export default async function CourseListPage() {
-    // Check auth 
-    const user = await requireRole(["FAMILY"], { redirect: true });
+    await requireRole(["FAMILY"]);
 
-    // Check if there is an active season
-    const active = await db.query.seasons.findFirst({
-        where: (seasons, { eq }) => eq(seasons.status, "Active")
-    });
+    return await db.transaction(async (tx) => {
+        const seasons = await getThreeSeasons(tx);
 
-    if (!active) {
-        return (
-            <div className="flex justify-center items-center">
-                No active terms.
-            </div>
-        )
-    } 
-
-    // Get all arrangements for the active season
-    try {
-        const season = await db.query.seasons.findMany({
-            where: (season, { eq }) => eq(season.status, "Active"),
-            orderBy: (season, { asc }) => [asc(season.seasonid)]
+        const yearArrangements = await db.query.arrangement.findMany({
+            where: (arrangement, { and, eq }) => and(
+                eq(arrangement.seasonid, seasons.year.seasonid),
+                eq(arrangement.isregclass, true)
+            ),
+            with: {
+                class: {}
+            }
         });
 
-        const academicYear = season[0];
-        const fall = season[1]; // TODO: CHANGE THIS 
-        const spring = await db.query.seasons.findFirst({
-            where: (season, { eq }) => eq(season.seasonid, academicYear.relatedseasonid)
+        const fallArrangements = await db.query.arrangement.findMany({
+            where: (arrangement, { and, eq }) => and(
+                eq(arrangement.seasonid, seasons.fall.seasonid),
+                eq(arrangement.isregclass, true)
+            ),
+            with: {
+                class: {}
+            }
         });
 
-        // TODO: FIX THIS
-        if (!spring) {
-            throw new Error("FIX THIS");
-        }
-
-       
-        const arrangementsYear = await getCurrentSeason(academicYear.seasonid); 
-        const arrangementsFall = await getCurrentSeason(fall.seasonid)
-        const arrangementsSpring = await getCurrentSeason(spring.seasonid)
-
-        const familyOfUser = await db.query.family.findFirst({
-            where: (family, { eq }) => eq(family.userid, user.user.userid)
+        const springArrangements = await db.query.arrangement.findMany({
+            where: (arrangement, { and, eq }) => and(
+                eq(arrangement.seasonid, seasons.spring.seasonid),
+                eq(arrangement.isregclass, true)
+            ),
+            with: {
+                class: {}
+            }
         });
 
-        if (!familyOfUser) {
-            throw new Error("NO FAMILY????");
-        }
-        
-        const students = await db.query.student.findMany({
-            where: (student, { eq }) => eq(student.familyid, familyOfUser?.familyid)
-        });;
-
-
-        if (!students) {
-            throw new Error("No students found");
-        }
-
-
-        const allArrangements = [...arrangementsYear, ...arrangementsFall, ...arrangementsSpring];
-        const allSeasons = { year: academicYear, fall: fall, spring: spring } satisfies threeSeasons;
-
-        return (
-                <RegClassForm
-                    season={allSeasons}
-                    arrangements={allArrangements}
-                    students={students}
-                    family={familyOfUser}
-                />
+        const allArrs = { year: yearArrangements, fall: fallArrangements, spring: springArrangements };
+        if (allArrs.year.length + allArrs.fall.length + allArrs.spring.length === 0) {
+            return (
+                <div className="flex justify-center items-center text-2xl font-bold min-h-screen">
+                    No classes found
+                </div>
             )
-    } catch (error) {
-        console.error(error);
+        }
+
         return (
-            <div className="flex justify-center items-center">
-                Error occured. Please report to ...
+            <div className="flex flex-col w-full max-w-5xl mx-auto px-4 py-8 gap-2 items-start">
+                <h1 className="text-2xl font-bold text-black mb-2">Class List</h1>
+                <p className="text-xl mb-6">
+                    In order to register, please visit{" "}
+                    <Link href="/dashboard/register" className="underline text-blue-600">
+                        the registration link
+                    </Link>
+                </p>
+
+                <section className="w-full border-1 rounded-md shadow-md p-4">
+                    <h2 className="font-bold text-lg mb-3">Year Classes</h2>
+                    <div className="flex flex-col gap-4 w-full">
+                        {allArrs.year.map((classData) => (
+                            <InfoBoxClass
+                                key={classData.arrangeid}
+                                arrInfo={classData}
+                                seasonInfo={seasons.year}
+                                yearClass={true}
+                            />
+                        ))}
+                    </div>
+                </section>
+
+                <section className="w-full border-1 rounded-md shadow-md p-4">
+                    <h2 className="font-bold text-lg mb-3">Fall-only Classes</h2>
+                    <div className="flex flex-col gap-4 w-full">
+                        {allArrs.fall.map((classData) => (
+                            <InfoBoxClass
+                                key={classData.arrangeid}
+                                arrInfo={classData}
+                                seasonInfo={seasons.fall}
+                                yearClass={false}
+                            />
+                        ))}
+                    </div>
+                </section>
+
+                <section className="w-full border-1 rounded-md shadow-md p-4">
+                    <h2 className="font-bold text-lg mb-3">Spring-only Classes</h2>
+                    <div className="flex flex-col gap-4 w-full">
+                        {allArrs.spring.map((classData) => (
+                            <InfoBoxClass
+                                key={classData.arrangeid}
+                                arrInfo={classData}
+                                seasonInfo={seasons.spring}
+                                yearClass={false}
+                            />
+                        ))}
+                    </div>
+                </section>
             </div>
         )
-    }
+    })
+
+
 
     
 } 
