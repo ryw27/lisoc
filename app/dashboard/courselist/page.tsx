@@ -2,7 +2,6 @@ import InfoBoxClass from "@/components/registration/family/info-box-class";
 import { requireRole } from "@/lib/auth/actions/requireRole";
 import { db } from "@/lib/db";
 import { getThreeSeasons } from "@/lib/registration/helpers";
-import { adminApproveRequest } from "@/lib/registration/regchanges";
 import Link from "next/link";
 
 export default async function CourseListPage() {
