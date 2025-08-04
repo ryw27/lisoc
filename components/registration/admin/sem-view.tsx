@@ -272,7 +272,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     <div className="flex gap-2">
                         <Link 
                             className="flex gap-2 bg-red-600 p-4 rounded-md text-white items-center" 
-                            href="/admintest/management/regchangerequests"
+                            href="/admin/management/regchangerequests"
                         >
                             <FaRegQuestionCircle /> Reg Change Requests
                         </Link>
