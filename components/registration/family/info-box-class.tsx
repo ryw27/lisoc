@@ -1,7 +1,4 @@
-import RegisterButton from "./LEGACY_register-button"
-import { type threeSeasons } from "@/lib/registration/types"
 import { getSelectOptions } from "@/lib/registration/semester";
-import { familyRegister } from "@/lib/registration";
 import { InferSelectModel } from "drizzle-orm";
 import { arrangement, seasons } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
@@ -26,8 +23,6 @@ export default async function InfoBoxClass({ arrInfo, seasonInfo, yearClass }: I
 
     const checkRegOpen = () => {
         const now = new Date(toESTString(new Date()));
-        console.log(seasonInfo.closeregdate)
-        console.log(seasonInfo.earlyregdate);
         if (now >= new Date(seasonInfo.closeregdate) || now <= new Date(seasonInfo.earlyregdate)) {
             return false;
         }
