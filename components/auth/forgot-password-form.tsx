@@ -9,7 +9,7 @@ import { z } from "zod";
 import { forgotPassSchema } from "@/lib/auth/validation";
 
 type FPFormParams = {
-    requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<void>;
+    requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<{ ok: boolean, message: string }>;
 }
 
 export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
@@ -22,15 +22,35 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
     })
 
     const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
-        try {
-            setBusy(true);
-            await requestReset(data);
+        setBusy(true);
+        const result = await requestReset(data);
+        if (!result.ok && result.message !== "Account does not exist") {
+            fpForm.setError("emailUsername", { message: result.message });
+        } else {
             setSentLink(true);
-        } catch (error) {
-            fpForm.setError("emailUsername", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
-        } finally {
-            setBusy(false);
         }
+        // try {
+        //     setBusy(true);
+        //     const result = await requestReset(data);
+        //     if (result.ok) {
+        //         setSentLink(true);
+        //     } else {
+        //         fpForm.setError("emailUsername", { message: result.message });
+        //     }
+        // } catch (error) {
+        //     console.log("here in error");
+        //     if (error instanceof Error) {
+        //         if (error.message === "Account does not exist") {
+        //             setSentLink(true);
+        //         } else {
+        //             fpForm.setError("emailUsername", { message: error.message });
+        //         }
+        //     } else {
+        //         fpForm.setError("emailUsername", { message: "An unexpected error occurred. Please try again." });
+        //     }
+        // } finally {
+        //     setBusy(false);
+        // }
     }
 
     const tryFPAgain = () => {
