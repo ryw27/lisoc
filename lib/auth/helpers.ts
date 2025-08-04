@@ -20,7 +20,7 @@ export async function checkExistence(input: string, column: "name" | "email"): P
         where: (u, { eq }) => eq(u[column], input)
     })
 
-    return result !== null
+    return result !== undefined;
 }
 
 
