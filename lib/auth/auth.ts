@@ -1,4 +1,4 @@
-import NextAuth, { type DefaultSession } from "next-auth"
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { db } from "../db"
 import { pool } from "../db"
@@ -31,6 +31,14 @@ declare module "next-auth/jwt" {
 
 export const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
 
+class IncorrectEmailPasswordError extends CredentialsSignin {
+  code = "incorrect-email-password";          // ✅ type-checked by TS
+}
+
+class InternalServerError extends CredentialsSignin {
+  code = "internal-server-error";         
+}
+
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
@@ -44,45 +52,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod. Make sure it's safe.
+                // Parse credentials with zod. Make sure it's safe.
                 const creds = credSchema.safeParse(credentials);
 
                 if (creds.error) {
-                    return null;
+                    console.error("For some reason, invalid or missing admin-credentials");
+                    throw new InternalServerError();
                 }
 
                 const credData = creds.data;
 
                 const isEmail = Boolean(credData.email?.trim());
-                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+                const identifier = isEmail ? credData.email!.trim() : (credData.username ?? "");
 
                 const parsedCredentials = loginSchema.safeParse({
                     emailUsername: identifier,
                     password: credData.password,
                 });
-                console.log(parsedCredentials.data);
 
-                if (parsedCredentials.success) {
-                    const { emailUsername, password } = parsedCredentials.data;
-                    const result = await db.query.users.findFirst({
-                        where: (users, { eq }) =>
-                            isEmail
-                                ? eq(users.email, emailUsername)
-                                : eq(users.name, emailUsername),
-                    });
-                    if (!result || !result.emailVerified || !result.roles.includes("ADMINUSER")) {
-                        return null;
-                    }
-
-                    const adminuser = result;
-
-                    const valid = await bcrypt.compare(password, adminuser.password);
-                    if (!valid) return null;
-                    
-                    return { id: adminuser.id.toString(), email: adminuser.email || "", name: adminuser.name || "", role: "ADMIN" };
-                } else {
-                    return null;
+                if (!parsedCredentials.success) {
+                    throw new IncorrectEmailPasswordError();
                 }
+
+                const { emailUsername, password } = parsedCredentials.data;
+                const result = await db.query.users.findFirst({
+                    where: (users, { eq }) =>
+                        isEmail
+                            ? eq(users.email, emailUsername)
+                            : eq(users.name, emailUsername),
+                });
+
+                if (!result || !result.emailVerified || !result.roles.includes("ADMINUSER")) {
+                    // Don't reveal that their account does not exist
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                const adminuser = result;
+
+                const valid = await bcrypt.compare(password, adminuser.password);
+                if (!valid) {
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                return {
+                    id: adminuser.id.toString(),
+                    email: adminuser.email || "",
+                    name: adminuser.name || "",
+                    role: "ADMIN",
+                };
             },
         }),
         Credentials({
@@ -94,43 +111,52 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod. Make sure it's safe.
+                // Parse credentials with zod. Make sure it's safe.
                 const creds = credSchema.safeParse(credentials);
 
                 if (creds.error) {
-                    return null;
+                    console.error("For some reason, invalid or missing teacher-credentials");
+                    throw new InternalServerError();
                 }
 
                 const credData = creds.data;
 
                 const isEmail = Boolean(credData.email?.trim());
-                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+                const identifier = isEmail ? credData.email!.trim() : (credData.username ?? "");
 
                 const parsedCredentials = loginSchema.safeParse({
                     emailUsername: identifier,
                     password: credData.password,
                 });
 
-                if (parsedCredentials.success) {
-                    const { emailUsername, password } = parsedCredentials.data;
-                    const result = await db.query.users.findFirst({
-                        where: (users, { eq }) =>
-                            isEmail
-                                ? eq(users.email, emailUsername)
-                                : eq(users.name, emailUsername),
-                    });
-                    if (!result || !result.emailVerified || !result.roles.includes("TEACHER")) {
-                        return null;
-                    }
-
-                    const teacheruser = result;
-                    const valid = await bcrypt.compare(password, teacheruser.password);
-                    if (!valid) return null;
-                    
-                    return { id: teacheruser.id.toString(), email: teacheruser.email || "", name: teacheruser.name || "", role: "TEACHER" };
-                } else {
-                    return null;
+                if (!parsedCredentials.success) {
+                    throw new IncorrectEmailPasswordError();
                 }
+
+                const { emailUsername, password } = parsedCredentials.data;
+                const result = await db.query.users.findFirst({
+                    where: (users, { eq }) =>
+                        isEmail
+                            ? eq(users.email, emailUsername)
+                            : eq(users.name, emailUsername),
+                });
+
+                if (!result || !result.emailVerified || !result.roles.includes("TEACHER")) {
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                const teacheruser = result;
+                const valid = await bcrypt.compare(password, teacheruser.password);
+                if (!valid) {
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                return {
+                    id: teacheruser.id.toString(),
+                    email: teacheruser.email || "",
+                    name: teacheruser.name || "",
+                    role: "TEACHER",
+                };
             },
         }),
         Credentials({
@@ -142,45 +168,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Password", type: "password", required: true },
             },
             authorize: async (credentials) => {
-                //Parse credentials with zod. Make sure it's safe.
+                // Parse credentials with zod. Make sure it's safe.
                 const creds = credSchema.safeParse(credentials);
 
                 if (creds.error) {
-                    return null;
+                    console.error("For some reason, invalid or missing family-credentials");
+                    throw new InternalServerError();
                 }
 
                 const credData = creds.data;
 
                 const isEmail = Boolean(credData.email?.trim());
-                const identifier = isEmail ? (credData.email!.trim()) : (credData.username ?? "");
+                const identifier = isEmail ? credData.email!.trim() : (credData.username ?? "");
 
                 const parsedCredentials = loginSchema.safeParse({
                     emailUsername: identifier,
                     password: credData.password,
                 });
 
-                if (parsedCredentials.success) {
-                    const { emailUsername, password } = parsedCredentials.data;
-                    const result = await db.query.users.findFirst({
-                        where: (users, { eq }) =>
-                            isEmail
-                                ? eq(users.email, emailUsername)
-                                : eq(users.name, emailUsername),
-                    });
-                    if (!result || !result.emailVerified || !result.roles.includes("FAMILY")) {
-                        return null;
-                    }
-
-                    const familyuser = result;
-                    const valid = await bcrypt.compare(password, familyuser.password);
-                    if (!valid) return null;
-                    
-                    return { id: familyuser.id.toString(), email: familyuser.email || "", name: familyuser.name || "", role: "FAMILY" };
-                } else {
-                    return null;
+                if (!parsedCredentials.success) {
+                    throw new IncorrectEmailPasswordError();
                 }
+
+                const { emailUsername, password } = parsedCredentials.data;
+                const result = await db.query.users.findFirst({
+                    where: (users, { eq }) =>
+                        isEmail
+                            ? eq(users.email, emailUsername)
+                            : eq(users.name, emailUsername),
+                });
+
+                if (!result || !result.emailVerified || !result.roles.includes("FAMILY")) {
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                const familyuser = result;
+                const valid = await bcrypt.compare(password, familyuser.password);
+                if (!valid) {
+                    throw new IncorrectEmailPasswordError();
+                }
+
+                return {
+                    id: familyuser.id.toString(),
+                    email: familyuser.email || "",
+                    name: familyuser.name || "",
+                    role: "FAMILY",
+                };
             },
-        }), 
+        }),
     ],
     adapter: pgadapter,
 })
