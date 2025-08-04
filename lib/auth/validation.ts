@@ -22,7 +22,8 @@ export const usernameSchema = z.object({
 export const passwordSchema = z.object({
     password: z
         .string()
-        .min(6, { message: "Password must be at least 6 characters long" })
+        .min(1, { message: "Password must be filled" })
+        // .min(6, { message: "Password must be at least 6 characters long" })
         .max(72, { message: "Password is too long" })
 })
 
@@ -36,6 +37,7 @@ export const codeSchema = z.object({
 export const uuidSchema = z.object({
     uuid: z.string().uuid()
 })
+
 
 // ------------------------------------------------------------------------------------------------
 // Login Schemas
@@ -99,36 +101,89 @@ export const userSchema = z.object({
         .max(15, { message: "Phone number is too long" }),
 })
 
-export const familySchema = z.object({
+export const familySchema = z
+  .object({
     ...userSchema.shape,
     fatherfirsten: z
-        .string()
-        .max(72, { message: "Father's first name is too long" }),
+      .string()
+      .max(72, { message: "Father's first name is too long" }),
     fatherlasten: z
-        .string()
-        .max(72, { message: "Father's last name is too long" }),
+      .string()
+      .max(72, { message: "Father's last name is too long" }),
     fathernamecn: z
-        .string()
-        .max(36, { message: "Mother Chinese name is too long" }),
+      .string()
+      .max(36, { message: "Father's Chinese name is too long" }),
     motherlasten: z
-        .string()
-        .max(72, { message: "Mother's last name is too long" }),
+      .string()
+      .max(72, { message: "Mother's last name is too long" }),
     motherfirsten: z
-        .string()
-        .max(72, { message: "Mother's first name is too long" }),
+      .string()
+      .max(72, { message: "Mother's first name is too long" }),
     mothernamecn: z
-        .string()
-        .max(36, { message: "Mother Chinese name is too long" }),
+      .string()
+      .max(36, { message: "Mother's Chinese name is too long" }),
     address2: z
-        .string()
-        .min(1, { message: "Address has to be filled" })
-        .max(100, { message: "Address is too long" }),
+      .string()
+      .max(100, { message: "Address is too long" })
+      .optional(),
     phonealt: z
-        .string()
-        .min(1, { message: "Phone number has to be filled"})
-        .max(15, { message: "Phone number is too long" }),
-    emailalt: emailSchema.shape.email
-})
+      .string()
+      .max(15, { message: "Phone number is too long" })
+      .optional(),
+    emailalt: z
+      .string()
+      .optional()
+      .refine(
+        val =>
+        !val || /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val),
+        { message: "This is not a valid email" }
+      ),
+  })
+  .superRefine((data, ctx) => {
+    // Helper: check if a name field is filled (not just whitespace)
+    const isFilled = (val: string | undefined) => !!val && val.trim().length > 0;
+
+
+    // Check if at least one parent is filled
+    const fatherFilled =
+      isFilled(data.fathernamecn) ||
+      (isFilled(data.fatherfirsten) && isFilled(data.fatherlasten));
+    const motherFilled =
+      isFilled(data.mothernamecn) ||
+      (isFilled(data.motherfirsten) && isFilled(data.motherlasten));
+      console.log(fatherFilled, motherFilled);
+
+    if (!fatherFilled && !motherFilled) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "At least one parent (mother or father) must have a name filled (Chinese or both English names).",
+            path: ["mothernamecn"],
+        });
+    }
+
+    // For each parent, if any field is filled, require at least one of the namecn or (firsten and lasten)
+    if (isFilled(data.fathernamecn) || isFilled(data.fatherfirsten) || isFilled(data.fatherlasten)) {
+        if (!isFilled(data.fathernamecn) && !(isFilled(data.fatherfirsten) && isFilled(data.fatherlasten))) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message:
+                    "For father, provide either the Chinese name or both first and last English names.",
+                path: ["fathernamecn"],
+            });
+        }
+    }
+
+    if (isFilled(data.mothernamecn) || isFilled(data.motherfirsten) || isFilled(data.motherlasten)) {
+        if (!isFilled(data.mothernamecn) && !(isFilled(data.motherfirsten) && isFilled(data.motherlasten))) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message:
+                    "For mother, provide either the Chinese name or both first and last English names.",
+                path: ["mothernamecn"],
+            });
+        }
+    }
+  });
 
 
 export const teacherSchema = z.object({
@@ -173,3 +228,30 @@ export const resetPassSchema = z.object({
     password: passwordSchema.shape.password,
     confirmPassword: passwordSchema.shape.password
 })
+
+
+
+// ------------------------------------------------------------------------------------------------
+// Forgot Password Schemas
+// ------------------------------------------------------------------------------------------------
+export enum ErrorCode {
+  IncorrectEmailPassword = "incorrect-email-password",
+  UserNotFound = "user-not-found",
+  IncorrectPassword = "incorrect-password",
+  UserMissingPassword = "missing-password",
+  IncorrectValidationCode = "incorrect-validation-code",
+  TwoFactorDisabled = "two-factor-disabled",
+  TwoFactorAlreadyEnabled = "two-factor-already-enabled",
+  TwoFactorSetupRequired = "two-factor-setup-required",
+  SecondFactorRequired = "second-factor-required",
+  IncorrectTwoFactorCode = "incorrect-two-factor-code",
+  IncorrectBackupCode = "incorrect-backup-code",
+  MissingBackupCodes = "missing-backup-codes",
+  IncorrectEmailVerificationCode = "incorrect_email_verification_code",
+  InternalServerError = "internal-server-error",
+  NewPasswordMatchesOld = "new-password-matches-old",
+  ThirdPartyIdentityProviderEnabled = "third-party-identity-provider-enabled",
+  RateLimitExceeded = "rate-limit-exceeded",
+  SocialIdentityProviderRequired = "social-identity-provider-required",
+  UserAccountLocked = "user-account-locked",
+}
