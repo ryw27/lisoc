@@ -101,6 +101,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
         const removeFamBalValues = {
             appliedregid: oldReg.regid,
             appliedid: oldReg.familybalanceid || 0, // TODO: Not postgres enforced. 
+            paiddate: toESTString(new Date()),
             seasonid: oldArr.seasonid,
             familyid: oldReg.familyid,
             regfee: (oldArr.waiveregfee ? 0 : -REGISTRATION_FEE).toString(),
@@ -124,6 +125,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             const payFamValues = {
                 appliedregid: oldReg.regid,
                 appliedid: removeOldPrice.balanceid,
+                paiddate: toESTString(new Date()),
                 seasonid: oldArr.seasonid,
                 familyid: oldReg.familyid,
                 regfee: (oldArr.waiveregfee ? REGISTRATION_FEE : 0).toString(),
