@@ -251,11 +251,11 @@ export const arrangement = pgTable("arrangement", {
 			foreignColumns: [teacher.teacherid],
 			name: "fk_arrangement_teacher"
 		}),
-	foreignKey({
-			columns: [table.teacherid],
-			foreignColumns: [legacyTeacher.teacherid],
-			name: "legacy_fk_arrangement_teacher"
-		}),
+	// foreignKey({
+	// 		columns: [table.teacherid],
+	// 		foreignColumns: [legacyTeacher.teacherid],
+	// 		name: "legacy_fk_arrangement_teacher"
+	// 	}),
 	foreignKey({
 			columns: [table.classid],
 			foreignColumns: [classes.classid],
@@ -339,11 +339,11 @@ export const classregistration = pgTable("classregistration", {
 			foreignColumns: [family.familyid],
 			name: "fk_classregistration_familyid"
 		}),
-	foreignKey({
-			columns: [table.familyid],
-			foreignColumns: [legacyFamily.familyid],
-			name: "legacy_fk_classregistration_familyid"
-		}),
+	// foreignKey({
+	// 		columns: [table.familyid],
+	// 		foreignColumns: [legacyFamily.familyid],
+	// 		name: "legacy_fk_classregistration_familyid"
+	// 	}),
 	foreignKey({
 			columns: [table.classid],
 			foreignColumns: [classes.classid],
@@ -392,11 +392,11 @@ export const dutyassignment = pgTable("dutyassignment", {
 			foreignColumns: [family.familyid],
 			name: "fk_dutyassignment_familyid"
 		}),
-	foreignKey({
-			columns: [table.familyid],
-			foreignColumns: [legacyFamily.familyid],
-			name: "legacy_fk_dutyassignment_familyid"
-		}),
+	// foreignKey({
+	// 		columns: [table.familyid],
+	// 		foreignColumns: [legacyFamily.familyid],
+	// 		name: "legacy_fk_dutyassignment_familyid"
+	// 	}),
 	foreignKey({
 			columns: [table.dutystatus],
 			foreignColumns: [dutystatus.dutystatusid],
@@ -562,11 +562,11 @@ export const familybalance = pgTable("familybalance", {
 			foreignColumns: [family.familyid],
 			name: "fk_familybalance_familyid"
 		}),
-	foreignKey({
-			columns: [table.familyid],
-			foreignColumns: [legacyFamily.familyid],
-			name: "legacy_fk_familybalance_familyid"
-		}),
+	// foreignKey({
+	// 		columns: [table.familyid],
+	// 		foreignColumns: [legacyFamily.familyid],
+	// 		name: "legacy_fk_familybalance_familyid"
+	// 	}),
 	foreignKey({
 			columns: [table.seasonid],
 			foreignColumns: [seasons.seasonid],
@@ -758,11 +758,11 @@ export const student = pgTable("student", {
 			foreignColumns: [family.familyid],
 			name: "fk_student_familyid"
 		}),
-	foreignKey({
-			columns: [table.familyid],
-			foreignColumns: [legacyFamily.familyid],
-			name: "legacy_fk_student_familyid"
-		}),
+	// foreignKey({
+	// 		columns: [table.familyid],
+	// 		foreignColumns: [legacyFamily.familyid],
+	// 		name: "legacy_fk_student_familyid"
+	// 	}),
 ]);
 
 export const seasons = pgTable("seasons", {
@@ -813,18 +813,19 @@ export const scorefactors = pgTable("scorefactors", {
 	createon: timestamp({ precision: 3, mode: 'string' }).defaultNow().notNull(),
 	updateby: integer().notNull(),
 	updateon: timestamp({ precision: 3, mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	foreignKey({
-			columns: [table.createby],
-			foreignColumns: [legacyAdminuser.userid],
-			name: "legacy_fk_scorefactors_createby"
-		}),
-	foreignKey({
-			columns: [table.updateby],
-			foreignColumns: [legacyAdminuser.userid],
-			name: "legacy_fk_scorefactors_updateby"
-		}),
-]);
+})
+// }, (table) => [
+// 	// foreignKey({
+// 	// 		columns: [table.createby],
+// 	// 		foreignColumns: [legacyAdminuser.userid],
+// 	// 		name: "legacy_fk_scorefactors_createby"
+// 	// 	}),
+// 	// foreignKey({
+// 	// 		columns: [table.updateby],
+// 	// 		foreignColumns: [legacyAdminuser.userid],
+// 	// 		name: "legacy_fk_scorefactors_updateby"
+// 	// 	}),
+// ]);
 
 export const studentscorecomment = pgTable("studentscorecomment", {
 	scorecommentid: integer().primaryKey().generatedAlwaysAsIdentity({ name: "studentscorecomment_scorecommentid_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
@@ -998,11 +999,11 @@ export const regchangerequest = pgTable("regchangerequest", {
 			foreignColumns: [family.familyid],
 			name: "fk_regchangerequest_familyid"
 		}),
-	foreignKey({
-			columns: [table.familyid],
-			foreignColumns: [legacyFamily.familyid],
-			name: "legacy_fk_regchangerequest_familyid"
-		}),
+	// foreignKey({
+	// 		columns: [table.familyid],
+	// 		foreignColumns: [legacyFamily.familyid],
+	// 		name: "legacy_fk_regchangerequest_familyid"
+	// 	}),
 	foreignKey({
 			columns: [table.reqstatusid],
 			foreignColumns: [requeststatus.reqstatusid],
@@ -1085,11 +1086,11 @@ export const adminuserrole = pgTable("adminuserrole", {
 			foreignColumns: [adminuser.adminid],
 			name: "fk_adminuserrole_adminuser"
 		}),
-	foreignKey({
-			columns: [table.userid],
-			foreignColumns: [legacyAdminuser.userid],
-			name: "legacy_fk_adminuserrole_adminuser"
-		}),
+	// foreignKey({
+	// 		columns: [table.userid],
+	// 		foreignColumns: [legacyAdminuser.userid],
+	// 		name: "legacy_fk_adminuserrole_adminuser"
+	// 	}),
 	foreignKey({
 			columns: [table.roleid],
 			foreignColumns: [adminrole.roleid],
