@@ -6,16 +6,16 @@ import { cn } from "@/lib/utils";
 export function ClientTable<RowShape>({ table }: { table: Table<RowShape> }) {
     return (
         <div className="overflow-x-auto w-full overflow-y-auto">
-            <table className="min-w-full table-fixed relative">
+            <table className="min-w-full table-fixed relative border border-gray-200 rounded-lg shadow-md">
                 {/* Header */}
                 <thead className="border-b border-gray-200">
                     {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}> 
+                        <tr key={headerGroup.id} className="bg-gray-50"> 
                             {headerGroup.headers.map((header) => (
                                 <th 
                                     key={header.id}
                                     className={cn(
-                                        "whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider",
+                                        "whitespace-nowrap cursor-pointer px-3 py-3 text-left font-semibold text-gray-700 text-md tracking-wider",
                                         header.id === 'select' && 'w-12',
                                         header.column.getIsPinned() === 'left' && 'sticky left-0 z-10 bg-white',
                                         header.column.getIsPinned() === 'right' && 'sticky right-0 z-10 bg-white'
