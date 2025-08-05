@@ -7,12 +7,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { forgotPassSchema } from "@/lib/auth/validation";
+import { requestPasswordReset } from "@/lib/auth";
 
-type FPFormParams = {
-    requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<{ ok: boolean, message: string }>;
-}
+// type FPFormParams = {
+//     requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<{ ok: boolean, message: string }>;
+// }
 
-export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
+export default function ForgotPasswordForm() {
     const [busy, setBusy] = useState<boolean>(false);
     const [sentLink, setSentLink] = useState<boolean>(false);
 
@@ -23,34 +24,19 @@ export default function ForgotPasswordForm({ requestReset }: FPFormParams) {
 
     const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
         setBusy(true);
-        const result = await requestReset(data);
-        if (!result.ok && result.message !== "Account does not exist") {
-            fpForm.setError("emailUsername", { message: result.message });
+        const result = await requestPasswordReset(data);
+        if (!result.ok && result.errorMessage !== "Account does not exist") {
+            fpForm.setError("emailUsername", { message: result.errorMessage });
+            // To map through field errors, you can use Object.entries(result.fieldErrors ?? {}) and set errors for each field:
+            Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) => {
+                if (messages && messages.length > 0) {
+                    // @ts-expect-error: field is dynamically typed and matches form field keys
+                    fpForm.setError(field, { message: messages[0] });
+                }
+            });
         } else {
             setSentLink(true);
         }
-        // try {
-        //     setBusy(true);
-        //     const result = await requestReset(data);
-        //     if (result.ok) {
-        //         setSentLink(true);
-        //     } else {
-        //         fpForm.setError("emailUsername", { message: result.message });
-        //     }
-        // } catch (error) {
-        //     console.log("here in error");
-        //     if (error instanceof Error) {
-        //         if (error.message === "Account does not exist") {
-        //             setSentLink(true);
-        //         } else {
-        //             fpForm.setError("emailUsername", { message: error.message });
-        //         }
-        //     } else {
-        //         fpForm.setError("emailUsername", { message: "An unexpected error occurred. Please try again." });
-        //     }
-        // } finally {
-        //     setBusy(false);
-        // }
     }
 
     const tryFPAgain = () => {
