@@ -7,6 +7,7 @@ export default async function ResetPassword({
 }: {
     searchParams: Promise<{ token?: string, email?: string}>
 }) {
+    console.log("ResetPassword page");
     const params = await searchParams
     if (!params.token || !params.email) {
         return notFound();
