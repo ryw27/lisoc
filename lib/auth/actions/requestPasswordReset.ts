@@ -1,57 +1,56 @@
 "use server";
 import { forgotPassSchema } from "../validation";
 import { emailSchema, usernameSchema } from "../validation";
-import { db } from "@/lib/db";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { pgadapter } from "../auth";
 import { checkExistence, sendFPEmail } from "../helpers";
 import { v4 as uuid } from "uuid";
+import { safeAction } from "@/lib/safeAction";
 
-export async function requestPasswordReset(data: z.infer<typeof forgotPassSchema>) {
-    const fpCheck = forgotPassSchema.parse(data);
-    const input = fpCheck.emailUsername;
+export const requestPasswordReset = safeAction(
+    forgotPassSchema,
+    async function(data: z.infer<typeof forgotPassSchema>) {
+        // Validate input using schema
+        const { emailUsername } = forgotPassSchema.parse(data);
 
-    // Check if input is an email or username
-    const isEmail = emailSchema.safeParse({ email: input }).success;
-    const isUsername = usernameSchema.safeParse({ username: input }).success;
-    
-    let userEmail: string | null = null;
-    
-    if (isEmail) {
-        // Input is an email
-        const emailExists = await checkExistence(input, "email");
-        if (!emailExists) {
-            throw new Error("Account does not exist")
+        // Determine if input is an email or username
+        const isEmail = emailSchema.safeParse({ email: emailUsername }).success;
+        const isUsername = usernameSchema.safeParse({ username: emailUsername }).success;
+
+        let userEmail: string | null = null;
+
+        if (isEmail) {
+            // Input is an email, check existence
+            const exists = await checkExistence(emailUsername, "email");
+            if (!exists) {
+                throw new Error("Account does not exist");
+            }
+            userEmail = emailUsername;
+        } else if (isUsername) {
+            // Input is a username, check existence and resolve to email
+            const exists = await checkExistence(emailUsername, "name");
+            if (!exists) {
+                throw new Error("Account does not exist");
+            }
+            // Optionally, resolve username to email if needed
+            userEmail = emailUsername;
+        } else {
+            throw new Error("Invalid Email or Username");
         }
-        userEmail = input;
-    } else if (isUsername) {
-        // Input is a username - need to find the associated email
-        const user = await db.query.users.findFirst({
-            where: (u, { eq }) => eq(u.name, input)
+
+        // Generate a unique verification token
+        const token = uuid();
+
+        const result = await pgadapter.createVerificationToken({
+            token,
+            identifier: userEmail,
+            expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
         });
-        
-        if (!user) {
-            throw new Error("Account does not exist")
+
+        if (!result) {
+            throw new Error("Database error")
         }
-        console.log(user);
-        userEmail = user.email;
-    } else {
-        throw new Error("Invalid Email or Username")
+
+        await sendFPEmail(userEmail, token);
     }
-
-    // await db
-    //     .update(users)
-    //     .set({ ischangepwdnext: true})
-    //     .where(eq(users.email, userEmail!))
-
-    const uuidCode = uuid();
-    console.log("identifier", userEmail)
-
-    await pgadapter.createVerificationToken({
-        token: uuidCode,
-        identifier: userEmail!,
-        expires: new Date(Date.now() + 1000 * 60 * 15) 
-    });
-
-    await sendFPEmail(userEmail!, uuidCode);
-}
+)
