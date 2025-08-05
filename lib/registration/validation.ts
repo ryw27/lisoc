@@ -1,4 +1,4 @@
-import { z } from "zod/v4"
+import { z } from "zod";
 import { arrangementSchema } from "@/lib/shared/validation"
 import { createInsertSchema } from "drizzle-zod";
 import { classregistration } from "@/lib/db/schema";

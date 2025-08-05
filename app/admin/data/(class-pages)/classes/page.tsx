@@ -33,13 +33,13 @@ export default async function ClassesPage({
             columns={classColumns}
             totalCount={totalCount}
             tableName="classes"
-            addLink="/admintest/dashboard/data/classes/add"
+            addLink="/admin/dashboard/data/classes/add"
             addText="Add Class"
             deleteAction={deleteClassRows}
             primaryKey="classid"
             navTabs={[
-                { label: 'Classes', href: '/admintest/dashboard/classes' },
-                { label: 'Classrooms', href: '/admintest/dashboard/classrooms' },
+                { label: 'Classes', href: '/admin/dashboard/classes' },
+                { label: 'Classrooms', href: '/admin/dashboard/classrooms' },
             ]}
         />
     )

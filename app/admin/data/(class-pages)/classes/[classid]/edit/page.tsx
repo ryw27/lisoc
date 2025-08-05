@@ -125,7 +125,7 @@ export default async function ClassEditPage({
             title="Edit Class"
             fields={classFields}
             submitAction={handleSubmit}
-            gobacklink={`/admintest/dashboard/data/classes/${classId}`}
+            gobacklink={`/admin/dashboard/data/classes/${classId}`}
             error={error}
         />
     )

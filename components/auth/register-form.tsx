@@ -206,7 +206,7 @@ export default function RegisterForm({
             {step === "PROFILE" && (
                 <div className="flex flex-col bg-white p-2 w-1/3 space-y-4">
                     <h1 className="flex justify-center items-center font-bold mb-4">Step 4/4 - Profile Setup</h1>
-                    {isTeacher ? <TeacherForm registerData={credentials!} fullRegister={fullRegister} /> : <FamilyForm registerData={credentials!} fullRegister={fullRegister} />}
+                    {isTeacher ? <TeacherForm registerData={credentials!} fullRegister={fullRegister} /> : <FamilyForm registerData={credentials!} />}
                 </div>
             )}
         </main>

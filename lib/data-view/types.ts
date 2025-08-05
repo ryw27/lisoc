@@ -1,11 +1,11 @@
 import * as schema from "@/lib/db/schema"
-import { AnyPgColumn } from "drizzle-orm/pg-core";
+import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 import { InferSelectModel } from "drizzle-orm";
-import { z, ZodSchema } from "zod";
+import { z, ZodType } from "zod";
 import { ColumnDef } from "@tanstack/react-table";
 
 // ------------------------------------------------------------------------------
-// Possibly overkill
+// Probably overkill
 // ------------------------------------------------------------------------------
 
 // Primary key map
@@ -69,202 +69,212 @@ export const primKeyMap = {
 } as const;
 
 // Do the same for foreign key maps. This is all for strict compile-time type safety!! YEAH 
-export const fkMap = {
-  accounts: {},
-  sessions: {},
-  adminrole: {},
-  errorlog: {},
-  users: {},
-  family: {
-    userid: { table: "users", column: "id" },
-  },
-  adminuser: {
-    userid: { table: "users", column: "id" },
-  },
-  legacyAdminuser: {},
-  paypalrecord: {},
-  scorecode: {},
-  teacher: {
-    userid: { table: "users", column: "id" },
-  },
-  legacyTeacher: {},
-  seatnum: {},
-  supports: {},
-  seasons: {},
-  arrangement: {
-    seasonid: { table: "seasons", column: "seasonid" },
-    classid: { table: "classes", column: "classid" },
-    teacherid: { table: "teacher", column: "teacherid" },
-    roomid: { table: "classrooms", column: "roomid" },
-    timeid: { table: "classtime", column: "timeid" },
-    suitableterm: { table: "suitableterm", column: "termno" },
-  },
-  classes: {
-    ageid: { table: "agerestriction", column: "ageid" },
-    typeid: { table: "classtype", column: "typeid" },
-    classupid: { table: "classes", column: "classid" },
-  },
-  agelist: {},
-  classrooms: {},
-  classtime: {},
-  suitableterm: {},
-  agerestriction: {},
-  classtype: {
-    ageid: { table: "agerestriction", column: "ageid" },
-  },
-  student: {
-    familyid: { table: "family", column: "familyid" },
-  },
-  classregistration: {
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    classid: { table: "classes", column: "classid" },
-    statusid: { table: "regstatus", column: "regstatusid" },
-    familyid: { table: "family", column: "familyid" },
-  },
-  regstatus: {},
-  familybalance: {
-    seasonid: { table: "seasons", column: "seasonid" },
-    familyid: { table: "family", column: "familyid" },
-    typeid: { table: "familybalancetype", column: "typeid" },
-    statusid: { table: "familybalancestatus", column: "statusid" },
-  },
-  dutyassignment: {
-    familyid: { table: "family", column: "familyid" },
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    dutystatus: { table: "dutystatus", column: "dutystatusid" },
-  },
-  dutystatus: {},
-  parentdutyPb: {
-    familyid: { table: "family", column: "familyid" },
-    studentid: { table: "student", column: "studentid" },
-    committeeid: { table: "dutycommittee", column: "dcid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-  },
-  familybalancetype: {},
-  familybalancestatus: {},
-  feedback: {
-    familyid: { table: "family", column: "familyid" },
-  },
-  feelist: {
-    seasonid: { table: "seasons", column: "seasonid" },
-  },
-  dutycommittee: {},
-  regchangerequest: {
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    oriregstatusid: { table: "regstatus", column: "regstatusid" },
-    regstatusid: { table: "regstatus", column: "regstatusid" },
-    reqstatusid: { table: "requeststatus", column: "reqstatusid" },
-    familyid: { table: "family", column: "familyid" },
-  },
-  schoolcalendar: {
-    seasonid: { table: "seasons", column: "seasonid" },
-  },
-  scorefactors: {},
-  studentscore: {
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    classid: { table: "classes", column: "classid" },
-    factorid: { table: "scorefactors", column: "factorid" },
-  },
-  scoredetail: {
-    scoreid: { table: "studentscore", column: "scoreid" },
-  },
-  studentscorecomment: {
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    classid: { table: "classes", column: "classid" },
-    scoreid: { table: "studentscore", column: "scoreid" },
-  },
-  studentscorefactor: {
-    scoreid: { table: "studentscore", column: "scoreid" },
-    factorid: { table: "scorefactors", column: "factorid" },
-  },
-  studentscorerating: {
-    studentid: { table: "student", column: "studentid" },
-    seasonid: { table: "seasons", column: "seasonid" },
-    classid: { table: "classes", column: "classid" },
-    ratingfactorid: { table: "scoreratingfactors", column: "ratingfactorid" },
-    ratingid: { table: "scorerating", column: "ratingid" },
-  },
-  scoreratingfactors: {},
-  scorerating: {},
-  requeststatus: {},
-  legacyFamily: {},
-  verificationToken: {},
-  adminuserrole: {
-    userid: { table: "adminuser", column: "adminid" },
-    roleid: { table: "adminrole", column: "roleid" },
-  },
-  registration_drafts: {},
-  menu: {},
-  paypalStatus: {},
-  paypalrecordImport: {},
-  tempclass: {}
-} as const;
+// This is basically ridiculous lol. idk how to get it to work anyway
+
+// export const fkMap = {
+//   accounts: {},
+//   sessions: {},
+//   adminrole: {},
+//   errorlog: {},
+//   users: {},
+//   family: {
+//     userid: { table: "users", column: "id" },
+//   },
+//   adminuser: {
+//     userid: { table: "users", column: "id" },
+//   },
+//   legacyAdminuser: {},
+//   paypalrecord: {},
+//   scorecode: {},
+//   teacher: {
+//     userid: { table: "users", column: "id" },
+//   },
+//   legacyTeacher: {},
+//   seatnum: {},
+//   supports: {},
+//   seasons: {},
+//   arrangement: {
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     classid: { table: "classes", column: "classid" },
+//     teacherid: { table: "teacher", column: "teacherid" },
+//     roomid: { table: "classrooms", column: "roomid" },
+//     timeid: { table: "classtime", column: "timeid" },
+//     suitableterm: { table: "suitableterm", column: "termno" },
+//   },
+//   classes: {
+//     ageid: { table: "agerestriction", column: "ageid" },
+//     typeid: { table: "classtype", column: "typeid" },
+//     classupid: { table: "classes", column: "classid" },
+//   },
+//   agelist: {},
+//   classrooms: {},
+//   classtime: {},
+//   suitableterm: {},
+//   agerestriction: {},
+//   classtype: {
+//     ageid: { table: "agerestriction", column: "ageid" },
+//   },
+//   student: {
+//     familyid: { table: "family", column: "familyid" },
+//   },
+//   classregistration: {
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     classid: { table: "classes", column: "classid" },
+//     statusid: { table: "regstatus", column: "regstatusid" },
+//     familyid: { table: "family", column: "familyid" },
+//   },
+//   regstatus: {},
+//   familybalance: {
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     familyid: { table: "family", column: "familyid" },
+//     typeid: { table: "familybalancetype", column: "typeid" },
+//     statusid: { table: "familybalancestatus", column: "statusid" },
+//   },
+//   dutyassignment: {
+//     familyid: { table: "family", column: "familyid" },
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     dutystatus: { table: "dutystatus", column: "dutystatusid" },
+//   },
+//   dutystatus: {},
+//   parentdutyPb: {
+//     familyid: { table: "family", column: "familyid" },
+//     studentid: { table: "student", column: "studentid" },
+//     committeeid: { table: "dutycommittee", column: "dcid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//   },
+//   familybalancetype: {},
+//   familybalancestatus: {},
+//   feedback: {
+//     familyid: { table: "family", column: "familyid" },
+//   },
+//   feelist: {
+//     seasonid: { table: "seasons", column: "seasonid" },
+//   },
+//   dutycommittee: {},
+//   regchangerequest: {
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     oriregstatusid: { table: "regstatus", column: "regstatusid" },
+//     regstatusid: { table: "regstatus", column: "regstatusid" },
+//     reqstatusid: { table: "requeststatus", column: "reqstatusid" },
+//     familyid: { table: "family", column: "familyid" },
+//   },
+//   schoolcalendar: {
+//     seasonid: { table: "seasons", column: "seasonid" },
+//   },
+//   scorefactors: {},
+//   studentscore: {
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     classid: { table: "classes", column: "classid" },
+//     factorid: { table: "scorefactors", column: "factorid" },
+//   },
+//   scoredetail: {
+//     scoreid: { table: "studentscore", column: "scoreid" },
+//   },
+//   studentscorecomment: {
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     classid: { table: "classes", column: "classid" },
+//     scoreid: { table: "studentscore", column: "scoreid" },
+//   },
+//   studentscorefactor: {
+//     scoreid: { table: "studentscore", column: "scoreid" },
+//     factorid: { table: "scorefactors", column: "factorid" },
+//   },
+//   studentscorerating: {
+//     studentid: { table: "student", column: "studentid" },
+//     seasonid: { table: "seasons", column: "seasonid" },
+//     classid: { table: "classes", column: "classid" },
+//     ratingfactorid: { table: "scoreratingfactors", column: "ratingfactorid" },
+//     ratingid: { table: "scorerating", column: "ratingid" },
+//   },
+//   scoreratingfactors: {},
+//   scorerating: {},
+//   requeststatus: {},
+//   legacyFamily: {},
+//   verificationToken: {},
+//   adminuserrole: {
+//     userid: { table: "adminuser", column: "adminid" },
+//     roleid: { table: "adminrole", column: "roleid" },
+//   },
+//   registration_drafts: {},
+//   menu: {},
+//   paypalStatus: {},
+//   paypalrecordImport: {},
+//   tempclass: {}
+// } as const;
 
 // ------------------------------------------------------------------------------
 // Table Name types
 // ------------------------------------------------------------------------------
-export type TableName = keyof typeof schema; // Names of tables that have primary keys defined
-export type Table<N extends TableName> = (typeof schema)[N]; // Concrete table type, PgTableWithColumns<Class>, PgTableWithColumns<AdminRole>, etc.
+// export type TableName = keyof typeof schema; // Names of tables that have primary keys defined
+// export type Table<N extends TableName> = (typeof schema)[N]; // Concrete table type, PgTableWithColumns<Class>, PgTableWithColumns<AdminRole>, etc.
+export type Table = (typeof schema)[keyof typeof schema]
 
 // Union type of all column names for a table. i.e. "classnamecn" | "classnameeng" | "classid" | ...
-export type ColKey<N extends TableName, T extends Table<N>> = { [K in keyof T]: T[K] extends AnyPgColumn ? K : never }[keyof T] & string;
+export type ColKey<T extends Table> = { [K in keyof T]: T[K] extends AnyPgColumn ? K : never }[keyof T] & string;
 // Union type of the types of the columns, i.e. (corresponding to top comment): string | string | number
-export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N, T>> = (T[K] extends AnyPgColumn ? T[K]["_"]["data"] : never)
+export type ColVal<T extends Table, K extends ColKey<T>> = (T[K] extends AnyPgColumn ? T[K]["_"]["data"] : never)
 // export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N, T>> = K extends keyof T["$inferSelect"] ? T["$inferSelect"][K] : never;
 
 // Primary key name for a table. i.e. "roleid" | "classid" | ... 
-export type PKName<N extends TableName, T extends Table<N>> = (typeof primKeyMap)[N] & keyof T;
+export type PKName<T extends Table> = (typeof primKeyMap)[keyof typeof primKeyMap] & keyof T;
 
 // Primary key value type for a table.  i.e. number | string | ...
 
-export type PKVal<N extends TableName> =
+export type PKVal<T extends Table> =
   // distribute over each concrete N
-  N extends TableName
+  T extends AnyPgTable
     ? (
         // look up the row shape of THIS table
         // Parentheses tells compiler to look at the internal type as fully resolved, so it's not treating it as a union type anymore
-        InferSelectModel<Table<N>>
+        InferSelectModel<T>
         // index it with THIS table's PK literal
-      )[PKName<N, Table<N>> &
-        keyof InferSelectModel<Table<N>> /* safety &'ing two different things produces never, make sure PKName is a key of the table */]
+      )[PKName<T> &
+        keyof InferSelectModel<T> /* safety &'ing two different things produces never, make sure PKName is a key of the table */]
     : never;
 
 // Names of Foreign keys on a table
-export type FKCol<N extends TableName> = keyof (typeof fkMap)[N] & string;
+// export type FKCol<T extends Table> = keyof (typeof fkMap)[
+//   // Find the key in fkMap that matches the table name of T
+//   {
+//     [K in keyof typeof schema]: T extends (typeof schema)[K] ? K : never
+//   }[keyof typeof schema]
+// ] & string;
 
-// I'm pretty sure it's always number lol
-export type FKVal<N extends TableName, K extends FKCol<N>> = (typeof fkMap)[N][K];
+// // I'm pretty sure it's always number lol
+// export type FKVal<T extends Table, K extends FKCol<T>> = (typeof fkMap)[T][K];
 
 
 
       
-export type Extras<N extends TableName, T extends Table<N>> = {[K in ColKey<N, T>]?: ColVal<N,T,K>};
+export type Extras<T extends Table> = {[K in ColKey<T>]?: ColVal<T,K>};
 
+// Unecesary
+// export type creationFields = 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'
 
-export type creationFields = 'createby' | 'updateby' | 'createon' | 'updateon' | 'lastmodify'
+// Unecessary
+// export type uniqueCheckFields<T extends Table, FormSchema extends ZodType> = {
+// 	tableCol: ColKey<T>;
+// 	formCol?: keyof z.infer<FormSchema>;
+// 	wantedValue?: string | number;
+// }
 
-export type uniqueCheckFields<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema> = {
-	tableCol: ColKey<N, T>;
-	formCol?: keyof z.infer<FormSchema>;
-	wantedValue?: string | number;
-}
+// Unecessary
+// export type enrichField<T extends Table, FormSchema extends ZodType> = {
+// 	formField: keyof z.infer<FormSchema>;
+// 	lookupTable: keyof typeof fkMap;
+// 	lookupField: ColKey<T>; // Column name - will be validated at runtime
+// 	returnField: ColKey<T>; // Column name - will be validated at runtime
+// }
 
-export type enrichField<FKN extends TableName, T extends Table<FKN>, FormSchema extends ZodSchema> = {
-	formField: keyof z.infer<FormSchema>;
-	lookupTable: FKN;
-	lookupField: ColKey<FKN, T>; // Column name - will be validated at runtime
-	returnField: ColKey<FKN, T>; // Column name - will be validated at runtime
-}
-
-// Simple array type for better developer experience
-export type enrichFields<FormSchema extends ZodSchema> = {
-	[FKN in TableName]: enrichField<FKN, Table<FKN>, FormSchema>
-}[TableName]
+// // Simple array type for better developer experience
+// export type enrichFields<FormSchema extends ZodType> = {
+// 	[T in keyof typeof schema]: enrichField<typeof schema[T], FormSchema>
+// }[keyof typeof schema]
 
 // ------------------------------------------------------------------------------
 // Paramater + filter types
@@ -324,11 +334,11 @@ export interface ColumnMetaFilter {
 
 // Filterable column for the data table. Ensure existence of filter field. 
 // Use this instead of ColumnDef everywhere.
-export type FilterableColumn<TData> =
-  ColumnDef<TData, unknown>   // TanStack's generic column
-  & { id: string           // force this to exist
-      meta: ColumnMetaFilter,  
+export type FilterableColumn<TData> = ColumnDef<TData> & {
+	meta: ColumnMetaFilter
 }
+
+
 
 
 // The only unique things you need for each entity are form schema, header names, main path, and enrich/unique/extras 
@@ -338,19 +348,33 @@ export type FilterableColumn<TData> =
 // formSchema: The Zod schema for the form
 // mainPath: The path to revalidate
 // ops: An object encompassing all CRUD operations for the table
-export interface EntityConfig<N extends TableName, T extends Table<N>> {
-    table: T; // The table object, i.e. classes, adminrole, etc.
-    tableName: N; // The name of the table, i.e. classes, adminrole, etc.
-    primaryKey: PKName<N, T>; // The name of the primary key column, i.e. classid, roleid, etc.
-    formSchema: ZodSchema; // The Zod schema for the form, used for editing, adding, and updating
-    mainPath: string; // The path to revalidate, used for revalidating the page after a mutation
-    columns: FilterableColumn<InferSelectModel<T>>[]; // The column definitions for the table, used for the table headers and filtering
-    ops: {
-        allRows: () => Promise<InferSelectModel<T>[]>; // Get all rows from the table
-        idRow: (id: PKVal<N>) => Promise<InferSelectModel<T>>; // Get a row from the table by its primary key
-        pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>; // Get rows from the table with pagination
-        insertRow: (formData: FormData) => Promise<void>; // Insert a new row into the table
-        updateRow: (id: PKVal<N>, formData: FormData) => Promise<void>; // Update a row in the table
-        deleteRows: (id: PKVal<N>[]) => Promise<InferSelectModel<T>[]>; // Delete a row from the table
-    }
+
+export interface EntityConfig<T extends Table> {
+	table: T,
+	formSchema: ZodType,
+	columns: FilterableColumn<(InferSelectModel<T>)>[],
+	ops: {
+		allRows: () => Promise<InferSelectModel<T>[]>;
+		idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>;
+		pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>;
+		insertRow: (formData: FormData) => Promise<void>;
+		updateRow: (id: PKVal<T>, formData: FormData) => Promise<void>;
+		deleteRows: (id: PKVal<T>[]) => Promise<InferSelectModel<T>[]>;
+	}
 }
+// export interface EntityConfig<T extends Table> {
+//     table: T; // The table object, i.e. classes, adminrole, etc.
+//     tableName: keyof typeof schema; // The name of the table, i.e. classes, adminrole, etc.
+//     primaryKey: PKName<T>; // The name of the primary key column, i.e. classid, roleid, etc.
+//     formSchema: ZodType; // The Zod schema for the form, used for editing, adding, and updating
+//     mainPath: string; // The path to revalidate, used for revalidating the page after a mutation
+//     columns: FilterableColumn<InferSelectModel<T>>[]; // The column definitions for the table, used for the table headers and filtering
+//     ops: {
+//         allRows: () => Promise<InferSelectModel<T>[]>; // Get all rows from the table
+//         idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>; // Get a row from the table by its primary key
+//         pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>; // Get rows from the table with pagination
+//         insertRow: (formData: FormData) => Promise<void>; // Insert a new row into the table
+//         updateRow: (id: PKVal<T>, formData: FormData) => Promise<void>; // Update a row in the table
+//         deleteRows: (id: PKVal<T>[]) => Promise<InferSelectModel<T>[]>; // Delete a row from the table
+//     }
+// }

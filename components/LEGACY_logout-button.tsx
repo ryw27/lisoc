@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 export default function LogoutButton() {
     const router = useRouter();
     const handleLogout = () => {
-        console.log("Logging out");
         signOut({
             callbackUrl: "/",
         });

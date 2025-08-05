@@ -7,12 +7,13 @@ import { z } from 'zod';
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { fullRegisterFamily } from '@/lib/auth/';
 
 export default function FamilyForm({
-    fullRegister,
+    // fullRegister,
     registerData
 }: {
-    fullRegister: (data: z.infer<typeof familySchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
+    // fullRegister: (data: z.infer<typeof familySchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
     registerData: z.infer<typeof nameEmailSchema>;
 }) {
     const [error, setError] = useState<string | null>();
@@ -25,29 +26,25 @@ export default function FamilyForm({
             state: "NY"
         }
     });
-    console.log(familyForm.formState.errors);
 
     const onSubmit = async (data: z.infer<typeof familySchema>) => {
-        try {
-            // console.log(familyForm.getValues());
-            // console.log("data", data);
-            await fullRegister(data, registerData, false);
+        const result = await fullRegisterFamily({
+            fullData: data,
+            regData: registerData,
+            isTeacher: false
+        });
+
+        if (!result.ok) {
+            Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) => {
+                if (messages && messages.length > 0) {
+                    // @ts-expect-error: field is dynamically typed and matches form field keys
+                    fpForm.setError(field, { message: messages[0] });
+                }
+            });
+            setError(result.errorMessage ?? "Unknown error occured. Please try again or contact regadmin");
+            return;
+        } else {
             router.push("/dashboard");
-        } catch (error) {
-            console.error(error);
-            if (error instanceof z.ZodError) {
-                error.issues.map((e) => {
-                    if (e.path[0] === "root") {
-                        setError(e.message);
-                    } else {
-                        familyForm.setError(e.path as unknown as keyof z.infer<typeof familySchema>, { message: e.message });
-                    }
-                })
-            } else if (typeof error === "string") {
-                setError(error);
-            } else {
-                setError("Unknown error occured. Please try again or contact regadmin");
-            }
         }
     };
 
@@ -156,7 +153,7 @@ export default function FamilyForm({
                         </label>
                         <Select
                             defaultValue={familyForm.watch('state') || 'NY'}
-                            onValueChange={value => familyForm.setValue('state', value, { shouldValidate: true })}
+                            onValueChange={(value: string) => familyForm.setValue('state', value, { shouldValidate: true })}
                             required={true}
                         >
                             <SelectTrigger id="state" className="rounded-sm mb-3 px-2 py-4 !text-base h-9 w-full">

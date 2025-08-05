@@ -98,7 +98,7 @@ export default async function AddClass({
     return (
         <AddEntity
             title="Add a new class"
-            description="Fill out the form below to add a new class. Be sure to double check your inputs before saving. Note that this form is for one-off classes. For adding classes to a semester, go to Semester Management."
+            description="Fill out the form below to add a new class."
             fields={fields}
             submitAction={insertClassRow}
             error={error}

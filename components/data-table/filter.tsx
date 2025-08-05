@@ -142,6 +142,7 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
             const match = rawKey.match(/^(.*?)(\[(?:gte|lte|gt|lt)\])?$/); // remove the suffixes if exists
             if (!match) console.error("No matching column found from search paramter parsing");
             let [, baseCol, suffix] = match as [string, string, string];
+            // Checks if this is a true or false value
             if (rawVal === 'false' || rawVal === 'true') {
                 const boolMatch = rawKey.split('_')[0];
                 if (!boolMatch) {
@@ -155,7 +156,12 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
             // Nothing to do with filtering
             if (baseCol === 'match' || baseCol === 'page' 
                 || baseCol == 'pageSize' || baseCol == 'sortBy' || baseCol == 'sortOrder') return;
-            
+
+            if (!columns.some(col => col.id === baseCol)) {
+                // baseCol is not a valid column key for this data type
+                return;
+            }
+
             // Get the column
             const col = columns.find((c) => c.id === baseCol);
             if (!col) console.error("No matching column id found while parsing search paramters");

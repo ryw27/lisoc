@@ -98,7 +98,7 @@ export default function TeacherForm({
                         </label>
                         <Select
                             defaultValue={form.watch('state') || 'NY'}
-                            onValueChange={value => form.setValue('state', value, { shouldValidate: true })}
+                            onValueChange={(value: string) => form.setValue('state', value, { shouldValidate: true })}
                         >
                             <SelectTrigger id="state" className="rounded-sm mb-3 px-2 py-4 !text-base h-9 w-full">
                                 <SelectValue placeholder="Select a state" />

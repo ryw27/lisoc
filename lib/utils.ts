@@ -77,3 +77,13 @@ export const requestStatusMap = {
 	[REQUEST_STATUS_APPROVED]: "Approved",
 	[REQUEST_STATUS_REJECTED]: "Rejected",
 } satisfies Record<number, string>
+
+
+// Class Type
+export const classTypeMap = {
+	1: { typenameen: "Stardard Chinese", typenamecn: "标准中文" },
+	2: { typenameen: "Ma Liping Chinese", typenamecn: "马立平中文" },
+	3: { typenameen: "Culture (Adult)", typenamecn: "成人文体课" },
+	4: { typenameen: "Culture (Child)", typenamecn: "少儿文体课" },
+	5: { typenameen: "English(1)", typenamecn: "双语班" },
+} satisfies Record<number, { typenameen: string; typenamecn: string }>;

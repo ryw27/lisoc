@@ -1,13 +1,13 @@
 import { TableName, Table, PKName, enrichFields, uniqueCheckFields, Extras, FilterableColumn, EntityConfig } from '../../types';
 import { makeOperations } from './makeOperations';
-import { ZodSchema } from 'zod';
+import { ZodType } from 'zod';
 import { InferSelectModel } from 'drizzle-orm';
 
 // Some possible TODOS:
 // 1. Safe Parse for better handling
 // 2. Caching and more efficency 
 
-interface makeEntityProps<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema> {
+interface makeEntityProps<N extends TableName, T extends Table<N>, FormSchema extends ZodType> {
     table: T;
     tableName: N;
     primaryKey: PKName<N, T>;
@@ -20,7 +20,7 @@ interface makeEntityProps<N extends TableName, T extends Table<N>, FormSchema ex
     columns: FilterableColumn<InferSelectModel<T>>[];
 }
 
-export function makeEntity<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema = ZodSchema>(
+export function makeEntity<N extends TableName, T extends Table<N>, FormSchema extends ZodType>(
     {
         table,
         tableName,
