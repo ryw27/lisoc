@@ -1,5 +1,5 @@
 "use client";
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { emailSchema } from '@/lib/auth/validation';
 import { useState, useRef, useEffect } from 'react';
 

@@ -3,7 +3,7 @@ import { FormSubmit, FormInput, FormError } from "./form-components"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { resetPassSchema } from "@/lib/auth/validation"
-import { z } from "zod"
+import { z } from "zod/v4"
 import { useState } from "react";
 import Logo from "@/components/logo";
 import { useRouter } from "next/navigation";

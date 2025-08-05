@@ -1,7 +1,7 @@
 import { checkRegCode, requestRegCode, registerDraftFamily, fullRegisterFamily, resendCode } from '@/lib/auth';
 import RegisterForm from '@/components/auth/register-form';
 import { db } from '@/lib/db';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 
 export default async function RegisterPage({
