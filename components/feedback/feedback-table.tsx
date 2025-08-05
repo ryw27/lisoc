@@ -1,6 +1,6 @@
 "use client";
 import { feedback } from "@/lib/db/schema";
-import { flexRender, ColumnDef, getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from "@tanstack/react-table";
+import { flexRender, ColumnDef, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, Row } from "@tanstack/react-table";
 import { InferSelectModel } from "drizzle-orm";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -82,84 +82,88 @@ export const feedbackCols: ColumnDef<FeedbackRow>[] = [
     },
 ] 
 
+function HandleCell(props: { row: Row<FeedbackRow> }) {
+    const [message, setMessage] = useState<string>('');
+    const [open, setOpen] = useState<boolean>(false)
+    const [busy, setBusy] = useState<boolean>(false);
+
+    const recid = props.row.original.recid;
+
+    const handleSend = async () => {
+        if (!message.trim()) return;
+        setBusy(true);
+        await ReplyFeedback(recid, message);
+        setMessage('');
+        setBusy(false);
+        setOpen(false);
+    };
+
+    return (
+        <div className="flex gap-2">
+            <Popover open={open}>
+                <PopoverTrigger asChild>
+                    <button className="cursor-pointer" title="Reply with email" type="button" onClick={() => setOpen(true)}>
+                        <Reply className="w-5 h-5 text-green-800 font-bold" />
+                    </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-80 p-4">
+                    <div className="flex flex-col">
+                        <h2 className="text-gray-800 text-sm font-semibold">
+                            Write your message here
+                        </h2>
+                        <p className="text-gray-600 text-sm mb-2">
+                            The system will automatically send an email
+                        </p>
+                        <Textarea
+                            id={`Reply-${recid}`}
+                            name={`Reply-${recid}`}
+                            value={message}
+                            onChange={e => setMessage(e.target.value)}
+                        />
+                        <div className="flex items-center gap-1 self-end mt-2">
+                            <button
+                                className="rounded-md border-2 border-gray-300 p-2 font-bold text-xs cursor-pointer"
+                                type="button"
+                                onClick={() => setOpen(false)}
+                                disabled={busy}
+                                aria-disabled={busy}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                className={cn(
+                                    "rounded-md bg-blue-600 text-white p-2 font-bold text-xs cursor-pointer flex items-center justify-center",
+                                    busy && "opacity-60 cursor-not-allowed"
+                                )}
+                                type="button"
+                                onClick={handleSend}
+                                disabled={!message.trim() || busy}
+                                aria-busy={busy}
+                            >
+                                {busy ? (
+                                    <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                ) : null}
+                                {busy ? "Sending..." : "Send"}
+                            </button>
+                        </div>
+                    </div>
+                </PopoverContent>
+            </Popover>
+            <button onClick={() => markFeedbackDone({ recid })} className="cursor-pointer" title="Mark as done" type="button">
+                <Check className="w-5 h-5 text-green-400 font-bold"/>
+            </button>
+        </div>
+    );
+}
+
 const handleColumn: ColumnDef<FeedbackRow>[] = [
     {
         accessorKey: "handle",
         cell(props) {
-            const [message, setMessage] = useState<string>('');
-            const [open, setOpen] = useState<boolean>(false)
-            const [busy, setBusy] = useState<boolean>(false);
-
-            const recid = props.row.original.recid;
-
-            const handleSend = async () => {
-                if (!message.trim()) return;
-                setBusy(true);
-                await ReplyFeedback(recid, message);
-                setMessage('');
-                setBusy(false);
-                setOpen(false);
-            };
-
-            return (
-                <div className="flex gap-2">
-                    <Popover open={open}>
-                        <PopoverTrigger asChild>
-                            <button className="cursor-pointer" title="Reply with email" type="button" onClick={() => setOpen(true)}>
-                                <Reply className="w-5 h-5 text-green-800 font-bold" />
-                            </button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-80 p-4">
-                            <div className="flex flex-col">
-                                <h2 className="text-gray-800 text-sm font-semibold">
-                                    Write your message here
-                                </h2>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    The system will automatically send an email
-                                </p>
-                                <Textarea
-                                    id={`Reply-${recid}`}
-                                    name={`Reply-${recid}`}
-                                    value={message}
-                                    onChange={e => setMessage(e.target.value)}
-                                />
-                                <div className="flex items-center gap-1 self-end mt-2">
-                                    <button
-                                        className="rounded-md border-2 border-gray-300 p-2 font-bold text-xs cursor-pointer"
-                                        type="button"
-                                        onClick={() => setOpen(false)}
-                                        disabled={busy}
-                                        aria-disabled={busy}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        className={cn(
-                                            "rounded-md bg-blue-600 text-white p-2 font-bold text-xs cursor-pointer flex items-center justify-center",
-                                            busy && "opacity-60 cursor-not-allowed"
-                                        )}
-                                        type="button"
-                                        onClick={handleSend}
-                                        disabled={!message.trim() || busy}
-                                        aria-busy={busy}
-                                    >
-                                        {busy ? (
-                                            <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                            </svg>
-                                        ) : null}
-                                        {busy ? "Sending..." : "Send"}
-                                    </button>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    <button onClick={() => markFeedbackDone({ recid })} className="cursor-pointer" title="Mark as done" type="button">
-                        <Check className="w-5 h-5 text-green-400 font-bold"/>
-                    </button>
-                </div>
-            );
+            return HandleCell(props);
         }
 
     }
