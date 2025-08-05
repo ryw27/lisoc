@@ -1,4 +1,3 @@
-"use server";
 import { db } from "@/lib/db"
 import { feedback } from "@/lib/db/schema";
 import { emailSchema } from "@/lib/auth/validation";
@@ -6,7 +5,6 @@ import { transporter } from "@/lib/nodemailer";
 import { toESTString } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import { requireRole } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
 
 async function sendFeedbackMail(adminMessage: string, feedbackMessage: string, emailTo: string, name: string | null) {
     await transporter.sendMail({
@@ -61,7 +59,7 @@ export default async function ReplyFeedback(recid: number, adminMessage: string)
         }
 
         // 4. Parse email
-        const { email: parsedEmail } = emailSchema.parse({ email: feedbackRow.email });
+        const { email: parsedEmail } = emailSchema.parse(feedback.email);
 
         // 5. Send mail
         // TODO: Set up text? Might not be worth the hassle. For now, enforce email
@@ -69,6 +67,7 @@ export default async function ReplyFeedback(recid: number, adminMessage: string)
 
         // 6. Mark as done
         const nowFormatted = toESTString(new Date()).split("T")[0];
+        console.log(nowFormatted);
 
         await tx
             .update(feedback)
@@ -76,7 +75,6 @@ export default async function ReplyFeedback(recid: number, adminMessage: string)
                 followup: `answered on ${nowFormatted} by ${user.user.name}`
             })
             .where(eq(feedback.recid, recid))
-        revalidatePath("/admin/management/feedback")
 
     })
 }
