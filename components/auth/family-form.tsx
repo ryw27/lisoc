@@ -3,7 +3,7 @@ import { FormInput, FormError, FormSubmit } from './form-components';
 import { familySchema, nameEmailSchema } from '@/lib/auth/validation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

@@ -8,7 +8,7 @@ import ResendCodeButton from './resend-code-button'
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { codeSchema, emailSchema, familySchema, nameEmailSchema, teacherSchema, userPassSchema } from "@/lib/auth/validation";
-import { z } from "zod";
+import { z } from "zod/v4";
 import FamilyForm from "./family-form";
 import TeacherForm from "./teacher-form";
 

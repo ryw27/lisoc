@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { FormInput, FormSubmit, FormError } from './form-components'
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { emailSchema, loginSchema, usernameSchema } from '@/lib/auth/validation';
 import { signIn } from "next-auth/react"
 import { ErrorCode } from '@/lib/auth/validation';
