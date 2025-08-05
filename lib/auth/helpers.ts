@@ -19,12 +19,23 @@ export async function checkExistence(input: string, column: "name" | "email"): P
     const result = await db.query.users.findFirst({
         where: (u, { eq }) => eq(u[column], input)
     })
-    console.log("result", result)
+    // console.log("result", result)
 
     return result !== undefined;
 }
 
 
+// export async function sendFPEmail(emailTo: string, uuid: string) {
+//     await transporter.sendMail({
+//         from: "LISOC Registration <regadmin@lisoc.org>",
+//         to: emailTo,
+//         subject: "LISOC Forgot Password Link",
+//         html: `
+//             <p> Reset your password with the following <a href="${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)}"> link </a> </p>
+//             <p> If you are not trying to reset your password, please ignore this email </p>
+//         `
+//     });   
+// }
 export async function sendFPEmail(emailTo: string, uuid: string) {
     await transporter.sendMail({
         from: "LISOC Registration <regadmin@lisoc.org>",
@@ -32,6 +43,7 @@ export async function sendFPEmail(emailTo: string, uuid: string) {
         subject: "LISOC Forgot Password Link",
         html: `
             <p> Reset your password with the following <a href="${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)}"> link </a> </p>
+            <p> If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)} </p>
             <p> If you are not trying to reset your password, please ignore this email </p>
         `
     });   
