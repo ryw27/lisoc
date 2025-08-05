@@ -41,9 +41,9 @@ import { db } from "@/lib/db";
 // )
 
 export async function markFeedbackDone(recid: number) {
-    const user = await requireRole(["ADMIN"]);
+    await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
-        const feedbackRow = await tx.query.feedback.findFirst({
+        await tx.query.feedback.findFirst({
             where: (f, { eq }) => eq(f.recid, recid)
         });
     })
