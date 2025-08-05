@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 export default async function TeacherPage() {
     const user = await requireRole(["TEACHER"], { redirect: true });
     const teacher = await db.query.teacher.findFirst({
-        where: (teacher, { eq }) => eq(teacher.userid, user.user.userid)
+        where: (teacher, { eq }) => eq(teacher.userid, user.user.id)
     });
 
     if (!teacher) {
