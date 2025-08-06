@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db"
 import { feedback } from "@/lib/db/schema";
 import { emailSchema } from "@/lib/auth/validation";
@@ -5,6 +6,9 @@ import { transporter } from "@/lib/nodemailer";
 import { toESTString } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import { requireRole } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import { z } from "zod/v4";
+import { safeAction } from "@/lib/safeAction";
 
 async function sendFeedbackMail(adminMessage: string, feedbackMessage: string, emailTo: string, name: string | null) {
     await transporter.sendMail({
@@ -35,46 +39,47 @@ async function sendFeedbackMail(adminMessage: string, feedbackMessage: string, e
         `
     })
 }
-export default async function ReplyFeedback(recid: number, adminMessage: string) {
-    const user = await requireRole(["ADMIN"]);
-    await db.transaction(async (tx) => {
-        // 1. Check feedback row
-        const feedbackRow = await tx.query.feedback.findFirst({
-            where: (f, { eq }) => eq(f.recid, recid)
+
+const replyFeedbackSchema = z.object({
+    recid: z.coerce.number().min(1),
+    adminMessage: z.string().min(1)
+})
+export const ReplyFeedback = safeAction(
+    replyFeedbackSchema,
+    async (data) => {
+        const user = await requireRole(["ADMIN"]);
+        const { recid, adminMessage } = replyFeedbackSchema.parse(data);
+
+        await db.transaction(async (tx) => {
+            const feedbackRow = await tx.query.feedback.findFirst({
+                where: (f, { eq }) => eq(f.recid, recid),
+            });
+            if (!feedbackRow) {
+                throw new Error("Feedback row not found");
+            }
+
+            // Require at least one contact method (email preferred)
+            if (!feedbackRow.email) {
+                throw new Error("No email provided in feedback row");
+            }
+
+            if (!feedbackRow.comment) {
+                // No original message to reply to; do not send
+                return;
+            }
+
+            const { email: parsedEmail } = emailSchema.parse({ email: feedbackRow.email });
+
+            await sendFeedbackMail(adminMessage, feedbackRow.comment, parsedEmail, feedbackRow.name);
+
+            const nowFormatted = toESTString(new Date()).split("T")[0];
+            await tx
+                .update(feedback)
+                .set({
+                    followup: `answered on ${nowFormatted} by ${user.user.name}`,
+                })
+                .where(eq(feedback.recid, recid));
+            revalidatePath("/admin/management/feedback");
         });
-        if (!feedbackRow) {
-            throw new Error("Feedback row not found");
-        }
-
-        // 2. Check if there is no given contact info
-        // TODO: How to handle db errors like message too long automatically?
-        if (!feedbackRow.email || !feedbackRow.phone) {
-            throw new Error("No contact information provided in feedback row");
-        }
-
-        // 3. Check if there is a message
-        if (!feedbackRow.comment) {
-            // just ignore
-            return ;
-        }
-
-        // 4. Parse email
-        const { email: parsedEmail } = emailSchema.parse(feedback.email);
-
-        // 5. Send mail
-        // TODO: Set up text? Might not be worth the hassle. For now, enforce email
-        await sendFeedbackMail(adminMessage, feedbackRow.comment, parsedEmail, feedbackRow.name);
-
-        // 6. Mark as done
-        const nowFormatted = toESTString(new Date()).split("T")[0];
-        console.log(nowFormatted);
-
-        await tx
-            .update(feedback)
-            .set({
-                followup: `answered on ${nowFormatted} by ${user.user.name}`
-            })
-            .where(eq(feedback.recid, recid))
-
-    })
-}
+    }
+)
