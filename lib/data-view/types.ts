@@ -1,7 +1,7 @@
 import * as schema from "@/lib/db/schema"
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 import { InferSelectModel } from "drizzle-orm";
-import { z, ZodType } from "zod";
+import { z } from "zod/v4";
 import { ColumnDef } from "@tanstack/react-table";
 
 // ------------------------------------------------------------------------------
@@ -349,10 +349,10 @@ export type FilterableColumn<TData> = ColumnDef<TData> & {
 // mainPath: The path to revalidate
 // ops: An object encompassing all CRUD operations for the table
 
-export interface EntityConfig<T extends Table> {
+export interface EntityConfig<T extends Table, rowType> {
 	table: T,
-	formSchema: ZodType,
-	columns: FilterableColumn<(InferSelectModel<T>)>[],
+	formSchema: z.ZodAny,
+	columns: FilterableColumn<rowType>[],
 	ops: {
 		allRows: () => Promise<InferSelectModel<T>[]>;
 		idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>;
