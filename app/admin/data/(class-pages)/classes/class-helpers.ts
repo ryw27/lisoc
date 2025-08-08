@@ -1,19 +1,19 @@
 import { classes } from "@/lib/db/schema";
 // import { generateColumnDefs } from "@/lib/data-view";
-import { z } from 'zod';
+import { z } from "zod/v4";
 import { makeEntity } from "@/lib/data-view/actions/makeEntity/makeEntity";
 import { EntityConfig, FilterableColumn } from "@/lib/data-view/types";
 import { type Extras } from "@/lib/data-view/types";
-import { parsedParams } from "@/lib/data-view/types";
-import { classTypeMap, toESTString } from "@/lib/utils";
+import { ADMIN_DATAVIEW_LINK, classTypeMap, toESTString } from "@/lib/utils";
 import { getSelectOptions } from "@/lib/registration/semester";
 import { DefaultSession } from "next-auth";
+import { InferSelectModel } from "drizzle-orm";
 
 //----------------------------------------------------------------------------------------
 // CLASSES
 //----------------------------------------------------------------------------------------
 
-export type classObject = typeof classes.$inferSelect
+export type classObject = InferSelectModel<typeof classes>
 
 // This is the actual internal representation from drizzle, PgTable type
 export type classTable = typeof classes
@@ -22,31 +22,35 @@ const { idMaps } = await getSelectOptions();
 
 export const classColumns: FilterableColumn<classObject>[] = [
     {
+        id: "classid",
         accessorKey: "classid",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Class ID",
         enableHiding: false,
     },
     {
+        id: "classindex",
         accessorKey: "classindex",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] },
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const },
         },
         header: "Class Index",
     },
     {
+        id: "ageid",
         accessorKey: "ageid",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Age ID",
     },
     {
+        id: "typeid",
         accessorKey: "typeid",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Class Type",
         cell: ({ row }) => {
@@ -56,9 +60,10 @@ export const classColumns: FilterableColumn<classObject>[] = [
         }
     },
     {
+        id: "gradeclassid",
         accessorKey: "gradeclassid",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Grade Class ID",
         cell: ({ row }) => {
@@ -68,81 +73,92 @@ export const classColumns: FilterableColumn<classObject>[] = [
         }
     },
     {
+        id: "classno",
         accessorKey: "classno",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Class Level",
     },
     {
+        id: "classnamecn",
         accessorKey: "classnamecn",
         meta: {
-            filter: { type: 'text', mode: ['='] }
+            filter: { type: 'text', mode: ['='] as const }
         },
         header: "Class Name (CN)",
         enableHiding: false
     },
     {
+        id: "classnameen",
         accessorKey: "classnameen",
         meta: {
-            filter: { type: 'text', mode: ['='] }
+            filter: { type: 'text', mode: ['='] as const }
         },
         header: "Class Name (EN)",
         enableHiding: false
     },
     {
+        id: "sizelimits",
         accessorKey: "sizelimits",
         meta: {
-            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] }
+            filter: { type: 'number', mode: ['=', '≠', '>', '<', '>=', '<=', 'between'] as const }
         },
         header: "Size Limits",
     },
     {
+        id: "status",
         accessorKey: "status",
         meta: {
-            filter: { type: 'enum', mode: ['=', '≠'], options: ["Active", "Inactive"] }
+            filter: { type: 'enum', mode: ['=', '≠'] as const, options: ["Active", "Inactive"] as const }
         },
         header: "Status",
     },
     {
+        id: "description",
         accessorKey: "description",
         meta: {
-            filter: { type: 'text', mode: ['='] }
+            filter: { type: 'text', mode: ['='] as const }
         },
         header: "Description",
     },
     {
+        id: "lastmodify",   
         accessorKey: "lastmodify",
         meta: {
-            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='], options: ['hours', 'days', 'months', 'years'] }
+            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='] as const, options: ['hours', 'days', 'months', 'years'] as const }
         },
         header: "Last Modified",
     },
     {
+        id: "createby",
         accessorKey: "createby",
         meta: {
-            filter: { type: 'text', mode: ['='] }
+            filter: { type: 'text', mode: ['='] as const }
         },
         header: "Created By",
     },
     {
+        id: "createon",
         accessorKey: "createon",
         meta: {
-            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='], options: ['hours', 'days', 'months', 'years'] }
+            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='] as const, options: ['hours', 'days', 'months', 'years'] as const }
         },
         header: "Created On",
     },
     {
+        id: "updateby",
         accessorKey: "updateby",
         meta: {
-            filter: { type: 'text', mode: ['='] }
+            filter: { type: 'text', mode: ['='] as const }
         },
         header: "Updated By",
     },
     {
+        id: "updateon",
         accessorKey: "updateon",
         meta: {
-            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='], options: ['hours', 'days', 'months', 'years'] }
+            filter: { type: 'date', mode: ['in the last', '=', 'between', '>=', '<='] as const, options: ['hours', 'days', 'months', 'years'] as const }
         },
         header: "Last Updated On",
     }
@@ -161,7 +177,7 @@ export const classFormSchema = z.object({
     gradeclassid: z.coerce.number({ message: "Grade Class ID must be a number"})
         .int()
         .min(1, { message: "Grade Class ID must be positive"}),
-    classno: z.coerce.number({ message: "Class Level must be a number"})
+    classno: z.coerce.number({ message: "Grade Level must be a number"})
         .int()
         .min(0, { message: "Grade level must be positive"}),
     classnamecn: z
@@ -181,6 +197,15 @@ export const classFormSchema = z.object({
         .default(0),
     status: z.enum(["Active", "Inactive"], { message: "Status must be Active or Inactive"}),
     description: z.string().optional(),
+})
+
+export const classDeleteSchema = z.object({
+    classid: z.array(
+        z
+        .number()
+        .int()
+        .min(0, { message: "Class ID must be positive"})
+    )
 })
 
 const makeInsertExtras = (user: DefaultSession["user"]) => {
@@ -203,137 +228,13 @@ const makeUpdateExtras = (user: DefaultSession["user"]) => {
     return updateExtras;
 }
 
-export const classConfig: EntityConfig<classTable> = makeEntity({
-    table: classes,
-    formSchema: classFormSchema,
-    columns: classColumns,
-    ops: {
-        allRows: () => allClassRows(),
-        idRow: (id: number) => idClassRow(id),
-        pageRows: (opts: parsedParams) => pageClassRows(opts),
-        insertRow: (formData: FormData) => insertClassRow(formData),
-        updateRow: (id: number, formData: FormData) => updateClassRow(id, formData),
-        deleteRows: (ids: number[]) => deleteClassRows(ids)
-    }
-    // tableName: "classes",
-    // primaryKey: "classid",
-    // mainPath: "/admintest/dashboard/data/classes",
-    // enrichFields: classEnrichFields,
-    // uniqueConstraints: classUniqueConstraints,
-    // insertExtras: insertExtras,
-    // updateExtras: updateExtras,
-})
-
-export const classOperations = classConfig.ops;
-
-export async function deleteClassRows(ids: number[]) {
-  "use server";
-  return classOperations.deleteRows(ids);
-}
-
-export async function insertClassRow(formData: FormData) {
-  "use server";
-  return classOperations.insertRow(formData);
-}
-
-export async function updateClassRow(id: number, formData: FormData) {
-  "use server";
-  return classOperations.updateRow(id, formData);
-}
-
-// Server-only helpers – no action wrapper needed
-export async function pageClassRows(opts: parsedParams) {
-  "use server";
-  return classOperations.pageRows(opts);
-}
-
-export async function allClassRows() {
-  "use server";
-  return classOperations.allRows();
-}
-
-export async function idClassRow(id: number) {
-  "use server";
-  return classOperations.idRow(id);
-}
-
-
-
-
-
-
-
-//----------------------------------------------------------------------------------------
-// REtrying
-//----------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-// export const classColumns = generateColumnDefs<classObject>(classes, {
-//     classid: {
-//         header: "Class ID",
-//     },
-//     classindex: {
-//         header: "Class Index",
-//     },
-//     ageid: {
-//         header: "Age ID",
-//     },
-//     typeid: {
-//         header: "Type ID",
-//     },
-//     classno: {
-//         header: "Class Number",
-//     },
-//     classnamecn: {
-//         header: "Class Name (CN)",
-//         enableHiding: false
-//     },
-//     classupid: {
-//         header: "Upgrade Class ID",
-//     },
-//     classnameen: {
-//         header: "Class Name (EN)",
-//         enableHiding: false
-//     },
-//     sizelimits: {
-//         header: "Size Limits",
-//     },
-//     status: {
-//         header: "Status",
-//     },
-//     description: {
-//         header: "Description",
-//     },
-//     lastmodify: {
-//         header: "Last Modified",
-//     },
-//     createby: {
-//         header: "Created By",
-//     },
-//     createon: {
-//         header: "Created On",
-//     },
-//     updateby: {
-//         header: "Updated By",
-//     },
-//     updateon: {
-//         header: "Updated On",
-//     },
-// });
-// const classEnrichFields: enrichField<"classes",typeof classFormSchema>[] = [
-//     {formField: "upgradeclass", lookupTable: "classes", lookupField: "classnamecn", returnField: "classid"}
-// ]
-
-// const classEnrichFields: enrichFields<typeof classFormSchema>[] =  [
-//     { formField: "classupid", lookupTable: "classes", lookupField: "classnamecn", returnField: "classid" }
-// ]
-
-// const classUniqueConstraints: uniqueCheckFields<"classes", classTable, typeof classFormSchema>[] = [
-//     {tableCol: "classnamecn", formCol: "classnamecn"},
-// ]
-
+export const classConfig: EntityConfig<classTable, typeof classFormSchema, typeof classDeleteSchema> = makeEntity(
+    classes,
+    classColumns,
+    `${ADMIN_DATAVIEW_LINK}/${classes}`,
+    "classid",
+    classFormSchema,
+    classDeleteSchema,
+    makeUpdateExtras,
+    makeInsertExtras,
+)
