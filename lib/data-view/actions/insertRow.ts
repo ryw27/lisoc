@@ -1,44 +1,37 @@
-"use server";
-import { safeAction } from "@/lib/safeAction";
 import { Extras, PKName, Table } from "../types";
 import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { DefaultSession } from "next-auth";
-import { InferInsertModel } from "drizzle-orm";
+import { InferInsertModel, getTableColumns } from "drizzle-orm";
+import { AnyPgColumn } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 
-export async function makeInsertAction<T extends Table>(
-    table: T, 
-    formSchema: z.ZodAny, 
+export function makeInsertAction<T extends Table>(
+    table: T,
+    formSchema: z.ZodObject,
     primaryKey: PKName<T>,
     mainPath: string,
     createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>,
 ) {
     type RowInsert = InferInsertModel<T>;
 
-    const user = await requireRole(["ADMIN"]);
-    let insertExtras = {}
-    if (createInsertExtras) {
-        insertExtras = createInsertExtras(user.user);
-    }
+    return async function insertRow(formData: z.infer<typeof formSchema>): Promise<void> {
+        "use server"
+        const user = await requireRole(["ADMIN"]);
+        const insertExtras = createInsertExtras ? createInsertExtras(user.user) : {};
 
-    return safeAction(
-        formSchema,
-        async function(data: z.infer<typeof formSchema>) {
-            const insertedPK = await db.transaction(async (tx) => {
-                const fullData: RowInsert = {
-                    ...data,
-                    ...insertExtras
-                }
+        const data = formSchema.parse(formData) as RowInsert;
 
-                const [insertedRow] = await tx
-                    .insert(table)
-                    .values(fullData)
-                    .returning()
-                return insertedRow[primaryKey as keyof typeof insertedRow]
-            })
-            revalidatePath(`${mainPath}/${insertedPK}`)
-        }
-    )
+        const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
+        const pkCol = columns[String(primaryKey)];
+
+        const [row] = await db
+            .insert(table)
+            .values({ ...data, ...insertExtras })
+            .returning({ pk: pkCol });
+
+        if (!row) throw new Error(`Insert failed for ${table._.name}`);
+        revalidatePath(`${mainPath}/${row.pk}`);
+    };
 }

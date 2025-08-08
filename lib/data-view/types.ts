@@ -349,17 +349,22 @@ export type FilterableColumn<TData> = ColumnDef<TData> & {
 // mainPath: The path to revalidate
 // ops: An object encompassing all CRUD operations for the table
 
-export interface EntityConfig<T extends Table, rowType> {
+export interface EntityConfig<
+    T extends Table, 
+    FormSchema extends z.ZodObject, 
+    DeleteFormSchema extends z.ZodObject,
+> {
 	table: T,
-	formSchema: z.ZodAny,
-	columns: FilterableColumn<rowType>[],
+	formSchema: FormSchema,
+    deleteFormSchema: DeleteFormSchema,
+	columns: FilterableColumn<InferSelectModel<T>>[],
 	ops: {
-		allRows: () => Promise<InferSelectModel<T>[]>;
-		idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>;
-		pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>;
-		insertRow: (formData: FormData) => Promise<void>;
-		updateRow: (id: PKVal<T>, formData: FormData) => Promise<void>;
-		deleteRows: (id: PKVal<T>[]) => Promise<InferSelectModel<T>[]>;
+		// allRows: () => Promise<InferSelectModel<T>[]>;
+		// idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>;
+		// pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>;
+		insertRow: (formData: z.infer<FormSchema>) => Promise<void>;
+		updateRow: (id: PKVal<T>, formData: z.infer<FormSchema>) => Promise<void>;
+		deleteRows: (id: z.infer<DeleteFormSchema>) => Promise<InferSelectModel<T>[]>;
 	}
 }
 // export interface EntityConfig<T extends Table> {

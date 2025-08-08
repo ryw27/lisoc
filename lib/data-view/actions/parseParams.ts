@@ -18,7 +18,7 @@ export async function parseParams(searchParams: Promise<SearchParams>) {
 
     Object.entries(params).forEach(([rawKey, rawValue]) => {
 		if (rawValue === undefined) return;
-		if (rawKey == "pageSize") {
+        if (rawKey == "pageSizes" || rawKey == "pageSize") {
 			const parsed = parseInt(rawValue);
 			if (!isNaN(parsed) && parsed > 0) out.pageSize = parsed;
 		}
@@ -34,7 +34,7 @@ export async function parseParams(searchParams: Promise<SearchParams>) {
 			const parsed = rawValue;
 			if (parsed !== undefined) out.sortOrder = parsed as 'asc' | 'desc';
 		}
-		if (rawKey == "match") out.match = rawValue as 'all' | 'any';
+        if (rawKey == "match") out.match = rawValue as 'all' | 'any';
 	})
 
 	out.query = parseFilters(params);

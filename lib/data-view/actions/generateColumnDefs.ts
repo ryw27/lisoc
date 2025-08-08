@@ -73,9 +73,7 @@ export function generateColumnDefs<T extends object>(
 		return Object.entries(table)
 			.filter(([key, column]) => isPgColumn(column as AnyPgColumn) && !exclude.includes(key))
 			.map(([key, column]) => {
-				console.log(key);
 				const baseKey = key as keyof T;
-				// const columnType = 
 				const columnType = getFilterTypeFromColumn(column as AnyPgColumn);
 				const baseFilter = defaultFilter(columnType);
 				

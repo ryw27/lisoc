@@ -1,5 +1,5 @@
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
-import { ParsedFilter, TableName } from "./types";
+import { ParsedFilter, Table } from "./types";
 import { getTableColumns } from "drizzle-orm";
 import { eq, lt, gt, lte, gte, and, or } from "drizzle-orm";
 import { SQL } from "drizzle-orm";
@@ -16,7 +16,7 @@ export function isPgColumn(column: AnyPgColumn) {
 }
 
 // Build SQL from parsed filters
-export function buildSQL<N extends TableName, T extends Table<N>>(table: T, filters: ParsedFilter[], match: string): SQL<unknown> | undefined {
+export function buildSQL<T extends Table>(table: T, filters: ParsedFilter[], match: 'all' | 'any'): SQL<unknown> | undefined {
     const columns = getTableColumns(table as AnyPgTable); // For compile-time type checking
     const conds = filters.map(filter => {
         if (!(filter.field in columns) && filter.field != "match") throw new Error(`Unknown filter field ${filter.field}`);
