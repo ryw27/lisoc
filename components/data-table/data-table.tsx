@@ -1,112 +1,146 @@
 "use client";
-import { ColumnDef, useReactTable, getCoreRowModel, flexRender, SortingState, ColumnPinningState, Row } from "@tanstack/react-table"
+import { 
+    ColumnDef, 
+    useReactTable, 
+    getCoreRowModel, 
+    flexRender, 
+    SortingState, 
+    ColumnPinningState, 
+    Row, 
+    VisibilityState,
+    Column
+} from "@tanstack/react-table"
 import { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import TableHeader from "./table-header";
-import { FilterableColumn } from "@/lib/data-view/types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog'
-import { TableName, PKVal, PKName, Table } from "@/lib/data-view/types";
-import { InferSelectModel } from "drizzle-orm";
+import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import TableHeader from "./data-table-toolbar";
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover";
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
+import { PKVal, Table } from "@/lib/data-view/types";
+import { deleteRows } from "@/lib/data-view/actions/deleteRows";
+import {
+  Table as DTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader as DTHeader,
+  TableRow,
+} from "@/components/ui/table"
+import DataTablePagination from "./data-table-pagination";
+import { useDataEntityContext } from "@/lib/data-view/providers";
 
-// Strict typing for DataTable props
-interface DataTableProps<
-    N extends TableName,
-    T extends Table<N>,
-    TData extends InferSelectModel<T> = InferSelectModel<T>
-> {
+interface DataTableTestProps<TData> {
     data: TData[];
-    columns: FilterableColumn<TData>[];
     totalCount: number;
-    tableName: N;
-    primaryKey: PKName<N, T>;
-    deleteAction: (ids: PKVal<N>[]) => Promise<InferSelectModel<T>[]>;
 }
  
-export default function DataTable<
-    N extends TableName,
-    T extends Table<N>,
-    TData extends InferSelectModel<T> = InferSelectModel<T>
->({
-    data, 
-    columns, 
-    totalCount, 
-    tableName, 
-    primaryKey, 
-    deleteAction
-}: DataTableProps<N, T, TData>) {
+
+export default function DataTableTest<T extends Table, TData>({
+    data,
+    totalCount
+}: DataTableTestProps<TData>) {
+    const { 
+        table,
+        columns,
+        tableName,
+        primaryKey,
+    } = useDataEntityContext<T, TData>();
+    if (!data || !Array.isArray(columns) ) {
+        console.error(`[DataTableTest] Invalid data provided for table ${tableName}`);
+        return (
+            <div className="flex flex-col gap-4 p-4">
+                 <div className="text-red-600 bg-red-50 border border-red-200 rounded-md p-4">
+                     <h2 className="font-semibold">Data Error</h2>
+                     <p>Unable to load data for {tableName}. Please try again later.</p>
+                 </div>
+             </div>
+         );
+    }
+
+    if (!Array.isArray(columns) || !table || !columns || !primaryKey) {
+        console.error(`[DataTableTest] Invalid values through Data Entity Context.`,
+            JSON.stringify({
+                table,
+                columns,
+                tableName,
+                primaryKey,
+            }, null, 2)
+        );
+
+        return (
+            <div className="flex flex-col gap-4 p-4">
+                <div className="text-red-600 bg-red-50 border border-red-200 rounded-md p-4">
+                    <h2 className="font-semibold">Configuration Error</h2>
+                    <p>Table configuration is invalid. Please contact support.</p>
+                </div>
+            </div>
+        );
+    }
+
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+    useEffect(() => {
+        const key = `${tableName}_CV`;
+        const colvisRaw = localStorage.getItem(key);
+
+        let parsed: Record<string, boolean> | null = null;
+        if (colvisRaw) {
+            try {
+                const candidate = JSON.parse(colvisRaw);
+                // Defensive: ensure it's an object with string keys and boolean values
+                if (
+                    candidate &&
+                    typeof candidate === "object" &&
+                    !Array.isArray(candidate) &&
+                    Object.values(candidate).every(v => typeof v === "boolean")
+                ) {
+                    parsed = candidate;
+                }
+            } catch (err) {
+                // Malformed JSON, remove and reset
+                localStorage.removeItem(key);
+            }
+        }
+
+        if (parsed) {
+            setColumnVisibility(parsed);
+        } else {
+            const defaultVis = Object.fromEntries(
+                columns.map((c) => [c.id, c.enableHiding !== false])
+            ) as Record<string, boolean>;
+            localStorage.setItem(key, JSON.stringify(defaultVis));
+            setColumnVisibility(defaultVis);
+        }
+    // Only run on mount or if columns/tableName changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [columns, tableName]);
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
         left: ['select'],
         right: ['edit']
     });
-    const [isDeleting, setIsDeleting] = useState(false);
 
     const router = useRouter();
     const pathname = usePathname();
-    const searchParams = useSearchParams();
-
-    // Helper function to set default column visibility
-    const setDefaultColumnVisibility = () => {
-        const initialVisibility: Record<string, boolean> = {};
-        
-        // Set all columns to hidden by default
-        columns.forEach((column) => {
-            initialVisibility[column.id] = false;
-        });
-        
-        // Show special columns and non-hideable columns
-        columns.forEach((column) => {
-            if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
-                initialVisibility[column.id] = true;
-            }
-        });
-        
-        setColumnVisibility(initialVisibility);
-    };
-
-    // Handle column visibility
-    useEffect(() => {
-        try {
-            const storageKey = `LISOC_${tableName}_COLVIS`;
-            const storedVisibility = localStorage.getItem(storageKey);
-            
-            if (storedVisibility) {
-                const parsed = JSON.parse(storedVisibility);
-                // Validate that parsed data is an object
-                if (typeof parsed === 'object' && parsed !== null) {
-                    setColumnVisibility(parsed);
-                } else {
-                    console.warn(`[DataTable] Invalid stored visibility for ${tableName}, using defaults`);
-                    setDefaultColumnVisibility();
-                }
-            } else {
-                setDefaultColumnVisibility();
-            }
-        } catch (error) {
-            console.error(`[DataTable] Error loading column visibility for ${tableName}:`, error);
-            setDefaultColumnVisibility();
-        }
-    }, [tableName, columns]);
-
-
-
-    // Save column visibility
-    useEffect(() => {
-        if (Object.keys(columnVisibility).length > 0) {
-            try {
-                const storageKey = `LISOC_${tableName}_COLVIS`;
-                localStorage.setItem(storageKey, JSON.stringify(columnVisibility));
-            } catch (error) {
-                console.error(`[DataTable] Error saving column visibility for ${tableName}:`, error);
-            }
-        }
-    }, [columnVisibility, tableName]);
+    // const searchParams = useSearchParams();
 
     // Create select checkbox column 
     const selectionColumn: ColumnDef<TData>[] = useMemo(() => [
@@ -154,16 +188,56 @@ export default function DataTable<
         }
     ], []);
 
-    // Create edit column 
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = async (selectedRow?: Row<TData>) => {
+        if (isDeleting) return; // Prevent multiple simultaneous delete operations
+        
+        setIsDeleting(true);
+        
+        try {
+            if (selectedRow) {
+                dataTable.resetRowSelection(); // Clear other selections when deleting single row
+            }
+            
+            const selectedRows = selectedRow ? [selectedRow] : dataTable.getSelectedRowModel().rows;
+            
+            if (selectedRows.length === 0) {
+                console.warn(`[DataTable] No rows selected for deletion`);
+                return;
+            }
+
+            // Extract IDs with proper type safety
+            const ids: PKVal<T>[] = selectedRows.map(row => {
+                const id = (row.original as TData)[primaryKey as unknown as keyof TData];
+                if (id === undefined || id === null) {
+                    throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
+                }
+                return id as PKVal<T>;
+            });
+
+            
+            await deleteRows(table, primaryKey, ids);
+            
+            // Reset selection after successful deletion
+            dataTable.resetRowSelection();
+            
+        } catch (error) {
+            console.error(`[DataTable] Error deleting rows:`, error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const editColumn: ColumnDef<TData>[] = useMemo(() => [
         {
             id: "edit",
             cell: ({ row }) => {
                 const handleEdit = () => {
                     try {
-                        const rowId = (row.original as TData)[primaryKey as unknown as keyof TData];
+                        const rowId = (row.original as TData)[primaryKey as keyof TData];
                         if (rowId === undefined || rowId === null) {
-                            console.error(`[DataTable] Primary key ${String(primaryKey)} not found in row data`);
+                            console.error(`[DataTable] Primary key not found in row data`);
                             return;
                         }
                         router.push(`${pathname}/${rowId}`);
@@ -232,92 +306,35 @@ export default function DataTable<
                 );
             }
         }
-    ], [primaryKey, pathname, router, isDeleting]);
+    ], [pathname, router, isDeleting]);
 
-    // Combine selection column with provided columns
-    const allColumns = useMemo(() => [...selectionColumn, ...columns, ...editColumn], [selectionColumn, columns, editColumn]);
+    // const getCommonPinningStyles = (column: Column<TData>): CSSProperties => {
+    //     const isPinned = column.getIsPinned()
+    //     const isLastLeftPinnedColumn =
+    //         isPinned === 'left' && column.getIsLastColumn('left')
+    //     const isFirstRightPinnedColumn =
+    //         isPinned === 'right' && column.getIsFirstColumn('right')
 
-    // Set sorting from URL params
-    useEffect(() => {
-        const sortBy = searchParams.get('sortBy');
-        const sortOrder = searchParams.get('sortOrder');    
-        if (sortBy && sortOrder) {
-            setSorting([{id: sortBy, desc: sortOrder === 'desc'}]);
-        } else {
-            setSorting([]);
-        }
-    }, [searchParams]);
+    //     return {
+    //         boxShadow: isLastLeftPinnedColumn
+    //         ? '-4px 0 4px -4px gray inset'
+    //         : isFirstRightPinnedColumn
+    //             ? '4px 0 4px -4px gray inset'
+    //             : undefined,
+    //         left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
+    //         right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
+    //         opacity: isPinned ? 0.95 : 1,
+    //         position: isPinned ? 'sticky' : 'relative',
+    //         width: column.getSize(),
+    //         zIndex: isPinned ? 1 : 0,
+    //     }
+    // }
 
-    // Update URL when sorting changes
-    useEffect(() => {
-        if (sorting.length > 0) {
-            const params = new URLSearchParams(searchParams);
-            params.set('sortBy', sorting[0].id);
-            params.set('sortOrder', sorting[0].desc ? 'desc' : 'asc');
-            router.replace(`${pathname}?${params.toString()}`);
-        }
-    }, [sorting, pathname, router, searchParams]);
 
-    // Pagination logic
-    const currentPage = Number(searchParams.get('page')) || 1;
-    const pageSize = Number(searchParams.get('pageSize')) || 10;
-    const pageCount = Math.ceil(totalCount / pageSize);
 
-    const createPageURL = (pageNumber: number) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('page', pageNumber.toString());
-        return `${pathname}?${params.toString()}`;
-    };
-
-    const handlePageChange = (pageNumber: number) => {
-        if (pageNumber >= 1 && pageNumber <= pageCount) {
-            router.push(createPageURL(pageNumber));
-        }
-    };
-
-    // Delete handler 
-    const handleDelete = async (selectedRow?: Row<TData>) => {
-        if (isDeleting) return; // Prevent multiple simultaneous delete operations
-        
-        setIsDeleting(true);
-        
-        try {
-            if (selectedRow) {
-                table.resetRowSelection(); // Clear other selections when deleting single row
-            }
-            
-            const selectedRows = selectedRow ? [selectedRow] : table.getSelectedRowModel().rows;
-            
-            if (selectedRows.length === 0) {
-                console.warn(`[DataTable] No rows selected for deletion`);
-                return;
-            }
-
-            // Extract IDs with proper type safety
-            const ids: PKVal<N>[] = selectedRows.map(row => {
-                const id = (row.original as TData)[primaryKey as unknown as keyof TData];
-                if (id === undefined || id === null) {
-                    throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
-                }
-                return id as PKVal<N>;
-            });
-
-            
-            await deleteAction(ids);
-            
-            // Reset selection after successful deletion
-            table.resetRowSelection();
-            
-        } catch (error) {
-            console.error(`[DataTable] Error deleting rows from ${tableName}:`, error);
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const table = useReactTable({
+    const dataTable = useReactTable({
         data,
-        columns: allColumns, 
+        columns: [...selectionColumn, ...columns, ...editColumn],
         state: {
             columnPinning,
             rowSelection,
@@ -333,251 +350,157 @@ export default function DataTable<
         onRowSelectionChange: setRowSelection,
         onColumnPinningChange: setColumnPinning, 
         getCoreRowModel: getCoreRowModel(),
-        // Server-side pagination
-        manualPagination: true,
-        manualFiltering: true,
-        pageCount: pageCount 
-    });
-
-    // Memoize the columns passed to TableHeader
-    const memoizedTableColumns = useMemo(() => table.getAllColumns(), [table]);
-
-    // Error boundary for rendering
-    if (!data || !Array.isArray(data)) {
-        return (
-            <div className="bg-white border border-red-200 rounded-md p-4">
-                <div className="text-red-600">
-                    <h3 className="font-semibold">Data Error</h3>
-                    <p>Unable to render table data. Please refresh the page.</p>
-                </div>
-            </div>
-        );
-    }
-
+    })
+    
     return (
-        <div className="bg-white border-b border-gray-200">
-            {/* Selection alert */}
-            <div className="p-2">
-                {Object.keys(rowSelection).length > 0 && (
-                    <div className="flex justify-between items-center bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-md text-sm">
-                        <p>
-                            {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} selected
-                        </p>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <button 
-                                    className={cn(
-                                        "text-red-500 font-medium cursor-pointer px-2 py-1 rounded",
-                                        "hover:bg-red-50 transition-colors",
-                                        "focus:outline-none focus:ring-2 focus:ring-red-500",
-                                        isDeleting && "opacity-50 cursor-not-allowed"
-                                    )}
+        <div className="p-2 flex flex-col gap-2">
+            {Object.keys(rowSelection).length > 0 && (
+                <div className="flex justify-between items-center bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-md text-sm">
+                    <p>
+                        {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} selected
+                    </p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <button
+                                className={cn(
+                                    "text-red-500 font-medium cursor-pointer px-2 py-1 rounded",
+                                    "hover:bg-red-50 transition-colors",
+                                    "focus:outline-none focus:ring-2 focus:ring-red-500",
+                                    isDeleting && "opacity-50 cursor-not-allowed"
+                                )}
+                                disabled={isDeleting}
+                                type="button"
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    Are you absolutely sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} from the {tableName} table.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => handleDelete()}
+                                    className="cursor-pointer bg-red-600 hover:bg-red-700"
                                     disabled={isDeleting}
                                 >
                                     {isDeleting ? 'Deleting...' : 'Delete'}
-                                </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                        Are you absolutely sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} from the {tableName} table.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                        onClick={() => handleDelete()} 
-                                        className="cursor-pointer bg-red-600 hover:bg-red-700"
-                                        disabled={isDeleting}
-                                    >
-                                        {isDeleting ? 'Deleting...' : 'Delete'}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                )}
-            </div>
-            
-            <TableHeader 
-                columns={memoizedTableColumns}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            )}
+
+            <TableHeader
+                columns={dataTable.getAllColumns()}
                 columnDefs={columns}
+                tableName={tableName}
             />
 
-            {/* Table with horizontal scroll */}
             <div className="overflow-x-auto w-full">
-                <table className="min-w-full table-fixed relative">
-                    {/* Header */}
-                    <thead className="border-b border-gray-200">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}> 
-                                {headerGroup.headers.map((header) => (
-                                    <th 
-                                        key={header.id}
-                                        className={cn(
-                                            "whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider",
-                                            header.id === 'select' && 'w-12',
-                                            header.column.getIsPinned() === 'left' && 'sticky left-0 z-10 bg-white',
-                                            header.column.getIsPinned() === 'right' && 'sticky right-0 z-10 bg-white'
-                                        )}
-                                        onClick={() => {
-                                            if ((header.id !== 'select') && header.column.getCanSort()) {
-                                                const direction = sorting[0]?.id === header.id && sorting[0]?.desc === false ? true : false;
-                                                setSorting([{id: header.id, desc: direction}]);
-                                            }
-                                        }}
-                                        aria-sort={
-                                            sorting.length > 0 
-                                                ? sorting[0].id === header.id 
-                                                    ? sorting[0].desc === true ? 'descending' : 'ascending' 
-                                                    : 'none' 
-                                                : 'none'
-                                        }
+                <div className="rounded-md overflow-hidden border border-gray-200">
+                    <DTable className="w-full">
+                        <DTHeader>
+                            {dataTable.getHeaderGroups().map((headerGroup, groupIdx) => (
+                                <TableRow
+                                    key={headerGroup.id}
+                                    className={cn(
+                                        "bg-gray-50",
+                                        groupIdx === 0 && "first:rounded-t-md"
+                                    )}
+                                >
+                                    {headerGroup.headers.map((header, colIdx) => {
+                                        // For rounded corners on thead
+                                        const isFirstHeader = groupIdx === 0 && colIdx === 0;
+                                        const isLastHeader = groupIdx === 0 && colIdx === headerGroup.headers.length - 1;
+                                        return (
+                                            <TableHead
+                                                key={header.id}
+                                                className={cn(
+                                                    "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 bg-gray-50",
+                                                    header.column.getIsSorted() && "bg-blue-100",
+                                                    header.column.getIsPinned() === 'left' && "sticky left-0 z-10",
+                                                    header.column.getIsPinned() === 'right' && "sticky right-0 z-10",
+                                                    isFirstHeader && "rounded-tl-md",
+                                                    isLastHeader && "rounded-tr-md"
+                                                )}
+                                            >
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(header.column.columnDef.header, header.getContext())
+                                                }
+                                            </TableHead>
+                                        );
+                                    })}
+                                </TableRow>
+                            ))}
+                        </DTHeader>
+                        <TableBody>
+                            {dataTable.getRowModel().rows.length !== 0 ? (
+                                dataTable.getRowModel().rows.map((row, rowIdx) => {
+                                    const isLastRow = rowIdx === dataTable.getRowModel().rows.length - 1;
+                                    return (
+                                        <TableRow
+                                            key={row.id}
+                                            className={cn(
+                                                "cursor-pointer hover:bg-blue-50 transition-colors",
+                                                row.getIsSelected() && 'bg-blue-50'
+                                            )}
+                                        >
+                                            {row.getVisibleCells().map((cell, cellIdx) => {
+                                                // For rounded corners on last row
+                                                const isFirstCell = cellIdx === 0 && isLastRow;
+                                                const isLastCell = cellIdx === row.getVisibleCells().length - 1 && isLastRow;
+                                                return (
+                                                    <TableCell
+                                                        key={cell.id}
+                                                        className={cn(
+                                                            "px-4 py-2 text-sm text-gray-700 align-middle border-b border-gray-100 max-w-[480px]",
+                                                            "truncate whitespace-nowrap overflow-hidden",
+                                                            cell.column.getIsPinned() === 'left' && "sticky left-0 z-10 bg-white",
+                                                            cell.column.getIsPinned() === 'right' && "sticky right-0 z-10 bg-white",
+                                                            cell.column.getIsPinned() && "bg-white",
+                                                            isFirstCell && "rounded-bl-md",
+                                                            isLastCell && "rounded-br-md"
+                                                        )}
+                                                        // style={{ maxWidth: 480 }}
+                                                    >
+                                                        <span className="block truncate">
+                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                        </span>
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    );
+                                })
+                            ) : (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="h-24 text-center text-gray-400 text-base rounded-b-md"
                                     >
-                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                        {header.id === sorting[0]?.id && (
-                                            <span>{sorting[0].desc === false ? ' ↑' : ' ↓'}</span>
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {/* Table rows */}
-                        {table.getRowModel().rows.map((row) => (
-                            <tr 
-                                key={row.id}
-                                className={cn(
-                                    "cursor-pointer hover:bg-blue-50 transition-colors",
-                                    row.getIsSelected() && 'bg-blue-50'
-                                )}
-                            >
-                                {row.getVisibleCells().map((cell) => (
-                                    <td 
-                                        key={cell.id}
-                                        className={cn(
-                                            "px-3 py-1 text-sm text-gray-600",
-                                            cell.column.id === 'select' ? 'w-12' : 'whitespace-nowrap',
-                                            cell.column.getIsPinned() === 'left' && `sticky left-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`,
-                                            cell.column.getIsPinned() === 'right' && `sticky right-0 z-10 ${row.getIsSelected() ? 'bg-blue-50' : 'bg-white'}`
-                                        )}
-                                        tabIndex={0}
-                                    >
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            
-            {/* Server-side pagination controls */}
-            <div className="relative flex items-center justify-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-                <div className="absolute left-4">
-                    <p className="text-sm text-gray-500">
-                        Showing {Math.min(((currentPage - 1) * pageSize) + 1, totalCount)} - {
-                            Math.min(currentPage * pageSize, totalCount)
-                        } of {totalCount.toLocaleString()}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage <= 1}
-                        className={cn(
-                            "px-3 py-1 text-sm rounded-md cursor-pointer",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                            currentPage > 1
-                                ? "text-blue-600 hover:bg-blue-50" 
-                                : "text-gray-400 cursor-not-allowed"
-                        )}
-                        aria-label="Previous page"
-                    >
-                        <ChevronLeftIcon className="w-5 h-5" />
-                    </button>
-                    
-                    <div className="flex items-center gap-1">
-                        {/* First page */}
-                        <button 
-                            onClick={() => handlePageChange(1)} 
-                            className={cn(
-                                "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
-                                "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                currentPage === 1 ? 'bg-blue-600 text-white hover:bg-blue-700' : ''
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
                             )}
-                        >
-                            1
-                        </button>
-
-                        {/* Left ellipsis */}
-                        {currentPage > 3 && (
-                            <span className="px-2">...</span>
-                        )}
-
-                        {/* Pages around current page */}
-                        {Array.from({length: pageCount || 1}).map((_, i) => {
-                            const pageNumber = i + 1;
-                            // Show 2 pages before and after current page
-                            if (pageNumber > 1 && pageNumber < (pageCount || 1) && 
-                                pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1) {
-                                return (
-                                    <button 
-                                        key={pageNumber}
-                                        onClick={() => handlePageChange(pageNumber)} 
-                                        className={cn(
-                                            "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
-                                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                            currentPage === pageNumber ? 'bg-blue-600 text-white hover:bg-blue-700' : ''
-                                        )}
-                                    >
-                                        {pageNumber}
-                                    </button>
-                                );
-                            }
-                            return null;
-                        })}
-
-                        {/* Right ellipsis */}
-                        {currentPage < (pageCount || 1) - 2 && (
-                            <span className="px-2">...</span>
-                        )}
-
-                        {/* Last page */}
-                        {(pageCount || 1) > 1 && (
-                            <button 
-                                onClick={() => handlePageChange(pageCount || 1)} 
-                                className={cn(
-                                    "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
-                                    "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                    currentPage === (pageCount || 1) ? 'bg-blue-600 text-white hover:bg-blue-700' : ''
-                                )}
-                            >
-                                {pageCount || 1}
-                            </button>
-                        )}
-                    </div>
-                    
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage >= (pageCount || 1)}
-                        className={cn(
-                            "px-3 py-1 text-sm rounded-md cursor-pointer",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                            currentPage < (pageCount || 1)
-                                ? "text-blue-600 hover:bg-blue-50" 
-                                : "text-gray-400 cursor-not-allowed"
-                        )}
-                        aria-label="Next page"
-                    >
-                        <ChevronRightIcon className="w-5 h-5" />
-                    </button>
+                        </TableBody>
+                    </DTable>
                 </div>
             </div>
+
+            <DataTablePagination
+                table={dataTable}
+                tableType="server"
+                totalCount={totalCount}
+            />
         </div>
     );
 }
