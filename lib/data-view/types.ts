@@ -221,10 +221,9 @@ export type ColVal<T extends Table, K extends ColKey<T>> = (T[K] extends AnyPgCo
 // export type ColVal<N extends TableName, T extends Table<N>, K extends ColKey<N, T>> = K extends keyof T["$inferSelect"] ? T["$inferSelect"][K] : never;
 
 // Primary key name for a table. i.e. "roleid" | "classid" | ... 
-export type PKName<T extends Table> = (typeof primKeyMap)[keyof typeof primKeyMap] & keyof T;
+export type PKName<T extends Table> = (typeof primKeyMap)[keyof typeof primKeyMap] & keyof T["_"]["columns"] & keyof T;
 
 // Primary key value type for a table.  i.e. number | string | ...
-
 export type PKVal<T extends Table> =
   // distribute over each concrete N
   T extends AnyPgTable
@@ -330,6 +329,7 @@ export type filterTypes =
 // Meta filter for the data table
 export interface ColumnMetaFilter {
     filter?: filterTypes;
+    label?: string;
 }
 
 // Filterable column for the data table. Ensure existence of filter field. 
@@ -358,14 +358,14 @@ export interface EntityConfig<
 	formSchema: FormSchema,
     deleteFormSchema: DeleteFormSchema,
 	columns: FilterableColumn<InferSelectModel<T>>[],
-	ops: {
+	// ops: {
 		// allRows: () => Promise<InferSelectModel<T>[]>;
 		// idRow: (id: PKVal<T>) => Promise<InferSelectModel<T>>;
 		// pageRows: (opts: parsedParams) => Promise<{ rows: InferSelectModel<T>[]; totalCount: number }>;
-		insertRow: (formData: z.infer<FormSchema>) => Promise<void>;
-		updateRow: (id: PKVal<T>, formData: z.infer<FormSchema>) => Promise<void>;
-		deleteRows: (id: z.infer<DeleteFormSchema>) => Promise<InferSelectModel<T>[]>;
-	}
+	// 	insertRow: (formData: z.infer<FormSchema>) => Promise<void>;
+	// 	updateRow: (id: PKVal<T>, formData: z.infer<FormSchema>) => Promise<void>;
+	// 	deleteRows: (id: z.infer<DeleteFormSchema>) => Promise<InferSelectModel<T>[]>;
+	// }
 }
 // export interface EntityConfig<T extends Table> {
 //     table: T; // The table object, i.e. classes, adminrole, etc.
