@@ -7,6 +7,7 @@ import { DefaultSession } from "next-auth";
 import { InferInsertModel } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
+import { classes } from "@/lib/db/schema";
 
 // export function makeInsertAction<T extends Table>(
 //     table: T,
@@ -42,7 +43,8 @@ export async function insertRow<T extends Table, FormSchema extends z.ZodObject>
     primaryKey: PKName<T>,
     data: z.infer<FormSchema>, 
     formSchema: FormSchema,
-    createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>
+    createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>,
+    itself?: boolean
 ) {
     const user = await requireRole(["ADMIN"]);
     const insertExtras = createInsertExtras ? createInsertExtras(user.user) : {};
@@ -61,6 +63,16 @@ export async function insertRow<T extends Table, FormSchema extends z.ZodObject>
         .insert(table)
         .values(insertData)
         .returning()
+
+    // Exception placed for self referential columns, only for classes I believe
+    if (itself && primaryKey === "classid") {
+        await db
+            .update(classes)
+            .set({
+                // @ts-ignore
+                gradeclassid: row.classid as any
+            })
+    }
 
     if (!row) {
         console.error(`Insert failed for ${table._.name} with row ${row}`);
