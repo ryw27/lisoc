@@ -162,7 +162,7 @@ export default function FilterBox<TData>({ entry, columns, dateExists, onChange,
                         "hover:bg-gray-50",
                         "flex items-center justify-between cursor-pointer"
                     )}>
-                        <span>{column?.header as string || "Select Column"}</span>
+                        <span>{column?.meta?.label || "Select Column"}</span>
                         <ChevronDown className="w-4 h-4 text-gray-500" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-48 p-1">
@@ -180,7 +180,7 @@ export default function FilterBox<TData>({ entry, columns, dateExists, onChange,
                                         set({ col_id: column.id, mode: "=", val: "", aux: "" });
                                     }}
                                 >
-                                    {column?.header as string}
+                                    {column?.meta?.label || "Select Column"}
                                 </button>
                             );
                         })}
