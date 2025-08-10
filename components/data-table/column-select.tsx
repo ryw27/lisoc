@@ -25,7 +25,16 @@ export default function ColumnSelect<TData>({ columns }: ColumnSelectProps<TData
         }, 
         [[] as Column<TData>[], [] as Column<TData>[]]
     ), [filteredColumns]);
+
+    // console.log(columns);
     
+    const getColumnLabel = (column: Column<TData>) => {
+        const metaLabel = (column.columnDef.meta as { label?: string } | undefined)?.label;
+        if (metaLabel) return metaLabel;
+        const headerVal = column.columnDef.header;
+        return typeof headerVal === 'string' ? headerVal : column.id;
+    };
+
     return (
         <Popover>
             <PopoverTrigger className={cn(
@@ -50,7 +59,7 @@ export default function ColumnSelect<TData>({ columns }: ColumnSelectProps<TData
                                         className="!bg-blue-600 !text-white !border-blue-600 opacity-70"
                                     />
                                     <label htmlFor={`fixed-${column.id}`} className="text-gray-500">
-                                        {column.columnDef.header?.toString() || column.id}
+                                        {getColumnLabel(column)}
                                     </label>
                                 </div>
                             ))}
@@ -79,7 +88,7 @@ export default function ColumnSelect<TData>({ columns }: ColumnSelectProps<TData
                                     }
                                 />
                                 <label htmlFor={column.id}>
-                                    {column.columnDef.header?.toString() || column.id}
+                                    {getColumnLabel(column)}
                                 </label>
                             </div>
                         ))}
