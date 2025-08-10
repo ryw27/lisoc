@@ -2,7 +2,7 @@
 import { type Table } from "@tanstack/react-table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger  } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { ChevronDown, ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight, Tablet } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Input } from "../ui/input";
@@ -21,6 +21,7 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
     const submitPageSize = () => {
         const params = new URLSearchParams(Array.from(searchParams.entries()));
         params.set('pageSize', pageSize.toString());
+        params.set('page', "1");
         router.replace(`?${params.toString()}`);
     }
 
@@ -76,6 +77,7 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                                         const value = Number(e.target.value);
                                         if (value && value > 0 && value <= 1000) {
                                             table.setPageSize(value);
+                                            table.setPageIndex(0);
                                             setPageSize(value)
                                         }
                                     }}
