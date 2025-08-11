@@ -1,108 +1,163 @@
-import AddEntity, { FormField } from '@/components/data-view/add-entity'
-import { classObject, allClassRows, insertClassRow } from '../class-helpers'
+import { db } from '@/lib/db';
+import { FormSelectOptions, FormSections } from '@/lib/data-view/types';
+import { classTypeMap } from '@/lib/utils';
+import AddEntity from '@/components/data-view/add-entity/add-entity';
 
-export default async function AddClass({
-    searchParams,
-}: {
-    searchParams: Promise<{
-        error?: string;
-    }>
-}) {
-    const params = await searchParams;
-    const error = params?.error;
+export default async function AddClass() {
+    // Not using this for now, need reg classes as well
+    // const { idMaps } = await getSelectOptions();
+    const regClasses = await db.query.classes.findMany({
+        where: (c, { eq }) => eq(c.gradeclassid, c.classid),
+        columns: {
+            classid: true,
+            classnamecn: true,
+            classnameen: true,
+            gradeclassid: true,
+        }
+    });
 
-    // Get data for select options
-    const classes = await allClassRows();
-    const classOptions = classes.map((someclass: classObject) => ({
-        value: someclass.classnamecn,
-        label: someclass.classnamecn
-    }));
+    const regClassMap = regClasses.map((c) => ({
+        val: c.classid,
+        labelen: c.classnameen,
+        labelcn: c.classnamecn,
+    })) satisfies FormSelectOptions[];
 
-    const classTypeOptions = [
-        { value: "1", label: "1: Standard Chinese" },
-        { value: "2", label: "2: 马立平" },
-        { value: "4", label: "4: Clubs" }
-    ];
+    const gradeClassMap = [
+        ...regClassMap,
+        {
+            val: 0,
+            labelen: "Set as registration class (please follow the format)",
+            labelcn: "设置registration class. 请遵循格式"
+        }
+    ] satisfies FormSelectOptions[];
 
-    const classLevelOptions = Array.from({length: 13}, (_, i) => ({
-        value: i.toString(),
-        label: i.toString()
-    }));
 
-    const statusOptions = [
-        { value: "Active", label: "Active" },
-        { value: "Inactive", label: "Inactive" }
-    ];
+    const formClassTypeOptions = Object.entries(classTypeMap).map(([val, { typenameen, typenamecn }]) => ({
+        val: val,
+        labelen: typenameen,
+        labelcn: typenamecn,
+    })) satisfies FormSelectOptions[];
+
 
     // Define form fields. Match form schema to names
-    const fields: FormField[] = [
+    const fields: FormSections[] = [
         {
-            name: "classnamecn",
-            label: "Class Name (中文)",
-            type: "text",
-            placeholder: "中文课名字",
-            required: true
+            section: "Names",
+            sectionFields: [
+                {
+                    name: "classnamecn",
+                    label: "Class Name (中文)",
+                    type: "text",
+                    placeholder: "输入中文课名字",
+                    required: true,
+                    width: "half"
+                },
+                {
+                    name: "classnameen",
+                    label: "Class Name (EN)",
+                    type: "text",
+                    placeholder: "Enter english class name",
+                    required: true,
+                    width: "half",
+                },
+            ]
         },
         {
-            name: "classnameen",
-            label: "Class Name (EN)",
-            type: "text",
-            placeholder: "Enter the English class name...",
-            required: true
+            section: "Details",
+            sectionFields: [
+                {
+                    name: "ageid",
+                    label: "Age ID",
+                    required: true,
+                    type: "number",
+                    min: 1,
+                    max: 100,
+                    placeholder: "Enter the Age required",
+                    width: "half"
+                },
+                {
+                    name: "typeid",
+                    label: "Class Type",
+                    type: "select",
+                    placeholder: "Enter the type of class",
+                    required: true,
+                    options: formClassTypeOptions,
+                    width: "half"
+                },
+                {
+                    name: "classno",
+                    label: "Class Level",
+                    type: "number",
+                    min: 1,
+                    max: 100,
+                    placeholder: "Enter class level",
+                    required: true,
+                    width: "half"
+                },
+                {
+                    name: "sizelimits",
+                    label: "Size Limits",
+                    type: "number",
+                    placeholder: "Enter the size limits (0 if none)",
+                    required: true,
+                    width: "half"
+                },
+            ]
         },
         {
-            name: "typeid",
-            label: "Class Type",
-            type: "select",
-            required: true,
-            options: classTypeOptions
+            section: "Class Assignment",
+            sectionFields: [
+                {
+                    name: "status",
+                    label: "Status",
+                    type: "select",
+                    required: true,
+                    width: "half",
+                    placeholder: "Select status",
+                    options: [
+                        { val: "Active", labelcn: "注册状态", labelen: "Active" },
+                        { val: "Inactive", labelcn: "注册关闭", labelen: "Active" },
+                    ]
+                },
+                {
+                    name: "gradeclassid",
+                    label: "Registration Class",
+                    type: "select",
+                    required: true,
+                    placeholder: "Select the registration or parent class",
+                    width: "half",
+                    options: gradeClassMap  
+                },
+                {
+                    name: "classupid",
+                    label: "Upgrade Class",
+                    type: "select",
+                    required: true,
+                    placeholder: "Select the upgrade class",
+                    width: "half",
+                    options: regClassMap
+                },
+            ]
         },
         {
-            name: "classno",
-            label: "Class Level",
-            type: "select",
-            required: true,
-            options: classLevelOptions
-        },
-        {
-            name: "sizelimits",
-            label: "Size Limits",
-            type: "number",
-            placeholder: "Enter the size limits",
-            required: true
-        },
-        {
-            name: "status",
-            label: "Status",
-            type: "select",
-            required: true,
-            width: "half",
-            options: statusOptions
-        },
-        {
-            name: "classupid",
-            label: "Upgrade Class",
-            type: "select",
-            required: true,
-            width: "half",
-            options: classOptions
-        },
-        {
-            name: "description",
-            label: "Description",
-            type: "textarea",
-            placeholder: "Enter the description"
+            section: "Notes",
+            sectionFields: [
+                {
+                    name: "description",
+                    label: "Description",
+                    type: "textarea",
+                    placeholder: "Enter the description"
+                }
+            ]
         }
     ];
 
     return (
         <AddEntity
+            entity="classes"
             title="Add a new class"
-            description="Fill out the form below to add a new class."
+            description="To add classes for a semester, go to semester management."
             fields={fields}
-            submitAction={insertClassRow}
-            error={error}
-            submitText="Save"
         />
     );
 }

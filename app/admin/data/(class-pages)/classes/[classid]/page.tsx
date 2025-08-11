@@ -1,7 +1,8 @@
-import { classes } from '@/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
-import { Table } from '@/lib/data-view/types';
-import { classTable } from '../class-helpers';
+import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
+import getIDRow from '@/lib/data-view/actions/getIDRow';
+import { ClassObject } from '@/lib/data-view/entity-helpers/class-helpers';
+import { classTypeMap } from '@/lib/utils';
+import { notFound } from 'next/navigation';
 
 interface ClassPageProps {
     params: Promise<{
@@ -9,92 +10,99 @@ interface ClassPageProps {
     }>
 }
 
-export default async function ClassPage({ params }: ClassPageProps) {
+export default async function ClassIDPage({ params }: ClassPageProps) {
     const class_id = parseInt((await params).classid);
-    
-    // Fetch the specific class
-    // const classData = await db.query.classes.findFirst({
-    //     where: eq(classes.classid, class_id)
-    // });
+
+    const response = await getIDRow("classes", class_id);
+    if (!response.ok || !response.data) {
+        return notFound() 
+    } 
+
+    const curClass = response.data as ClassObject;
+    const regClass = curClass.gradeclassid ? (await getIDRow("classes", curClass.gradeclassid)).data as ClassObject : null;
+    const upgradeClass = curClass.classupid ? (await getIDRow("classes", curClass.classupid)).data as ClassObject : null;
 
     // Define display sections with type-safe keys using the table schema
-    const displaySections: displaySectionGroup<'classes', Table<"classes">>[] = [
+    const displaySections: displaySectionGroup[] = [
         {
-            label: "Class Information",
+            section: "Class Information",
             display: [
                 {
                     label: "Class ID",
-                    key: "classid"
+                    value: String(curClass.classid)
                 },
                 {
                     label: "English Name",
-                    key: "classnameen",
-                    fallback: "No English name provided"
+                    value: curClass.classnameen ?? "No given english class name"
+                },
+                {
+                    label: "Registration Class",
+                    value: regClass ? `${regClass.classnamecn} - ${regClass.classnameen}` : "No registration class"
+                },
+                {
+                    label: "Upgrade Class",
+                    value: upgradeClass ? `${upgradeClass.classnamecn} - ${upgradeClass.classnameen}` : "No upgrade class"
+                },
+                {
+                    label: "Class Type",
+                    value: curClass.typeid ? `${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenameen} ${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenamecn}`: "No type available"
                 },
                 {
                     label: "Class Level",
-                    key: "classno"
+                    value: curClass.classno ?? "No given class level"
                 },
                 {
                     label: "Size Limits",
-                    key: "sizelimits",
-                    fallback: "No limit set"
+                    value: curClass.sizelimits ? String(curClass.sizelimits) : "No given size limits"
                 },
                 {
                     label: "Status",
-                    key: "status"
+                    value: curClass.status ?? "No given status"
                 }
             ]
         },
         {
-            label: "Additional Information",
+            section: "Additional Information",
             display: [
                 {
                     label: "Description",
-                    key: "description",
-                    fallback: "No description available"
+                    value: curClass.description ?? "No description available"
                 },
+
                 {
-                    label: "Type ID",
-                    key: "typeid",
-                    fallback: "No type available"
+                    label: "Class Index",
+                    value: curClass.classindex ? String(curClass.classindex) : "No class index available"
                 },
                 {
                     label: "Last Modified",
-                    key: "lastmodify",
-                    formatter: (value) => value ? new Date(value as string).toLocaleDateString() : "Never modified"
+                    value: curClass.lastmodify ? new Date(curClass.lastmodify as string).toLocaleDateString() : "Never modified"
                 },
                 {
                     label: "Created On",
-                    key: "createon",
-                    formatter: (value) => new Date(value as string).toLocaleDateString()
+                    value: curClass.createon ? new Date(curClass.createon as string).toLocaleDateString() : "Never created"
                 },
                 {
                     label: "Created By",
-                    key: "createby"
+                    value: curClass.createby ?? "No creator"
                 },
                 {
                     label: "Updated By",
-                    key: "updateby"
+                    value: curClass.updateby ?? "No updater"
                 },
                 {
                     label: "Updated On",
-                    key: "updateon",
-                    formatter: (value) => new Date(value as string).toLocaleDateString()
+                    value: curClass.updateon ? new Date(curClass.updateon as string).toLocaleDateString() : "Never updated"
                 }
             ]
         }
     ];
 
     return (
-        <EntityId<"classes", classTable, 'classid'>
-            table={classes}
-            tableName="classes"
-            primaryKey="classid"
-            titleCol="classnamecn"
-            displaySections={displaySections}
-            notFoundMessage="Class not found"
-            id={class_id}
+        <EntityId
+            title={`Class ${String(curClass.classid)} - ${curClass.classnamecn}`}
+            entity="classes"
+            displayFields={displaySections}
+            id={String(class_id)}
         />
     );
 }
