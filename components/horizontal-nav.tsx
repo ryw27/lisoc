@@ -10,24 +10,19 @@ interface secionTabs {
 }
 type HorizontalNavProps = {
     tabs: readonly secionTabs[];
-    activeHref?: string;
 }
-export default function HorizontalNav(
-    {tabs, activeHref}: HorizontalNavProps
-) {
+
+export default function HorizontalNav({ tabs }: HorizontalNavProps) {
     const pathname = usePathname();
-    const current = activeHref ?? pathname;
-
-
     return (
-        <nav className="flex border-b space-x-6 text-sm font-medium text-gray-500">
+        <nav className="flex border-b space-x-6 text-sm font-medium text-gray-500 mb-4">
             {tabs.map((tab) => (
                 <Link
                     key={tab.href} 
                     href={tab.href}
                     className={cn(
-                        "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer",
-                        current === tab.href && "border-blue-500 text-blue-600"
+                        "border-b-2 border-transparent py-3 px-1 transition-colors cursor-pointer font-bold",
+                        pathname === tab.href && "border-blue-500 text-blue-600"
                     )}
                 >
                     {tab.label}
