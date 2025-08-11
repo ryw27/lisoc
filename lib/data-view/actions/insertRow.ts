@@ -1,83 +1,85 @@
 "use server";
-import { Extras, PKName, Table } from "../types";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
+import { z } from "zod/v4";
 import { requireRole } from "@/lib/auth";
-import { DefaultSession } from "next-auth";
-import { InferInsertModel } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
 import { classes } from "@/lib/db/schema";
+import { getEntityConfig, Registry } from "@/lib/data-view/registry";
+import { eq, InferInsertModel } from "drizzle-orm";
 
-// export function makeInsertAction<T extends Table>(
-//     table: T,
-//     formSchema: z.ZodObject,
-//     primaryKey: PKName<T>,
-//     mainPath: string,
-//     createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>,
-// ) {
-//     type RowInsert = InferInsertModel<T>;
+export interface ActionResult {
+    ok: boolean;
+    message: string;
+    id?: string | number;
+    fieldErrors?: Record<string, string[]>;
+    formErrors?: string[];
+}
 
-//     return async function insertRow(formData: z.infer<typeof formSchema>): Promise<void> {
-//         "use server"
-//         const user = await requireRole(["ADMIN"]);
-//         const insertExtras = createInsertExtras ? createInsertExtras(user.user) : {};
+export async function insertRow(
+    entity: keyof Registry,
+    formInput: FormData
+) : Promise<ActionResult> {
+    try {
+        const user = await requireRole(["ADMIN"]);
+        const { table, primaryKey, formSchema, makeInsertExtras } = getEntityConfig(entity);
+        const insertExtras = makeInsertExtras ? makeInsertExtras(user.user) : {};
 
-//         const data = formSchema.parse(formData) as RowInsert;
+        const rawObject = Object.fromEntries(formInput.entries());
+        const parsed = formSchema.safeParse(rawObject);
+        if (!parsed.success) {
+            const flat = z.flattenError(parsed.error);
+            return {
+                ok: false,
+                message: "Validation failed. Please correct the highlighted fields.",
+                fieldErrors: flat.fieldErrors as Record<string, string[]>,
+                formErrors: flat.formErrors,
+            };
+        }
 
-//         const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
-//         const pkCol = columns[String(primaryKey)];
+        const insertData = {
+            ...(parsed.data),
+            ...insertExtras
+        } as InferInsertModel<typeof table>;
 
-//         const [row] = await db
-//             .insert(table)
-//             .values({ ...data, ...insertExtras })
-//             .returning({ pk: pkCol });
+        const [row] = await db
+            // drizzle generic table typing is too strict here; runtime is correct
+            // @ts-ignore
+            .insert(table)
+            .values(insertData)
+            .returning();
 
-//         if (!row) throw new Error(`Insert failed for ${table._.name}`);
-//         revalidatePath(`${mainPath}/${row.pk}`);
-//     };
-// }
+        if (!row) {
+            console.error(`Insert failed for ${table._.name} with row ${row}`);
+            return { ok: false, message: "Unknown database error occurred" };
+        }
 
-export async function insertRow<T extends Table, FormSchema extends z.ZodObject>(
-    table: T,
-    primaryKey: PKName<T>,
-    data: z.infer<FormSchema>, 
-    formSchema: FormSchema,
-    createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>,
-    itself?: boolean
-) {
-    const user = await requireRole(["ADMIN"]);
-    const insertExtras = createInsertExtras ? createInsertExtras(user.user) : {};
-
-    const parsedData = formSchema.safeParse(data);
-    if (parsedData.error) {
-        return { ok: false, message: z.flattenError(parsedData.error)}
-    }
-
-    const insertData = {
-        ...parsedData,
-        ...insertExtras
-    } as InferInsertModel<T>;
-
-    const [row] = await db
-        .insert(table)
-        .values(insertData)
-        .returning()
-
-    // Exception placed for self referential columns, only for classes I believe
-    if (itself && primaryKey === "classid") {
-        await db
-            .update(classes)
-            .set({
+        // Exception placed for self referential columns, only for classes
+        const itself = primaryKey === "classid";
+        if (itself && primaryKey === "classid") {
+            await db
+                .update(classes)
+                .set({
+                    // @ts-ignore
+                    gradeclassid: (row as any).classid,
+                })
                 // @ts-ignore
-                gradeclassid: row.classid as any
-            })
-    }
+                .where(eq(classes.classid, (row as any).classid));
+        }
 
-    if (!row) {
-        console.error(`Insert failed for ${table._.name} with row ${row}`);
-        return { ok: false, message: "Unknown database error occured" }
-    }
+        // @ts-ignore
+        const id = (row as any)[primaryKey];
 
-    revalidatePath(`${ADMIN_DATAVIEW_LINK}/${row[primaryKey as keyof typeof row]}`);
+        revalidatePath(`${ADMIN_DATAVIEW_LINK}/${id ?? ''}`);
+
+        return {
+            ok: true,
+            message: "Created successfully",
+            id,
+        };
+    } catch (error) {
+        console.error("insertRow error", error);
+        const message = error instanceof Error ? error.message : "Server error. Please try again later.";
+        return { ok: false, message, formErrors: [message] };
+    }
 }

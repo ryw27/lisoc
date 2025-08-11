@@ -1,46 +1,71 @@
+// "use server";
 import { db } from "@/lib/db";
-import { parsedParams, Table } from "../types";
+import { parsedParams } from "../types";
 import { buildSQL } from "../helpers";
-import { getTableColumns, asc, desc, sql, InferSelectModel, AnyColumn } from "drizzle-orm";
+import { getTableColumns, asc, desc, sql, AnyColumn } from "drizzle-orm";
 import { AnyPgTable } from "drizzle-orm/pg-core";
 import { requireRole } from "@/lib/auth";
+import { getEntityConfig, type Registry } from "@/lib/data-view/registry";
 
-export async function pageRows<T extends Table>(table: T, opts: parsedParams) {
-    await requireRole(["ADMIN"]);
-    // Take parsed params type from handle-params.ts
-    // Build SQL query with helper function
-    const where = opts.query ? buildSQL(table, opts.query, opts.match) : undefined;
+export interface PageRowsResult {
+    ok: boolean;
+    message?: string;
+    rows?: unknown[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+    totalPages?: number;
+    sortBy?: string | undefined;
+    sortOrder?: 'asc' | 'desc' | undefined;
+}
 
-    const columns = getTableColumns(table) as Record<string, AnyColumn>;
-    // Process sort by and sort order
-    const sortbycolumn = opts.sortBy ? columns[opts.sortBy as keyof typeof columns] : undefined;
-    const orderByClause = sortbycolumn
-        ? (opts.sortOrder === 'asc' ? asc(sortbycolumn) : desc(sortbycolumn))
-        : undefined;
+export async function pageRows(entity: keyof Registry, opts: parsedParams): Promise<PageRowsResult> {
+    try {
+        const { table } = getEntityConfig(entity);
+        await requireRole(["ADMIN"]);
 
-    // Build drizzle query, don't execute yet
-    const baseQuery = db
-        .select()
-        .from(table as AnyPgTable) 
-        .where(where);
+        const page = Math.max(1, Number(opts.page || 1));
+        const pageSize = Math.max(1, Math.min(Number(opts.pageSize || 25), 200));
 
-    // Add sorting if necessary as well as pagesize and page and execute
-    const result = await (
-        orderByClause
-            ? baseQuery.orderBy(orderByClause)
-            : baseQuery
+        const where = opts.query && opts.query.length > 0 ? buildSQL(table, opts.query, opts.match) : undefined;
+
+        const columns = getTableColumns(table) as Record<string, AnyColumn>;
+        const sortByCol = opts.sortBy ? columns[String(opts.sortBy)] : undefined;
+        const orderByClause = sortByCol
+            ? (opts.sortOrder === 'asc' ? asc(sortByCol) : desc(sortByCol))
+            : undefined;
+
+        const baseQuery = db
+            .select()
+            .from(table as AnyPgTable)
+            .where(where);
+
+        const rows = await (
+            orderByClause ? baseQuery.orderBy(orderByClause) : baseQuery
         )
-        .limit(opts.pageSize)
-        .offset((opts.page - 1) * opts.pageSize);
+            .limit(pageSize)
+            .offset((page - 1) * pageSize);
 
-    // Obtain total count of rows in this table
-    const [{ count }] = await db
-        .select({ count: sql<number>`count(*)`})
-        .from(table as AnyPgTable)
-        .where(where);
+        const [{ count }] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(table as AnyPgTable)
+            .where(where);
 
-    return {
-        rows: result as InferSelectModel<T>[],
-        totalCount: count,
-    };
+        const totalPages = Math.max(1, Math.ceil((count || 0) / pageSize));
+
+        return {
+            ok: true,
+            rows,
+            totalCount: count,
+            page,
+            pageSize,
+            totalPages,
+            sortBy: opts.sortBy,
+            sortOrder: opts.sortOrder,
+        };
+    } catch (error) {
+        console.error('pageRows error', error);
+        const message = error instanceof Error ? error.message : 'Server error. Please try again later.';
+        return { ok: false, message };
+    }
 }

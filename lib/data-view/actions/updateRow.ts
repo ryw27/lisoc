@@ -1,81 +1,72 @@
 "use server";
-import { Extras, PKName, PKVal, Table } from "../types";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
+import { z } from "zod/v4";
 import { requireRole } from "@/lib/auth";
-import { DefaultSession } from "next-auth";
-import { eq, getTableColumns, InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
 import { AnyPgColumn } from "drizzle-orm/pg-core";
-
-// export function makeUpdateRow<T extends Table>(
-
-//     table: T,
-//     formSchema: z.ZodObject,
-//     primaryKey: PKName<T>,
-//     mainPath: string,
-//     createUpdateExtras?: (user: DefaultSession["user"]) => Extras<T>,
-// ) {
-//     type RowInsert = InferInsertModel<T>;
-
-//     return async function updateRow(id: PKVal<T>, formData: z.infer<typeof formSchema>): Promise<void> {
-// 		"use server";
-// 		const user = await requireRole(["ADMIN"]);
-// 		const updateExtras = createUpdateExtras ? createUpdateExtras(user.user) : {};
-
-// 		const data = formSchema.parse(formData) as Partial<RowInsert>;
-
-// 		const fullData = { ...data, ...updateExtras } as Partial<RowInsert>;
-
-// 		// Resolve columns at call time to avoid capturing complex Drizzle objects in the closure
-// 		const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
-// 		const pkCol = columns[String(primaryKey)];
-
-// 		const [row] = await db
-// 			.update(table)
-// 			// eslint-disable-next-line
-// 			.set(fullData as any)
-// 			.where(eq(pkCol, id))
-// 			.returning({ pk: pkCol });
-
-// 		if (!row) throw new Error(`Elements not found in ${table._.name}`);
-// 		revalidatePath(`${mainPath}/${row.pk}`);
-//     };
-// }
-
-export async function updateRow<T extends Table, FormSchema extends z.ZodObject>(
-    table: T,
-    primaryKey: PKName<T>,
-	idUpdated: PKVal<T>,
-    data: z.infer<FormSchema>, 
-    formSchema: FormSchema,
-    createUpdateExtras?: (user: DefaultSession["user"]) => Extras<T>
-) {
-    const user = await requireRole(["ADMIN"]);
-    const updateExtras = createUpdateExtras ? createUpdateExtras(user.user) : {};
-
-    const parsedData = formSchema.parse(data);
-
-    // const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
-
-    const updateData = {
-        ...parsedData,
-        ...updateExtras
-    } as Partial<InferInsertModel<T>>
-
-	const columns = getTableColumns(table);
-	const pkCol = columns[primaryKey];
-
-	const result = await db	
-		.update(table)
-		// @ts-ignore No clue how to solve this one
-		.set(updateData)
-		.where(eq(pkCol as AnyPgColumn, idUpdated))
-		.returning()
+import { eq, getTableColumns } from "drizzle-orm";
+import { getEntityConfig, type Registry } from "@/lib/data-view/registry";
 
 
-    const newrow = result as InferSelectModel<T>;
-    const pkValue = newrow[primaryKey];
-    revalidatePath(`${ADMIN_DATAVIEW_LINK}/${pkValue}`);
+export interface UpdateActionResult {
+  ok: boolean;
+  message: string;
+  fieldErrors?: Record<string, string[]>;
+  formErrors?: string[];
+}
+
+export async function updateRow(
+  entity: keyof Registry,
+  formInput: FormData
+): Promise<UpdateActionResult> {
+	try {
+		const user = await requireRole(["ADMIN"]);
+		const { table, primaryKey, formSchema, makeUpdateExtras } = getEntityConfig(entity);
+		const updateExtras = makeUpdateExtras ? makeUpdateExtras(user.user) : {};
+
+		const rawObject = Object.fromEntries(formInput.entries());
+		console.log(rawObject);
+
+		const pkRaw = rawObject[primaryKey];
+		if (pkRaw === undefined) {
+			return { ok: false, message: "Missing identifier for update." };
+		}
+
+		const parsed = formSchema.safeParse(rawObject);
+		if (!parsed.success) {
+			const flat = z.flattenError(parsed.error);
+			return {
+				ok: false,
+				message: "Validation failed. Please correct the highlighted fields.",
+				fieldErrors: flat.fieldErrors as Record<string, string[]>,
+				formErrors: flat.formErrors,
+			};
+		}
+
+		const updateData = {
+			...parsed.data,
+			...updateExtras,
+		};
+
+		const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
+		const pkCol = columns[String(primaryKey)];
+
+		const [row] = await db
+			.update(table)
+			.set(updateData)
+			.where(eq(pkCol, pkRaw))
+			.returning({ pk: pkCol });
+
+		if (!row) {
+			return { ok: false, message: "Update failed. Row not found." };
+		}
+
+		revalidatePath(`${ADMIN_DATAVIEW_LINK}/${row.pk as string | number}`);
+		return { ok: true, message: "Updated successfully" };
+	} catch (error) {
+		console.error("updateRow error", error);
+		const message = error instanceof Error ? error.message : "Server error. Please try again later.";
+		return { ok: false, message, formErrors: [message] };
+	}
 }

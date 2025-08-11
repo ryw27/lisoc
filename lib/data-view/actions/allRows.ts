@@ -1,14 +1,18 @@
 import { db } from "@/lib/db";
-import { Table } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
-import { AnyPgTable } from "drizzle-orm/pg-core";
+import { getEntityConfig, Registry } from "../registry";
+import { Table } from "../types";
+import { requireRole } from "@/lib/auth";
 
-export default async function allRows<T extends Table>(table: T): Promise<InferSelectModel<T>[]> {
+
+export default async function allRows(entity: keyof Registry): Promise<InferSelectModel<Table>[]> {
+    await requireRole(["ADMIN"]);
+    const { table } = getEntityConfig(entity);
     const rows = await db
         .select()
-        .from(table as AnyPgTable)
+        .from(table)
 
     if (!rows) throw new Error(`No rows found in ${table._.name}`);
 
-    return rows as InferSelectModel<T>[];
+    return rows as InferSelectModel<typeof table>[];
 }
