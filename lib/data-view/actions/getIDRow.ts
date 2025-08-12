@@ -17,6 +17,7 @@ export default async function getIDRow(entity: keyof Registry, rawId: number) {
         const [row] = await db
             .select()
             .from(table)
+            // @ts-ignore
             .where(eq(table[primaryKey], id))
 
         if (!row) {

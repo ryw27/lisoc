@@ -15,6 +15,13 @@ export function toESTString(date: Date) {
 	return formatInTimeZone(date, 'America/New_York', "yyyy-MM-dd'T'HH:mm:ssXXX")
 }
 
+
+// ----------------------------------------------------------------
+// Link
+// ----------------------------------------------------------------
+
+export const ADMIN_DATAVIEW_LINK = "/admin/data"
+
 // ----------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------
