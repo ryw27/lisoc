@@ -37,6 +37,34 @@ const renderField = (
                     aria-required={field.required}
                 />
             );
+        case 'date':
+            return (
+                <Input
+                    type="date"
+                    name={field.name}
+                    placeholder={field.placeholder}
+                    defaultValue={field.defaultValue as string | undefined}
+                    required={field.required}
+                    aria-invalid={Boolean(opts.fieldError?.length)}
+                    aria-describedby={opts.fieldError?.length ? `${field.name}-error` : undefined}
+                    disabled={opts.pending}
+                    aria-required={field.required}
+                />
+            );
+        case 'password':
+            return (
+                <Input
+                    type="password"
+                    name={field.name}
+                    placeholder={field.placeholder}
+                    defaultValue={field.defaultValue as string | undefined}
+                    required={field.required}
+                    aria-invalid={Boolean(opts.fieldError?.length)}
+                    aria-describedby={opts.fieldError?.length ? `${field.name}-error` : undefined}
+                    disabled={opts.pending}
+                    aria-required={field.required}
+                />
+            );
         case 'number':
             return (
                 <Input
@@ -223,7 +251,7 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                                                             className="block text-sm text-gray-600 font-medium mb-2"
                                                             htmlFor={field.name}
                                                         >
-                                                            {field.label}
+                                                            {field.label} {field.required ? <span className="text-red-500">*</span> : ''}
                                                         </label>
                                                         {renderField(field, {
                                                             pending,
