@@ -1,5 +1,7 @@
 import { FormSelectOptions, FormSections } from '@/lib/data-view/types';
 import AddEntity from '@/components/data-view/add-entity/add-entity';
+import EntityFormsHeader from '@/components/data-view/entity-forms-header';
+import { ADMIN_DATAVIEW_LINK } from '@/lib/utils';
 
 
 export default async function AddClassroom({
@@ -52,11 +54,17 @@ export default async function AddClassroom({
     ];
 
     return (
-        <AddEntity
-            entity="classrooms"
-            title="Add a new classroom"
-            description="Fill out the form below to add a new classroom. Be sure to double check your inputs before saving."
-            fields={fields}
-        />
+        <>
+            <EntityFormsHeader
+                type="add"
+                gobacklink={`${ADMIN_DATAVIEW_LINK}/classrooms`}
+            />
+            <AddEntity
+                entity="classrooms"
+                title="Add a new classroom"
+                description="Fill out the form below to add a new classroom. Be sure to double check your inputs before saving."
+                fields={fields}
+            />
+        </>
     );
 } 

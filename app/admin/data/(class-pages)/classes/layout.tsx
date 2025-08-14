@@ -4,7 +4,7 @@ import { FilterableColumn } from "@/lib/data-view/types";
 import React from "react";
 import { classTypeMap } from "@/lib/utils";
 import DataTableColumnHeader from "@/components/data-view/data-table/data-table-header";
-import { ClassObject } from "@/lib/data-view/entity-helpers/class-helpers";
+import { ClassObject } from "@/lib/data-view/entity-configs/(classes)/classes";
 import ConfigLayout from "@/components/data-view/config-layout";
 import { IdMaps } from "@/lib/registration/types";
 

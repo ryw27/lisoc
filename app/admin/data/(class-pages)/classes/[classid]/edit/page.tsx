@@ -4,7 +4,7 @@ import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 import { FormSections, FormSelectOptions } from "@/lib/data-view/types";
 import getIDRow from "@/lib/data-view/actions/getIDRow";
 import { classTypeMap } from "@/lib/utils";
-import { ClassObject } from "@/lib/data-view/entity-helpers/class-helpers";
+import { ClassObject } from "@/lib/data-view/entity-configs/(classes)/classes";
 
 export default async function ClassEditPage({
     params,

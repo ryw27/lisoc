@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
 import { FormSelectOptions, FormSections } from '@/lib/data-view/types';
-import { classTypeMap } from '@/lib/utils';
+import { ADMIN_DATAVIEW_LINK, classTypeMap } from '@/lib/utils';
 import AddEntity from '@/components/data-view/add-entity/add-entity';
+import EntityFormsHeader from '@/components/data-view/entity-forms-header';
 
 export default async function AddClass() {
     // Not using this for now, need reg classes as well
@@ -153,11 +154,18 @@ export default async function AddClass() {
     ];
 
     return (
-        <AddEntity
-            entity="classes"
-            title="Add a new class"
-            description="To add classes for a semester, go to semester management."
-            fields={fields}
-        />
+        <>  
+            <EntityFormsHeader
+                type="add"
+                gobacklink={`${ADMIN_DATAVIEW_LINK}/classes`}
+            />
+            <AddEntity
+                entity="classes"
+                title="Add a new class"
+                description="To add classes for a semester, go to semester management."
+                fields={fields}
+            />
+        </>
+       
     );
 }

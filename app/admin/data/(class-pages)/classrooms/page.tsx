@@ -4,7 +4,7 @@ import { parseParams } from '@/lib/data-view/'
 import { pageRows } from '@/lib/data-view/actions/pageRows'
 import HorizontalNav from '@/components/horizontal-nav'
 import { ADMIN_DATAVIEW_LINK } from '@/lib/utils'
-import { ClassroomObject } from "@/lib/data-view/entity-helpers/classroom-helpers"
+import { ClassroomObject } from "@/lib/data-view/entity-configs/(classes)/classrooms"
 
 
 export default async function ClassesPage({ 

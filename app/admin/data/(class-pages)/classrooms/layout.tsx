@@ -5,7 +5,7 @@ import React from "react";
 import DataTableColumnHeader from "@/components/data-view/data-table/data-table-header";
 import ConfigLayout from "@/components/data-view/config-layout";
 // import { IdMaps } from "@/lib/registration/types";
-import { ClassroomObject } from "@/lib/data-view/entity-helpers/classroom-helpers";
+import { ClassroomObject } from "@/lib/data-view/entity-configs/(classes)/classrooms";
 
 
 export default function ClassroomsLayoutPage({ children }: { children: React.ReactNode}) {
