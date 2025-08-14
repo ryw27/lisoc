@@ -2,10 +2,10 @@
 import { db } from "@/lib/db";
 import { parsedParams } from "../types";
 import { buildSQL } from "../helpers";
-import { getTableColumns, asc, desc, sql, AnyColumn } from "drizzle-orm";
-import { AnyPgTable } from "drizzle-orm/pg-core";
+import { getTableColumns, asc, desc, sql, AnyColumn, eq } from "drizzle-orm";
 import { requireRole } from "@/lib/auth";
 import { getEntityConfig, type Registry } from "@/lib/data-view/registry";
+import { users } from "@/lib/db/schema";
 
 export interface PageRowsResult {
     ok: boolean;
@@ -18,6 +18,8 @@ export interface PageRowsResult {
     sortBy?: string | undefined;
     sortOrder?: 'asc' | 'desc' | undefined;
 }
+
+const USER_JOINED_TABLES = ["adminuser", "teacher", "family"];
 
 export async function pageRows(entity: keyof Registry, opts: parsedParams): Promise<PageRowsResult> {
     try {
@@ -37,8 +39,13 @@ export async function pageRows(entity: keyof Registry, opts: parsedParams): Prom
 
         const baseQuery = db
             .select()
-            .from(table as AnyPgTable)
+            .from(table)
             .where(where);
+
+        // Handle user joined tables
+        if (USER_JOINED_TABLES.includes(entity)) {
+            baseQuery.leftJoin(users, eq(table["userid" as keyof (typeof table)["$inferSelect"]], users.id));
+        } 
 
         const rows = await (
             orderByClause ? baseQuery.orderBy(orderByClause) : baseQuery
@@ -48,7 +55,7 @@ export async function pageRows(entity: keyof Registry, opts: parsedParams): Prom
 
         const [{ count }] = await db
             .select({ count: sql<number>`count(*)` })
-            .from(table as AnyPgTable)
+            .from(table)
             .where(where);
 
         const totalPages = Math.max(1, Math.ceil((count || 0) / pageSize));

@@ -24,7 +24,7 @@ export const registry = {
     classrooms: classroomConfig,
     users: userConfig,
     adminuser: adminUserConfig,
-    teachers: teacherConfig,
+    teacher: teacherConfig,
     family: familyConfig,
     student: studentConfig,
     arrangement: arrangementConfig,

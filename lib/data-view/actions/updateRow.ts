@@ -26,7 +26,7 @@ export async function updateRow(
 		const updateExtras = makeUpdateExtras ? makeUpdateExtras(user.user) : {};
 
 		const rawObject = Object.fromEntries(formInput.entries());
-		console.log(rawObject);
+		// console.log(rawObject);
 
 		const pkRaw = rawObject[primaryKey];
 		if (pkRaw === undefined) {

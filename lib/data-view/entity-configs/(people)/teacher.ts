@@ -3,12 +3,12 @@ import { z } from "zod/v4";
 import { Extras, type EntityConfig } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
 import { DefaultSession } from "next-auth";
-import { toESTString } from "@/lib/utils";
+import { UserObject } from "./users";
 
 
 // 1. Types
 export type TeacherTable = typeof teacher
-export type TeacherObject = InferSelectModel<TeacherTable>
+export interface TeacherJoined extends InferSelectModel<TeacherTable>, UserObject {}
 
 // 2. Form Schema: Form schema is not necessarily the same as database schema
 export const teacherFormSchema = z.object({

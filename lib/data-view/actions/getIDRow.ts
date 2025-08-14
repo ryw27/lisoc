@@ -2,6 +2,14 @@ import { getEntityConfig, Registry } from "../registry";
 import { requireRole } from "../../auth";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { users } from "@/lib/db/schema";
+
+
+const USER_JOIN_TABLES = ["adminuser", "teacher", "family"] as const;
+type UserJoinEntity = typeof USER_JOIN_TABLES[number];
+function isUserJoinEntity(entity: keyof Registry): entity is UserJoinEntity {
+    return (USER_JOIN_TABLES as readonly string[]).includes(entity as string);
+}
 
 export default async function getIDRow(entity: keyof Registry, rawId: number) {
     try {
@@ -14,11 +22,25 @@ export default async function getIDRow(entity: keyof Registry, rawId: number) {
             throw new Error("Invalid ID provided");
         }
 
-        const [row] = await db
-            .select()
-            .from(table)
-            // @ts-ignore
-            .where(eq(table[primaryKey], id))
+        let row = null;
+        if (isUserJoinEntity(entity)) {
+            [row] = await db
+                .select()
+                .from(table)
+                // @ts-ignore
+                .where(eq(table[primaryKey], id))
+                .leftJoin(users, eq(table["userid" as keyof typeof table["$inferSelect"]], users.id));
+            row = {
+                ...row,
+                ...row.users,
+            }
+        } else {
+            [row] = await db
+                .select()
+                .from(table)
+                // @ts-ignore
+                .where(eq(table[primaryKey], id));
+        }
 
         if (!row) {
             throw new Error("Could not find corresponding row")

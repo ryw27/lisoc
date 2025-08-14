@@ -123,6 +123,12 @@ export type FormField =
         type: 'text'
     })
     | (BaseFormField & {
+        type: 'date'
+    })
+    | (BaseFormField & {
+        type: 'password'
+    })
+    | (BaseFormField & {
         type: 'number'
         min?: number
         max?: number
