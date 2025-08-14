@@ -17,7 +17,9 @@ export default function ConfigLayout<RowType>({
         <DataEntityProvider
             table={config.table}
             columns={columns}
+            entity={entity}
             tableName={config.tableName}
+            // @ts-ignore  No idea how to fix
             primaryKey={config.primaryKey}
             formSchema={config.formSchema}
         >

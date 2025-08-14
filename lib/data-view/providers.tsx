@@ -3,6 +3,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { IdMaps } from '../registration/types';
 import { FilterableColumn, PKName, Table } from './types';
 import { z } from 'zod/v4';
+import { Registry } from './registry';
 
 
 interface IdMapsProviderProps {
@@ -36,6 +37,7 @@ export default IdMapsContext;
 export interface DataEntityContextValue<T extends Table, RowType> {
     table: T;
     columns: FilterableColumn<RowType>[];
+    entity: keyof Registry 
     tableName: string;
     primaryKey: PKName<T>;
     formSchema: z.ZodObject;
