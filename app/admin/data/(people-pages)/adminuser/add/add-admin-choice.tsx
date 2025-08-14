@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { createAdminRegistrationLink } from "@/lib/auth/actions/createAdminRegistrationLink";
+import { createRegLink } from "@/lib/auth";
 import { FormSections } from "@/lib/data-view/types";
 import { useState } from "react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
@@ -57,11 +57,11 @@ export default function AddAdminChoice({ fields }: { fields: FormSections[] }) {
                             <Button
                                 variant="default"
                                 onClick={async () => {
-                                    const res = await createAdminRegistrationLink(email);
+                                    const res = await createRegLink({ email: email, type: "Admin" });
                                     if (res.ok) {
                                         setOpen(false);
                                     } else {
-                                        setError(res.message || "Something went wrong");
+                                        setError(res.errorMessage || "Something went wrong");
                                     }
                                 }}
                             >

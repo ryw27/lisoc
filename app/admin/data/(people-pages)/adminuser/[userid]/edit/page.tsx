@@ -36,7 +36,6 @@ export default async function EditAdministratorPage({
 					label: "Chinese Name",
 					type: "text",
 					placeholder: "Enter the Chinese name",
-					required: true,
 					defaultValue: data.namecn,
 				},
 				{
@@ -44,7 +43,6 @@ export default async function EditAdministratorPage({
 					label: "First Name",
 					type: "text",
 					placeholder: "Enter the first name",
-					required: true,
 					width: "half",
 					defaultValue: data.firstname,
 				},
@@ -53,7 +51,6 @@ export default async function EditAdministratorPage({
 					label: "Last Name",
 					type: "text",
 					placeholder: "Enter the last name",
-					required: true,
 					width: "half",
 					defaultValue: data.lastname,
 				},
@@ -62,7 +59,6 @@ export default async function EditAdministratorPage({
 					label: "Username",
 					type: "text",
 					placeholder: "Enter the username",
-					required: true,
 					width: "half",
 					defaultValue: data.name ?? undefined,
 				},
@@ -71,16 +67,14 @@ export default async function EditAdministratorPage({
 					label: "Email",
 					type: "text",
 					placeholder: "Enter the email",
-					required: true,
 					width: "half",
 					defaultValue: data.email,
 				},
 				{
 					name: "password",
 					label: "Password",
-					type: "text",
+					type: "password",
 					placeholder: "Enter the password",
-					required: true,
 					width: "half",
 					defaultValue: data.password ?? undefined,
 				},
@@ -89,7 +83,6 @@ export default async function EditAdministratorPage({
 					label: "Status",
 					type: "select",
 					placeholder: "Select the status",
-					required: true,
 					width: "half",
 					options: [
 						{
@@ -115,7 +108,6 @@ export default async function EditAdministratorPage({
 					label: "Address",
 					type: "text",
 					placeholder: "Enter the address",
-					required: true,
 					defaultValue: data.address ?? undefined,
 				},
 				{
@@ -123,7 +115,6 @@ export default async function EditAdministratorPage({
 					label: "City",
 					type: "text",
 					placeholder: "Enter the city",
-					required: true,
 					width: "third",
 					defaultValue: data.city ?? undefined,
 				},
@@ -132,7 +123,6 @@ export default async function EditAdministratorPage({
 					label: "State",
 					type: "select",
 					placeholder: "Enter the state",
-					required: true,
 					width: "third",
 					options: US_STATES.map((state) => ({
 						labelen: state,
@@ -146,7 +136,6 @@ export default async function EditAdministratorPage({
 					label: "Zip",
 					type: "text",
 					placeholder: "Enter the zip",
-					required: true,
 					width: "third",
 					defaultValue: data.zip ?? undefined,
 				},
@@ -155,7 +144,6 @@ export default async function EditAdministratorPage({
 					label: "Phone",
 					type: "text",
 					placeholder: "Enter the phone",
-					required: true,
 					defaultValue: data.phone ?? undefined,
 				},
 				{
@@ -163,7 +151,6 @@ export default async function EditAdministratorPage({
 					label: "Address 2",
 					type: "text",
 					placeholder: "Enter the address 2",
-					required: false,
 					defaultValue: data.address1 ?? undefined,
 				}
 			]
@@ -176,7 +163,6 @@ export default async function EditAdministratorPage({
 					label: "Notes",
 					type: "textarea",
 					placeholder: "Enter any additional notes",
-					required: false,
 					defaultValue: data.notes ?? undefined,
 				}
 			]

@@ -49,7 +49,7 @@ export default function AddAdministrator() {
 				{
 					name: "password",
 					label: "Password",
-					type: "text",
+					type: "password",
 					placeholder: "Enter the password",
 					required: true,
 					width: "half",
