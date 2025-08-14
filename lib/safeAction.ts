@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type ActionResult<S extends z.ZodType, R = void> =
+export type ActionResult<S extends z.ZodType, R> =
   | { ok: true, data?: R}
   | {
       ok: false;
@@ -8,11 +8,11 @@ export type ActionResult<S extends z.ZodType, R = void> =
       errorMessage?: string;          
     };
 
-export function safeAction<S extends z.ZodType, R = void>(
+export function safeAction<S extends z.ZodType, R>(
     schema: S,
     fn: (data: z.infer<S>) => Promise<R>
 ) {
-    return async (data: z.infer<S>): Promise<ActionResult<S>> => {
+    return async (data: z.infer<S>): Promise<ActionResult<S, R>> => {
         const parsedData = schema.safeParse(data);
         if (!parsedData.success) {
             const flatErrors = z.flattenError(parsedData.error);
@@ -29,8 +29,8 @@ export function safeAction<S extends z.ZodType, R = void>(
         }
 
         try {
-            await fn(parsedData.data);
-            return { ok: true }
+            const res = await fn(parsedData.data);
+            return { ok: true, data: res }
         } catch (error) {
             if (error instanceof Error) {
                 return { ok: false, errorMessage: error.message }
