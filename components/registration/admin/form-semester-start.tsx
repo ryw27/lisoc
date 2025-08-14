@@ -98,7 +98,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
             // Add success feedback and navigation
             console.log("Semester started successfully!")
             // Navigate to success page or show success message
-            router.push("/admintest/semester")
+            router.push("/admin/semester")
         } catch (err) {
             if (err instanceof DrizzleError) {
                 console.error("Drizzle semester start error.")
@@ -160,7 +160,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                             <button 
                                 type="button"
                                 className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
-                                onClick={() => router.push("/admintest/semester")}
+                                onClick={() => router.push("/admin/semester")}
                             >
                                 Cancel
                             </button>

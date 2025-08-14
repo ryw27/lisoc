@@ -108,7 +108,7 @@ export async function adminRegister(
             .where(eq(classregistration.regid, newReg.regid));
 
 
-        revalidatePath("/admintest/management/semester");
+        revalidatePath("/admin/management/semester");
         revalidatePath("/dashboard/classes");
         return newBal;
     })

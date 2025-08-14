@@ -92,7 +92,7 @@ export async function familyRequestDrop(regid: number, studentid: number, family
                 .values(removeFamBalValues)
             
             revalidatePath("/dashboard/classes");
-            revalidatePath("/admintest/management/regchangerequests");
+            revalidatePath("/admin/management/regchangerequests");
             return;
             // throw new Error("No payment found for this registration. The registration has been deleted");
         }
@@ -141,7 +141,7 @@ export async function familyRequestDrop(regid: number, studentid: number, family
         //         .values(removeFamBalValues)
         // }
 
-        revalidatePath("/admintest/management/regchangerequests");
+        revalidatePath("/admin/management/regchangerequests");
         revalidatePath("/dashboard/classes");
     })
 }

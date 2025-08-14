@@ -76,6 +76,6 @@ export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSea
             throw new Error("Unknown DB error occured with spring semester update");
         }
 
-        revalidatePath("/admintest/management/semester")
+        revalidatePath("/admin/management/semester")
     })
 }

@@ -63,7 +63,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
                 .delete(regchangerequest)
                 .where(eq(regchangerequest.requestid, requestid));
             revalidatePath("/dashboard/classes");
-            revalidatePath("/admintest/management/semester");
+            revalidatePath("/admin/management/semester");
             return;
             // throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
         }

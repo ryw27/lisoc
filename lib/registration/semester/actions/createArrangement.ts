@@ -72,7 +72,7 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
         }
 
         // 10. Revalidate
-        revalidatePath(`/admintest/management/semester`);
+        revalidatePath(`/admin/management/semester`);
         revalidatePath("/dashboard/register");
     })
 }

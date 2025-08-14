@@ -225,7 +225,7 @@ export async function adminTransferStudent(
             .where(eq(classregistration.regid, oldReg.regid));
 
         // 12. Revalidate
-        revalidatePath("/admintest/management/semester");
+        revalidatePath("/admin/management/semester");
         revalidatePath("/dashboard/register");
 
         return newReg;

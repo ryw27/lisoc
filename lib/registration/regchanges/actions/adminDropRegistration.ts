@@ -93,7 +93,7 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
                 .values(removeFamBalValues)
 
             revalidatePath("/dashboard/classes");
-            revalidatePath("/admintest/management/semester");
+            revalidatePath("/admin/management/semester");
             return;
             // throw new Error("No payment found for this registration. The registration has been deleted");
         }
@@ -150,7 +150,7 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
         }
 
         // 9. Revalidate
-        revalidatePath("/admintest/management/semester");
+        revalidatePath("/admin/management/semester");
         revalidatePath("/dashboard/classes");
 
         //--------------------------------------- LEGACY ---------------------------------------------------------------
@@ -181,7 +181,7 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
         // }).where(eq(familybalance.balanceid, orgBalance.balanceid));
 
         // await tx.delete(classregistration).where(eq(classregistration.regid, regid));
-        // revalidatePath("/admintest/management/semester");
+        // revalidatePath("/admin/management/semester");
         // revalidatePath("/dashboard/classes");
     })
 }
