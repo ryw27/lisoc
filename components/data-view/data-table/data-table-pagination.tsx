@@ -1,11 +1,10 @@
 "use client";
 import { type Table } from "@tanstack/react-table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger  } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
@@ -34,8 +33,8 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
     const serverPage = Number(searchParams.get("page")) || 1;
     const serverPageSize = Number(searchParams.get("pageSize")) || 10;
     const totalPages = Math.ceil(totalCount / serverPageSize);
-    console.log(table.getCanNextPage());
-    console.log(table.getPageCount());
+    // console.log(table.getCanNextPage());
+    // console.log(table.getPageCount());
 
     return (
         <div className="flex items-center justify-between px-2">
@@ -45,8 +44,40 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
             </div>
             <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">Rows per page</p>
-                    <DropdownMenu>
+                    <p className="font-semibold text-sm">Rows per page:</p>
+                    <div className="flex items-center gap-2">
+                        {/* <span className="text-sm">Show</span> */}
+                            <Select
+                                value={pageSize.toString()}
+                                onValueChange={(value) => {
+                                    const num = Number(value);
+                                    setPageSize(num);
+                                    if (tableType === "client") {
+                                        table.setPageSize(num);
+                                        table.setPageIndex(0);
+                                    } else {
+                                        // For server, reset to first page and update params
+                                        const params = new URLSearchParams(Array.from(searchParams.entries()));
+                                        params.set('pageSize', num.toString());
+                                        params.set('page', "1");
+                                        router.replace(`?${params.toString()}`);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="h-8 px-2 text-sm" aria-label="Rows per page">
+                                    <SelectValue></SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[10, 20, 30, 40, 50, 100, 150, 200, 250, 400, 500].map((option) => (
+                                        <SelectItem key={option} value={option.toString()} className="text-sm">
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        <span className="text-sm">rows</span>
+                    </div>
+                    {/* <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="outline"
@@ -97,7 +128,7 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                                 </Button>
                             )}
                         </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu> */}
                 </div>
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                     {tableType === "server" ? (

@@ -56,6 +56,7 @@ export default function DataTable<T extends Table, TData>({
     const { 
         table,
         columns,
+        entity,
         tableName,
         primaryKey,
     } = useDataEntityContext<T, TData>();
@@ -204,16 +205,16 @@ export default function DataTable<T extends Table, TData>({
             }
 
             // Extract IDs with proper type safety
-            const ids: PKVal<T>[] = selectedRows.map(row => {
+            const ids: number[] = selectedRows.map(row => {
                 const id = (row.original as TData)[primaryKey as unknown as keyof TData];
                 if (id === undefined || id === null) {
                     throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
                 }
-                return id as PKVal<T>;
+                return id as number;
             });
 
             
-            await deleteRows(table, primaryKey, ids);
+            await deleteRows(entity, ids);
             
             // Reset selection after successful deletion
             dataTable.resetRowSelection();
@@ -232,8 +233,8 @@ export default function DataTable<T extends Table, TData>({
                 const handleEdit = () => {
                     try {
                         const rowId = (row.original as TData)[primaryKey as keyof TData];
-                        console.log(row.original);
-                        console.log(primaryKey);
+                        // console.log(row.original);
+                        // console.log(primaryKey);
                         if (rowId === undefined || rowId === null) {
                             console.error(`[DataTable] Primary key not found in row data`);
                             return;
