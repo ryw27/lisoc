@@ -3,14 +3,10 @@ import { ParsedFilter, Table } from "./types";
 import { getTableColumns } from "drizzle-orm";
 import { eq, lt, gt, lte, gte, and, or } from "drizzle-orm";
 import { SQL } from "drizzle-orm";
-import { Table } from "./types";
-import { toESTString } from "../utils";
+import { SITE_LINK, toESTString } from "../utils";
+import { transporter } from "../nodemailer";
 
-/**
- * Checks if a column is a PgColumn
- * @param column The column to check
- * @returns True if the column is a PgColumn, false otherwise - used to filter out non-column properties like enableRLS
- */
+
 export function isPgColumn(column: AnyPgColumn) {
   return !!column && typeof column === 'object' && 'dataType' in column;
 }
@@ -35,3 +31,18 @@ export function buildSQL<T extends Table>(table: T, filters: ParsedFilter[], mat
     return match === "all" ? and(...conds) : or(...conds);
 }
 
+
+export async function sendUserRegEmail(emailTo: string, password: string, type: "Admin" | "Teacher") {
+    await transporter.sendMail({
+        from: "LISOC Registration <regadmin@lisoc.org>",
+        to: emailTo,
+        subject: `LISOC ${type} Registration`,
+        html: `
+            <p>Login with the following <a href="${SITE_LINK}/login/${type.toLowerCase()}">link</a></p>
+            <p>If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/login/${type.toLowerCase()}</p>
+            <p>Use the following credentials:</p>
+            <p><strong>Email:</strong> ${emailTo}</p>
+            <p><strong>Password:</strong> ${password}</p>
+        `
+    })
+}
