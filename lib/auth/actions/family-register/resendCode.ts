@@ -1,8 +1,8 @@
 "use server";
-import { emailSchema } from "../validation";
+import { emailSchema } from "../../validation";
 import { randomInt } from "crypto";
-import { pgadapter } from "../auth";
-import { sendRegEmail } from "../helpers";
+import { pgadapter } from "../../auth";
+import { sendRegEmail } from "../../helpers";
 import { z } from "zod/v4";
 
 export async function resendCode(data: z.infer<typeof emailSchema>) {

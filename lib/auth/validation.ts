@@ -151,7 +151,7 @@ export const familySchema = z
     const motherFilled =
       isFilled(data.mothernamecn) ||
       (isFilled(data.motherfirsten) && isFilled(data.motherlasten));
-      console.log(fatherFilled, motherFilled);
+    //   console.log(fatherFilled, motherFilled);
 
     if (!fatherFilled && !motherFilled) {
         ctx.addIssue({

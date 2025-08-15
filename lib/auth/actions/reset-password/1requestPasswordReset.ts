@@ -1,9 +1,8 @@
 "use server";
-import { forgotPassSchema } from "../validation";
-import { emailSchema, usernameSchema } from "../validation";
-import { z } from "zod";
-import { pgadapter } from "../auth";
-import { checkExistence, sendFPEmail } from "../helpers";
+import { forgotPassSchema, emailSchema, usernameSchema } from "../../validation";
+import { z } from "zod/v4";
+import { pgadapter } from "../../auth";
+import { checkExistence, sendFPEmail } from "../../helpers";
 import { v4 as uuid } from "uuid";
 import { safeAction } from "@/lib/safeAction";
 
@@ -21,19 +20,18 @@ export const requestPasswordReset = safeAction(
 
         if (isEmail) {
             // Input is an email, check existence
-            const exists = await checkExistence(emailUsername, "email");
-            if (!exists) {
+            const check = await checkExistence(emailUsername, "email");
+            if (!check.exists) {
                 throw new Error("Account does not exist");
             }
             userEmail = emailUsername;
         } else if (isUsername) {
             // Input is a username, check existence and resolve to email
-            const exists = await checkExistence(emailUsername, "name");
-            if (!exists) {
+            const check = await checkExistence(emailUsername, "name");
+            if (!check.exists || !check.data) {
                 throw new Error("Account does not exist");
             }
-            // Optionally, resolve username to email if needed
-            userEmail = emailUsername;
+            userEmail = check.data.email;
         } else {
             throw new Error("Invalid Email or Username");
         }

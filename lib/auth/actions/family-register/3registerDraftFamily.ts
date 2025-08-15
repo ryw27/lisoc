@@ -1,13 +1,11 @@
 "use server";
 import { db } from "@/lib/db";
-import { userPassSchema } from "../validation";
-import { emailSchema } from "../validation";
+import { userPassSchema, emailSchema } from "../../validation";
 import { registration_drafts } from "@/lib/db/schema";
 import { z } from "zod/v4";
 import bcrypt from "bcrypt";
 
 
-// Step 4: Register the username, email, and password into drafts 
 export async function registerDraftFamily(data: z.infer<typeof userPassSchema>, email: string) {
     const draftData = userPassSchema.parse(data);
     emailSchema.parse({ email: email });

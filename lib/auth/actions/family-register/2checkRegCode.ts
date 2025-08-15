@@ -1,11 +1,10 @@
 "use server";
-import { codeSchema } from "../validation";
-import { emailSchema } from "../validation";
-import { pgadapter } from "../auth";
+import { codeSchema } from "../../validation";
+import { emailSchema } from "../../validation";
+import { pgadapter } from "../../auth";
 import { z } from "zod/v4";
 
 
-// Step 3: Check the inputted code. 
 export async function checkRegCode(data: z.infer<typeof codeSchema>, email: string) {
     emailSchema.parse({ email: email });
     const codeData = codeSchema.parse(data);

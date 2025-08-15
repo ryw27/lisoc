@@ -1,9 +1,9 @@
 "use server";
 import { db } from "@/lib/db";
-import { emailSchema } from "../validation";
+import { emailSchema } from "../../validation";
 import { randomInt } from "crypto";
-import { pgadapter } from "../auth";
-import { sendRegEmail } from "../helpers";
+import { pgadapter } from "../../auth";
+import { sendRegEmail } from "../../helpers";
 import { z } from "zod/v4";
 
 
