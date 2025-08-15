@@ -4,7 +4,7 @@ import { type EntityConfig } from "@/lib/data-view/types";
 import { type Extras } from "@/lib/data-view/types";
 import { DefaultSession } from "next-auth";
 import { InferSelectModel } from "drizzle-orm";
-import { UserObject, userSchema } from "./users";
+import { UserObject, UserSchema } from "./users";
 
 
 // 1. Types
@@ -13,8 +13,7 @@ export interface AdminUserJoined extends InferSelectModel<AdminUserTable>, UserO
 
 
 // 2. Form Schema
-export const AdminUserSchema = z.object({
-    ...userSchema.shape,
+export const AdminSchema = z.object({
     namecn: z
         .string()
         .min(1, { message: "Chinese name is required" })
@@ -37,6 +36,10 @@ export const AdminUserSchema = z.object({
         .max(2000, { message: "Notes must be at most 2000 characters" })
         .optional()
         .default(""),
+})
+export const AdminUserSchema = z.object({
+    ...UserSchema.shape,
+    ...AdminSchema.shape,
 })
 
 

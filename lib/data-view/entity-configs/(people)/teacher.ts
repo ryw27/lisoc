@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import { Extras, type EntityConfig } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
 import { DefaultSession } from "next-auth";
-import { UserObject } from "./users";
+import { UserObject, UserSchema } from "./users";
 
 
 // 1. Types
@@ -11,7 +11,7 @@ export type TeacherTable = typeof teacher
 export interface TeacherJoined extends InferSelectModel<TeacherTable>, UserObject {}
 
 // 2. Form Schema: Form schema is not necessarily the same as database schema
-export const teacherFormSchema = z.object({
+export const TeacherSchema = z.object({
 	namecn: z.string().min(1, { message: "Chinese name is required" }).max(50, { message: "Chinese name must be at most 50 characters" }),
 	namelasten: z.string().min(1, { message: "Last name is required" }).max(50, { message: "Last name must be at most 50 characters" }),
 	namefirsten: z.string().min(1, { message: "First name is required" }).max(50, { message: "First name must be at most 50 characters" }),
@@ -29,6 +29,11 @@ export const teacherFormSchema = z.object({
         .max(2000, { message: "Profile must be at most 2000 characters" })
         .default("")
         .optional(),
+})
+
+export const TeacherUserSchema = z.object({
+    ...UserSchema.shape,
+    ...TeacherSchema.shape
 })
 
 // 3. Create/Update extras
@@ -53,7 +58,7 @@ export const teacherConfig: EntityConfig<TeacherTable> = {
     table: teacher,
     tableName: "teacher",
     primaryKey: "teacherid",
-    formSchema: teacherFormSchema,
+    formSchema: TeacherUserSchema,
     makeInsertExtras: makeTeacherInsertExtras,
     makeUpdateExtras: makeTeacherUpdateExtras
 }

@@ -11,7 +11,7 @@ export type UserObject = InferSelectModel<UserTable>;
 
 
 // Public/user-facing form schema (no server-managed fields, no roles)
-export const userSchema = z.object({
+export const UserSchema = z.object({
     name: z.string().trim().max(50),
     email: z
         .string()
@@ -29,6 +29,11 @@ export const userSchema = z.object({
         .trim()
         .max(50, { message: "City must be at most 50 characters" })
         .optional(),
+    password: z
+        .string()
+        .trim()
+        .min(1, { message:"Password must be at least 1 character"})
+        .max(100, { message: "Password is too long"}),
     state: z
         .string()
         .refine(
@@ -51,7 +56,7 @@ export const userSchema = z.object({
 // 3. Create/Update extras
 export const makeUserInsertExtras = () => {
     const insertExtras: Extras<UserTable> = {
-        createon: toESTString(new Date())
+        createon: toESTString(new Date()),
     };
     return insertExtras;
 }
@@ -68,7 +73,7 @@ export const userConfig: EntityConfig<UserTable> = {
     table: users,
     tableName: "users",
     primaryKey: "id",
-    formSchema: userSchema,
+    formSchema: UserSchema,
     makeInsertExtras: makeUserInsertExtras,
     makeUpdateExtras: makeUserUpdateExtras
 }

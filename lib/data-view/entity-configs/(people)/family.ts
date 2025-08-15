@@ -2,7 +2,7 @@ import { family } from "@/lib/db/schema";
 import { z } from "zod/v4";
 import { type EntityConfig } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
-import { UserObject } from "./users";
+import { UserObject, UserSchema } from "./users";
 
 
 // 1. Types
@@ -10,7 +10,7 @@ export type FamilyTable = typeof family
 export interface FamilyJoined extends InferSelectModel<FamilyTable>, UserObject {}
 
 // 2. Form Schema: Form schema is not necessarily the same as database schema
-export const familyFormSchema = z.object({
+export const FamilySchema = z.object({
 	fatherfirsten: z.string().max(50, { message: "Father's first name must be at most 50 characters" }).optional(),
 	fatherlasten: z.string().max(50, { message: "Father's last name must be at most 50 characters" }).optional(),
 	fathernamecn: z.string().max(50, { message: "Father's name (CN) must be at most 50 characters" }).optional(),
@@ -40,11 +40,16 @@ export const familyFormSchema = z.object({
 	// schoolmember: z.string().max(50, { message: "School member must be at most 50 characters" }).optional(),
 })
 
+export const familyUserSchema = z.object({
+    ...UserSchema.shape,
+	...FamilySchema.shape
+})
+
 
 // 3. The Class Config
 export const familyConfig: EntityConfig<FamilyTable> = {
     table: family,
     tableName: "family",
     primaryKey: "familyid",
-    formSchema: familyFormSchema,
+    formSchema: familyUserSchema,
 }
