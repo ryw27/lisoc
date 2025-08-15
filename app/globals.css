@@ -122,14 +122,3 @@
     font-family: sans-serif;
   }
 }
-
-/* Override shadcn input focus styles */
-[data-slot="input"]:focus-visible {
-  @apply ring-2 ring-blue-400;
-}
-
-/* Override shadcn button focus styles */
-[data-slot="button"] {
-  @apply bg-blue-400;
-}
-

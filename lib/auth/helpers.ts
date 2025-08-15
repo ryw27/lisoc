@@ -1,3 +1,4 @@
+import { UserObject } from "../data-view/entity-configs/(people)/users";
 import { db } from "../db";
 import { transporter } from "../nodemailer";
 import { SITE_LINK } from "../utils";
@@ -14,16 +15,6 @@ export async function sendRegEmail(emailTo: string, token: string) {
         `
     });
 }
-
-export async function checkExistence(input: string, column: "name" | "email"): Promise<boolean> {
-    const result = await db.query.users.findFirst({
-        where: (u, { eq }) => eq(u[column], input)
-    })
-    // console.log("result", result)
-
-    return result !== undefined;
-}
-
 
 // export async function sendFPEmail(emailTo: string, uuid: string) {
 //     await transporter.sendMail({
@@ -48,3 +39,26 @@ export async function sendFPEmail(emailTo: string, uuid: string) {
         `
     });   
 }
+
+export async function sendRegLinkEmail(emailTo: string, token: string, type: "Teacher" | "Admin") {
+    await transporter.sendMail({
+        from: "LISOC Registration <regadmin@lisoc.org>",
+        to: emailTo,
+        subject: `LISOC ${type} Registration Link`,
+        html: `
+            <p> Register your account with the following link: <a href="${SITE_LINK}/register/${token}?email=${encodeURIComponent(emailTo)}"> </a> </p>
+            <p> If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/register/${token}?email=${encodeURIComponent(emailTo)} </p>
+            <p> This link will expire in 7 days </p>
+            <p> If you are not trying to register, please ignore this email </p>
+        `
+    })
+}
+
+export async function checkExistence(input: string, column: "name" | "email"): Promise<{ exists: boolean, data: UserObject | undefined }> {
+    const result = await db.query.users.findFirst({
+        where: (u, { eq }) => eq(u[column], input)
+    })
+
+    return { exists: result !== undefined, data: result };
+}
+

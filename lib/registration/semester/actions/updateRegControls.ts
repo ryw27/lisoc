@@ -42,7 +42,7 @@ export async function updateRegControls(data: z.infer<typeof seasonRegSettingsSc
             throw new Error("Unknown DB error occured with season update");
         }
 
-        revalidatePath("/admintest/management/semester")
+        revalidatePath("/admin/management/semester")
         return updated;
     })
 }

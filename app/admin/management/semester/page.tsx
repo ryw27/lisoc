@@ -74,7 +74,7 @@ export default async function SemesterPage() {
     });
 
     // TODO: type student better if you want lol
-    const getStudentView = async (tx: Transaction, studentReg: InferSelectModel<typeof classregistration> & { student: InferSelectModel<typeof student> } ) => {
+    const getStudentView = async (studentReg: InferSelectModel<typeof classregistration> & { student: InferSelectModel<typeof student> } ) => {
         // TODO: More complete handling of whether a drop/transfer has occured
         // Check if dropped, request status id is 2 indicating approval
         // const requests = await db.query.regchangerequest.findFirst({
@@ -148,8 +148,8 @@ export default async function SemesterPage() {
             }
         })
         const [droppedStudentViews, regStudentViews] = await Promise.all([
-            Promise.all(droppedStudents.map((c) => getStudentView(tx, c))),
-            Promise.all(regClassStudents.map((c) => getStudentView(tx, c))),
+            Promise.all(droppedStudents.map((c) => getStudentView(c))),
+            Promise.all(regClassStudents.map((c) => getStudentView(c))),
         ]);
 
         return [droppedStudentViews, regStudentViews];

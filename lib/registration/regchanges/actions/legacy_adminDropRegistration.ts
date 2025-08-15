@@ -56,7 +56,7 @@ export async function legacy_adminDropRegistration(regid: number, orgTuition: nu
                 })
                 .where(and(eq(familybalance.familyid, reg.familyid), eq(familybalance.seasonid, reg.seasonid)));
         }
-        revalidatePath("/admintest/management/semester");
+        revalidatePath("/admin/management/semester");
         revalidatePath("/dashboard/classes");
     })
 }

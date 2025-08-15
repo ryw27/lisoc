@@ -1,57 +1,44 @@
-import { TableName, Table, PKName, enrichFields, uniqueCheckFields, Extras, FilterableColumn, EntityConfig } from '../../types';
-import { makeOperations } from './makeOperations';
-import { ZodSchema } from 'zod';
-import { InferSelectModel } from 'drizzle-orm';
+// import { Table, FilterableColumn, EntityConfig, PKName, Extras } from '../../types';
+// import { z } from 'zod/v4';
+// import { DefaultSession } from 'next-auth';
+// import { InferSelectModel } from 'drizzle-orm';
 
-// Some possible TODOS:
-// 1. Safe Parse for better handling
-// 2. Caching and more efficency 
 
-interface makeEntityProps<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema> {
-    table: T;
-    tableName: N;
-    primaryKey: PKName<N, T>;
-    formSchema: FormSchema;
-    mainPath: string;
-	enrichFields: enrichFields<FormSchema>[], 
-	uniqueConstraints?: uniqueCheckFields<N, T, FormSchema>[],
-    insertExtras?: Extras<N, T>,
-    updateExtras?: Extras<N, T>,
-    columns: FilterableColumn<InferSelectModel<T>>[];
-}
+// export function makeEntity<
+//     T extends Table, 
+//     FormSchema extends z.ZodObject, 
+//     DeleteFormSchema extends z.ZodObject,
+// >(
+//     table: T,
+//     columns: FilterableColumn<InferSelectModel<T>>[],
+//     mainPath: string,
+//     primaryKey: PKName<T>,
+//     formSchema: FormSchema,
+//     deleteFormSchema: DeleteFormSchema,
+//     createUpdateExtras?: (user: DefaultSession["user"]) => Extras<T>,
+//     createInsertExtras?: (user: DefaultSession["user"]) => Extras<T>,
+// ) {
+//     // const { insertRow, updateRow, deleteRows } = makeOperations(
+//     //     table,
+//     //     mainPath,
+//     //     primaryKey,
+//     //     formSchema,
+//     //     deleteFormSchema,
+//     //     createUpdateExtras,
+//     //     createInsertExtras,
+//     // );
 
-export function makeEntity<N extends TableName, T extends Table<N>, FormSchema extends ZodSchema = ZodSchema>(
-    {
-        table,
-        tableName,
-        primaryKey,
-        formSchema,
-        mainPath,
-        enrichFields,
-        uniqueConstraints,
-        insertExtras,
-        updateExtras,
-        columns
-    }: makeEntityProps<N, T, FormSchema>
-): EntityConfig<N, T> {
-    const { allRows, idRow, pageRows, insertRow, updateRow, deleteRows } = 
-        makeOperations(tableName, table, primaryKey, formSchema, mainPath, enrichFields, uniqueConstraints, insertExtras, updateExtras);
+//     const config: EntityConfig<T, FormSchema, DeleteFormSchema> = {
+//         table,
+//         formSchema,
+//         deleteFormSchema,
+//         columns,
+//         // ops: {
+//         //     insertRow,
+//         //     updateRow,
+//         //     deleteRows,
+//         // },
+//     };
 
-    const config: EntityConfig<N, T> = {
-        table,
-        tableName,
-        primaryKey,
-        formSchema,
-        mainPath,
-        columns,
-        ops: {
-            allRows,
-            idRow,
-            pageRows,
-            insertRow,
-            updateRow,
-            deleteRows,
-        }
-    }
-    return config;
-}
+//     return config;
+// }

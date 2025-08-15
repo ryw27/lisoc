@@ -1,77 +1,85 @@
-import EditEntity, { EditFormField } from '@/components/data-view/edit-entity'
-import { idClassroomRow, updateClassroomRow } from '../../classroom-helpers'
+import EditEntity from '@/components/data-view/edit-entity/edit-entity'
+import getIDRow from '@/lib/data-view/actions/getIDRow'
+import { ClassroomObject } from '@/lib/data-view/entity-configs/(classes)/classrooms'
+import { FormSections, FormSelectOptions } from '@/lib/data-view/types'
 
 export default async function EditClassroomPage({
     params,
-    searchParams,
 }: {
     params: Promise<{ roomid: string }>
-    searchParams: Promise<{ error?: string }>
 }) {
     const { roomid } = await params;
-    const { error } = await searchParams;
     const room_id = parseInt(roomid);
     
     // Fetch the classroom data
-    const currentClassroom = await idClassroomRow(room_id);
+    const response = await getIDRow("classrooms", room_id);
 
-    if (!currentClassroom) {
+    if (!response.ok || !response.data) {
         return <div>Classroom not found</div>;
     }
 
+    const currentClassroom = response.data as ClassroomObject;
+
     const statusOptions = [
-        { value: "Active", label: "Active" },
-        { value: "Inactive", label: "Inactive" }
+        { val: "Active", labelen: "Active", labelcn: "Active" },
+        { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" }
     ];
 
     // Define form fields with current values
-    const fields: EditFormField[] = [
+    const fields: FormSections[] = [
         {
-            name: "roomno",
-            label: "Room Number",
-            type: "text",
-            required: true,
-            defaultValue: currentClassroom.roomno
+            section: "Classroom Information",
+            sectionFields: [
+                {
+                    name: "roomno",
+                    label: "Room Number",
+                    type: "text",
+                    required: true,
+                    defaultValue: currentClassroom.roomno ?? ""
+                },
+                {
+                    name: "roomcapacity",
+                    label: "Room Capacity",
+                    type: "number",
+                    required: true,
+                    defaultValue: currentClassroom.roomcapacity?.toString() ?? ""
+                },
+                {
+                    name: "status",
+                    label: "Status",
+                    type: "select",
+                    defaultValue: currentClassroom.status ?? "",
+                    required: true,
+                    options: statusOptions as FormSelectOptions[]
+                }
+            ]
         },
         {
-            name: "roomcapacity",
-            label: "Room Capacity",
-            type: "number",
-            required: true,
-            defaultValue: currentClassroom.roomcapacity?.toString()
-        },
-        {
-            name: "status",
-            label: "Status",
-            type: "select",
-            required: true,
-            options: statusOptions.map(option => ({
-                label: option.label,
-                value: option.value
-            })),
-            defaultValue: currentClassroom.status
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-            required: false,
-            defaultValue: currentClassroom.notes || ""
+            section: "Extra Information",
+            sectionFields: [
+                {
+                    name: "notes",
+                    label: "Notes",
+                    type: "textarea",
+                    required: false,
+                    defaultValue: currentClassroom.notes ?? ""
+                }
+            ]
         }
     ];
 
-    async function handleSubmit(formData: FormData) {
-        "use server";
-        await updateClassroomRow(room_id, formData);
+    const hiddenInputs = {
+        "roomid": currentClassroom.roomid,
     }
+
 
     return (
         <EditEntity
+            entity="classrooms"
             title={`Edit Classroom: ${currentClassroom.roomno}`}
+            description="Current values have already been filled in."
             fields={fields}
-            submitAction={handleSubmit}
-            gobacklink={`/admintest/dashboard/data/classrooms/${room_id}`}
-            error={error}
-        />
+            hiddenInputs={hiddenInputs}
+        /> 
     );
 } 

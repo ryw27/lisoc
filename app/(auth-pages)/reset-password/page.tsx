@@ -1,24 +1,37 @@
 import { notFound } from "next/navigation"
-import { checkResetLink, resetPassword } from "@/lib/auth";
+import { checkResetLink } from "@/lib/auth";
 import ResetPasswordForm from "@/components/auth/reset-password-form";
+import { z } from "zod/v4";
+
+const resetParamsSchema = z.object({
+    token: z.uuid(),
+    email: z.email(),
+});
 
 export default async function ResetPassword({
-    searchParams
+    searchParams,
 }: {
-    searchParams: Promise<{ token?: string, email?: string}>
+    searchParams: Promise<{ token: string; email: string }>;
 }) {
-    console.log("ResetPassword page");
-    const params = await searchParams
-    if (!params.token || !params.email) {
+    const params = await searchParams;
+
+    const parsed = resetParamsSchema.safeParse(params);
+    if (!parsed.success) {
         return notFound();
     }
 
-    const res = await checkResetLink(params.email, params.token);
+    const { token, email } = parsed.data;
 
-    if (res) {
-        return <ResetPasswordForm userEmail={params.email} userToken={params.token} resetPassword={resetPassword}/>;
-    }
+    const response = await checkResetLink({ uuid: token, email} );
     
-    return notFound();
+    if (!response.ok || (response.ok && response.data === false)) {
+        return notFound();
+    }
 
+    return (
+        <ResetPasswordForm
+            userEmail={email}
+            userToken={token}
+        />
+    );
 }

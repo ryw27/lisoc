@@ -15,9 +15,24 @@ export function toESTString(date: Date) {
 	return formatInTimeZone(date, 'America/New_York', "yyyy-MM-dd'T'HH:mm:ssXXX")
 }
 
+
+// ----------------------------------------------------------------
+// Link
+// ----------------------------------------------------------------
+
+export const ADMIN_DATAVIEW_LINK = "/admin/data"
+
 // ----------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------
+
+export const US_STATES = [
+    "AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","IA","ID","IL","IN",
+    "KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ",
+    "NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA",
+    "WI","WV","WY",
+] as const;
+
 
 export const SITE_LINK = process.env.SITE_LINK; 
 
@@ -77,3 +92,13 @@ export const requestStatusMap = {
 	[REQUEST_STATUS_APPROVED]: "Approved",
 	[REQUEST_STATUS_REJECTED]: "Rejected",
 } satisfies Record<number, string>
+
+
+// Class Type
+export const classTypeMap = {
+	1: { typenameen: "Stardard Chinese", typenamecn: "标准中文" },
+	2: { typenameen: "Ma Liping Chinese", typenamecn: "马立平中文" },
+	3: { typenameen: "Culture (Adult)", typenamecn: "成人文体课" },
+	4: { typenameen: "Culture (Child)", typenamecn: "少儿文体课" },
+	5: { typenameen: "English(1)", typenamecn: "双语班" },
+} satisfies Record<number, { typenameen: string; typenamecn: string }>;

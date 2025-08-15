@@ -7,13 +7,14 @@ import { z } from "zod/v4"
 import { useState } from "react";
 import Logo from "@/components/logo";
 import { useRouter } from "next/navigation";
+import { resetPassword } from "@/lib/auth";
 
 type resetPasswordParams = {
     userEmail: string;
     userToken: string;
-    resetPassword: (data: z.infer<typeof resetPassSchema>) => Promise<void>;
+    // resetPassword: (data: z.infer<typeof resetPassSchema>) => Promise<void>;
 }
-export default function ResetPasswordForm({ userEmail, userToken, resetPassword }: resetPasswordParams) {
+export default function ResetPasswordForm({ userEmail, userToken }: resetPasswordParams) {
     const [busy, setBusy] = useState<boolean>(false);
     const [success, setSuccess] = useState<boolean>(false);
     const router = useRouter();

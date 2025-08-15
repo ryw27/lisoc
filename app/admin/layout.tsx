@@ -1,6 +1,6 @@
 import React from 'react';
 import SideNav from '@/components/sidenav';
-import { Home, Users, School, CreditCard, Settings, MessageCircle, FileText, Calendar, DollarSign, Receipt, Book, Search, LogOut } from 'lucide-react';
+import { Home, Users, School, CreditCard, MessageCircle, FileText, Calendar, Receipt, Book, Search, LogOut } from 'lucide-react';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 import Header from '@/components/header';
 import { requireRole } from '@/lib/auth';
@@ -25,11 +25,7 @@ const navItems = [
                 href: [`${beginlink}/management/feedback`],
                 icon: <MessageCircle className="w-4 h-4" />
             },
-            {
-                label: "Family Search",
-                href: [`${beginlink}/management/find-family`],
-                icon: <Search className="w-4 h-4" />
-            }
+
         ],
     },
     {
@@ -63,28 +59,28 @@ const navItems = [
             },
             {
                 label: "People View",
-                href: [`${beginlink}/data/teachers`, `${beginlink}/data/students`, `${beginlink}/data/families`, `${beginlink}/data/administrators`],
+                href: [`${beginlink}/data/teacher`, `${beginlink}/data/student`, `${beginlink}/data/family`, `${beginlink}/data/adminuser`],
                 icon: <Users className="w-4 h-4 " />
             },
             {
                 label: "Semester View",
-                href: [`${beginlink}/data/semesters`, `${beginlink}/data/arrangements`],
+                href: [`${beginlink}/data/seasons`, `${beginlink}/data/arrangements`, `${beginlink}/data/classregistration`, `${beginlink}/data/parentduty`, `${beginlink}/data/regchangerequest`],
                 icon: <FaChalkboardTeacher className="w-4 h-4" />
             },
-            {
-                label: "Transactions View",
-                href: [`${beginlink}/data/transactions`],
-                icon: <DollarSign className="w-4 h-4" />
-            }
         ]
     },  
     {
         header: "Settings",
         items: [
+            // {
+            //     label: "Settings",
+            //     href: [`${beginlink}/settings`],
+            //     icon: <Settings className="w-4 h-4 " />
+            // },
             {
-                label: "Settings",
-                href: [`${beginlink}/settings`],
-                icon: <Settings className="w-4 h-4 " />
+                label: "Family Search",
+                href: [`${beginlink}/find-family`],
+                icon: <Search className="w-4 h-4" />
             },
             {
                 label: "Site Guide",

@@ -142,7 +142,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                     const regid = row.original.regid;
                     // TODO: Implement server action for rejecting request
                     await adminRejectRequest(reqid, regid);
-                    console.log("Rejecting request:", reqid);
+                    // console.log("Rejecting request:", reqid);
                     
                     // Reset state on success
                     setBusy(false);

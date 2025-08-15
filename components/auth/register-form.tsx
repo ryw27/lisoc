@@ -7,21 +7,25 @@ import React, { useState } from "react";
 import ResendCodeButton from './resend-code-button'
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { codeSchema, emailSchema, familySchema, nameEmailSchema, teacherSchema, userPassSchema } from "@/lib/auth/validation";
+import { codeSchema, emailSchema, userPassSchema } from "@/lib/auth/validation";
 import { z } from "zod/v4";
 import FamilyForm from "./family-form";
-import TeacherForm from "./teacher-form";
+// import TeacherForm from "./LEGACY_teacher-form";
+import { requestRegCode } from "@/lib/auth";
+import { resendCode } from "@/lib/auth";
+import { checkRegCode } from "@/lib/auth";
+import { registerDraftFamily } from "@/lib/auth";
 
 type regParams = {
-    requestCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Email to Code, get the code once email is inputted
-    resendCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Resend code if needed
-    checkCode: (data: z.infer<typeof codeSchema>, email: string) => Promise<void>; // Check the inputted code once submitted, go to credentials
-    registerDraft: (data: z.infer<typeof userPassSchema>, email: string) => Promise<void>; // Get credentials, put in registration draft
-    isTeacher: boolean;
+    // requestCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Email to Code, get the code once email is inputted
+    // resendCode: (data: z.infer<typeof emailSchema>) => Promise<void>; // Resend code if needed
+    // checkCode: (data: z.infer<typeof codeSchema>, email: string) => Promise<void>; // Check the inputted code once submitted, go to credentials
+    // registerDraft: (data: z.infer<typeof userPassSchema>, email: string) => Promise<void>; // Get credentials, put in registration draft
+    // isTeacher: boolean;
     inCredentials?: userInfo;
     inStep?: Step;
     // Pass down to the additional and contact information form, official registration into the system
-    fullRegister: (data: z.infer<typeof familySchema> | z.infer<typeof teacherSchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
+    // fullRegister: (data: z.infer<typeof familySchema> | z.infer<typeof teacherSchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
 }
 
 type Step = "EMAIL" | "CODE" | "CREDENTIALS" | "PROFILE" | "DONE";
@@ -32,14 +36,14 @@ type userInfo = {
 }
 
 export default function RegisterForm({
-    requestCode,
-    resendCode,
-    checkCode,
-    registerDraft,
-    isTeacher,
+    // requestCode,
+    // resendCode,
+    // checkCode,
+    // registerDraft,
+    // isTeacher,
     inCredentials,
     inStep,
-    fullRegister
+    // fullRegister
 }: regParams) {
     const [credentials, setCredentials] = useState<userInfo | null>(() => {
         return inCredentials ? inCredentials : null
@@ -63,7 +67,7 @@ export default function RegisterForm({
         setBusy(true);
 
         try {
-            await requestCode(data);
+            await requestRegCode(data);
             setCredentials({ email: data.email, username: "" });
             setStep("CODE");
         } catch (error) {
@@ -86,7 +90,7 @@ export default function RegisterForm({
     const onCode = async (data: z.infer<typeof codeSchema>) => {
         setBusy(true);
         try {
-            await checkCode(data, credentials!.email as string);
+            await checkRegCode(data, credentials!.email as string);
             setStep("CREDENTIALS");
         } catch (error) {
             codeForm.setError("code", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
@@ -109,7 +113,7 @@ export default function RegisterForm({
     const onCred = async (data: z.infer<typeof userPassSchema>) => {
         setBusy(true);
         try {
-            await registerDraft(data, credentials!.email as string);
+            await registerDraftFamily(data, credentials!.email as string);
             setCredentials({ email: credentials!.email, username: data.username });
             setStep("PROFILE");
         } catch (error) {
@@ -206,7 +210,8 @@ export default function RegisterForm({
             {step === "PROFILE" && (
                 <div className="flex flex-col bg-white p-2 w-1/3 space-y-4">
                     <h1 className="flex justify-center items-center font-bold mb-4">Step 4/4 - Profile Setup</h1>
-                    {isTeacher ? <TeacherForm registerData={credentials!} fullRegister={fullRegister} /> : <FamilyForm registerData={credentials!} fullRegister={fullRegister} />}
+                    <FamilyForm registerData={credentials!} />
+                    {/* // {isTeacher ? <TeacherForm registerData={credentials!} /> : <FamilyForm registerData={credentials!} />} */}
                 </div>
             )}
         </main>

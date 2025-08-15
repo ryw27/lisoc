@@ -98,6 +98,6 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, family:
                 })
         }
 
-        revalidatePath(`admintest/management/${oldFB.familyid}`);
+        revalidatePath(`/admin/management/${oldFB.familyid}`);
     })
 }

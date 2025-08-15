@@ -323,7 +323,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     ))}
 
                     <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={() => setAdding(true)}>
-                        <PlusIcon className="w-4 h-4" /> Add Class (TODO)
+                        <PlusIcon className="w-4 h-4" /> Add Class 
                     </button>
                     {adding && 
                         <SemClassEditor

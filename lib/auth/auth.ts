@@ -8,7 +8,7 @@ import { type Adapter } from "next-auth/adapters"
 import { credSchema, loginSchema } from "@/lib/auth/validation"
 import authConfig from "@/auth.config"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { type JWT } from "next-auth/jwt"
+import { type JWT } from "next-auth/jwt" // Use import type to avoid runtime import and TS errors
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
@@ -32,12 +32,17 @@ declare module "next-auth/jwt" {
 export const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
 
 class IncorrectEmailPasswordError extends CredentialsSignin {
-  code = "incorrect-email-password";          // ✅ type-checked by TS
+  code = "incorrect-email-password";          
+}
+
+class NewAccountError extends CredentialsSignin {
+    code = "missing-password"
 }
 
 class InternalServerError extends CredentialsSignin {
   code = "internal-server-error";         
 }
+
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -80,24 +85,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         isEmail
                             ? eq(users.email, emailUsername)
                             : eq(users.name, emailUsername),
+                    with: {
+                        adminusers: {}
+                    }
                 });
 
-                if (!result || !result.emailVerified || !result.roles.includes("ADMINUSER")) {
+                if (!result || !result.roles.includes("ADMINUSER") || (!result.emailVerified && !result.adminusers?.ischangepwdnext) || !result.adminusers) {
                     // Don't reveal that their account does not exist
                     throw new IncorrectEmailPasswordError();
                 }
 
-                const adminuser = result;
+                const adminRow = result;
 
-                const valid = await bcrypt.compare(password, adminuser.password);
+                const valid = await bcrypt.compare(password, adminRow.password);
                 if (!valid) {
                     throw new IncorrectEmailPasswordError();
                 }
 
+                if (result.adminusers.ischangepwdnext) {
+                    // Make client show input password
+                    throw new NewAccountError();
+                }
+
                 return {
-                    id: adminuser.id.toString(),
-                    email: adminuser.email || "",
-                    name: adminuser.name || "",
+                    id: adminRow.id.toString(),
+                    email: adminRow.email || "",
+                    name: adminRow.name || "",
                     role: "ADMIN",
                 };
             },
@@ -139,9 +152,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         isEmail
                             ? eq(users.email, emailUsername)
                             : eq(users.name, emailUsername),
+                    with: {
+                        teachers: {}
+                    }
                 });
 
-                if (!result || !result.emailVerified || !result.roles.includes("TEACHER")) {
+                if (!result || !result.roles.includes("TEACHER") || (!result.emailVerified && !result.teachers?.ischangepwdnext)) {
                     throw new IncorrectEmailPasswordError();
                 }
 
@@ -149,6 +165,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const valid = await bcrypt.compare(password, teacheruser.password);
                 if (!valid) {
                     throw new IncorrectEmailPasswordError();
+                }
+
+                if (result.teachers?.ischangepwdnext) {
+                    // Make client show input password
+                    throw new NewAccountError();
                 }
 
                 return {

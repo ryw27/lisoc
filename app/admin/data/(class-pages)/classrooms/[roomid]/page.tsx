@@ -1,7 +1,7 @@
-import { classrooms } from '@/lib/db/schema';
-import EntityId, { displaySectionGroup } from '@/components/data-view/entity-id';
-import { Table } from '@/lib/data-view/types';
-import { classroomTable } from '../classroom-helpers';
+import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
+import { ClassroomObject } from '@/lib/data-view/entity-configs/(classes)/classrooms';
+import { notFound } from 'next/navigation';
+import getIDRow from '@/lib/data-view/actions/getIDRow';
 
 interface ClassroomPageProps {
     params: Promise<{
@@ -12,45 +12,53 @@ interface ClassroomPageProps {
 export default async function ClassroomPage({ params }: ClassroomPageProps) {
     const room_id = parseInt((await params).roomid);
 
+    const response = await getIDRow("classrooms", room_id);
+    if (!response.ok || !response.data) {
+        return notFound();
+    }
+
+    const curClassroom = response.data as ClassroomObject;
+
     // Define display sections with type-safe keys using the table schema
-    const displaySections: displaySectionGroup<'classrooms', Table<"classrooms">>[] = [
+    const displaySections: displaySectionGroup[] = [
         {
-            label: "Classroom Information",
+            section: "Classroom Information",
             display: [
                 {
                     label: "Room ID",
-                    key: "roomid"
+                    value: String(curClassroom.roomid)
                 },
                 {
                     label: "Room Number",
-                    key: "roomno"
+                    value: curClassroom.roomno
                 },
                 {
                     label: "Room Capacity",
-                    key: "roomcapacity"
+                    value: String(curClassroom.roomcapacity)
                 },
+            ]
+        },
+        {
+            section: "Other Information",
+            display: [
                 {
                     label: "Status",
-                    key: "status"
+                    value: curClassroom.status
                 },
                 {
                     label: "Notes",
-                    key: "notes",
-                    fallback: "No notes available"
+                    value: curClassroom.notes ?? "No notes available"
                 }
             ]
         }
-    ];
+    ] 
 
     return (
-        <EntityId<"classrooms", classroomTable, 'roomid'>
-            table={classrooms}
-            tableName="classrooms"
-            primaryKey="roomid"
-            titleCol="roomno"
-            displaySections={displaySections}
-            notFoundMessage="Classroom not found"
-            id={room_id}
+        <EntityId
+            title={`Classroom ${String(curClassroom.roomid)} - ${curClassroom.roomno}`}
+            entity="classrooms"
+            displayFields={displaySections}
+            id={String(room_id)}
         />
     );
 } 

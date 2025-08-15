@@ -1,24 +1,21 @@
-import { classroomColumns, classroomObject } from './classroom-helpers'
-import DataDashboard from "@/components/data-view/data-dashboard"
-import { deleteClassroomRows, pageClassroomRows } from './classroom-helpers'
+import DataDashboard from "@/components/data-view/data-table/data-dashboard"
 import { type SearchParams } from '@/lib/data-view/types'
 import { parseParams } from '@/lib/data-view/'
+import { pageRows } from '@/lib/data-view/actions/pageRows'
+import HorizontalNav from '@/components/horizontal-nav'
+import { ADMIN_DATAVIEW_LINK } from '@/lib/utils'
+import { ClassroomObject } from "@/lib/data-view/entity-configs/(classes)/classrooms"
 
-//--------------------------------
-//-- Page Component for classrooms
-//--------------------------------
 
-export default async function ClassroomsPage({ 
+export default async function ClassesPage({ 
     searchParams 
 }: { 
     searchParams: Promise<SearchParams> 
 }) {
-
     // Parse all parameters using the utility function
     const { page, pageSize, sortBy, sortOrder, match, query } = await parseParams(searchParams);
-
     // Fetch only the data needed for the current page
-    const { rows, totalCount } = await pageClassroomRows({
+    const response = await pageRows("classrooms", {
         page,
         pageSize,
         match,
@@ -26,21 +23,27 @@ export default async function ClassroomsPage({
         sortOrder,
         query
     });
+    if (!response.ok) {
+        return <div>Error: {response.message}</div>
+    } 
+
+    const { rows, totalCount } = response;
+
+    const navTabs = [
+        { label: 'Classes', href: `${ADMIN_DATAVIEW_LINK}/classes` },
+        { label: 'Classrooms', href: `${ADMIN_DATAVIEW_LINK}/classrooms` },
+    ]
 
     return (
-        <DataDashboard
-            data={rows as classroomObject[]}
-            columns={classroomColumns}
-            totalCount={totalCount}
-            tableName="classrooms"
-            addLink="/admintest/dashboard/data/classrooms/add"
-            addText="Add Classroom"
-            deleteAction={deleteClassroomRows}
-            primaryKey="roomid"
-            navTabs={[
-                { label: 'Classes', href: '/admintest/dashboard/data/classes' },
-                { label: 'Classrooms', href: '/admintest/dashboard/data/classrooms' },
-            ]}
-        />
+        <div className="flex flex-col gap-4">
+            <HorizontalNav
+                tabs={navTabs}
+            />
+            <DataDashboard
+                data={rows as ClassroomObject[]}
+                totalCount={totalCount as number}
+                entity="Classrooms"
+            />
+        </div>
     )
 }

@@ -76,6 +76,6 @@ export async function editArrangement(data: z.infer<typeof arrangementArraySchem
                     })
             }
         }
-        revalidatePath(`/admintest/management/semester`);
+        revalidatePath(`/admin/management/semester`);
     })
 }
