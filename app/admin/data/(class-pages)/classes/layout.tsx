@@ -15,9 +15,10 @@ export default function ClassLayoutPage({ children }: { children: React.ReactNod
     return (
         <ConfigLayout
             entity="classes"
-            children={children} 
             columns={classColumns}
-        />
+        >
+            {children}
+        </ConfigLayout>
     ) 
 }
 

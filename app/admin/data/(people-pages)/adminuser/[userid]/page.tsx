@@ -1,7 +1,6 @@
 import EntityId, { displaySectionGroup } from "@/components/data-view/id-entity-view/entity-id";
 import getIDRow from "@/lib/data-view/actions/getIDRow";
 import { notFound } from "next/navigation";
-import { AdminUserJoined } from "@/lib/data-view/entity-configs/(people)/adminuser";
 import { UserObject } from "@/lib/data-view/entity-configs/(people)/users";
 import { InferSelectModel } from "drizzle-orm";
 import { adminuser } from "@/lib/db/schema";

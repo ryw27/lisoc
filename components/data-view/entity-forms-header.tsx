@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 
@@ -8,9 +8,9 @@ type entityFormsHeaderProps = {
     editlink?: string;
 }
 export default function EntityFormsHeader({ 
-    type,
+    // type,
     gobacklink,
-    editlink,
+    // editlink,
 }: entityFormsHeaderProps) {
     return (
         <div className="container mx-auto max-w-5xl flex justify-between">

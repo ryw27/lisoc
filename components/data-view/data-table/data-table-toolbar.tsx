@@ -1,6 +1,6 @@
 "use client";
 import ColumnSelect from "./column-select";
-import { DownloadIcon, UploadIcon, PlusIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon } from "lucide-react";
 import { FilterableColumn } from "@/lib/data-view/types";
 import Filter from "./filter";
 import { Column } from '@tanstack/react-table'

@@ -8,7 +8,12 @@ import DataTableColumnHeader from "@/components/data-view/data-table/data-table-
 export default function AdministratorsLayout({ children }: { children: React.ReactNode }) {
 	const columns = getAdministratorColumns();
 	return (
-		<ConfigLayout entity="adminuser" children={children} columns={columns} />
+		<ConfigLayout
+			entity="adminuser"
+			columns={columns}
+		>
+			{children}
+		</ConfigLayout>
 	);
 }
 

@@ -9,26 +9,24 @@ import TableHeader from "./data-table-toolbar";
 import { FilterableColumn } from "@/lib/data-view/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog'
-import { TableName, PKVal, PKName, Table } from "@/lib/data-view/types";
+import { PKVal, Table } from "@/lib/data-view/types";
 import { InferSelectModel } from "drizzle-orm";
 
 // Strict typing for DataTable props
 interface DataTableProps<
-    N extends TableName,
-    T extends Table<N>,
+    T extends Table,
     TData extends InferSelectModel<T> = InferSelectModel<T>
 > {
     data: TData[];
     columns: FilterableColumn<TData>[];
     totalCount: number;
-    tableName: N;
-    primaryKey: PKName<N, T>;
-    deleteAction: (ids: PKVal<N>[]) => Promise<InferSelectModel<T>[]>;
+    tableName: string;
+    primaryKey: keyof TData;
+    deleteAction: (ids: (string | number | null)[]) => Promise<InferSelectModel<T>[]>;
 }
  
 export default function DataTable<
-    N extends TableName,
-    T extends Table<N>,
+    T extends Table,
     TData extends InferSelectModel<T> = InferSelectModel<T>
 >({
     data, 
@@ -37,7 +35,7 @@ export default function DataTable<
     tableName, 
     primaryKey, 
     deleteAction
-}: DataTableProps<N, T, TData>) {
+}: DataTableProps<T, TData>) {
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -51,27 +49,28 @@ export default function DataTable<
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Helper function to set default column visibility
-    const setDefaultColumnVisibility = () => {
-        const initialVisibility: Record<string, boolean> = {};
-        
-        // Set all columns to hidden by default
-        columns.forEach((column) => {
-            initialVisibility[column.id] = false;
-        });
-        
-        // Show special columns and non-hideable columns
-        columns.forEach((column) => {
-            if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
-                initialVisibility[column.id] = true;
-            }
-        });
-        
-        setColumnVisibility(initialVisibility);
-    };
+
 
     // Handle column visibility
     useEffect(() => {
+        // Helper function to set default column visibility
+        const setDefaultColumnVisibility = () => {
+            const initialVisibility: Record<string, boolean> = {};
+            
+            // Set all columns to hidden by default
+            columns.forEach((column) => {
+                initialVisibility[column.id as string] = false;
+            });
+            
+            // Show special columns and non-hideable columns
+            columns.forEach((column) => {
+                if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
+                    initialVisibility[column.id as string] = true;
+                }
+            });
+            
+            setColumnVisibility(initialVisibility);
+        };
         try {
             const storageKey = `LISOC_${tableName}_COLVIS`;
             const storedVisibility = localStorage.getItem(storageKey);
@@ -294,12 +293,12 @@ export default function DataTable<
             }
 
             // Extract IDs with proper type safety
-            const ids: PKVal<N>[] = selectedRows.map(row => {
+            const ids: PKVal<T>[] = selectedRows.map(row => {
                 const id = (row.original as TData)[primaryKey as unknown as keyof TData];
                 if (id === undefined || id === null) {
                     throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
                 }
-                return id as PKVal<N>;
+                return id as PKVal<T>;
             });
 
             

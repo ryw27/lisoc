@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormInput, FormError, FormSubmit } from "./form-components";
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
-import { RegisterTeacher } from "@/lib/auth/actions/teacher-admin-reg/registerTeacher";
+import { RegisterTeacher } from "@/lib/auth/actions/teacher-admin-reg/LEGACY_registerTeacher";
 import { TeacherUserSchema } from "@/lib/data-view/entity-configs/(people)/teacher";
 import { useRouter } from "next/navigation";
 import { nameEmailSchema } from "@/lib/auth/validation";

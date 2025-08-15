@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Button } from '../../ui/button';
 import { useActionState } from 'react';
 import { insertRow } from '@/lib/data-view/actions/insertRow';
-import { Table } from '@/lib/data-view/types';
+// import { Table } from '@/lib/data-view/types';
 import { type Registry } from '@/lib/data-view/registry';
 import { type FormSections, type FormField } from '@/lib/data-view/types';
 
@@ -145,7 +145,7 @@ const renderField = (
     }
 }
 
-export default function AddEntityForm<T extends Table, TData>({
+export default function AddEntityForm({
     fields,
     entity
 }: AddEntityProps) {

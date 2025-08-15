@@ -1,9 +1,6 @@
 import { classrooms } from "@/lib/db/schema";
 import { z } from "zod/v4";
 import { type EntityConfig } from "@/lib/data-view/types";
-import { type Extras } from "@/lib/data-view/types";
-import { toESTString } from "@/lib/utils";
-import { DefaultSession } from "next-auth";
 import { InferSelectModel } from "drizzle-orm";
 
 // 1. Types

@@ -33,7 +33,7 @@ export default async function EntityId({
             <EntityFormsHeader
                 type="view"
                 gobacklink={`${ADMIN_DATAVIEW_LINK}/${entity}`}
-                editlink={`${ADMIN_DATAVIEW_LINK}/${entity}/${id}/edit`}
+                // editlink={`${ADMIN_DATAVIEW_LINK}/${entity}/${id}/edit`}
             />
 
             <div className="mx-auto max-w-6xl px-4 py-8">
@@ -54,7 +54,7 @@ export default async function EntityId({
                         // Remove right border from left section, left border from right section
                         // Remove border radius on adjacent sides for seamless blend
                         const isLeft = idx % 2 === 0;
-                        const isRight = idx % 2 === 1;
+                        // const isRight = idx % 2 === 1;
                         const sectionClass = [
                             "bg-white p-5 shadow-sm transition hover:shadow-md border border-slate-200",
                             "grid-rows-1",

@@ -17,12 +17,12 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const submitPageSize = () => {
-        const params = new URLSearchParams(Array.from(searchParams.entries()));
-        params.set('pageSize', pageSize.toString());
-        params.set('page', "1");
-        router.replace(`?${params.toString()}`);
-    }
+    // const submitPageSize = () => {
+    //     const params = new URLSearchParams(Array.from(searchParams.entries()));
+    //     params.set('pageSize', pageSize.toString());
+    //     params.set('page', "1");
+    //     router.replace(`?${params.toString()}`);
+    // }
 
     const setPage_server = (page: number) => {
         const params = new URLSearchParams(Array.from(searchParams.entries()));

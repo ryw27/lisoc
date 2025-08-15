@@ -1,19 +1,23 @@
 "use client";
 import React from "react";
 import ConfigLayout from "@/components/data-view/config-layout";
-import { useIdMaps } from "@/lib/data-view/providers";
 import { FilterableColumn } from "@/lib/data-view/types";
-import { IdMaps } from "@/lib/registration/types";
 import { StudentObject } from "@/lib/data-view/entity-configs/(people)/student";
 import DataTableColumnHeader from "@/components/data-view/data-table/data-table-header";
 
 export default function StudentsLayout({ children }: { children: React.ReactNode }) {
-    const idMaps = useIdMaps();
-    const columns = getStudentColumns(idMaps);
-    return <ConfigLayout entity="student" children={children} columns={columns} />;
+    const columns = getStudentColumns();
+    return (
+        <ConfigLayout
+            entity="student"
+            columns={columns}
+        >
+            {children}
+        </ConfigLayout>
+    );
 }
 
-function getStudentColumns(_idMaps: IdMaps) {
+function getStudentColumns() {
 	const studentColumns: FilterableColumn<StudentObject>[] = [
 		{
 			id: "familyid",

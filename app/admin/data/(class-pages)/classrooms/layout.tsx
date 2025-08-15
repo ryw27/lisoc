@@ -14,9 +14,10 @@ export default function ClassroomsLayoutPage({ children }: { children: React.Rea
     return (
         <ConfigLayout
             entity="classrooms"
-            children={children} 
             columns={classroomColumns}
-        />
+        >
+            {children}
+        </ConfigLayout>
     ) 
 }
 

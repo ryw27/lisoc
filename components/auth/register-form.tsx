@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { codeSchema, emailSchema, userPassSchema } from "@/lib/auth/validation";
 import { z } from "zod";
 import FamilyForm from "./family-form";
-import TeacherForm from "./LEGACY_teacher-form";
+// import TeacherForm from "./LEGACY_teacher-form";
 import { requestRegCode } from "@/lib/auth";
 import { resendCode } from "@/lib/auth";
 import { checkRegCode } from "@/lib/auth";

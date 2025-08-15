@@ -1,19 +1,23 @@
 "use client";
 import React from "react";
 import ConfigLayout from "@/components/data-view/config-layout";
-import { useIdMaps } from "@/lib/data-view/providers";
 import { FilterableColumn } from "@/lib/data-view/types";
-import { IdMaps } from "@/lib/registration/types";
 import DataTableColumnHeader from "@/components/data-view/data-table/data-table-header";
 import { FamilyJoined } from "@/lib/data-view/entity-configs/(people)/family";
 
 export default function FamiliesLayout({ children }: { children: React.ReactNode }) {
-	const idMaps = useIdMaps();
-	const columns = getFamilyColumns(idMaps);
-	return <ConfigLayout entity="family" children={children} columns={columns} />;
+	const columns = getFamilyColumns();
+	return (
+		<ConfigLayout
+			entity="family"
+			columns={columns}
+		>
+			{children}
+		</ConfigLayout>
+	);
 }
 
-function getFamilyColumns(_idMaps: IdMaps) {
+function getFamilyColumns() {
   	const familyColumns: FilterableColumn<FamilyJoined>[] = [
     	{
 			id: "name",

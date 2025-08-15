@@ -7,7 +7,14 @@ import DataTableColumnHeader from "@/components/data-view/data-table/data-table-
 
 export default function TeachersLayout({ children }: { children: React.ReactNode }) {
 	const columns = getTeacherColumns();
-	return <ConfigLayout entity="teacher" children={children} columns={columns} />;
+	return (
+		<ConfigLayout
+			entity="teacher"
+			columns={columns}
+		>
+			{children}
+		</ConfigLayout>
+	);
 }
 
 function getTeacherColumns() {
