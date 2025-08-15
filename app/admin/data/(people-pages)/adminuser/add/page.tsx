@@ -1,5 +1,5 @@
+import AddEntity from "@/components/data-view/add-entity/add-entity";
 import { FormSections } from "@/lib/data-view/types";
-import AddAdminChoice from "./add-admin-choice";
 import { US_STATES } from "@/lib/utils";
 
 export default function AddAdministrator() {
@@ -146,7 +146,12 @@ export default function AddAdministrator() {
 	];
 
 	return (
-		<AddAdminChoice fields={fields} />
+		<AddEntity
+			entity="adminuser"
+			title="Add a new administrator"
+			description="Fill out the admin details yourself."
+			fields={fields}
+		/>
 	)
 
 }

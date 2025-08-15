@@ -1,6 +1,6 @@
 import { FormSections } from "@/lib/data-view/types";
-import AddTeacherChoice from "./add-teacher-choice";
 import { classTypeMap } from "@/lib/utils";
+import AddEntity from "@/components/data-view/add-entity/add-entity";
 
 export default async function AddTeacher() {
 
@@ -143,7 +143,12 @@ export default async function AddTeacher() {
 	];
 
 	return (
-		<AddTeacherChoice fields={fields} />
+		<AddEntity
+			entity="teacher"
+			title="Add a new teacher"
+			description="Fill out the teacher details yourself."
+			fields={fields}
+		/>
 	);
 }
 
