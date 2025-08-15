@@ -4,8 +4,8 @@ import ResetPasswordForm from "@/components/auth/reset-password-form";
 import { z } from "zod/v4";
 
 const resetParamsSchema = z.object({
-    token: z.string().min(10), // adjust min length as needed
-    email: z.string().email(),
+    token: z.uuid(),
+    email: z.email(),
 });
 
 export default async function ResetPassword({
@@ -22,16 +22,16 @@ export default async function ResetPassword({
 
     const { token, email } = parsed.data;
 
-    const isValid = await checkResetLink({ uuid: token, email } );
-
-    if (isValid) {
-        return (
-            <ResetPasswordForm
-                userEmail={email}
-                userToken={token}
-            />
-        );
+    const response = await checkResetLink({ uuid: token, email} );
+    
+    if (!response.ok || (response.ok && response.data === false)) {
+        return notFound();
     }
 
-    return notFound();
+    return (
+        <ResetPasswordForm
+            userEmail={email}
+            userToken={token}
+        />
+    );
 }
