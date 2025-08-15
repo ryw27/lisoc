@@ -3,27 +3,42 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormInput, FormError, FormSubmit } from "./form-components";
-import { nameEmailSchema, teacherSchema } from "@/lib/auth/validation";
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { RegisterTeacher } from "@/lib/auth/actions/teacher-admin-reg/registerTeacher";
+import { TeacherUserSchema } from "@/lib/data-view/entity-configs/(people)/teacher";
+import { useRouter } from "next/navigation";
+import { nameEmailSchema } from "@/lib/auth/validation";
 
 export default function TeacherForm({
-    fullRegister,
     registerData
 }: {
-    fullRegister: (data: z.infer<typeof teacherSchema>, regData: z.infer<typeof nameEmailSchema>, isTeacher: boolean) => Promise<void>;
     registerData: z.infer<typeof nameEmailSchema>;
 }) {
-    const form = useForm<z.infer<typeof teacherSchema>>({
-        resolver: zodResolver(teacherSchema),
-        mode: 'onChange'
+    const router = useRouter();
+    
+
+    const form = useForm({
+        resolver: zodResolver(TeacherUserSchema),
+        mode: 'onChange',
+        defaultValues: {
+            name: registerData.username,
+            email: registerData.email,
+        }
     });
 
-    const onSubmit = async (data: z.infer<typeof teacherSchema>) => {
-        try {
-            await fullRegister(data, registerData, true);
-        } catch (error) {
-            form.setError("root", { message: error instanceof Error ? error.message : "An unexpected error occurred. Please try again." });
+    const onSubmit = async (data: z.infer<typeof TeacherUserSchema>) => {
+        const response = await RegisterTeacher(data);
+        if (!response.ok) {
+            Object.entries(response.fieldErrors ?? {}).forEach(([field, messages]) => {
+                if (messages && messages.length > 0) {
+                    // @ts-expect-error: field is dynamically typed and matches form field keys
+                    fpForm.setError(field, { message: messages[0] });
+                }
+            });
+            form.setError("root", { message: response.errorMessage} )
         }
+
+        router.push("/login/teacher");
     };
 
     return (
@@ -33,20 +48,23 @@ export default function TeacherForm({
                 label="Teacher's Chinese Name"
                 type="text"
                 register={form.register('namecn')}
+                required
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 <div className="flex flex-col w-full">
                     <FormInput
                         label="Teacher's First Name"
                         type="text"
-                        register={form.register('firstnameen')}
+                        register={form.register('namefirsten')}
+                        required
                     />
                 </div>
                 <div className="flex flex-col w-full">
                     <FormInput
                         label="Teacher's Last Name"
                         type="text"
-                        register={form.register('lastnameen')}
+                        register={form.register('namelasten')}
+                        required
                     />
                 </div>
             </div>
@@ -60,29 +78,22 @@ export default function TeacherForm({
             <FormInput
                 label="Alternative Address"
                 type="text"
-                register={form.register('address2')}
+                register={form.register('address1')}
             />
-            <div className="flex gap-2 w-full">
-                <FormInput
-                    label="Phone Number"
-                    type="tel"
-                    register={form.register('phone')}
-                />
-                <FormInput
-                    label="Alternative Phone Number"
-                    type="tel"
-                    register={form.register('phonealt')}
-                />
-            </div>
-
-
             <FormInput
-                label="Alternative Email"
-                type="text"
-                register={form.register('emailalt')}
+                label="Phone Number"
+                type="tel"
+                register={form.register('phone')}
             />
 
 
+            {/* <div classNAme="flex flex-col w-full">
+                <label htmlFor="classtypeid" className="block text-sm text-gray-400 font-bold mb-2">
+                    Class Type
+                </label>
+                <Select
+                    onValueChange={(value: string) => form.setValue('')} */}
+            {/* </div> */}
             <div className="flex gap-2 w-full">
                 <div className="flex-1/2 flex-[0_0_50%]">
                     <FormInput
