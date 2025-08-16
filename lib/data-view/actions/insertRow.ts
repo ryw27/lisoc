@@ -153,15 +153,15 @@ export async function insertRow(
             await db
                 .update(classes)
                 .set({
-                    // @ts-ignore
-                    gradeclassid: (row as any).classid,
+                    // @ts-expect-error No idea how to fix
+                    gradeclassid: row.classid,
                 })
-                // @ts-ignore
-                .where(eq(classes.classid, (row as any).classid));
+                // @ts-expect-error No idea how to fix
+                .where(eq(classes.classid, row.classid));
         }
 
-        // @ts-ignore
-        const id = (row as any)[primaryKey];
+        // @ts-expect-error No idea how to fix
+        const id = row[primaryKey];
 
         revalidatePath(`${ADMIN_DATAVIEW_LINK}/${id ?? ''}`);
 

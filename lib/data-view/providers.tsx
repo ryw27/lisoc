@@ -43,8 +43,8 @@ export interface DataEntityContextValue<T extends Table, RowType> {
     formSchema: z.ZodObject;
 }
 
-// @ts-ignore no idea how to figure out this one either
-const DataEntityContext = createContext<DataEntityContextValue<any> | null>(null);
+// @ts-expect-error no idea how to figure out this one either
+const DataEntityContext = createContext<DataEntityContextValue | null>(null);
 
 
 interface DataEntityProviderProps<T extends Table, RowType> extends DataEntityContextValue<T, RowType> {

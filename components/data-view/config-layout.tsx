@@ -19,7 +19,7 @@ export default function ConfigLayout<RowType>({
             columns={columns}
             entity={entity}
             tableName={config.tableName}
-            // @ts-ignore  No idea how to fix
+            // @ts-expect-error No idea how to fix
             primaryKey={config.primaryKey}
             formSchema={config.formSchema}
         >

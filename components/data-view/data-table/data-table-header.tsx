@@ -1,3 +1,4 @@
+"use client";
 import { cn } from "@/lib/utils";
 import { Column } from "@tanstack/react-table"
 import React from "react";
@@ -17,6 +18,9 @@ export default function DataTableColumnHeader<TData, TValue>({
     className?: React.HTMLAttributes<HTMLDivElement>;
     tableType: "server" | "client"
 }) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
     if (!column.getCanSort()) {
         return (
             <div className={cn(className)}>
@@ -24,9 +28,6 @@ export default function DataTableColumnHeader<TData, TValue>({
             </div>
         )
     }
-
-    const router = useRouter();
-    const searchParams = useSearchParams();
 
     const sortCol_server = (dir: 'asc' | 'desc') => {
         const params = new URLSearchParams(Array.from(searchParams.entries()));

@@ -37,3 +37,7 @@
 //         />
 //     )
 // }
+
+export default function NotNeededTeacherLinkPage() {
+    return null;
+}

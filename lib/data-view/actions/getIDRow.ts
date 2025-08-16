@@ -27,7 +27,7 @@ export default async function getIDRow(entity: keyof Registry, rawId: number) {
             [row] = await db
                 .select()
                 .from(table)
-                // @ts-ignore
+                // @ts-expect-error No idea how to fix
                 .where(eq(table[primaryKey], id))
                 .leftJoin(users, eq(table["userid" as keyof typeof table["$inferSelect"]], users.id));
             row = {
@@ -38,7 +38,7 @@ export default async function getIDRow(entity: keyof Registry, rawId: number) {
             [row] = await db
                 .select()
                 .from(table)
-                // @ts-ignore
+                // @ts-expect-error No idea how to fix
                 .where(eq(table[primaryKey], id));
         }
 

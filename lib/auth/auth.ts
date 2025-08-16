@@ -7,8 +7,8 @@ import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
 import { credSchema, loginSchema } from "@/lib/auth/validation"
 import authConfig from "@/auth.config"
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { type JWT } from "next-auth/jwt" // Use import type to avoid runtime import and TS errors
+// @ts-expect-error JWT needs to be used to edit the module
+import { type JWT } from "next-auth/jwt" // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {

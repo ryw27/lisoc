@@ -1,3 +1,4 @@
+"use server";
 import { db } from "@/lib/db";
 import { z } from "zod/v4"
 import { emailSchema, uuidSchema } from "../../validation";

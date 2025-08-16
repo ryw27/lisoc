@@ -13,5 +13,5 @@ export { checkRegLink } from "./actions/teacher-admin-reg/LEGACY_checkRegLink";
 export { createRegLink } from "./actions/teacher-admin-reg/LEGACY_createRegLink";
 // Misc
 export { requireRole } from "./actions/requireRole";
-export { serverLogin } from "./actions/serverLogin";
-export { serverLogout } from "./actions/serverLogout";
+// export { serverLogin } from "./actions/serverLogin";
+// export { serverLogout } from "./actions/serverLogout";
