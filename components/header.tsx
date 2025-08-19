@@ -4,13 +4,12 @@ import { ChevronDown, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
 import { type DefaultSession } from "next-auth"
+import LanguageToggle from "./language-toggle";
 // import LogoutButton from "./LEGACY_logout-button";
 
 
 export default function Header({ user }: { user: DefaultSession["user"] }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [language, setLanguage] = useState<'en' | 'zh'>('en');
-    // const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
     const handleLogout = () => {
         signOut({
@@ -18,9 +17,7 @@ export default function Header({ user }: { user: DefaultSession["user"] }) {
         });
     };
 
-    const toggleLanguage = () => {
-        setLanguage(language === 'en' ? 'zh' : 'en');
-    };
+
 
     return (
         <header className="bg-white border-gray-200 sticky top-0 z-10">
@@ -32,13 +29,7 @@ export default function Header({ user }: { user: DefaultSession["user"] }) {
                     {/* Right side with actions */}
                     <div className="flex items-center space-x-4 ml-auto">
                         {/* Language toggle */}
-                        <button
-                            onClick={toggleLanguage}
-                            className="text-gray-500 text-sm cursor-pointer hover:text-gray-700 p-2 rounded-md hover:bg-blue-50 transition-colors"
-                        >
-                            {language === 'en' ? '中文' : 'English'}
-                            <span className="sr-only">Toggle language</span>
-                        </button>
+                        <LanguageToggle /> 
 
                         {/* Profile dropdown */}
                         <div className="relative ml-3">

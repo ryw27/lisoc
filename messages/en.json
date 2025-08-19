@@ -1,0 +1,36 @@
+{
+    "Auth": {
+        "sign-up": "Sign up",
+        "no-account-text": "Don't have an account?",
+        "internal-server-error": "Something unexpected went wrong. Please report to regadmin",
+        "Login": {
+            "set-password-title": "Set Password Title",
+            "password-label": "Password",
+            "confirm-password-label": "Confirm Password",
+            "continue-google": "Continue with Google",
+            "email-or-username-label": "Email or Username",
+            "forgot-password?": "Forgot password?",
+            "error-occured": "Error Occured",
+            "incorrect-email-password": "Incorrect email or password",
+            "missing-password": "Please fill in your password",
+            "set-password": "Set your password",
+            "new-password-set": "Login with your new password",
+            "form-confirmation": "Confirm your details"
+        },
+        "ForgotPassword": {
+            "reset-success-msg": "A link to reset your password has been sent to your email. If you did not receive an email, please \u2009",
+            "try-again": "try again"
+
+        },
+        "Register": {
+            "step2": "Verification Code",
+            "step3": "Account Details",
+            "step4": "Profile Setup"
+        }
+    },
+    "useButtonText": {
+        "loading": "Loading...",
+        "continue": "Continue",
+        "submit": "Submit"
+    }
+}

@@ -105,12 +105,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { forgotPassSchema } from "@/lib/auth/validation";
 import { requestPasswordReset } from "@/lib/auth";
+import { useTranslations } from "next-intl";
 
 // type FPFormParams = {
 //     requestReset: (data: z.infer<typeof forgotPassSchema>) => Promise<{ ok: boolean, message: string }>;
 // }
 
 export default function ForgotPasswordForm() {
+    const t = useTranslations("Auth.ForgotPassword");
     const [busy, setBusy] = useState<boolean>(false);
     const [sentLink, setSentLink] = useState<boolean>(false);
 
@@ -165,9 +167,11 @@ export default function ForgotPasswordForm() {
             
             {sentLink && (
                 <div className="flex flex-col bg-white p-2 w-1/5">
-                    <p className="text-gray-700 font-bold">A link to reset your password has been sent to your email.
-                        If you did not receive an email, please &thinsp;
-                        <button onClick={tryFPAgain} className="text-blue-600 underline cursor-pointer">try again</button>
+                    <p className="text-gray-700 font-bold">
+                        {/* A link to reset your password has been sent to your email.
+                        If you did not receive an email, please &thinsp; */}
+                        {t("reset-success-msg")}
+                        <button onClick={tryFPAgain} className="text-blue-600 underline cursor-pointer">{t("try-again")}</button>
                         &thinsp; or &thinsp; <Link href="/register" className="font-bold text-blue-600 underline"> Sign up.</Link>
                     </p>
                 </div>
