@@ -1,15 +1,3 @@
-# Supplementary Tasks
-1) Look at data table and understand wtf is going on with it again. 
-
-
-# Compiling random rules to follow
-1. Separate business logic and database interactions
-2. Ensure strict typing to move all errors into compilation time, but don't go crazy
-3. DRY - don't repeat yourself, but don't go crazy.
-4. Assure that assumptions in each function are documented or accounted for
-5. Make sure internal form values that are sent to server are correct ones, don't translate it on the server.
-
-
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
