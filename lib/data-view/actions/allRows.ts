@@ -5,14 +5,14 @@ import { Table } from "../types";
 import { requireRole } from "@/lib/auth";
 
 
-export default async function allRows(entity: keyof Registry): Promise<InferSelectModel<Table>[]> {
+export async function allRows(entity: keyof Registry): Promise<InferSelectModel<Table>[]> {
     await requireRole(["ADMIN"]);
-    const { table } = getEntityConfig(entity);
+    const { table, tableName } = getEntityConfig(entity);
     const rows = await db
         .select()
         .from(table)
 
-    if (!rows) throw new Error(`No rows found in ${table._.name}`);
+    if (!rows) throw new Error(`No rows found in ${tableName}`);
 
     return rows as InferSelectModel<typeof table>[];
 }

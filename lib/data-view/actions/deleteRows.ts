@@ -15,7 +15,7 @@ export async function deleteRows(
         await requireRole(["ADMIN"]);
         if (!Array.isArray(ids) || ids.length === 0) throw new Error("Invalid 'ids' argument: must be a non-empty array.");
 
-        const { table, primaryKey } = getEntityConfig(entity);
+        const { table, primaryKey, tableName } = getEntityConfig(entity);
         const columns = getTableColumns(table);
         const pkCol = columns[primaryKey as keyof typeof columns];
 
@@ -24,8 +24,8 @@ export async function deleteRows(
             .where(inArray(pkCol, ids))
             .returning()
 
-        if (result.length === 0) throw new Error(`Elements not found in ${table._.name}`);
-        revalidatePath(`${ADMIN_DATAVIEW_LINK}/${table._.name}`);
+        if (result.length === 0) throw new Error(`Elements not found in ${tableName}`);
+        revalidatePath(`${ADMIN_DATAVIEW_LINK}/${tableName}`);
         return { ok: true, data: result };
     } catch (error) {
         console.error(error);
