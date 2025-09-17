@@ -5,7 +5,7 @@ import { pool } from "../db"
 import bcrypt from "bcrypt"
 import PostgresAdapter from "@auth/pg-adapter"
 import { type Adapter } from "next-auth/adapters"
-import { credSchema, loginSchema } from "@/lib/auth/validation"
+import { credSchema, loginSchema, adminloginSchema } from "@/lib/auth/validation"
 import authConfig from "@/auth.config"
 // @ts-expect-error JWT needs to be used to edit the module
 import { type JWT } from "next-auth/jwt" // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
@@ -70,7 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const isEmail = Boolean(credData.email?.trim());
                 const identifier = isEmail ? credData.email!.trim() : (credData.username ?? "");
 
-                const parsedCredentials = loginSchema.safeParse({
+                const parsedCredentials = adminloginSchema.safeParse({
                     emailUsername: identifier,
                     password: credData.password,
                 });

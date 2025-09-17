@@ -1,52 +1,42 @@
-import Logo from "@/components/logo"
-import Link from "next/link"
-export default function Home() {
-	return (
-		<div className="min-h-screen flex flex-col items-center justify-center bg-white">
-			<div className="flex flex-col items-center w-full max-w-md mx-auto px-4">
-				<div className="mt-16 mb-8 flex flex-col items-center w-full">
-					<Logo />
-				</div>
-				<div className="flex flex-col items-center w-full mb-8">
-					<div className="flex flex-row items-center justify-center gap-3 w-full mb-4">
-						<Link
-							href="/login"
-							className="rounded-md bg-gray-200 font-bold px-4 py-2 transition-colors hover:bg-gray-300 min-w-48 text-center"
-						>
-							Family login
-						</Link>
-						<Link
-							href="/login/admin"
-							className="rounded-md bg-gray-200 font-bold px-4 py-2 transition-colors hover:bg-gray-300 min-w-48 text-center"
-						>
-							Admin login
-						</Link>
-						<Link
-							href="/login/teacher"
-							className="rounded-md bg-gray-200 font-bold px-4 py-2 transition-colors hover:bg-gray-300 min-w-48 text-center"
-						>
-							Teacher login
-						</Link>
-					</div>
-					<div className="flex justify-center w-full">
-						<Link
-							href="/register"
-							className="rounded-md bg-gray-200 font-bold px-4 py-2 transition-colors hover:bg-gray-300 min-w-48 text-center"
-							style={{ marginTop: 0 }}
-						>
-							Register
-						</Link>
-					</div>
-				</div>
-				<p className="text-sm text-gray-500 mt-4">
-					<strong>Disclaimer:</strong> This is a beta version of the new website. Please use the desktop version for best experience. Please report any issues to{" "}
-					<a href="mailto:tech.lisoc@gmail.com" className="text-blue-500 underline">
-						tech.lisoc@gmail.com
-					</a>.
-					<br />
-					Additionally, due to the migration to the new system, any old passwords will not work. Please use the forgot password feature to reset your password.
-				</p>
-			</div>
-		</div>
-	);
+'use client' ;
+import { FamilyLoginForm } from "@/components/auth/family-login-form"
+import React from "react"
+
+export default function Page() {
+  return (
+    <div className="flex flex-col min-h-[100vh] w-full justify-between">
+      <div className="flex flex-col items-center justify-center flex-1 p-6 md:p-10">
+        <div className="w-full max-w-6xl p-12">
+          <h1 className="text-3xl font-bold text-center mb-4 text-blue-700 flex items-center justify-center gap-3">
+            <img src="./Banner_lisoc.jpg" alt="LISOC Icon" className="w-336 h-26 inline-block" />
+          </h1>
+          <div className="w-full flex justify-center mb-8">
+            <BannerLine />
+          </div>
+          <FamilyLoginForm />
+          <div className="mt-8 text-xs text-gray-400 text-center font-bold">
+            &copy; {new Date().getFullYear()} Long Island School of Chinese. All rights reserved.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+function BannerLine() {
+  
+  const date_options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  };
+
+  const date = new Date().toLocaleDateString('en-US', date_options);
+  return (
+    <div className="w-full h-10 bg-gradient-to-r from-blue-400 via-blue-200 to-blue-400 flex items-center justify-between rounded-lg shadow px-6">
+    <span className="text-white text-base font-medium tracking-wide text-left">{date}</span>
+    <span className="text-white text-base font-medium tracking-wide text-right">Online Registration Help or Feedback: regadmingroup@lisoc.org  </span>
+    </div>
+  )
+}
 }

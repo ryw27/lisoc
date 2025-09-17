@@ -8,21 +8,21 @@ import { z } from "zod/v4";
 export const emailSchema = z.object({
     email: z
         .string()
-        .min(1, { message: "This field has to be filled"})
+//        .min(4, { message: "This field has to be filled"})
         .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, { message: "This is not a valid email" })
 })
 
 export const usernameSchema = z.object({
     username: z.
         string()
-        .min(1, { message: "Username has to be filled"})
+ //       .min(4, { message: "Username has to be filled"})
         .max(24, { message: "Username is too long"}),
 })
 
 export const passwordSchema = z.object({
     password: z
         .string()
-        .min(1, { message: "Password must be filled" })
+        .min(4, { message: "Password must be filled" })
         // .min(6, { message: "Password must be at least 6 characters long" })
         .max(72, { message: "Password is too long" })
 })
@@ -47,14 +47,21 @@ export const userPassSchema = z.object({
     password: passwordSchema.shape.password
 })
 
+
 export const emailPassSchema = z.object({
     email: emailSchema.shape.email,
     password: passwordSchema.shape.password
 })
 export const loginSchema = z.object({
-    emailUsername: emailSchema.shape.email.or(usernameSchema.shape.username),
+    emailUsername: emailSchema.shape.email /*.or(usernameSchema.shape.username)*/,
     password: passwordSchema.shape.password
 })
+
+export const adminloginSchema = z.object({
+    emailUsername: emailSchema.shape.email .or (usernameSchema.shape.username),
+    password: passwordSchema.shape.password
+})
+
 
 export const credSchema = z.object({
     email: emailSchema.shape.email.optional(),

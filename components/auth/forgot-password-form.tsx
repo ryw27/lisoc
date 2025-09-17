@@ -124,13 +124,14 @@ export default function ForgotPasswordForm() {
     const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
         setBusy(true);
         const result = await requestPasswordReset(data);
-        if (!result.ok && result.errorMessage !== "Account does not exist") {
+        if (!result.ok ){
+            setSentLink(false);
             fpForm.setError("emailUsername", { message: result.errorMessage });
-            // To map through field errors, you can use Object.entries(result.fieldErrors ?? {}) and set errors for each field:
+                // To map through field errors, you can use Object.entries(result.fieldErrors ?? {}) and set errors for each field:
             Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) => {
                 if (messages && messages.length > 0) {
-                    // @ts-expect-error: field is dynamically typed and matches form field keys
-                    fpForm.setError(field, { message: messages[0] });
+                        // @ts-expect-error: field is dynamically typed and matches form field keys
+                        fpForm.setError(field, { message: messages[0] });
                 }
             });
         } else {
