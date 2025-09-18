@@ -222,7 +222,7 @@ export function FamilyLoginForm({
               </div>
               <div className="mt-4 text-center text-sm">
                 {labels.dontHaveAccount}{" "}
-                <a href="#" className="underline underline-offset-4 text-blue-700">
+                <a href="/register" className="underline underline-offset-4 text-blue-700">
                   {labels.signUp}
                 </a>
               </div>
