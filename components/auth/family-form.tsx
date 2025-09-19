@@ -49,60 +49,61 @@ export default function FamilyForm({
     };
 
     return (
-        <form onSubmit={familyForm.handleSubmit(onSubmit)} className="flex flex-col space-y-4">
-            <h2 className="text-2xl font-bold">Family Information</h2>
-            <p className="text-sm text-gray-400">Please fill in the following information for your family. At least one guardian must be provided.</p>
+        <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-300">
+            <form onSubmit={familyForm.handleSubmit(onSubmit)} className="flex flex-col space-y-4 bg-white p-8 rounded-xl shadow-md w-full max-w-2xl">
+            <h2 className="text-2xl font-bold">Family Information (家庭信息)</h2>
+            <p className="text-sm text-gray-400">Please fill in the following information for your family. At least one guardian must be provided.(请填写父母双方至少一人)</p>
             <FormInput
-                label="Mother's Chinese Name"
+                label="Mother's Chinese Name（母亲中文名）"
                 type="text"
                 register={familyForm.register('mothernamecn')}
             />
             {familyForm.formState.errors.mothernamecn?.message && <FormError error={familyForm.formState.errors.mothernamecn.message} />}
             <div className="flex gap-2 w-full">
                 <FormInput
-                    label="Mother's First Name"
+                    label="Mother's First Name（英文名）"
                     type="text"
                     register={familyForm.register('motherfirsten')}
                 />
                 {familyForm.formState.errors.motherfirsten?.message && <FormError error={familyForm.formState.errors.motherfirsten.message} />}
                 <FormInput
-                    label="Mother's Last Name"
+                    label="Mother's Last Name（英文姓）"
                     type="text"
                     register={familyForm.register('motherlasten')}
                 />
                 {familyForm.formState.errors.motherlasten?.message && <FormError error={familyForm.formState.errors.motherlasten.message} />}
             </div>
             <FormInput
-                label="Father's Chinese Name"
+                label="Father's Chinese Name（父亲中文名）"
                 type="text"
                 register={familyForm.register('fathernamecn')}
             />
             {familyForm.formState.errors.fathernamecn?.message && <FormError error={familyForm.formState.errors.fathernamecn.message} />}
             <div className="flex gap-2 w-full">
                 <FormInput
-                    label="Father's First Name"
+                    label="Father's First Name（英文名）"
                     type="text"
                     register={familyForm.register('fatherfirsten')}
                 />
                 <FormInput
-                    label="Father's Last Name"
+                    label="Father's Last Name（英文姓）"
                     type="text"
                     register={familyForm.register('fatherlasten')}
                 />
                 {familyForm.formState.errors.fatherlasten?.message && <FormError error={familyForm.formState.errors.fatherlasten.message} />}
             </div>
 
-            <h2 className="text-2xl font-bold">Contact Information</h2>
+            <h2 className="text-2xl font-bold">Contact Information(联系方式）</h2>
 
             <FormInput
-                label="Address"
+                label="Address（地址）"
                 required={true}
                 type="text"
                 register={familyForm.register('address')}
             />
             {familyForm.formState.errors.address?.message && <FormError error={familyForm.formState.errors.address.message} />}
             <FormInput
-                label="Alternative Address"
+                label="Alternative Address（备用地址）"
                 type="text"
                 register={familyForm.register('address2')}
             />
@@ -110,7 +111,7 @@ export default function FamilyForm({
             <div className="flex gap-2 w-full">
                 <div className="flex flex-col w-1/2">
                     <FormInput
-                        label="Phone Number"
+                        label="Phone Number（联系电话）"
                         required={true}
                         type="tel"
                         register={familyForm.register('phone')}
@@ -119,7 +120,7 @@ export default function FamilyForm({
                 </div>
                 <div className="flex flex-col w-1/2">
                     <FormInput
-                        label="Alternative Phone Number"
+                        label="Alternative Number（备用电话）"
                         type="tel"
                         register={familyForm.register('phonealt')}
                     />
@@ -128,7 +129,7 @@ export default function FamilyForm({
             </div>
             <div className="flex gap-1 w-full flex-col">
                 <FormInput
-                    label="Alternative Email"
+                    label="Alternative Email(备用邮箱)"
                     type="text"
                     register={familyForm.register('emailalt')}
                 />
@@ -138,7 +139,7 @@ export default function FamilyForm({
             <div className="flex gap-2 w-full">
                 <div className="flex-1/2 flex-[0_0_50%] flex-col">
                     <FormInput
-                        label="City"
+                        label="City(城市）"
                         required={true}
                         type="text"
                         register={familyForm.register('city')}
@@ -148,7 +149,7 @@ export default function FamilyForm({
                 <div className="flex-1/3 flex-[0_0_16.6667%] flex-col">
                     <div className="flex flex-col w-full">
                         <label htmlFor="state" className="block text-sm text-gray-400 font-bold mb-2">
-                            State
+                            State(州)
                             <span className="text-red-500 ml-1">*</span>
                         </label>
                         <Select
@@ -178,7 +179,7 @@ export default function FamilyForm({
                 </div>
                 <div className="flex-2/3 flex-[0_0_33.3333%] flex-col">
                     <FormInput
-                        label="Zip Code"
+                        label="Zip Code(邮编）"
                         required={true}
                         type="text"
                         register={familyForm.register('zip')}
@@ -192,5 +193,6 @@ export default function FamilyForm({
                 {familyForm.formState.isSubmitting ? 'Submitting...' : 'Submit'}
             </FormSubmit>
         </form>
+        </div>
     )
 }

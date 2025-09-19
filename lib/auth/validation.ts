@@ -9,7 +9,7 @@ export const emailSchema = z.object({
     email: z
         .string()
 //        .min(4, { message: "This field has to be filled"})
-        .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, { message: "This is not a valid email" })
+        .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, { message: "This is not a valid email(请输入正确地址)" })
 })
 
 export const usernameSchema = z.object({
@@ -22,15 +22,15 @@ export const usernameSchema = z.object({
 export const passwordSchema = z.object({
     password: z
         .string()
-        .min(4, { message: "Password must be filled" })
-        // .min(6, { message: "Password must be at least 6 characters long" })
+       // .min(4, { message: "Password must be filled" })
+        .min(6, { message: "Password must be at least 6 characters (密码必须至少6位）" })
         .max(72, { message: "Password is too long" })
 })
 
 export const codeSchema = z.object({
     code: z
         .string()
-        .length(6, { message: "Code must be 6 digits" })
+        .length(6, { message: "Code must be 6 digits（6位验证码）" })
 })
 
 
@@ -44,9 +44,12 @@ export const uuidSchema = z.object({
 // ------------------------------------------------------------------------------------------------
 export const userPassSchema = z.object({
     username: usernameSchema.shape.username,
-    password: passwordSchema.shape.password
-})
-
+    password: passwordSchema.shape.password,
+    confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match（两次密码不一致）',
+  path: ['confirmPassword'], // Path where the error message will be displayed
+});
 
 export const emailPassSchema = z.object({
     email: emailSchema.shape.email,
@@ -88,19 +91,19 @@ export const nameEmailSchema = z.object({
 export const userSchema = z.object({
     address: z
         .string()
-        .min(1, { message: "Address has to be filled" })
+        .min(1, { message: "Address has to be filled（请填地址）" })
         .max(100, { message: "Address is too long" }),
     city: z
         .string()
-        .min(1, { message: "City has to be filled"})
+        .min(1, { message: "City has to be filled（请填城市）" })
         .max(24, { message: "City is too long" }),
     state: z
         .string()
-        .min(1, { message: "State has to be filled"})
+        .min(1, { message: "State has to be filled（请填州名）" })
         .max(24, { message: "State is too long" }),
     zip: z
         .string()
-        .min(1, { message: "Zip code has to be filled"})
+        .min(1, { message: "Zip code has to be filled（请填邮编）" })
         .max(10, { message: "Zip code is too long" }),
     phone: z
         .string()
@@ -143,7 +146,7 @@ export const familySchema = z
       .refine(
         val =>
         !val || /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val),
-        { message: "This is not a valid email" }
+        { message: "This is not a valid email（邮箱不正确）" }
       ),
   })
   .superRefine((data, ctx) => {
@@ -163,7 +166,7 @@ export const familySchema = z
     if (!fatherFilled && !motherFilled) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "At least one parent (mother or father) must have a name filled (Chinese or both English names).",
+            message: "At least one parent (mother or father) must have a name filled (Chinese or both English names).（父母双方至少一人必须填写姓名）",
             path: ["mothernamecn"],
         });
     }

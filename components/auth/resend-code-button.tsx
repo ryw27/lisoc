@@ -77,7 +77,7 @@ export default function ResendCodeButton({resendCode, email}: resendCodeProps) {
             }`}
             onClick={onResend}
         >
-            {remain > 0 ? `Resend in ${remain} seconds` : disabled ? "Sending..." : "Resend Code"}
+            {remain > 0 ? `Resend in ${remain} seconds` : disabled ? "Sending..." : "Resend Code(重新发送验证码)"}
         </button>
     )
 }

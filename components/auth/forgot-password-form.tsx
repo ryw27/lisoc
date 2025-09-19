@@ -150,19 +150,19 @@ export default function ForgotPasswordForm() {
         <main className="flex flex-col h-screen w-screen items-center justify-center bg-background">
             <Logo/>
 
-            <h1 className="text-2xl font-bold mb-10 mt-10 text-left">Forgot Password Form</h1>
+            <h1 className="text-2xl font-bold mb-10 mt-10 text-left">Forgot Password Form（找回密码）</h1>
 
             {!sentLink && (
                 <form onSubmit={fpForm.handleSubmit(onEmail)} className="flex flex-col bg-white p-2 w-1/5">
                     <FormInput 
-                        label="Email or Username"
+                        label="Email or Username（邮箱）"
                         type="text"
                         register={fpForm.register("emailUsername")}
                     />
                     <FormError
                         error={fpForm.formState.errors.emailUsername?.message}
                     />
-                    <FormSubmit disabled={busy}>Continue</FormSubmit>
+                    <FormSubmit disabled={busy}>Continue（下一步）</FormSubmit>
                 </form>
             )}
             
@@ -179,7 +179,7 @@ export default function ForgotPasswordForm() {
             )}
 
 
-            <p className="text-gray-500 text-center mt-5 text-sm">Don&apos;t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up</Link></p>
+            <p className="text-gray-500 text-center mt-5 text-sm">Don&apos;t have an account? <Link href="/register" className="font-bold text-blue-500 underline">Sign up（没有账号请按这里）</Link></p>
         </main>
     )
 }
