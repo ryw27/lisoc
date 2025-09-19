@@ -22,42 +22,42 @@ const navItems: NavSection[] = [
         header: "Dashboard",
         items: [
             {
-                label: "Home",
+                label: "Home(首页)",
                 href: [DASHBOARD],
                 icon: <HomeIcon className="w-4 h-4" />,
             },
             {
-                label: "Register",
+                label: "Register（注册）",
                 href: [`${DASHBOARD}/register`],
                 icon: <FaChalkboardTeacher className="w-4 h-4" />,
             },
             {
-                label: "Manage Students",
+                label: "Manage Students（添加学生）",
                 href: [`${DASHBOARD}/students`],
                 icon: <UserIcon className="w-4 h-4" />,
             },
-            // {
-            //     label: "Parent Duty",
-            //     href: [`${DASHBOARD}/parentduty`],
-            //     icon: <GrGroup className="w-4 h-4" />,
-            // },
+             {
+                 label: "Parent Duty（家长值班）",
+                 href: [`${DASHBOARD}/parentduty`],
+                 icon: <UserIcon className="w-4 h-4" />,
+             },
         ],
     },
     {
         header: "Content",
         items: [
             {
-                label: "Course List",
+                label: "Course List（课程列表）",
                 href: [`${DASHBOARD}/courselist`],
                 icon: <BookOpenIcon className="w-4 h-4" />,
             },
             {
-                label: "Registration History",
+                label: "Registration History（注册记录）",
                 href: [`${DASHBOARD}/reghistory`],
                 icon: <FileTextIcon className="w-4 h-4" />,
             },
             {
-                label: "Balance History",
+                label: "Balance History（缴费记录）",
                 href: [`${DASHBOARD}/balhistory`],
                 icon: <DollarSign className="w-4 h-4" />,
             },
@@ -67,12 +67,12 @@ const navItems: NavSection[] = [
         header: "Other",
         items: [
             {
-                label: "Contact us",
+                label: "Contact us（联系我们）",
                 href: [`${DASHBOARD}/contact`],
                 icon: <Mail className="w-4 h-4" />,
             },
             {
-                label: "Logout",
+                label: "Logout（退出）",
                 href: [`${DASHBOARD}/logout`],
                 icon: <LogOut className="w-4 h-4" />,
             },
