@@ -5,7 +5,7 @@ import {
   familybalance,
   regchangerequest,
 } from "@/lib/db/schema";
-import { eq, InferSelectModel } from "drizzle-orm";
+import { eq, and,InferSelectModel } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { canDrop, getTotalPrice, Transaction } from "../../helpers";
 import {
@@ -87,10 +87,49 @@ export async function familyRequestDrop(regid: number, studentid: number, family
                 .delete(classregistration)
                 .where(eq(classregistration.regid, regid));
             const removeFamBalValues = await createRemoveFamBalanceVals(tx, oldReg, oldArr) ;
+            /*
             await tx
                 .insert(familybalance)
-                .values(removeFamBalValues)
+                .values(removeFamBalValues)*/
             
+            // update the balance to remove the tuition
+            // start transaction here to ensure no
+
+            const [existingBal] = await tx.select()
+                    .from(familybalance)
+                    .where(
+                            and (
+                                eq(familybalance.familyid, familyid),
+                                eq(familybalance.seasonid, removeFamBalValues.seasonid),
+                                eq(familybalance.balanceid, removeFamBalValues.appliedid)
+                            )
+                        ).limit(1).for('update')
+
+            if (existingBal) {
+                // Update existing balance
+                //set yearclass+1 yearclass4child -1 childnum +1 student -1   tuition - new tuition totalamount - new totalamount
+                const newyearclass = existingBal.yearclass -1 ;
+                const newyearclass4child = existingBal.yearclass4child - 1;
+
+                const newChildNum = existingBal.childnum - 1;
+                const newTuition = Number(existingBal.tuition) + Number(removeFamBalValues.tuition);
+                const newTotal = Number(existingBal.totalamount) + Number(removeFamBalValues.totalamount);
+                await tx
+                    .update(familybalance)
+                    .set({
+                        yearclass: newyearclass,
+                        yearclass4child: newyearclass4child,
+                        childnum: newChildNum,
+                        tuition: newTuition.toString(),
+                        totalamount: newTotal.toString(),
+                    })
+                    .where(eq(familybalance.balanceid, existingBal.balanceid));
+
+            } else {
+                console.warn("Could not find existing balance to update after drop. This should never happen");
+                throw new Error("Could not find existing balance to update after drop. This should never happen");
+            }
+
             revalidatePath("/dashboard/classes");
             revalidatePath("/admin/management/regchangerequests");
             return;

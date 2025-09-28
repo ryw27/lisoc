@@ -82,17 +82,17 @@ const navItems: NavSection[] = [
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const user = await requireRole(["FAMILY"]);
-	return (
-		<div className="flex h-screen">
-			<div className="fixed h-screen">
-				<SideNav items={navItems} />
-			</div>
-			<div className="flex flex-col flex-1 overflow-hidden ml-64">
-				<Header user={user.user} />
-				<main className="flex-1 overflow-auto p-6 bg-white">
-					{children}
-				</main>
-			</div>
-		</div>
-	);
+    return (
+        <div className="flex h-screen">
+            <div className="fixed h-screen">
+                <SideNav items={navItems} />
+            </div>
+            <div className="flex flex-col flex-1 overflow-hidden ml-64">
+                <Header user={user.user} />
+                <main className="flex-1 overflow-auto p-6 bg-gradient-to-br from-blue-100 via-white to-blue-300">
+                    {children}
+                </main>
+            </div>
+        </div>
+    );
 }

@@ -203,20 +203,35 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
         {
             id: "delete",
             cell: ({ row }) => {
+                const status = Number(row.original.status);
+                const deleteEnabled = status === REGSTATUS_SUBMITTED;
+
                 const onDelete = () => {
+                    if (!deleteEnabled) return;
                     const reg_id = row.original.regno;
-                    const studentid = row.original.studentid
+                    const studentid = row.original.studentid;
                     if (reg_id === undefined || reg_id === null || studentid === undefined || studentid === null) {
                         throw new Error("Reg ID or studentid for registrations row not found");
                     } else {
                         handleDelete(reg_id, studentid);
                     }
-                } 
+                };
+
                 return (
-                    <button className="rounded-md text-red-600 hover:text-red-800 cursor-pointer" onClick={onDelete}>
-                        <XIcon className="w-4 h-4"/>
+                    <button
+                        className={cn(
+                            'rounded-md p-1',
+                            deleteEnabled
+                                ? 'text-red-600 hover:text-red-800 cursor-pointer'
+                                : 'text-gray-300 cursor-not-allowed opacity-60'
+                        )}
+                        onClick={onDelete}
+                        disabled={!deleteEnabled}
+                        aria-disabled={!deleteEnabled}
+                    >
+                        <XIcon className="w-4 h-4" />
                     </button>
-                )
+                );
             }
         }
     ]

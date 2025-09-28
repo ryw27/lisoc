@@ -29,9 +29,9 @@ export default function SideNav({ items }: SideNavProps) {
     };
 
     return (
-        <aside className={`h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${navCollapsed ? 'w-16' : 'w-64'}`}>
+        <aside className={`h-screen bg-gradient-to-b from-blue-200 via-blue-50 to-white border-r border-blue-300 shadow-lg transition-all duration-300 ease-in-out ${navCollapsed ? 'w-16' : 'w-64'}`}>
             {/* Top section with user and controls */}
-            <div className="border-b border-gray-200 py-4 px-4">
+            <div className="border-b border-blue-300 py-4 px-4 bg-blue-100/60">
                 {!navCollapsed ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function SideNav({ items }: SideNavProps) {
                     <nav className="px-2 space-y-6">
                         {items.map((item, index) => (
                             <div key={`expanded-${item.header}-${index}`} className="space-y-1">
-                                <p className="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                                <p className="px-3 text-xs font-extrabold text-blue-700 uppercase tracking-wider drop-shadow">
                                     {item.header}
                                 </p>
                                 <div className="space-y-1">
@@ -84,8 +84,8 @@ export default function SideNav({ items }: SideNavProps) {
                                                     className={cn(
                                                         'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer w-full',
                                                         section.href.includes(pathname)
-                                                            ? 'bg-blue-50 text-blue-600'
-                                                            : 'text-gray-600 hover:bg-blue-100 hover:text-blue-700'
+                                                     ? 'bg-gradient-to-r from-blue-300 via-blue-100 to-white text-blue-800 shadow-md'
+                                                     : 'text-gray-700 hover:bg-blue-200 hover:text-blue-900'
                                                     )}
                                                 >
                                                     <div className="flex-shrink-0" style={{
@@ -106,8 +106,8 @@ export default function SideNav({ items }: SideNavProps) {
                                                 className={cn(
                                                     'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
                                                     section.href.includes(pathname)
-                                                        ? 'bg-blue-50 text-blue-600'
-                                                        : 'text-gray-600 hover:bg-blue-100 hover:text-blue-700'
+                                                 ? 'bg-gradient-to-r from-blue-300 via-blue-100 to-white text-blue-800 shadow-md'
+                                                 : 'text-gray-700 hover:bg-blue-200 hover:text-blue-900'
                                                 )}
                                             >
                                                 <div className="flex-shrink-0" style={{
@@ -136,8 +136,8 @@ export default function SideNav({ items }: SideNavProps) {
                                         href={section.href[0]}
                                         className={
                                             section.href.includes(pathname)
-                                                ? 'flex justify-center py-2 rounded-md transition-colors bg-blue-50'
-                                                : 'flex justify-center py-2 rounded-md transition-colors hover:bg-blue-100'
+                                            ? 'flex justify-center py-2 rounded-md transition-colors bg-gradient-to-r from-blue-300 via-blue-100 to-white shadow-md'
+                                            : 'flex justify-center py-2 rounded-md transition-colors hover:bg-blue-200'
                                         }
                                         title={section.label}
                                     >

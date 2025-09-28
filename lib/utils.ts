@@ -49,17 +49,26 @@ export const LATE_REG_FEE_2 = 0;
 export const EARLY_REG_DISCOUNT = 50;
 
 // Family balance types
+export const FAMILYBALANCE_TYPE_OLDBALANCE = 1;
+export const FAMILYBALANCE_TYPE_TUITION = 2;
 export const FAMILYBALANCE_TYPE_PAYMENT = 3;
+export const FAMILYBALANCE_TYPE_CREDIT = 4;
 export const FAMILYBALANCE_TYPE_SCHOOL_CHECK = 5;
 export const FAMILYBALANCE_TYPE_OTHER = 6;
+export const FAMILYBALANCE_TYPE_DONATION = 7;
 export const FAMILYBALANCE_TYPE_TRANSFER = 8;
 export const FAMILYBALANCE_TYPE_DROPOUT = 9;
+export const FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE = 10;
+export const FAMILYBALANCE_TYPE_CREDIT_DUTY = 11;
+export const FAMILYBALANCE_TYPE_DUTY_DEPOSIT = 12;
 
 
 
 // Family balance status
 export const FAMILYBALANCE_STATUS_PENDING = 2;
 export const FAMILYBALANCE_STATUS_PROCESSED = 3;
+//export const FAMILYBALANCE_STATUS_PROCESSED2 = 5; // this is for downard adjustments
+
 
 // Suitable Terms
 export const SEMESTERONLY_SUITBALETERM_FOREIGNKEY = 2;
