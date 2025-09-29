@@ -66,8 +66,8 @@ export const FAMILYBALANCE_TYPE_DUTY_DEPOSIT = 12;
 
 // Family balance status
 export const FAMILYBALANCE_STATUS_PENDING = 2;
-export const FAMILYBALANCE_STATUS_PROCESSED = 3;
-//export const FAMILYBALANCE_STATUS_PROCESSED2 = 5; // this is for downard adjustments
+export const FAMILYBALANCE_STATUS_PAID = 3;
+export const FAMILYBALANCE_STATUS_PROCESSED = 5; 
 
 
 // Suitable Terms
