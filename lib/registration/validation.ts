@@ -59,7 +59,11 @@ export const seasonSchema = z.object({
 // Schema for starting a new semester
 export const startSemFormSchema = z.object({
     ...seasonSchema.shape,
-    classes: z.array(arrangementSchema).min(1)
+    arrangements: z.array(z.object({
+        regClass: arrangementSchema,
+        classrooms: z.array(arrangementSchema)
+    })
+    ).min(1)
 })
 
 export const familySchema = z.object({
