@@ -9,6 +9,7 @@ import { arrangementSchema } from "@/lib/shared/validation";
 import { toESTString } from "@/lib/utils";
 import { z } from "zod/v4";
 import { eq, or } from "drizzle-orm";
+import { requireRole } from "@/lib/auth";
 
 
 export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
@@ -16,7 +17,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
     const semData = startSemFormSchema.parse(data)
 
     // Check user and redirect if not authorized
-    // const user = await requireRole(["ADMIN"], { redirect: true });
+    const user = await requireRole(["ADMIN"], { redirect: true });
     return await db.transaction(async (tx) => {
         // Check if any seasons are active and disable them
         await tx
@@ -24,6 +25,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
             .set({ status: "Inactive" })
             .where(eq(seasons.status, "Active"));
 
+        // Create academic year
         const [academicYear] = await tx 
             .insert(seasons)
             .values({
@@ -53,10 +55,11 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: semData.date4newfamilytoregister ? toESTString(semData.date4newfamilytoregister) : toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: "testaccount" // user.user.name ?? user.user.email ?? "Unknown admin"
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
             })
             .returning();
 
+        // Create fall sem
         const [fallSem] = await tx
             .insert(seasons)
             .values({
@@ -86,10 +89,11 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: "testaccount" // user.user.name ?? user.user.email ?? "Unknown admin" 
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
             })
             .returning()
 
+        // Create spring sem
         const [springSem] = await tx
             .insert(seasons)
             .values({
@@ -119,11 +123,11 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.springearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: "testaccount" // user.user.name ?? user.user.email ?? "Unknown admin" 
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
             })
             .returning()
             
-        // TODO: Check if this is needed
+        // Set related season and begin season to ensure that you can get the spring and fall semesters from the academic year
         await tx
             .update(seasons)
             .set({
@@ -141,46 +145,66 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
             .where(or(eq(arrangement.activestatus, "Active"), eq(arrangement.regstatus, "Open")));
 
         // Push into arrangements
-        for (const classData of semData.classes) {
-            const parsedClass = arrangementSchema.parse(classData);
+        for (const classData of semData.arrangements) {
+            const parsedRegClass = arrangementSchema.parse(classData.regClass);
             // TODO: Uncomment once this is fixed
             // const { seasonid, activestatus, regstatus } = await getTermVariables(parsedClass, academicYear, tx);
             // Term should only appear if semester only is chosen for suitable term
-            const seasonid = academicYear.seasonid;
+            let seasonid = academicYear.seasonid;
             let activestatus = "Active";
             let regstatus = "Open";
             
-            if ("term" in parsedClass && parsedClass.term === "SPRING") {
+            if ("term" in parsedRegClass && parsedRegClass.term === "SPRING") {
+                seasonid = springSem.seasonid
                 activestatus = "Inactive";
                 regstatus = "Closed"
+            }
+
+            if ("term" in parsedRegClass && parsedRegClass.term === "FALL") {
+                seasonid = fallSem.seasonid
+            }
+            const regClassValues = {
+                seasonid: seasonid,
+                classid: parsedRegClass.classid,
+                teacherid: parsedRegClass.teacherid,
+                roomid: parsedRegClass.roomid,
+                timeid: parsedRegClass.timeid, 
+                seatlimit: parsedRegClass.seatlimit,
+                agelimit: parsedRegClass.agelimit,
+                suitableterm: parsedRegClass.suitableterm,
+                waiveregfee: parsedRegClass.waiveregfee,
+                activestatus: activestatus,
+                regstatus: regstatus,
+                closeregistration: parsedRegClass.closeregistration,
+                tuitionW: parsedRegClass.tuitionW?.toString() || "0",
+                bookfeeW: parsedRegClass.bookfeeW?.toString() || "0",
+                specialfeeW: parsedRegClass.specialfeeW?.toString() || "0",
+                tuitionH: parsedRegClass.tuitionH?.toString() || "0",
+                bookfeeH: parsedRegClass.bookfeeH?.toString() || "0",
+                specialfeeH: parsedRegClass.specialfeeH?.toString() || "0",
+                notes: parsedRegClass.notes || "",
+                lastmodify: toESTString(new Date()),
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             }
 
             await tx
                 .insert(arrangement)
                 .values({
-                    seasonid: seasonid,
-                    classid: classData.classid,
-                    teacherid: classData.teacherid,
-                    roomid: classData.roomid,
-                    timeid: classData.timeid, 
-                    seatlimit: classData.seatlimit,
-                    agelimit: classData.agelimit,
-                    suitableterm: classData.suitableterm,
-                    waiveregfee: classData.waiveregfee,
-                    activestatus: activestatus,
-                    regstatus: regstatus,
-                    closeregistration: classData.closeregistration,
-                    tuitionW: classData.tuitionW?.toString() || "0",
-                    bookfeeW: classData.bookfeeW?.toString() || "0",
-                    specialfeeW: classData.specialfeeW?.toString() || "0",
-                    tuitionH: classData.tuitionH?.toString() || "0",
-                    bookfeeH: classData.bookfeeH?.toString() || "0",
-                    specialfeeH: classData.specialfeeH?.toString() || "0",
-                    notes: classData?.notes || "",
-                    lastmodify: toESTString(new Date()),
-                    updateby: "testaccount", // user.user.name ?? user.user.email ?? "Unknown",
-                    isregclass: true // Should be reg class. Show only reg classes in class select
+                    ...regClassValues,
+                    isregclass: true
                 })
+            for (const classroom of classData.classrooms) {
+                const parsedClassroom = arrangementSchema.parse(classroom);
+                await tx
+                    .insert(arrangement)
+                    .values({
+                        ...regClassValues,
+                        teacherid: parsedClassroom.teacherid,
+                        roomid: parsedClassroom.roomid,
+                        seatlimit: parsedClassroom.seatlimit,
+                        isregclass: false
+                    })
+            }
         }
         return academicYear;
     });
