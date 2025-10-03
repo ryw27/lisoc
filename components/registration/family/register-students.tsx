@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema"
 import { InferSelectModel } from "drizzle-orm"
 import { type IdMaps, type threeSeasons, type uiClasses } from "@/lib/registration/types"
@@ -19,6 +19,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { familyRegister } from "@/lib/registration/";
 import RegTable from "./reg-table";
+
+import { PayPalScriptProvider, PayPalButtons, FUNDING } from "@paypal/react-paypal-js";
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
@@ -113,6 +115,23 @@ export default function RegisterStudent({
         }
         return periods;
     });
+
+    // family balance ids extracted from registrations (stored as a Set)
+    const [familyBalanceIdSet, setFamilyBalanceIdSet] = useState<Set<number>>(() => new Set());
+
+    // derive family balance ids from registrations prop as a Set
+    useEffect(() => {
+        const ids = new Set<number>();
+        registrations.forEach((r) => {
+            if( r.statusid == 1 ) {
+
+                const v = (r as any).familybalanceid;
+                const n = v === undefined || v === null ? 0 : Number(v);
+                if (n > 0) ids.add(n);
+            }
+        });
+        setFamilyBalanceIdSet(ids);
+    }, [registrations]);
 
     const getValidClasses = (idx: 0 | 1 | 2) => {
         if (selectedSemester[idx] === 0) {
@@ -364,7 +383,101 @@ export default function RegisterStudent({
             + Number(termPrices[term].tuition)
         return total;
     }
+    // keep total as a state hook so it can be used elsewhere (e.g. PayPal button)
+    const [totalBalance, setTotalBalance] = useState<number>(() => {
+        return (
+            calculateTotal("yearPrices") +
+            calculateTotal("fallPrices") +
+            calculateTotal("springPrices")
+        );
+    });
+
+    // Recompute total when termPrices change
+    useEffect(() => {
+        const sum =
+            calculateTotal("yearPrices") +
+            calculateTotal("fallPrices") +
+            calculateTotal("springPrices");
+        setTotalBalance(sum);
+    }, [termPrices]);
     
+    // PayPal Integration
+    const createOrder = (_data: any, actions: any) => {
+            const amount = Number(totalBalance || 0).toFixed(2);
+            return actions.order.create({
+                    purchase_units: [
+                    {
+                        amount: {
+                        value: amount,
+                        currency_code: 'USD'
+                    },
+                    description: `School Registration`,
+                    // include familyBalanceId if available so backend can tie payment to a balance record
+                    custom_id: familyBalanceIdSet ? String([...familyBalanceIdSet][0]) : 'registration'
+                },
+                ],
+            });
+        };
+
+    const onApprove = async (data: any, actions: any) => {
+        //setIsProcessing(true);
+        try {
+            const order = await actions.order.get();
+            console.log('Payment successful', order);
+            // Extract payer information from PayPal response
+            const payerName = order.payer?.name?.given_name || '';
+            const payerEmail = order.payer?.email_address || '';
+            const balanceId = order.purchase_units[0].custom_id || '';
+            const payment_total = order.purchase_units[0].amount?.value || '0.00';
+            const pdate = order.create_time;
+
+            const paymentData = {
+                    name: payerName,
+                    email: payerEmail,
+                    amount: payment_total,
+                    orderID: order.id ,
+                    balanceId: balanceId,
+                    paidDate: pdate,
+                    familyId: family.familyid,
+                };
+
+            console.log('Sending to API:', paymentData);
+
+      // Send payment data to our API
+        const response = await fetch('/api/payment', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentData),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            throw new Error('Payment processing failed');
+        }
+
+        const result = await response.json();
+        console.log('API response:', result);
+        alert('Payment processed successfully!');
+
+        } catch (error) {
+            console.error('Payment failed:', error);
+            //setPaypalError('Payment failed. Please try again.');
+        } finally {
+        //setIsProcessing(false);
+            console.log('Payment process completed.');
+            window.location.reload();
+        }
+
+    } ;
+
+    const onError = (err: any) => {
+        console.log('PayPal error:', err);
+        //setPaypalError('An error occurred with PayPal. Please try again.');
+    };
+
     return (
         <div className="flex flex-col">
             <form onSubmit={regForm.handleSubmit(onSubmit)} className="border-1 border-black p-4">
@@ -474,11 +587,33 @@ export default function RegisterStudent({
                     regchangerequests={regchangerequests}
                 />
             </div>
-            <div className="mt-5 flex self-end">
-                <p className="font-bold">
-                    Total Balance: {calculateTotal("yearPrices") + calculateTotal("fallPrices") + calculateTotal("springPrices")}
-                </p>
+            <div className="mt-5 flex self-end items-center gap-4">
+                <div className="flex flex-col items-end">
+                    <p className="font-bold">Total Balance: {totalBalance.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600">Family Balance IDs: {Array.from(familyBalanceIdSet).length > 0 ? Array.from(familyBalanceIdSet).join(', ') : 'None'}</p>
+                </div>
+
+                <PayPalScriptProvider options={{
+                    clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                    currency: 'USD',
+                    intent: 'capture'
+                }}>
+                    {totalBalance > 0 ? (
+                        <PayPalButtons
+                            createOrder={createOrder}
+                            onApprove={onApprove}
+                            onError={onError}
+                            style={{ layout: "vertical", shape: "pill", color: "gold", label: "pay", tagline: false }}
+                            fundingSource={FUNDING.PAYPAL}
+                        />
+                    ) : (
+                        <div></div>
+                    )}
+                </PayPalScriptProvider>
             </div>
+
+
+
         </div>
     )
 }

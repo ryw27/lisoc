@@ -19,7 +19,7 @@ export default function ApplyButton({ family }: { family: familyObj }) {
 
     const onSubmit = async (formData: z.infer<typeof checkApplySchema>) => {
         try {
-            await applyCheck(formData, family);
+            await applyCheck(formData, family.familyid);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             checkForm.setError("root", { message: errorMessage });

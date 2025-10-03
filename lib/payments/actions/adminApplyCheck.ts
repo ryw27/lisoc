@@ -27,7 +27,7 @@ function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
     return total;
 }
 
-export async function applyCheck(data: z.infer<typeof checkApplySchema>, family: familyObj) {
+export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number) {
     // 1. Auth and parse
     // const user = await requireRole(["ADMIN"]);
     const parsed = checkApplySchema.parse(data);
@@ -35,7 +35,7 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, family:
     await db.transaction(async (tx) => {
         // 2. Find old family balance vals
         const oldFB = await tx.query.familybalance.findFirst({
-            where: (fb, { and, eq }) => and(eq(fb.familyid, family.familyid), eq(fb.balanceid, parsed.balanceid))
+            where: (fb, { and, eq }) => and(eq(fb.familyid, familyid), eq(fb.balanceid, parsed.balanceid))
         })
         if (!oldFB) {
             throw new Error("No family balance found")
@@ -44,7 +44,7 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, family:
         // 3. Insert new family balance of check amount value
         const newFBVals = {
             appliedid: oldFB.balanceid,
-            familyid: family.familyid,
+            familyid: familyid,
             seasonid: oldFB.seasonid,
             typeid: FAMILYBALANCE_TYPE_PAYMENT,  // this may need to be changed based on payment type
             statusid: FAMILYBALANCE_STATUS_PAID, // Because we're applying a payment
