@@ -12,6 +12,7 @@ import { z } from 'zod/v4';
 import { emailSchema, adminloginSchema, usernameSchema } from '@/lib/auth/validation';
 import { signIn } from "next-auth/react"
 import { useRouter } from 'next/navigation';
+import  Link  from 'next/link';
 
 import { ErrorCode } from '@/lib/auth/validation';
 
@@ -22,7 +23,7 @@ export default function AdminLoginForm() {
    const [error, setError] = useState<string | null>();
 
    const loginForm = useForm({
-      mode: "onChange",
+      mode: "onBlur",
       resolver: zodResolver(adminloginSchema),
    })
 
@@ -45,9 +46,9 @@ export default function AdminLoginForm() {
         // difference between admin and teacher are
         // teachers must use email to loing
         // admin only username  no email  
-        var isUsername = false;
+        let isUsername = false;
         if (!isEmail) {
-          var isUsername = usernameSchema.safeParse({ username: data.emailUsername }).success;
+           isUsername = usernameSchema.safeParse({ username: data.emailUsername }).success;
           if (!isUsername) {
             throw new Error("Invalid email or username")
           }
@@ -100,9 +101,9 @@ export default function AdminLoginForm() {
       <div className="flex w-full max-w-3xl">
         {/* Left column with 3 rows */}
         <div className="flex flex-col justify-center items-start gap-6 min-w-[180px] bg-blue-700 rounded-lg shadow p-6 border border-blue-800">
-          <a href="https://home.lisoc.org" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">学校主页</a>
-          <a href="#" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">管理员/教师登录</a>
-          <a href="/" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">家长学生登录</a>
+          <Link href="https://home.lisoc.org" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">学校主页</Link>
+          <Link href="#" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">管理员/教师登录</Link>
+          <Link href="/" className="text-white font-semibold text-lg underline underline-offset-4 hover:text-blue-200">家长学生登录</Link>
           <div className="text-white font-semibold text-lg"></div>
         </div>
         {/* Login form card */}

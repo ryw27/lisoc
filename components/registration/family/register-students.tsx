@@ -21,6 +21,8 @@ import { familyRegister } from "@/lib/registration/";
 import RegTable from "./reg-table";
 
 import { PayPalScriptProvider, PayPalButtons, FUNDING } from "@paypal/react-paypal-js";
+import { CreateOrderData, CreateOrderActions, OnApproveData, OnApproveActions } from "@paypal/paypal-js";
+
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
@@ -125,7 +127,7 @@ export default function RegisterStudent({
         registrations.forEach((r) => {
             if( r.statusid == 1 ) {
 
-                const v = (r as any).familybalanceid;
+                const v = r.familybalanceid;
                 const n = v === undefined || v === null ? 0 : Number(v);
                 if (n > 0) ids.add(n);
             }
@@ -402,33 +404,37 @@ export default function RegisterStudent({
     }, [termPrices]);
     
     // PayPal Integration
-    const createOrder = (_data: any, actions: any) => {
+    const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
             const amount = Number(totalBalance || 0).toFixed(2);
             return actions.order.create({
-                    purchase_units: [
+                intent: "CAPTURE",
+                purchase_units: [
                     {
                         amount: {
-                        value: amount,
-                        currency_code: 'USD'
+                            value: amount,
+                            currency_code: 'USD'
+                        },
+                        description: `School Registration`,
+                        // include familyBalanceId if available so backend can tie payment to a balance record
+                        custom_id: familyBalanceIdSet ? String([...familyBalanceIdSet][0]) : 'registration'
                     },
-                    description: `School Registration`,
-                    // include familyBalanceId if available so backend can tie payment to a balance record
-                    custom_id: familyBalanceIdSet ? String([...familyBalanceIdSet][0]) : 'registration'
-                },
                 ],
             });
         };
 
-    const onApprove = async (data: any, actions: any) => {
+    const onApprove = async (_: OnApproveData, actions: OnApproveActions) => {
         //setIsProcessing(true);
         try {
+            if (!actions.order) {
+                throw new Error('PayPal actions.order is undefined');
+            }
             const order = await actions.order.get();
             console.log('Payment successful', order);
             // Extract payer information from PayPal response
-            const payerName = order.payer?.name?.given_name || '';
-            const payerEmail = order.payer?.email_address || '';
-            const balanceId = order.purchase_units[0].custom_id || '';
-            const payment_total = order.purchase_units[0].amount?.value || '0.00';
+            const payerName = order.purchase_units?.[0]?.shipping?.name?.full_name || '';
+            const payerEmail = order.purchase_units?.[0]?.payee?.email_address || '';
+            const balanceId = order.purchase_units?.[0].custom_id || '';
+            const payment_total = order.purchase_units?.[0].amount?.value || '0.00';
             const pdate = order.create_time;
 
             const paymentData = {
@@ -473,7 +479,7 @@ export default function RegisterStudent({
 
     } ;
 
-    const onError = (err: any) => {
+    const onError = (err: unknown) => {
         console.log('PayPal error:', err);
         //setPaypalError('An error occurred with PayPal. Please try again.');
     };

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card"
 //import { Input } from "@/components/ui/input"
 //import { Label } from "@/components/ui/label"
+import  Link  from 'next/link'
 
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,7 +52,8 @@ export function FamilyLoginForm({
   //const [password, setPassword] = useState("");
 
    const loginForm = useForm({
-      mode: "onChange",
+      //mode: "onChange",
+      mode: "onBlur",
       resolver: zodResolver(loginSchema),
    })
 
@@ -113,37 +115,37 @@ export function FamilyLoginForm({
         <div className="flex items-center gap-2 h-16">
           <img src="/home.png" alt="Home Icon" className="w-10 h-10" />
           <div className="flex flex-col">
-            <a href="https://home.lisoc.org" className="text-blue-700 underline hover:text-blue-900">Home</a>
-            <a href="https://home.lisoc.org" className="text-blue-700 underline hover:text-blue-900">学校首页</a>
+            <Link href="https://home.lisoc.org" className="text-blue-700 underline hover:text-blue-900">Home</Link>
+            <Link href="https://home.lisoc.org" className="text-blue-700 underline hover:text-blue-900">学校首页</Link>
           </div>
         </div>
         <div className="flex items-center gap-2 h-16">
           <img src="/login.gif" alt="Login" className="w-10 h-10" />
           <div className="flex flex-col">
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">Login</a>
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">点击登录</a>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">Login</Link>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">点击登录</Link>
           </div>
         </div>
         <div className="flex items-center gap-2 h-16">
           <img src="/help2.gif" alt="Help" className="w-10 h-10" />
           <div className="flex flex-col">
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">Help</a>
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">求助电话</a>
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">516-860-2583</a>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">Help</Link>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">求助电话</Link>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">516-860-2583</Link>
           </div>
         </div>
         <div className="flex items-center gap-2 h-16">
           <img src="/EmailWrite.gif" alt="Email" className="w-10 h-10" />
           <div className="flex flex-col">
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">Contact</a>
-            <a href="#" className="text-blue-700 underline hover:text-blue-900">求助与建议</a>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">Contact</Link>
+            <Link href="#" className="text-blue-700 underline hover:text-blue-900">求助与建议</Link>
           </div>
         </div>
         <div className="flex items-center gap-2 h-16">
           <img src="/loginad.gif" alt="Admin Login" className="w-10 h-10" />
           <div className="flex flex-col">
-            <a href="./login/admin" className="text-blue-700 underline hover:text-blue-900">Admin Login</a>
-            <a href="./login/admin" className="text-blue-700 underline hover:text-blue-900">教师/管理员登录</a>
+            <Link href="./login/admin" className="text-blue-700 underline hover:text-blue-900">Admin Login</Link>
+            <Link href="./login/admin" className="text-blue-700 underline hover:text-blue-900">教师/管理员登录</Link>
           </div>
         </div>
       </div>
@@ -196,12 +198,12 @@ export function FamilyLoginForm({
                     //disabled={busy}
                     />
                   <div className="flex items-center">
-                    <a
+                    <Link
                       href="/forgot-password"
                       className="ml-auto inline-block text-sm text-blue-500 underline-offset-4 hover:underline"
                     >
                       {labels.forgotPassword}
-                    </a>
+                    </Link>
                   </div>
 
                   {loginForm.formState.errors.password?.message && (
@@ -222,13 +224,13 @@ export function FamilyLoginForm({
               </div>
               <div className="mt-4 text-center text-sm">
                 {labels.dontHaveAccount}{" "}
-                <a href="/register" className="underline underline-offset-4 text-blue-700">
+                <Link href="/register" className="underline underline-offset-4 text-blue-700">
                   {labels.signUp}
-                </a>
+                </Link>
               </div>
             </form>
             <div className="mt-8 text-xs text-gray-500 text-center">
-              Disclaimer: This is a beta version of the new website. Please use the desktop version for best experience. Please report any issues to <a href="mailto:tech.lisoc@gmail.com" className="text-blue-700 underline">tech.lisoc@gmail.com</a>.
+              Disclaimer: This is a beta version of the new website. Please use the desktop version for best experience. Please report any issues to <Link href="mailto:tech.lisoc@gmail.com" className="text-blue-700 underline">tech.lisoc@gmail.com</Link>.
 Additionally, due to the migration to the new system, any old passwords will not work. Please use the forgot password feature to reset your password.
             </div>
           </CardContent>

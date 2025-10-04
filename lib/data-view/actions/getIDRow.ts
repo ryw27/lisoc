@@ -11,6 +11,8 @@ function isUserJoinEntity(entity: keyof Registry): entity is UserJoinEntity {
     return (USER_JOIN_TABLES as readonly string[]).includes(entity as string);
 }
 
+export default getIDRow;
+
 export async function getIDRow(entity: keyof Registry, rawId: number) {
     try {
         await requireRole(["ADMIN"]);

@@ -7,7 +7,7 @@ import {
 import { eq, InferSelectModel } from "drizzle-orm";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
-import { famBalanceInsert, familyObj } from "@/lib/shared/types";
+import { famBalanceInsert } from "@/lib/shared/types";
 import { checkApplySchema } from "../validation";
 import { FAMILYBALANCE_STATUS_PAID, FAMILYBALANCE_STATUS_PROCESSED,REGSTATUS_REGISTERED, FAMILYBALANCE_TYPE_PAYMENT, toESTString } from "@/lib/utils";
 // import { requireRole } from "@/lib/auth";
@@ -54,7 +54,7 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
             tuition: (-parsed.amount).toString(),
             notes: "Tuition paid with check"
         } satisfies famBalanceInsert
-        const [newFB] = await tx
+        await tx
             .insert(familybalance)
             .values(newFBVals)
             .returning();
