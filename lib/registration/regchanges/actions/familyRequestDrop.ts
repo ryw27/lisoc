@@ -146,19 +146,20 @@ export async function familyRequestDrop(regid: number, studentid: number, family
             .insert(regchangerequest)
             .values({
                 regid: oldReg.regid,
-                appliedid: oldReg.regid,
+                appliedid: 0,
                 studentid: studentid,
                 seasonid: oldReg.seasonid,
                 isyearclass: oldReg.isyearclass,
                 relatedseasonid: oldReg.seasonid,
                 classid: oldReg.classid,
                 registerdate: oldReg.registerdate,
+                oriregstatusid: oldReg.statusid,
                 regstatusid: oldReg.statusid,
                 reqstatusid: REQUEST_STATUS_PENDING,
                 familybalanceid: oldReg.familybalanceid,
                 familyid: familyid,
                 submitdate: toESTString(new Date()),
-                notes: `Family request transfer`,
+                notes: `Family request Drop`,
             });
         
         // // 6. Set old registration as dropped out

@@ -243,6 +243,10 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     const [transferErrorOpen, setTransferErrorOpen] = useState(false);
     const [isTransferring, setIsTransferring] = useState(false);
     const router = useRouter();
+    const [dropoutDialogOpen, setDropoutDialogOpen] = useState(false);
+    const [dropoutRegId, setDropoutRegId] = useState<number | null>(null);
+    const [dropoutStudentId, setDropoutStudentId] = useState<number | null>(null);
+    const [isDroppingOut, setIsDroppingOut] = useState(false);
 
     const editColumn: ColumnDef<regRow>[] = [
         {
@@ -353,6 +357,36 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 >
                                     <PencilIcon className="w-4 h-4" /> Transfer
                                 </button>
+                                <button 
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                            false 
+                                                ? "cursor-not-allowed text-gray-300"
+                                                : "text-red-500 hover:text-red-600 cursor-pointer"
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const reg_id = row.original.regno;
+                                        const studentid = row.original.studentid;
+                                        if (reg_id === undefined || reg_id === null || studentid === undefined || studentid === null) {
+                                            const msg = "Reg ID or studentid for registrations row not found";
+                                            console.error(msg);
+                                            setTransferError(msg);
+                                            setTransferErrorOpen(true);
+                                            return;
+                                        }
+                                        setDropoutRegId(reg_id);
+                                        setDropoutStudentId(studentid);
+                                        setDropoutDialogOpen(true);
+                                    }}
+                                    disabled={transferDisabled} 
+                                >
+                                    <PencilIcon className="w-4 h-4" /> Dropout
+                                </button>
                             </PopoverContent>
                         </Popover>
                         <AlertDialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
@@ -404,6 +438,41 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogAction onClick={() => setTransferErrorOpen(false)}>Close</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog open={dropoutDialogOpen} onOpenChange={setDropoutDialogOpen}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirm Dropout</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Are you sure you want to drop this student from the class? This action may affect balances.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setDropoutDialogOpen(false)}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={async () => {
+                                        if (!dropoutRegId || !dropoutStudentId) {
+                                            const msg = 'Missing registration or student id';
+                                            setTransferError(msg);
+                                            setTransferErrorOpen(true);
+                                            return;
+                                        }
+                                        setIsDroppingOut(true);
+                                        try {
+                                            await familyRequestDrop(dropoutRegId, dropoutStudentId, family.familyid, false);
+                                            setDropoutDialogOpen(false);
+                                            try { router.refresh(); } catch (e) { window.location.reload(); }
+                                        } catch (err) {
+                                            const msg = err instanceof Error ? err.message : String(err);
+                                            setTransferError(msg);
+                                            setTransferErrorOpen(true);
+                                        } finally {
+                                            setIsDroppingOut(false);
+                                        }
+                                    }}>
+                                        {isDroppingOut ? 'Dropping...' : 'Confirm Dropout'}
+                                    </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>

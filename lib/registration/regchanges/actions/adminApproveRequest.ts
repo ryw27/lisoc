@@ -98,6 +98,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
         // Officially transfer or drop. Same procedure found in admin transfer/drop
         // 7. Create a new family balance taking away the old tuition
         const oldTotalPrice = await getTotalPrice(tx, oldArr);
+        /*
         const removeFamBalValues = {
             appliedregid: oldReg.regid,
             appliedid: oldReg.familybalanceid || 0, // TODO: Not postgres enforced. 
@@ -142,7 +143,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
                 .insert(familybalance)
                 .values(payFamValues);
         } 
-
+        */
         // 8. Insert new class registration
         if (orgReq.notes?.includes("transfer")) {
             const newArrange = await tx.query.arrangement.findFirst({
@@ -177,16 +178,22 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             const lateregfee = (await isLateReg(tx, newArrange)) ? LATE_REG_FEE_1 : 0;
             const totalamount = newTotalPrice + regFee + lateregfee - earlyregdiscount;
 
+            const diff = totalamount - oldTotalPrice ;
+            if (Math.abs(diff) < 0.01) {
+                // there is no money involved here , no adjustment on balance 
+                return ;
+            }
+
             const newBalVals = {
                 appliedid: oldReg.familybalanceid || 0,
                 appliedregid: newReg.regid,
                 seasonid: newArrange.seasonid,
                 familyid: oldReg.familyid,
-                regfee: regFee.toString(),
-                earlyregdiscount: earlyregdiscount.toString(),
-                lateregfee: lateregfee.toString(),
-                tuition: newTotalPrice.toString(),
-                totalamount: totalamount.toString(),
+                regfee: "0.0", //regFee.toString(),
+                earlyregdiscount: "0.0", //earlyregdiscount.toString(),
+                lateregfee: "0.0" , //lateregfee.toString(),
+                tuition: "0.0", //newTotalPrice.toString(),
+                totalamount: diff.toString(), //totalamount.toString(),
                 typeid: FAMILYBALANCE_TYPE_TRANSFER,
                 registerdate: now,
                 notes: "Requested transfer, new balance"
@@ -200,7 +207,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             await tx
                 .update(classregistration)
                 .set({
-                    familybalanceid: newRegBal.balanceid
+                    newbalanceid: newRegBal.balanceid
                 })
                 .where(eq(classregistration.regid, newReg.regid));
             
