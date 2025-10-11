@@ -8,49 +8,57 @@ import { revalidatePath } from "next/cache";
 
 // TODO: Check
 export async function adminRejectRequest(requestid: number, registerid: number) {
-    // TODO: Parse data
-    // const user = await requireRole(["ADMIN"]);
-    await db.transaction(async (tx) => {
-        // 1. Get the request
-        const famRequest = await tx.query.regchangerequest.findFirst({
-            where: (rgr, { eq }) => eq(rgr.requestid, requestid)
-        });
-        if (!famRequest) {
-            throw new Error("Cannot find reg change request");
-        }
-        if (famRequest.reqstatusid !== REQUEST_STATUS_PENDING) {
-            throw new Error("Reg change request has already been processed");
-        }
-        
-        // 2. Find the old registration
-        const oldReg = await tx.query.classregistration.findFirst({
-            where: (cr, { eq }) => eq(cr.regid, registerid)
-        });
-        if (!oldReg) {
-            throw new Error("Cannot find original registration");
-        }
+    try {
+        const txResult = await db.transaction(async (tx) => {
+            // 1. Get the request
+            const famRequest = await tx.query.regchangerequest.findFirst({
+                where: (rgr, { eq }) => eq(rgr.requestid, requestid)
+            });
+            if (!famRequest) {
+                return { ok: false, errormsg: "Cannot find reg change request" };
+            }
+            if (famRequest.reqstatusid !== REQUEST_STATUS_PENDING) {
+                return { ok: false, errormsg: "Reg change request has already been processed" };
+            }
 
-        // 3. Check if the old registration is actually only submitted, not paid 
-        if (oldReg.statusid !== REGSTATUS_REGISTERED) {
+            // 2. Find the old registration
+            const oldReg = await tx.query.classregistration.findFirst({
+                where: (cr, { eq }) => eq(cr.regid, registerid)
+            });
+            if (!oldReg) {
+                return { ok: false, errormsg: "Cannot find original registration" };
+            }
+
+            // 3. Check if the old registration is actually only submitted, not paid 
+            if (oldReg.statusid !== REGSTATUS_REGISTERED) {
+                await tx
+                    .delete(regchangerequest)
+                    .where(eq(regchangerequest.requestid, requestid));
+                revalidatePath("/dashboard/classes");
+                revalidatePath("/admin/management/semester");
+                return { ok: true };
+            }
+
+            // 4. Update the regchange status
+            // TODO: Add adminid
             await tx
-                .delete(regchangerequest)
-                .where(eq(regchangerequest.requestid, requestid));
-            revalidatePath("/dashboard/classes");
-            revalidatePath("/admin/management/semester");
-            return;
-            // throw new Error("This student has either already transferred or dropped this class or not paid for the class. Request has been deleted");
-        }
+                .update(regchangerequest)
+                .set({
+                    reqstatusid: REQUEST_STATUS_REJECTED,
+                    processdate: toESTString(new Date()),
+                    lastmodify: toESTString(new Date()),
+                    adminmemo: "Denied reg change request"
+                })
+                .where(eq(regchangerequest.requestid, requestid))
 
-        // 4. Update the regchange status
-        // TODO: Add adminid
-        await tx
-            .update(regchangerequest)
-            .set({
-                reqstatusid: REQUEST_STATUS_REJECTED,
-                processdate: toESTString(new Date()),
-                lastmodify: toESTString(new Date()),
-                adminmemo: "Denied reg change request"
-            })
-            .where(eq(regchangerequest.requestid, requestid))
-    })
+            return { ok: true };
+        });
+
+        if (txResult && typeof txResult === 'object' && 'ok' in txResult) return txResult;
+        return { ok: true };
+    } catch (error) {
+        console.error('adminRejectRequest error', error);
+        const message = error instanceof Error ? error.message : 'Server error. Please try again later.';
+        return { ok: false, errormsg: message };
+    }
 }

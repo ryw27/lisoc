@@ -2,8 +2,18 @@
 import { family, regchangerequest, student, users } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MoreHorizontal, CheckIcon, XIcon } from "lucide-react";
 import {
     ColumnDef,
@@ -110,6 +120,9 @@ const columns: ColumnDef<regChangeRow>[] = [
 ];
 export default function RegChangeTable({ requests, adminMap }: regChangeTableProps) {
     const [busy, setBusy] = useState<boolean>(false);
+    const [rejectError, setRejectError] = useState<string | null>(null);
+    const [rejectErrorOpen, setRejectErrorOpen] = useState(false);
+    const router = useRouter();
     
     const editColumn: ColumnDef<regChangeRow> = {
         id: "edit",
@@ -117,7 +130,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
         cell: ({ row }) => {
 
             const handleApprove = async () => {
-                if (busy) return;
+                //if (busy) return;
                 setBusy(true);
                 
                 try {
@@ -125,29 +138,36 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                     const regid = row.original.regid;
                     // TODO: Implement server action for approving request
                     await adminApproveRequest(reqid, regid);
-                    // Reset state on success
-                    setBusy(false);
+                    // Refresh table on success
+                    try { router.refresh(); } catch (e) { /* ignore */ }
                 } catch (error) {
                     console.error("Approve failed:", error);
+                } finally {
                     setBusy(false);
                 }
             };
 
             const handleReject = async () => {
-                if (busy) return;
+               // if (busy) return;
                 setBusy(true);
-                
                 try {
                     const reqid = row.original.requestid;
                     const regid = row.original.regid;
-                    // TODO: Implement server action for rejecting request
-                    await adminRejectRequest(reqid, regid);
-                    // console.log("Rejecting request:", reqid);
-                    
-                    // Reset state on success
-                    setBusy(false);
+                    // Call server action for rejecting request which returns { ok, errormsg? }
+                    const res = await adminRejectRequest(reqid, regid);
+                    if (!res || (res as any).ok === false) {
+                        const msg = res && (res as any).errormsg ? (res as any).errormsg : 'Reject failed';
+                        setRejectError(msg);
+                        setRejectErrorOpen(true);
+                    } else {
+                        // Refresh table on success
+                        try { router.refresh(); } catch (e) { /* ignore */ }
+                    }
                 } catch (error) {
                     console.error("Reject failed:", error);
+                    setRejectError(error instanceof Error ? error.message : String(error));
+                    setRejectErrorOpen(true);
+                } finally {
                     setBusy(false);
                 }
             };
@@ -208,6 +228,19 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                             <XIcon className="w-4 h-4" /> Reject
                         </button>
                     </PopoverContent>
+                    <AlertDialog open={rejectErrorOpen} onOpenChange={setRejectErrorOpen}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Reject Failed</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {rejectError ?? 'An unknown error occurred while rejecting the request.'}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogAction onClick={() => setRejectErrorOpen(false)}>Close</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </Popover>
             );
         }
