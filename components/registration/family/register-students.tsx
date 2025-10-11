@@ -604,7 +604,7 @@ export default function RegisterStudent({
                     currency: 'USD',
                     intent: 'capture'
                 }}>
-                    {totalBalance > 0 || familyBalanceIdSet.size > 0 ? (
+                    {totalBalance > 0  ? (
                         <PayPalButtons
                             createOrder={createOrder}
                             onApprove={onApprove}

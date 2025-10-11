@@ -14,6 +14,7 @@ import { InferSelectModel } from "drizzle-orm";
 import { classregistration, family, regchangerequest, student } from "@/lib/db/schema";
 import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
 import { useState, useMemo } from "react";
+import { useRouter } from 'next/navigation'
 import { IdMaps, threeSeasons } from "@/lib/registration/types";
 import { arrangement } from "@/lib/db/schema";
 import { 
@@ -238,31 +239,70 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
 
     const [transferDialogOpen, setTransferDialogOpen] = useState(false);
     const [newArrangeID, setNewArrangeID] = useState<number>(0);
+    const [transferError, setTransferError] = useState<string | null>(null);
+    const [transferErrorOpen, setTransferErrorOpen] = useState(false);
+    const [isTransferring, setIsTransferring] = useState(false);
+    const router = useRouter();
 
     const editColumn: ColumnDef<regRow>[] = [
         {
             id: "edit",
             cell: ({ row }) => {
 
-                const transferStudent = () => {
+                const transferStudent = async () => {
+                    setIsTransferring(true);
                     try {
                         const regid = row.original.regno;
-                        const tuition = row.original.tuition
-                        const studentid = row.original.studentid
+                        const tuition = row.original.tuition;
+                        const studentid = row.original.studentid;
                         if (regid === undefined || regid === null || tuition === undefined || tuition === null) {
-                            throw new Error("Reg ID or tuition for registrations row not found");
-                        } else if (newArrangeID === 0) {
-                            throw new Error("Cannot find new class being transferred to");
-                        } else {
-                            const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === newArrangeID);
-                            if (!arrObj) {
-                                throw new Error("Cannot find new class being transferred to");
-                            } else {
-                                familyRequestTransfer(regid, studentid, family.familyid, arrObj)
-                            }
-                        } 
+                            const msg = "Reg ID or tuition for registrations row not found";
+                            console.error(msg);
+                            setTransferError(msg);
+                            setTransferErrorOpen(true);
+                            return;
+                        }
+                        if (newArrangeID === 0) {
+                            const msg = "Cannot find new class being transferred to";
+                            console.error(msg);
+                            setTransferError(msg);
+                            setTransferErrorOpen(true);
+                            return;
+                        }
+
+                        const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === newArrangeID);
+                        if (!arrObj) {
+                            const msg = "Cannot find new class being transferred to";
+                            console.error(msg);
+                            setTransferError(msg);
+                            setTransferErrorOpen(true);
+                            return;
+                        }
+
+                        const res = await familyRequestTransfer(regid, studentid, family.familyid, arrObj);
+                        if (!res || !res.ok) {
+                            const msg = res && res.message ? res.message : 'Transfer failed';
+                            console.error('Transfer failed', msg);
+                            setTransferError(msg);
+                            setTransferErrorOpen(true);
+                            return;
+                        }
+
+                        // Success: close dialog and refresh screen
+                        setTransferDialogOpen(false);
+                        try {
+                            router.refresh();
+                        } catch (e) {
+                            window.location.reload();
+                        }
+
                     } catch (err) {
                         console.error(err);
+                        const msg = err instanceof Error ? err.message : String(err);
+                        setTransferError(msg);
+                        setTransferErrorOpen(true);
+                    } finally {
+                        setIsTransferring(false);
                     }
                 }
                 const status = Number(row.original.status)
@@ -307,7 +347,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                     )}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setTransferDialogOpen(true);
+                                        if (!transferDisabled) setTransferDialogOpen(true);
                                     }}
                                     disabled={transferDisabled}
                                 >
@@ -348,7 +388,22 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 
                                 <AlertDialogFooter>
                                     <AlertDialogCancel onClick={() => setTransferDialogOpen(false)}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={transferStudent}>Transfer</AlertDialogAction>
+                                    <AlertDialogAction onClick={transferStudent} disabled={isTransferring}>
+                                        {isTransferring ? 'Transferring...' : 'Transfer'}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog open={transferErrorOpen} onOpenChange={setTransferErrorOpen}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Transfer Failed</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {transferError ?? 'An unknown error occurred while transferring the student.'}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogAction onClick={() => setTransferErrorOpen(false)}>Close</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
