@@ -1,27 +1,17 @@
 "use client";
 import { family, regchangerequest, student, users } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
-import { useState } from "react";
+
 import { useRouter } from 'next/navigation';
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { MoreHorizontal, CheckIcon, XIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import {
     ColumnDef,
     useReactTable,
     getCoreRowModel
 } from '@tanstack/react-table'
 import { ClientTable } from "@/components/client-table";
-import { adminApproveRequest, adminRejectRequest } from "@/lib/registration/regchanges";
+
 
 type regChangeRow = {
     regid: number;
@@ -34,6 +24,7 @@ type regChangeRow = {
     phone: string;
     email: string;
     NumOfReq: number;
+    action: string;
     reqStatus: number;
     firstReq: string;
     lastProcess: string;
@@ -95,6 +86,12 @@ const columns: ColumnDef<regChangeRow>[] = [
         cell: info => info.getValue(),
     },
     {
+        accessorKey: "action",
+        header: "Action",
+//        cell: info => info.getValue(),
+    },
+
+    {
         accessorKey: "reqStatus",
         header: "Status",
         cell: ({ getValue }) => {
@@ -119,129 +116,32 @@ const columns: ColumnDef<regChangeRow>[] = [
     },
 ];
 export default function RegChangeTable({ requests, adminMap }: regChangeTableProps) {
-    const [busy, setBusy] = useState<boolean>(false);
-    const [rejectError, setRejectError] = useState<string | null>(null);
-    const [rejectErrorOpen, setRejectErrorOpen] = useState(false);
     const router = useRouter();
     
     const editColumn: ColumnDef<regChangeRow> = {
         id: "edit",
         header: "",
         cell: ({ row }) => {
+            const requestid = row.original.requestid;
+            const regid = row.original.regid;
+            const familyid = row.original.familyid;
+            const action = row.original.action;
 
-            const handleApprove = async () => {
-                //if (busy) return;
-                setBusy(true);
-                
-                try {
-                    const reqid = row.original.requestid;
-                    const regid = row.original.regid;
-                    // TODO: Implement server action for approving request
-                    await adminApproveRequest(reqid, regid);
-                    // Refresh table on success
-                    try { router.refresh(); } catch (e) { /* ignore */ }
-                } catch (error) {
-                    console.error("Approve failed:", error);
-                } finally {
-                    setBusy(false);
-                }
-            };
-
-            const handleReject = async () => {
-               // if (busy) return;
-                setBusy(true);
-                try {
-                    const reqid = row.original.requestid;
-                    const regid = row.original.regid;
-                    // Call server action for rejecting request which returns { ok, errormsg? }
-                    const res = await adminRejectRequest(reqid, regid);
-                    if (!res || (res as any).ok === false) {
-                        const msg = res && (res as any).errormsg ? (res as any).errormsg : 'Reject failed';
-                        setRejectError(msg);
-                        setRejectErrorOpen(true);
-                    } else {
-                        // Refresh table on success
-                        try { router.refresh(); } catch (e) { /* ignore */ }
-                    }
-                } catch (error) {
-                    console.error("Reject failed:", error);
-                    setRejectError(error instanceof Error ? error.message : String(error));
-                    setRejectErrorOpen(true);
-                } finally {
-                    setBusy(false);
-                }
-            };
 
             return (
-                <Popover>
-                    <PopoverTrigger 
-                        className={cn(
-                            "items-center rounded-md p-1 cursor-pointer",
-                            "border-1 border-gray-300 hover:border-gray-700",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        )}
-                        aria-label="Row actions"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <MoreHorizontal className="w-4 h-4" />
-                    </PopoverTrigger>
-                    <PopoverContent 
-                        className={cn(
-                            "flex flex-col gap-1 justify-begin items-center w-48",
-                            "bg-white border border-gray-300 rounded-md",
-                            "p-1"
-                        )}
-                        align="end"
-                        side="bottom"
-                        sideOffset={5}
-                    >
-                        <button 
-                            className={cn(
-                                "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
-                                "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
-                                "text-green-500 hover:text-green-600 gap-1",
-                                "focus:outline-none focus:bg-gray-100",
-                                busy && "opacity-50 cursor-not-allowed"
-                            )}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleApprove();
-                            }}
-                            disabled={busy}
-                        >
-                            <CheckIcon className="w-4 h-4" /> Approve
-                        </button>
-                        <button 
-                            className={cn(
-                                "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
-                                "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
-                                "text-red-500 hover:text-red-600 gap-1",
-                                "focus:outline-none focus:bg-gray-100",
-                                busy && "opacity-50 cursor-not-allowed"
-                            )}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleReject();
-                            }}
-                            disabled={busy}
-                        >
-                            <XIcon className="w-4 h-4" /> Reject
-                        </button>
-                    </PopoverContent>
-                    <AlertDialog open={rejectErrorOpen} onOpenChange={setRejectErrorOpen}>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Reject Failed</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    {rejectError ?? 'An unknown error occurred while rejecting the request.'}
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogAction onClick={() => setRejectErrorOpen(false)}>Close</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </Popover>
+                <button
+                    className={cn(
+                        "inline-flex items-center justify-center rounded-md p-2 cursor-pointer",
+                        "bg-blue-600 text-white",
+                        "hover:bg-blue-700",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-300",
+                        "shadow-sm"
+                    )}
+                    aria-label="Edit"
+                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&action=${action}&familyid=${encodeURIComponent(familyid)}`); }}
+                >
+                    <PencilIcon className="w-5 h-5 text-white" />
+                </button>
             );
         }
     }
@@ -272,6 +172,8 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                 ? adminMap[r.adminuserid]
                 : r.adminuserid?.toString() ?? "N/A";
 
+            const action =r.appliedid ==0 ? "D" : "T";
+
             return {
                 regid: r.regid,
                 requestid: r.requestid,
@@ -281,16 +183,17 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                 phone,
                 email,
                 NumOfReq: numOfRequests,
+                action,
                 reqStatus,
                 firstReq,
                 lastProcess,
                 processBy,
             } satisfies regChangeRow;
         }),
-        columns: [...columns, editColumn], 
+        columns: [editColumn, ...columns], 
         getCoreRowModel: getCoreRowModel(),
         state: {
-            columnPinning: { right: ["edit"] }
+            columnPinning: { left: ["edit"] }
         }
     });
 
