@@ -43,7 +43,7 @@ async function createRemoveFamBalanceVals(tx: Transaction, oldReg: InferSelectMo
 }
 
 // Family overrides as well in this case. They just have to take the losses.
-export async function familyRequestDrop(regid: number, studentid: number, familyid: number, override: boolean) {
+export async function familyRequestDrop(regid: number, studentid: number, familyid: number, override: boolean, notes: string) {
     await db.transaction(async (tx) => {
         // 1. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({
@@ -159,7 +159,7 @@ export async function familyRequestDrop(regid: number, studentid: number, family
                 familybalanceid: oldReg.familybalanceid,
                 familyid: familyid,
                 submitdate: toESTString(new Date()),
-                notes: `Family request Drop`,
+                notes: notes,
             });
         
         // // 6. Set old registration as dropped out

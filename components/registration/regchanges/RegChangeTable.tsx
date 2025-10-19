@@ -27,6 +27,7 @@ type regChangeRow = {
     phone: string;
     email: string;
     NumOfReq: number;
+    parentNote: string; 
     action: string;
     reqStatus: number;
     firstReq: string;
@@ -127,6 +128,13 @@ const columns: ColumnDef<regChangeRow>[] = [
     },
 
     {
+        accessorKey: "parentNote",
+        header: "",
+        cell: info => <span className="hidden">{String(info.getValue()?? "")}</span>,
+    },
+
+
+    {
         accessorKey: "reqStatus",
         header: "Status",
         cell: ({ getValue }) => {
@@ -164,7 +172,8 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const classid = row.original.classid;
             const seasonid = row.original.seasonid;
             const relatedseasonid = row.original.relatedseasonid;
-
+            const parentNote = row.original.parentNote ;
+            const requestDate = row.original.firstReq;
 
             return (
                 <button
@@ -176,7 +185,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                         "shadow-sm"
                     )}
                     aria-label="Edit"
-                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ''}&relatedseasonid=${relatedseasonid ?? ''}&appliedid=${appliedid}&familyid=${encodeURIComponent(familyid)}`); }}
+                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ''}&relatedseasonid=${relatedseasonid ?? ''}&parentNote=${parentNote}&appliedid=${appliedid}&requestDate=${requestDate}&familyid=${encodeURIComponent(familyid)}`); }}
                 >
                     <PencilIcon className="w-5 h-5 text-white" />
                 </button>
@@ -212,6 +221,8 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
 
             const action =r.appliedid ==0 ? "D" : "T";
 
+            const parentNote = r.notes || ""; 
+
             return {
                 regid: r.regid,
                 requestid: r.requestid,
@@ -225,11 +236,13 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                 phone,
                 email,
                 NumOfReq: numOfRequests,
+                parentNote,
                 action,
                 reqStatus,
                 firstReq,
                 lastProcess,
                 processBy,
+                
             } satisfies regChangeRow;
         }),
         columns: [editColumn, ...columns], 

@@ -42,7 +42,7 @@ async function createRemoveFamBalanceVals(tx: Transaction, oldReg: InferSelectMo
 }
 
 // TODO: Ensure that this is a valid transfer, that the family has paid for the original class. Enforced on client at the current moment.
-export async function familyRequestTransfer(regid: number, studentid: number, familyid: number, newArrange: uiClasses) {
+export async function familyRequestTransfer(regid: number, studentid: number, familyid: number, newArrange: uiClasses, notes: string) {
     try {
         const txResult = await db.transaction(async (tx) => {
             // 1. Get old registration
@@ -135,7 +135,7 @@ export async function familyRequestTransfer(regid: number, studentid: number, fa
                     familybalanceid: oldReg.familybalanceid,
                     familyid: familyid,
                     submitdate: toESTString(new Date()),
-                    notes: `Family request transfer`,
+                    notes: notes,
                 });
 
             revalidatePath("/admin/management/regchangerequests");
