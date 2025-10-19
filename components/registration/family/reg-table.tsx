@@ -43,7 +43,6 @@ import {
 import { ClientTable } from "@/components/client-table";
 
 import { Textarea } from "@/components/ui/textarea"
-import { constructFromSymbol } from "date-fns/constants";
 
 type regTableProps = {
     students: InferSelectModel<typeof student>[];

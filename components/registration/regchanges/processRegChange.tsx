@@ -8,10 +8,23 @@ import { PencilIcon } from "lucide-react";
 import {
     ColumnDef,
     useReactTable,
-    getCoreRowModel
+    getCoreRowModel,
 } from '@tanstack/react-table'
 import { ClientTable } from "@/components/client-table";
 //import { request } from "http";
+import { Textarea } from "@/components/ui/textarea";
+
+import  { useState, useEffect } from 'react';
+
+import { 
+    Select, 
+    SelectContent, 
+    SelectGroup, 
+    SelectItem, 
+    SelectLabel, 
+    SelectTrigger, 
+    SelectValue 
+} from "@/components/ui/select"
 
 
 export type processRegChangeRow = {
@@ -21,10 +34,10 @@ export type processRegChangeRow = {
     student: string;
     regClassId: string;
     transClassId: string;
-    requestDate: string;
-    parentComment: string;
-    adminComment: string;
-    reqStatus: number;
+ //   requestDate: string;
+//    parentComment: string;
+//    adminComment: string;
+//    reqStatus: number;
 }
 
 type processRegChangeProps = {
@@ -32,13 +45,13 @@ type processRegChangeProps = {
     regId : number,
     appliedRegId: number,
     classId: number 
-    familyId: number,
-    status: number,
-    requestDate: string,
+ //  familyId: number,
+ //   status: number,
+ //   requestDate: string,
     registration: (InferSelectModel<typeof classregistration> & { 
         student: InferSelectModel<typeof student>, 
     })[],
-    parentNote: string, 
+ //   parentNote: string, 
     classMap: Record<number, string>,
     feeMap : Record<number, string>,
 }
@@ -79,7 +92,7 @@ const columns: ColumnDef<processRegChangeRow>[] = [
         header: "Transfer To",
         cell: info => info.getValue(),
     },
-    {
+/*    {
         accessorKey: "requestDate",
         header: "Request Date",
         cell: info => info.getValue(),
@@ -92,7 +105,7 @@ const columns: ColumnDef<processRegChangeRow>[] = [
     {
         accessorKey: "adminComment ",
         header: "Admin Comment",
-//        cell: info => info.getValue(),
+        cell: info => info.getValue(),
     },
 
     {
@@ -103,20 +116,61 @@ const columns: ColumnDef<processRegChangeRow>[] = [
             return reqStatusMap[reqstatusid];
         }
     },
+    */
 ];
 
-type Props = {
-    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+function NumericTextInput() {
+  const [value, setValue] = useState<string>("");
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const inputValue = event.target.value;
+    // This regex allows for digits (0-9) and a single literal dot (.)
+
+    if(inputValue.length == 0)
+    {
+        setValue("") ;
+        return 
+    }
+    if (inputValue[inputValue.length-1]==".")
+    {
+        setValue(inputValue);
+        return 
+    }
+    if (inputValue.length == 1 && inputValue[0]=="-")
+    {
+        setValue(inputValue);
+        return 
+    }
+
+    const matched = inputValue.match(/^-?\d+(?:\.\d+)?$/)
+
+    if (matched !== null)
+    {
+        setValue(inputValue);
+    }
+  };
+
+  return (
+    <Textarea
+      className="resize-none min-h-10 min-w-10"
+      
+      value={value}
+      onChange={handleInputChange}
+      placeholder="0.0"
+    />
+  );
 }
 
-export default function ProcessRegChange({requestId, regId,appliedRegId,classId, familyId, status, requestDate,registration,parentNote, classMap,feeMap } :processRegChangeProps) {
+
+export default function ProcessRegChange({requestId, regId,appliedRegId,classId, registration, classMap,feeMap } :processRegChangeProps) {
     
+
     const editColumn: ColumnDef<processRegChangeRow> = {
         id: "edit",
         header: "",
         cell: ({row}) => {
 
-            if( row.original.reqStatus === 0 ){  
+            if( row.original.regId !== regId ){  
                 return (<div>   </div>) 
             }
             return (
@@ -137,6 +191,74 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
         }
     }
 
+    const adminMemoColumn: ColumnDef<processRegChangeRow> = {
+        id: "aminMemo",
+        header: "[adminstration Memo /管理员 笔记(50max)]",
+        minSize: 400,
+        maxSize: 400,
+       size: 400,
+       enableResizing: false,
+       cell: ({row}) => {
+
+            if( row.original.regId !== regId ){  
+                return (<div>   </div>) 
+            }
+            return (
+
+                <Textarea className="resize-none min-h-10 min-w 1200 max-w 2400" maxLength={50} placeholder="please enter memo here no more than 50 chars"/>
+            )
+        }
+    }
+
+    const extraFeeColumn: ColumnDef<processRegChangeRow> = {
+        id: "extraFee",
+        header: "extra Fee",
+        minSize: 80,
+        maxSize: 80,
+       size: 80,
+       enableResizing: false,
+       cell: ({row}) => {
+
+            if( row.original.regId !== regId ){  
+                return (<div>   </div>) 
+            }
+            return (
+
+                <NumericTextInput/>
+            )
+        }
+    }
+
+    const BalanceColumn: ColumnDef<processRegChangeRow> = {
+        id: "balanceType",
+        header: "Balance Type",
+        minSize: 40,
+        maxSize: 40,
+       size: 80,
+       enableResizing: false,
+       cell: ({row}) => {
+
+            if( row.original.regId !== regId ){  
+                return (<div>   </div>) 
+            }
+            return (
+                    <div>
+                     <select>   
+                    <option value="">-- Please Select  --</option>
+                    {Object.entries(feeMap).map(([key, value]) => (
+                        <option key={key} value={value}>
+                            {value}
+                        </option>)
+                    )}
+                    </select>
+                    </div>
+            )
+        }
+    }
+
+
+
+
     const table = useReactTable<processRegChangeRow>({
         data: registration.map((r) => {
 
@@ -144,14 +266,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
             const studentName = r.student ? [r.student.namefirsten, r.student.namelasten].filter(Boolean).join(" ") : "N/A";
             const classOut = r.classid && r.classid in classMap ? classMap[r.classid] : "N/A";
             const classIn = appliedRegId===r.regid && classId in classMap ? classMap[classId] : "N/A";
-            const parentComment = r.regid == regId ? parentNote : "";
-            const adminComment = "to be added";
-
-            let  cAction = "";            
-
-            if (currentRegId == regId) {
-                cAction = "T" ;
-            }
+//            const parentComment = r.regid == regId ? parentNote : "";
 
 
             return {//requestId: currentRegId == regId? requestId : null,
@@ -160,14 +275,14 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                     student: studentName,
                     regClassId: classOut,
                     transClassId: classIn,
-                    requestDate: currentRegId == regId? requestDate : "",
-                    parentComment: parentComment,
-                    adminComment: adminComment,
-                    reqStatus: currentRegId == regId? status :0 
+//                    requestDate: currentRegId == regId? requestDate : "",
+//                    parentComment: parentComment,
+//                    adminComment: adminComment,
+//                    reqStatus: currentRegId == regId? status :0 
                 } satisfies processRegChangeRow;
         }),
 
-        columns: [editColumn, ...columns], 
+        columns: [editColumn, ...columns,BalanceColumn,extraFeeColumn,adminMemoColumn], 
         getCoreRowModel: getCoreRowModel(),
         state: {
             columnPinning: { left: ["edit"] }

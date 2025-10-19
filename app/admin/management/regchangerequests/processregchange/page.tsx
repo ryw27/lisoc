@@ -7,6 +7,13 @@ import { ArrowLeft } from "lucide-react";
 //import { classes, familybalancetype } from "@/lib/db/schema";
 
 
+const reqStatusMap = {
+    1: "Pending",
+    2: "Approved",
+    3: "Rejected"
+}
+
+
 type Props = {
     searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
@@ -39,6 +46,7 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
     const parentNote =  Array.isArray(parentNoteRaw) ? parentNoteRaw[0] : parentNoteRaw?? "";
     console.log(requestDate);
 
+    const reqStatus =  reqStatusMap[status as 1 |2 |3 ];
     // 2. Get active school year
     const activeYear = await db.query.seasons.findFirst({
         where: (season, { eq }) => eq(season.status, "Active"),
@@ -65,8 +73,8 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
    const feeIdMap = async (): Promise<Record<number, string>> => {
         const feeTypes = await db.query.familybalancetype.findMany({});
         return feeTypes.reduce<Record<number, string>>((rec, feeType) => {
-            if (feeType.typeid != null && typeof feeType.typenamecn === "string" && feeType.isshow) {
-                rec[feeType.typeid] = feeType.typenamecn;
+            if (feeType.typeid != null && typeof feeType.typenameen === "string" && feeType.isshow) {
+                rec[feeType.typeid] = feeType.typenameen;
             }
             return rec;
         }, {});
@@ -101,18 +109,25 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
             </div>
             <h1 className="text-2xl font-semibold mb-4">Process Reg Change</h1>
             {familyId ? (
-                <p className="mb-4">Family ID: <strong>{familyId}</strong>  RequestID: <strong> {requestid}</strong></p>
+                <div>
+                <p className="mb-4">Family ID: <strong>{familyId}</strong> </p>
+                <p className="mb-4">Request ID: <strong>{requestid}</strong> </p>
+                <p className="mb-4">Request Date: <strong>{requestDate}</strong> </p>
+                <p className="mb-4">Parent Comment  :  {parentNote} </p>
+                <p className="mb-4">Status  :  {reqStatus} </p>
+
+                </div>
             ) : null}
                 <div>
                     <ProcessRegChange  requestId = {requestid} 
                                     regId= {regid}
                                     appliedRegId = {appliedRegId} 
                                     classId ={classid}
-                                    familyId = {familyId} 
-                                    status={status} 
-                                    requestDate={requestDate}
+                                    //familyId = {familyId} 
+                                    //status={status} 
+                                    //requestDate={requestDate}
                                     registration={familyClassRegistrations}
-                                    parentNote={parentNote}
+                                    //parentNote={parentNote}
                                     classMap={classIdMap}
                                     feeMap={feeTypeIdMap}  
                     />
