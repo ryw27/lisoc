@@ -13,7 +13,7 @@ import {
 import { InferSelectModel } from "drizzle-orm";
 import { classregistration, family, regchangerequest, student } from "@/lib/db/schema";
 import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef} from "react";
 import { useRouter } from 'next/navigation'
 import { IdMaps, threeSeasons } from "@/lib/registration/types";
 import { arrangement } from "@/lib/db/schema";
@@ -41,6 +41,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ClientTable } from "@/components/client-table";
+
+import { Textarea } from "@/components/ui/textarea"
+import { constructFromSymbol } from "date-fns/constants";
 
 type regTableProps = {
     students: InferSelectModel<typeof student>[];
@@ -194,7 +197,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     const handleDelete = async (registration: number, studentid: number) => {
         try {
             const familyOverride = false;
-            await familyRequestDrop(registration, studentid, family.familyid, familyOverride);
+            await familyRequestDrop(registration, studentid, family.familyid, familyOverride, "");
         } catch (err) {
             console.error(err);
         }
@@ -238,7 +241,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     ]
 
     const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-    const [newArrangeID, setNewArrangeID] = useState<number>(0);
+    //const [newArrangeID, setNewArrangeID] = useState<number>(0);
     const [transferError, setTransferError] = useState<string | null>(null);
     const [transferErrorOpen, setTransferErrorOpen] = useState(false);
     const [isTransferring, setIsTransferring] = useState(false);
@@ -247,6 +250,11 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     const [dropoutRegId, setDropoutRegId] = useState<number | null>(null);
     const [dropoutStudentId, setDropoutStudentId] = useState<number | null>(null);
     const [isDroppingOut, setIsDroppingOut] = useState(false);
+    const transferTextRef = useRef<HTMLTextAreaElement>(null);
+    const dropTextRef = useRef<HTMLTextAreaElement>(null);
+    let selectTransferRef = useRef<string>(""); // Specify the type for better type safety
+    const [ clickedRow,setClickedRegRow] = useState<regRow>(0); // Specify the type for better type safety
+
 
     const editColumn: ColumnDef<regRow>[] = [
         {
@@ -256,17 +264,23 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                 const transferStudent = async () => {
                     setIsTransferring(true);
                     try {
-                        const regid = row.original.regno;
-                        const tuition = row.original.tuition;
-                        const studentid = row.original.studentid;
-                        if (regid === undefined || regid === null || tuition === undefined || tuition === null) {
+                        const regid = clickedRow?.regno; //row.original.regno;
+                        const tuition = clickedRow?.tuition; //row.original.tuition;
+                        const studentid = clickedRow?.studentid; //row.original.studentid;
+                        const originalClassid = clickedRow?.classid ; 
+                        if (regid === undefined || regid === null || tuition === undefined || tuition === null || originalClassid === null) {
                             const msg = "Reg ID or tuition for registrations row not found";
                             console.error(msg);
                             setTransferError(msg);
                             setTransferErrorOpen(true);
                             return;
                         }
-                        if (newArrangeID === 0) {
+                        const transferNote = transferTextRef.current?.value || "";              
+                        const selectedNewClassId  = Number(selectTransferRef.current);
+                        console.log("transfer id:", selectedNewClassId);                        
+                        //if (newArrangeID === 0) {
+                        if (selectedNewClassId === 0) {
+
                             const msg = "Cannot find new class being transferred to";
                             console.error(msg);
                             setTransferError(msg);
@@ -274,7 +288,9 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                             return;
                         }
 
-                        const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === newArrangeID);
+
+                        //const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === newArrangeID);
+                        const arrObj = [...threeArrs.fall, ...threeArrs.year, ...threeArrs.spring].find((arr) => arr.arrangeid === selectedNewClassId);
                         if (!arrObj) {
                             const msg = "Cannot find new class being transferred to";
                             console.error(msg);
@@ -283,7 +299,16 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                             return;
                         }
 
-                        const res = await familyRequestTransfer(regid, studentid, family.familyid, arrObj);
+                        if (arrObj.classid  === originalClassid) {
+                            const msg = "New class same as the current class";
+                            console.error(msg);
+                            setTransferError(msg);
+                            setTransferErrorOpen(true);
+                            return;
+                        }
+
+
+                        const res = await familyRequestTransfer(regid, studentid, family.familyid, arrObj, transferNote);
                         if (!res || !res.ok) {
                             const msg = res && res.message ? res.message : 'Transfer failed';
                             console.error('Transfer failed', msg);
@@ -351,6 +376,8 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                     )}
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        console.log("clicked",row.original);
+                                        setClickedRegRow(row.original); 
                                         if (!transferDisabled) setTransferDialogOpen(true);
                                     }}
                                     disabled={transferDisabled}
@@ -389,21 +416,21 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 </button>
                             </PopoverContent>
                         </Popover>
-                        <AlertDialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
+                        <AlertDialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen} >
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Transfer Student</AlertDialogTitle>
+                                    <AlertDialogTitle>Transfer Student: </AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Select a class to transfer the student to.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="my-4">
                                     <label htmlFor="transfer-class-select" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Choose new class
+                                        Choose new class(请选择)
                                     </label>
-                                    <Select
-                                        value={newArrangeID ? String(newArrangeID) : ""}
-                                        onValueChange={(value: string) => setNewArrangeID(Number(value))}
+                                    <Select onValueChange={(value) => {
+                                        selectTransferRef.current = value;
+                                    }}
                                     >
                                         <SelectTrigger id="transfer-class-select" className="w-full">
                                             <SelectValue placeholder="Select a class..." />
@@ -418,6 +445,12 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                                 ))}
                                         </SelectContent>
                                     </Select>
+                                    <div className="my-6" />
+                                    <label htmlFor="transfer-class-select" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Comment/注释(maximum 200)
+                                    </label>
+                                    <Textarea className="resize-none" ref={transferTextRef} placeholder="Type your message here." spellCheck={false}
+                                             maxLength={200}  rows={4} />
                                 </div>
                                 
                                 <AlertDialogFooter>
@@ -446,8 +479,14 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Confirm Dropout</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Are you sure you want to drop this student from the class? This action may affect balances.
+                                        Are you sure you want to drop this student from the class? 你确定要退课吗？
                                     </AlertDialogDescription>
+                                    <div className="my-6" />
+                                    <label htmlFor="transfer-class-select" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Comment/注释 
+                                    </label>
+                                    <Textarea ref={dropTextRef} className="resize-none" placeholder="Type your message here." spellCheck={false}
+                                        maxLength={200}  rows={3} />
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel onClick={() => setDropoutDialogOpen(false)}>Cancel</AlertDialogCancel>
@@ -460,7 +499,9 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                         }
                                         setIsDroppingOut(true);
                                         try {
-                                            await familyRequestDrop(dropoutRegId, dropoutStudentId, family.familyid, false);
+
+                                            const dropNote  = dropTextRef.current?.value || ""
+                                            await familyRequestDrop(dropoutRegId, dropoutStudentId, family.familyid, false, dropNote);
                                             setDropoutDialogOpen(false);
                                             try { router.refresh(); } catch (e) { window.location.reload(); }
                                         } catch (err) {
