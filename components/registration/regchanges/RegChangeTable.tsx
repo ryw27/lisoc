@@ -4,7 +4,7 @@ import { InferSelectModel } from "drizzle-orm";
 
 import { useRouter } from 'next/navigation';
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, UserMinus, Repeat, UserXIcon, Repeat2Icon } from "lucide-react";
 import {
     ColumnDef,
     useReactTable,
@@ -16,7 +16,10 @@ import { ClientTable } from "@/components/client-table";
 type regChangeRow = {
     regid: number;
     requestid: number;
-    // oldclass: number
+    classid: number;
+    seasonid: number | null;
+    relatedseasonid: number | null;
+    appliedid: number
     // newclass: number
     familyid: string;
     father: string;
@@ -46,13 +49,35 @@ const reqStatusMap = {
 
 const columns: ColumnDef<regChangeRow>[] = [
     {
-        accessorKey: "regid",
-        header: "Reg ID",
-        cell: info => info.getValue(),
+        accessorKey: "classid",
+        header: "",
+        cell: info => <span className="hidden">{String(info.getValue() as number)}</span>,
     },
+    {
+        accessorKey: "seasonid",
+        header: "",
+        cell: info => <span className="hidden">{String(info.getValue() ?? "")}</span>,
+    },
+    {
+        accessorKey: "relatedseasonid",
+        header: "",
+        cell: info => <span className="hidden">{String(info.getValue() ?? "")}</span>,
+    },
+    {
+        accessorKey: "appliedid",
+        header: "",
+        cell: info => <span className="hidden">{String(info.getValue() as number)}</span>,
+    },
+
     {
         accessorKey: "requestid",
         header: "Request ID",
+        cell: info => info.getValue(),
+    },
+
+    {
+        accessorKey: "regid",
+        header: "Reg ID",
         cell: info => info.getValue(),
     },
     {
@@ -88,7 +113,17 @@ const columns: ColumnDef<regChangeRow>[] = [
     {
         accessorKey: "action",
         header: "Action",
-//        cell: info => info.getValue(),
+        cell: ({ getValue }) => {
+            const act = getValue() as string | undefined;
+            if (!act) return null;
+            if (act === 'D') {
+                return <UserXIcon className="w-5 h-5 text-red-600" title="Dropout" aria-label="Dropout" />
+            }
+            if (act === 'T') {
+                return <Repeat2Icon className="w-5 h-5 text-green-600" title="Transfer" aria-label="Transfer" />
+            }
+            return <span className="text-sm">{act}</span>
+        }
     },
 
     {
@@ -125,7 +160,10 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const requestid = row.original.requestid;
             const regid = row.original.regid;
             const familyid = row.original.familyid;
-            const action = row.original.action;
+            const appliedid = row.original.appliedid;
+            const classid = row.original.classid;
+            const seasonid = row.original.seasonid;
+            const relatedseasonid = row.original.relatedseasonid;
 
 
             return (
@@ -138,7 +176,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                         "shadow-sm"
                     )}
                     aria-label="Edit"
-                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&action=${action}&familyid=${encodeURIComponent(familyid)}`); }}
+                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ''}&relatedseasonid=${relatedseasonid ?? ''}&appliedid=${appliedid}&familyid=${encodeURIComponent(familyid)}`); }}
                 >
                     <PencilIcon className="w-5 h-5 text-white" />
                 </button>
@@ -177,6 +215,10 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             return {
                 regid: r.regid,
                 requestid: r.requestid,
+                classid: r.classid ?? 0,
+                seasonid: r.seasonid ?? null,
+                relatedseasonid: r.relatedseasonid ?? null,
+                appliedid: r.appliedid ?? 0,
                 familyid,
                 father,
                 mother,
