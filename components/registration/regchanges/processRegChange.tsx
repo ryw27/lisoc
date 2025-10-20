@@ -1,10 +1,16 @@
 "use client";
 import { classregistration, student } from "@/lib/db/schema";
-import { InferSelectModel } from "drizzle-orm";
+import { ConsoleLogWriter, InferSelectModel } from "drizzle-orm";
 
 //import { useRouter } from 'next/navigation';
 import { cn} from "@/lib/utils";
-import { PencilIcon } from "lucide-react";
+import { 
+    PencilIcon, 
+    MoreHorizontal, 
+    XIcon,
+} from "lucide-react";
+import { useRouter } from 'next/navigation';
+
 import {
     ColumnDef,
     useReactTable,
@@ -14,18 +20,27 @@ import { ClientTable } from "@/components/client-table";
 //import { request } from "http";
 import { Textarea } from "@/components/ui/textarea";
 
-import  { useState, useEffect } from 'react';
+import  { useState, useRef, useEffect } from 'react';
+
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { 
-    Select, 
-    SelectContent, 
-    SelectGroup, 
-    SelectItem, 
-    SelectLabel, 
-    SelectTrigger, 
-    SelectValue 
-} from "@/components/ui/select"
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover";
 
+
+import {adminApproveRequest, adminRejectRequest } from "@/lib/registration/regchanges";
+ 
 
 export type processRegChangeRow = {
 //    requestId: number | null;
@@ -55,11 +70,11 @@ type processRegChangeProps = {
     classMap: Record<number, string>,
     feeMap : Record<number, string>,
 }
-const reqStatusMap = {
-    1: "Pending",
-    2: "Approved",
-    3: "Rejected"
-}
+//const reqStatusMap = {
+//    1: "Pending",
+ //   2: "Approved",
+ //   3: "Rejected"
+//}
 
 const columns: ColumnDef<processRegChangeRow>[] = [
    /* {
@@ -119,26 +134,38 @@ const columns: ColumnDef<processRegChangeRow>[] = [
     */
 ];
 
-function NumericTextInput() {
+async function handleDropTransfer(requestId:number, regId:number, adminMemo: string, extraFee: number, action:string )
+{
+    console.log("requestId",requestId);
+    console.log("action")
+
+    if (action == "A")
+    {
+         adminApproveRequest(requestId, regId,adminMemo,extraFee);
+    }   
+    else if(action == "R") {
+
+        adminRejectRequest(requestId, regId, adminMemo);
+    }
+
+
+}
+
+function NumericTextInput({onValueChange}) {
   const [value, setValue] = useState<string>("");
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const inputValue = event.target.value;
     // This regex allows for digits (0-9) and a single literal dot (.)
 
-    if(inputValue.length == 0)
+    if(inputValue.length == 0 || 
+       inputValue[inputValue.length-1]=="." ||  
+       (inputValue.length == 1 && inputValue[0]=="-")
+    )
     {
-        setValue("") ;
-        return 
-    }
-    if (inputValue[inputValue.length-1]==".")
-    {
-        setValue(inputValue);
-        return 
-    }
-    if (inputValue.length == 1 && inputValue[0]=="-")
-    {
-        setValue(inputValue);
+        const ivalue = inputValue.length ===0 ? "" :inputValue;
+        setValue(ivalue) ;
+        onValueChange(ivalue)
         return 
     }
 
@@ -147,7 +174,10 @@ function NumericTextInput() {
     if (matched !== null)
     {
         setValue(inputValue);
+        onValueChange(inputValue);
     }
+
+    // any invalid input don't change value, keep original 
   };
 
   return (
@@ -163,7 +193,19 @@ function NumericTextInput() {
 
 
 export default function ProcessRegChange({requestId, regId,appliedRegId,classId, registration, classMap,feeMap } :processRegChangeProps) {
+
+    const router = useRouter();
     
+    const extraFeeRef = useRef<string>("")
+    const adminMemoRef = useRef<HTMLTextAreaElement>(null)
+    const balanceTypeRef = useRef<HTMLTextAreaElement>(null)
+    const [validationOpen, setValidationOpen] = useState(false);
+    const [validationError, setValidationError] = useState<string | null>(null);
+
+
+    const handleExtraFeeChange = (newValue:string ) =>{
+        extraFeeRef.current = newValue;
+    }
 
     const editColumn: ColumnDef<processRegChangeRow> = {
         id: "edit",
@@ -174,19 +216,91 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                 return (<div>   </div>) 
             }
             return (
-                <button
-                    className={cn(
-                        "inline-flex items-center justify-center rounded-md p-2 cursor-pointer",
-                        "bg-blue-600 text-white",
-                        "hover:bg-blue-700",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-300",
-                        "shadow-sm"
-                    )}
-                    aria-label="Edit"
-                    onClick={(e) => { e.stopPropagation()}}
-                >
-                    <PencilIcon className="w-5 h-5 text-white" />
-                </button>
+                    <>
+                        <Popover>
+                            <PopoverTrigger 
+                                className={cn(
+                                    "items-center rounded-md p-1 cursor-pointer",
+                                    "border-1 border-gray-300 hover:border-gray-700",
+                                    "focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                )}
+                                aria-label="Row actions"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <MoreHorizontal className="w-4 h-4" />
+                            </PopoverTrigger>
+                            <PopoverContent 
+                                className={cn(
+                                    "flex flex-col gap-1 justify-begin items-center w-48",
+                                    "bg-white border border-gray-300 rounded-md",
+                                    "p-1"
+                                )}
+                                align="end"
+                                side="bottom"
+                                sideOffset={5}
+                            >
+                                <button 
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                            false
+                                                ? "cursor-not-allowed text-gray-300"
+                                                : "text-blue-500 hover:text-blue-600 cursor-pointer"
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        const adminMemo = adminMemoRef.current?.value || ""
+                                        const extraFeeStr = extraFeeRef.current ; 
+                                        let extraFee =0.0;
+                                        if( extraFeeStr.length != 0)
+                                        {
+                                            extraFee = parseFloat(extraFeeStr)
+                                        }
+                                        handleDropTransfer(requestId, regId, adminMemo, extraFee, "A");
+                                        router.push("/admin/management/regchangerequests/")
+                                    }}
+                                >
+                                    <PencilIcon className="w-4 h-4" /> Approve
+                                </button>
+                                <button 
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                            false 
+                                                ? "cursor-not-allowed text-gray-300"
+                                                : "text-red-500 hover:text-red-600 cursor-pointer"
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        const adminMemo = adminMemoRef.current?.value || ""
+                                        handleDropTransfer(requestId, regId, adminMemo, 0.0, "R");
+                                        router.push("/admin/management/regchangerequests/")
+                                    }}
+                                >
+                                    <PencilIcon className="w-4 h-4" /> Reject
+                                </button>
+                            </PopoverContent>
+                        </Popover>
+                        <AlertDialog open={validationOpen} onOpenChange={setValidationOpen}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Validation Failed</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {validationError ?? 'validation Error'}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogAction onClick={() => setValidationOpen(false)}>Close</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        
+                    </> 
+
             );
         }
     }
@@ -196,16 +310,16 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
         header: "[adminstration Memo /管理员 笔记(50max)]",
         minSize: 400,
         maxSize: 400,
-       size: 400,
-       enableResizing: false,
-       cell: ({row}) => {
+        size: 400,
+        enableResizing: false,
+        cell: ({row}) => {
 
             if( row.original.regId !== regId ){  
                 return (<div>   </div>) 
             }
             return (
 
-                <Textarea className="resize-none min-h-10 min-w 1200 max-w 2400" maxLength={50} placeholder="please enter memo here no more than 50 chars"/>
+                <Textarea ref={adminMemoRef} className="resize-none min-h-10 min-w 1200 max-w 2400" maxLength={50} placeholder="please enter memo here no more than 50 chars"/>
             )
         }
     }
@@ -222,9 +336,10 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
             if( row.original.regId !== regId ){  
                 return (<div>   </div>) 
             }
+
             return (
 
-                <NumericTextInput/>
+                <NumericTextInput onValueChange={handleExtraFeeChange}/>
             )
         }
     }
@@ -241,13 +356,15 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
             if( row.original.regId !== regId ){  
                 return (<div>   </div>) 
             }
+
+            
             return (
                     <div>
-                     <select>   
-                    <option value="">-- Please Select  --</option>
+                     <select ref={balanceTypeRef}>   
+                    {/*<option value="">-- Please Select  --</option> */}
                     {Object.entries(feeMap).map(([key, value]) => (
-                        <option key={key} value={value}>
-                            {value}
+                        <option key={key} value={`${key}-${value}`}>
+                            {key}-{value}
                         </option>)
                     )}
                     </select>
@@ -290,8 +407,10 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
     });
 
     return (
+      <>
         <ClientTable
             table={table}
         />
+      </>   
     )
 }

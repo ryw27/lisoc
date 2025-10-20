@@ -7,7 +7,7 @@ import { REGSTATUS_REGISTERED, REQUEST_STATUS_PENDING, REQUEST_STATUS_REJECTED, 
 import { revalidatePath } from "next/cache";
 
 // TODO: Check
-export async function adminRejectRequest(requestid: number, registerid: number) {
+export async function adminRejectRequest(requestid: number, registerid: number, adminMemo: string) {
     try {
         const txResult = await db.transaction(async (tx) => {
             // 1. Get the request
@@ -47,7 +47,7 @@ export async function adminRejectRequest(requestid: number, registerid: number) 
                     reqstatusid: REQUEST_STATUS_REJECTED,
                     processdate: toESTString(new Date()),
                     lastmodify: toESTString(new Date()),
-                    adminmemo: "Denied reg change request"
+                    adminmemo: adminMemo ,
                 })
                 .where(eq(regchangerequest.requestid, requestid))
 

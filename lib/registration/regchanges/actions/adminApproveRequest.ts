@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import {
   EARLY_REG_DISCOUNT,
   FAMILYBALANCE_STATUS_PENDING,
+  FAMILYBALANCE_TYPE_DROPOUT,
   FAMILYBALANCE_TYPE_PAYMENT,
   FAMILYBALANCE_TYPE_TRANSFER,
   LATE_REG_FEE_1,
@@ -31,7 +32,7 @@ import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 
 
-export async function adminApproveRequest(requestid: number, registerid: number) {
+export async function adminApproveRequest(requestid: number, registerid: number, adminMemo: string, extraFee:number ) {
     // TODO: Parse
     // 1. Auth check
     // const user = await requireRole(["ADMIN"]);
@@ -47,6 +48,8 @@ export async function adminApproveRequest(requestid: number, registerid: number)
         if (orgReq.reqstatusid !== REQUEST_STATUS_PENDING) {
             throw new Error("Reg change request has already been processed");
         }
+
+        const isTransfer = orgReq.appliedid == orgReq.regid ; 
 
         // 3. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({
@@ -87,12 +90,12 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             .update(regchangerequest)
             .set({
                 oriregstatusid: REGSTATUS_REGISTERED,
-                regstatusid: orgReq.notes?.includes("transfer") ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT, // TODO: Is there a more reliable way to know whether dropping or transferring
+                regstatusid: isTransfer ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT, 
                 reqstatusid: REQUEST_STATUS_APPROVED,
                 processdate: toESTString(new Date()),
                 lastmodify: toESTString(new Date()),
-                adminmemo: "Approved Transfer"
-            })
+                adminmemo: adminMemo 
+            }).where(eq(regchangerequest.requestid,requestid))
 
 
         // Officially transfer or drop. Same procedure found in admin transfer/drop
@@ -145,7 +148,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
         } 
         */
         // 8. Insert new class registration
-        if (orgReq.notes?.includes("transfer")) {
+        if (isTransfer) {
             const newArrange = await tx.query.arrangement.findFirst({
                 where: (arr, { and, eq }) => and(eq(arr.seasonid, orgReq.seasonid as number), eq(arr.classid, orgReq.classid))
             });
@@ -178,7 +181,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             const lateregfee = (await isLateReg(tx, newArrange)) ? LATE_REG_FEE_1 : 0;
             const totalamount = newTotalPrice + regFee + lateregfee - earlyregdiscount;
 
-            const diff = totalamount - oldTotalPrice ;
+            const diff = totalamount - oldTotalPrice + extraFee  ;
             if (Math.abs(diff) < 0.01) {
                 // there is no money involved here , no adjustment on balance 
                 return ;
@@ -215,7 +218,7 @@ export async function adminApproveRequest(requestid: number, registerid: number)
             await tx
                 .update(classregistration)
                 .set({
-                    statusid: orgReq.notes?.includes("transfer") ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT,
+                    statusid: isTransfer ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT,
                     previousstatusid: oldReg.statusid
                 })
                 .where(eq(classregistration.regid, oldReg.regid));
@@ -227,6 +230,62 @@ export async function adminApproveRequest(requestid: number, registerid: number)
                     newbalanceid: newRegBal.balanceid
                 })
                 .where(eq(regchangerequest.requestid, orgReq.requestid));
+        }
+        else {
+            //update class registration to drop out 
+            await tx
+                .update(classregistration)
+                .set({
+                    statusid: REGSTATUS_DROPOUT,
+                    previousstatusid: oldReg.statusid
+                })
+                .where(eq(classregistration.regid, oldReg.regid));
+
+
+             //drop out only need to update balance 
+            const  credit = -1.0 * oldTotalPrice ;
+
+            const dropBalVals = {
+                appliedid: oldReg.familybalanceid || 0,
+                appliedregid: oldReg.regid,
+                seasonid: oldArr.seasonid,
+                familyid: oldReg.familyid,
+                regfee: "0.0", //regFee.toString(),
+                earlyregdiscount: "0.0", //earlyregdiscount.toString(),
+                lateregfee: "0.0" , //lateregfee.toString(),
+                tuition: "0.0", //newTotalPrice.toString(),
+                totalamount: credit.toString(), //totalamount.toString(),
+                typeid: FAMILYBALANCE_TYPE_DROPOUT,
+                registerdate: toESTString(new Date()),
+                notes: "Requested drop old balance"
+            } satisfies famBalanceInsert;
+
+             await tx
+                .insert(familybalance)
+                .values(dropBalVals)
+ 
+            if (Math.abs(extraFee)> 0.01 )
+            {// add extra fee 
+               const extraBalVals = {
+                    appliedid: oldReg.familybalanceid || 0,
+                    appliedregid: oldReg.regid,
+                    seasonid: oldArr.seasonid,
+                    familyid: oldReg.familyid,
+                    regfee: "0.0", //regFee.toString(),
+                    earlyregdiscount: "0.0", //earlyregdiscount.toString(),
+                    lateregfee: "0.0" , //lateregfee.toString(),
+                    tuition: "0.0", //newTotalPrice.toString(),
+                    totalamount: extraFee.toString(), //totalamount.toString(),
+                    typeid: FAMILYBALANCE_TYPE_DROPOUT,
+                    registerdate: toESTString(new Date()),
+                    notes: "Requested drop extra fee"
+                } satisfies famBalanceInsert;
+
+                await tx
+                    .insert(familybalance)
+                    .values(extraBalVals)
+
+            }
         }
     })
 }
