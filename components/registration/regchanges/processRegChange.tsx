@@ -61,7 +61,7 @@ type processRegChangeProps = {
     appliedRegId: number,
     classId: number 
  //  familyId: number,
- //   status: number,
+    status: number,
  //   requestDate: string,
     registration: (InferSelectModel<typeof classregistration> & { 
         student: InferSelectModel<typeof student>, 
@@ -192,7 +192,7 @@ function NumericTextInput({onValueChange}) {
 }
 
 
-export default function ProcessRegChange({requestId, regId,appliedRegId,classId, registration, classMap,feeMap } :processRegChangeProps) {
+export default function ProcessRegChange({requestId, regId,appliedRegId,classId, status, registration, classMap,feeMap } :processRegChangeProps) {
 
     const router = useRouter();
     
@@ -202,6 +202,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
     const [validationOpen, setValidationOpen] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
 
+    const canEdit = status === 1 ; // pending 
 
     const handleExtraFeeChange = (newValue:string ) =>{
         extraFeeRef.current = newValue;
@@ -261,8 +262,9 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                         handleDropTransfer(requestId, regId, adminMemo, extraFee, "A");
                                         router.push("/admin/management/regchangerequests/")
                                     }}
+                                    disabled = {!canEdit}
                                 >
-                                    <PencilIcon className="w-4 h-4" /> Approve
+                                    {canEdit? <PencilIcon className="w-4 h-4" />: <div/>} Approve
                                 </button>
                                 <button 
                                     className={cn(
@@ -280,8 +282,9 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                         handleDropTransfer(requestId, regId, adminMemo, 0.0, "R");
                                         router.push("/admin/management/regchangerequests/")
                                     }}
+                                    disabled = {!canEdit}
                                 >
-                                    <PencilIcon className="w-4 h-4" /> Reject
+                                    {canEdit? <PencilIcon className="w-4 h-4" />: <div/>}  Reject
                                 </button>
                             </PopoverContent>
                         </Popover>

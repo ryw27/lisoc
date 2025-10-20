@@ -174,6 +174,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const relatedseasonid = row.original.relatedseasonid;
             const parentNote = row.original.parentNote ;
             const requestDate = row.original.firstReq;
+            const requestStatus = row.original.reqStatus ;
 
             return (
                 <button
@@ -185,7 +186,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                         "shadow-sm"
                     )}
                     aria-label="Edit"
-                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ''}&relatedseasonid=${relatedseasonid ?? ''}&parentNote=${parentNote}&appliedid=${appliedid}&requestDate=${requestDate}&familyid=${encodeURIComponent(familyid)}`); }}
+                    onClick={(e) => { e.stopPropagation(); router.push(`/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ''}&relatedseasonid=${relatedseasonid ?? ''}&parentNote=${parentNote}&appliedid=${appliedid}&requestDate=${requestDate}&status=${requestStatus}&familyid=${encodeURIComponent(familyid)}`); }}
                 >
                     <PencilIcon className="w-5 h-5 text-white" />
                 </button>

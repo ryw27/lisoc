@@ -124,7 +124,7 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
                                     appliedRegId = {appliedRegId} 
                                     classId ={classid}
                                     //familyId = {familyId} 
-                                    //status={status} 
+                                    status={status} 
                                     //requestDate={requestDate}
                                     registration={familyClassRegistrations}
                                     //parentNote={parentNote}
