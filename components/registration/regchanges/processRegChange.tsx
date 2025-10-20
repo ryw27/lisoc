@@ -1,13 +1,12 @@
 "use client";
 import { classregistration, student } from "@/lib/db/schema";
-import { ConsoleLogWriter, InferSelectModel } from "drizzle-orm";
+import {  InferSelectModel } from "drizzle-orm";
 
 //import { useRouter } from 'next/navigation';
 import { cn} from "@/lib/utils";
 import { 
     PencilIcon, 
     MoreHorizontal, 
-    XIcon,
 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
@@ -20,7 +19,7 @@ import { ClientTable } from "@/components/client-table";
 //import { request } from "http";
 import { Textarea } from "@/components/ui/textarea";
 
-import  { useState, useRef, useEffect } from 'react';
+import  { useState, useRef } from 'react';
 
 import {
     AlertDialog,
@@ -151,7 +150,12 @@ async function handleDropTransfer(requestId:number, regId:number, adminMemo: str
 
 }
 
-function NumericTextInput({onValueChange}) {
+type handleFunction = {
+  onValueChange: (newValue: string) => void;
+};
+
+
+function NumericTextInput({onValueChange}:handleFunction) {
   const [value, setValue] = useState<string>("");
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -198,9 +202,9 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
     
     const extraFeeRef = useRef<string>("")
     const adminMemoRef = useRef<HTMLTextAreaElement>(null)
-    const balanceTypeRef = useRef<HTMLTextAreaElement>(null)
+    const balanceTypeRef = useRef<HTMLSelectElement>(null)
     const [validationOpen, setValidationOpen] = useState(false);
-    const [validationError, setValidationError] = useState<string | null>(null);
+    //const [validationError, setValidationError] = useState<string | null>(null);
 
     const canEdit = status === 1 ; // pending 
 
@@ -251,7 +255,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                                 : "text-blue-500 hover:text-blue-600 cursor-pointer"
                                         )
                                     )}
-                                    onClick={(e) => {
+                                    onClick={() => {
                                         const adminMemo = adminMemoRef.current?.value || ""
                                         const extraFeeStr = extraFeeRef.current ; 
                                         let extraFee =0.0;
@@ -277,7 +281,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                                 : "text-red-500 hover:text-red-600 cursor-pointer"
                                         )
                                     )}
-                                    onClick={(e) => {
+                                    onClick={() => {
                                         const adminMemo = adminMemoRef.current?.value || ""
                                         handleDropTransfer(requestId, regId, adminMemo, 0.0, "R");
                                         router.push("/admin/management/regchangerequests/")
@@ -293,7 +297,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Validation Failed</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        {validationError ?? 'validation Error'}
+                                        {'validation Error'}
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

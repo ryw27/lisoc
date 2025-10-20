@@ -44,7 +44,7 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
     const requestDate = Array.isArray(requestDateRaw) ? requestDateRaw[0] : requestDateRaw ?? "";
     const parentNoteRaw = params.parentNote ;
     const parentNote =  Array.isArray(parentNoteRaw) ? parentNoteRaw[0] : parentNoteRaw?? "";
-    console.log(requestDate);
+    console.log(seasonid, relatedseasonid);
 
     const reqStatus =  reqStatusMap[status as 1 |2 |3 ];
     // 2. Get active school year

@@ -401,7 +401,7 @@ export default function RegisterStudent({
             calculateTotal("fallPrices") +
             calculateTotal("springPrices");
         setTotalBalance(sum);
-    }, [termPrices]);
+    }, [termPrices,calculateTotal]);
     
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {

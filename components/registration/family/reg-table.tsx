@@ -251,8 +251,8 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     const [isDroppingOut, setIsDroppingOut] = useState(false);
     const transferTextRef = useRef<HTMLTextAreaElement>(null);
     const dropTextRef = useRef<HTMLTextAreaElement>(null);
-    let selectTransferRef = useRef<string>(""); // Specify the type for better type safety
-    const [ clickedRow,setClickedRegRow] = useState<regRow>(0); // Specify the type for better type safety
+    const selectTransferRef = useRef<string>(""); // Specify the type for better type safety
+    const [ clickedRow,setClickedRegRow] = useState<regRow>(); // Specify the type for better type safety
 
 
     const editColumn: ColumnDef<regRow>[] = [
@@ -265,7 +265,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                     try {
                         const regid = clickedRow?.regno; //row.original.regno;
                         const tuition = clickedRow?.tuition; //row.original.tuition;
-                        const studentid = clickedRow?.studentid; //row.original.studentid;
+                        const studentid = clickedRow?.studentid || 0 ; //row.original.studentid;
                         const originalClassid = clickedRow?.classid ; 
                         if (regid === undefined || regid === null || tuition === undefined || tuition === null || originalClassid === null) {
                             const msg = "Reg ID or tuition for registrations row not found";
@@ -306,7 +306,6 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                             return;
                         }
 
-
                         const res = await familyRequestTransfer(regid, studentid, family.familyid, arrObj, transferNote);
                         if (!res || !res.ok) {
                             const msg = res && res.message ? res.message : 'Transfer failed';
@@ -321,6 +320,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                         try {
                             router.refresh();
                         } catch (e) {
+                            console.log(e)
                             window.location.reload();
                         }
 
@@ -502,7 +502,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                             const dropNote  = dropTextRef.current?.value || ""
                                             await familyRequestDrop(dropoutRegId, dropoutStudentId, family.familyid, false, dropNote);
                                             setDropoutDialogOpen(false);
-                                            try { router.refresh(); } catch (e) { window.location.reload(); }
+                                            try { router.refresh(); } catch (e) { console.log(e); window.location.reload(); }
                                         } catch (err) {
                                             const msg = err instanceof Error ? err.message : String(err);
                                             setTransferError(msg);

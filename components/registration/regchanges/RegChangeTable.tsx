@@ -4,7 +4,7 @@ import { InferSelectModel } from "drizzle-orm";
 
 import { useRouter } from 'next/navigation';
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
-import { PencilIcon, UserMinus, Repeat, UserXIcon, Repeat2Icon } from "lucide-react";
+import { PencilIcon,  UserXIcon, Repeat2Icon } from "lucide-react";
 import {
     ColumnDef,
     useReactTable,
@@ -118,10 +118,10 @@ const columns: ColumnDef<regChangeRow>[] = [
             const act = getValue() as string | undefined;
             if (!act) return null;
             if (act === 'D') {
-                return <UserXIcon className="w-5 h-5 text-red-600" title="Dropout" aria-label="Dropout" />
+                return <UserXIcon className="w-5 h-5 text-red-600"  aria-label="Dropout" />
             }
             if (act === 'T') {
-                return <Repeat2Icon className="w-5 h-5 text-green-600" title="Transfer" aria-label="Transfer" />
+                return <Repeat2Icon className="w-5 h-5 text-green-600" aria-label="Transfer" />
             }
             return <span className="text-sm">{act}</span>
         }
