@@ -147,6 +147,17 @@ export async function adminApproveRequest(requestid: number, registerid: number,
                 .values(payFamValues);
         } 
         */
+
+        // 11. Update old reg
+        await tx
+            .update(classregistration)
+            .set({
+                statusid: isTransfer ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT,
+                previousstatusid: oldReg.statusid
+        })
+        .where(eq(classregistration.regid, oldReg.regid));
+
+
         // 8. Insert new class registration
         if (isTransfer) {
             const newArrange = await tx.query.arrangement.findFirst({
@@ -169,6 +180,7 @@ export async function adminApproveRequest(requestid: number, registerid: number,
                     classid: newArrange.classid,
                     registerdate: now,
                     familyid: oldReg.familyid,
+                    statusid : oldReg.statusid, // it will inherit old values regardless
                     notes: `Requested transfer of student ${oldReg.studentid}` 
                 })
                 .returning();
@@ -214,14 +226,6 @@ export async function adminApproveRequest(requestid: number, registerid: number,
                 })
                 .where(eq(classregistration.regid, newReg.regid));
             
-            // 11. Update old reg
-            await tx
-                .update(classregistration)
-                .set({
-                    statusid: isTransfer ? REGSTATUS_TRANSFERRED : REGSTATUS_DROPOUT,
-                    previousstatusid: oldReg.statusid
-                })
-                .where(eq(classregistration.regid, oldReg.regid));
 
             // 12. Update regchangerequest to link the new family balances together
             await tx
@@ -232,17 +236,8 @@ export async function adminApproveRequest(requestid: number, registerid: number,
                 .where(eq(regchangerequest.requestid, orgReq.requestid));
         }
         else {
-            //update class registration to drop out 
-            await tx
-                .update(classregistration)
-                .set({
-                    statusid: REGSTATUS_DROPOUT,
-                    previousstatusid: oldReg.statusid
-                })
-                .where(eq(classregistration.regid, oldReg.regid));
 
-
-             //drop out only need to update balance 
+            //drop out only need to update balance 
             const  credit = -1.0 * oldTotalPrice ;
 
             const dropBalVals = {
