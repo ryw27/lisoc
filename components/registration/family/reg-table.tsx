@@ -258,6 +258,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
     const editColumn: ColumnDef<regRow>[] = [
         {
             id: "edit",
+            header:"转退课",
             cell: ({ row }) => {
 
                 const transferStudent = async () => {
@@ -415,7 +416,7 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                             "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
                                             "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
                                             "focus:outline-none focus:bg-gray-100",
-                                            false 
+                                            transferDisabled
                                                 ? "cursor-not-allowed text-gray-300"
                                                 : "text-red-500 hover:text-red-600 cursor-pointer"
                                         )
