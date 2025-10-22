@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { InferSelectModel } from "drizzle-orm";
 import { classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
+import { cn, REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { useState, useMemo, useRef} from "react";
 import { useRouter } from 'next/navigation'
 import { IdMaps, threeSeasons } from "@/lib/registration/types";
@@ -22,7 +22,7 @@ import {
     MoreHorizontal, 
     XIcon,
 } from "lucide-react";
-import { familyRequestDrop, familyRequestTransfer } from "@/lib/registration/regchanges";
+import { familyRequestDrop, familyRequestTransfer, familyRequestUndo } from "@/lib/registration/regchanges";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -338,6 +338,9 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                         || status === REGSTATUS_TRANSFERRED 
                                         || status === REGSTATUS_DROPOUT 
                                         || status === REGSTATUS_DROPOUT_SPRING
+
+                const currentRegid = row.original.regno ;
+                const familyid = family.familyid ;
                 return (
                     <>
                         <Popover>
@@ -362,6 +365,29 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 side="bottom"
                                 sideOffset={5}
                             >
+                               { (status == REGSTATUS_REGISTERED && row.original.reqstatus == REQUEST_STATUS_PENDING) ? 
+                               (
+                                <button
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        familyRequestUndo(currentRegid,familyid);
+
+                                    }}
+                                >
+                                    <PencilIcon className="w-4 h-4" /> Undo Trans/Drop
+                                </button>
+                               
+                                ) :
+                                                              
+                               ( 
+                                <>
                                 <button 
                                     className={cn(
                                         cn(
@@ -413,6 +439,8 @@ export default function RegTable({ students, seasons, registrations, threeArrs, 
                                 >
                                     <PencilIcon className="w-4 h-4" /> Dropout
                                 </button>
+                                </>
+                                )}
                             </PopoverContent>
                         </Popover>
                         <AlertDialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen} >
