@@ -1,4 +1,3 @@
-"use server";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { asc, InferSelectModel } from "drizzle-orm";
