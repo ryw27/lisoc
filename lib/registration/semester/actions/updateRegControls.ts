@@ -7,8 +7,11 @@ import { z } from "zod/v4";
 import { seasonRegSettingsSchema } from "@/lib/registration/validation";
 import { revalidatePath } from "next/cache";
 import { term } from "@/lib/registration/types";
+import { requireRole } from "@/lib/auth";
 
 export async function updateRegControls(data: z.infer<typeof seasonRegSettingsSchema>, inSeason: InferSelectModel<typeof seasons>, changeSeason: term) {
+    const user = await requireRole(["ADMIN"]);
+
     const parsed = seasonRegSettingsSchema.parse(data);
     await db.transaction(async (tx) => {
         const seasonIds = [inSeason.seasonid, inSeason.seasonid + 1, inSeason.seasonid + 2];
@@ -34,6 +37,8 @@ export async function updateRegControls(data: z.infer<typeof seasonRegSettingsSc
                 days4showteachername: parsed.days4showteachername,
                 allownewfamilytoregister: parsed.allownewfamilytoregister,
                 date4newfamilytoregister: toESTString(parsed.date4newfamilytoregister),
+                lastmodifieddate: toESTString(new Date()),
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .where(where)
             .returning();

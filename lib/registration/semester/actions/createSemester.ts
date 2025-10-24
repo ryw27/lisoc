@@ -56,7 +56,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: semData.date4newfamilytoregister ? toESTString(semData.date4newfamilytoregister) : toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .returning();
 
@@ -90,7 +90,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .returning()
 
@@ -124,7 +124,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.springearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .returning()
         
@@ -182,7 +182,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 specialfeeH: parsedRegClass.specialfeeH?.toString() || "0",
                 notes: parsedRegClass.notes || "",
                 lastmodify: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin",
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             }
 
             await tx

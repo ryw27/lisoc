@@ -6,9 +6,12 @@ import { toESTString } from "@/lib/utils";
 import { z } from "zod/v4";
 import { seasonDatesSchema } from "@/lib/registration/validation";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
 
 // TODO: Add better validation for dates
 export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSeason: InferSelectModel<typeof seasons>) {
+    const user = await requireRole(["ADMIN"]);
+
     const parsed = seasonDatesSchema.parse(data);
     await db.transaction(async (tx) => {
         const [updatedYear] = await tx
@@ -22,6 +25,8 @@ export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSea
             lateregdate2: toESTString(parsed.falllatereg),
             closeregdate: toESTString(parsed.fallclosereg),
             canceldeadline: toESTString(parsed.fallcanceldeadline),
+            lastmodifieddate: toESTString(new Date()),
+            updateby: user.user.name ?? user.user.email ?? user.user.id
         })
         .where(eq(seasons.seasonid, inSeason.seasonid))
         .returning();
@@ -45,6 +50,7 @@ export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSea
                 lateregdate2: toESTString(parsed.falllatereg),
                 closeregdate: toESTString(parsed.fallclosereg),
                 canceldeadline: toESTString(parsed.fallcanceldeadline),
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .where(eq(seasons.seasonid, inSeason.seasonid + 1))
             .returning();
@@ -68,6 +74,8 @@ export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSea
                 lateregdate2: toESTString(parsed.springlatereg),
                 closeregdate: toESTString(parsed.springclosereg),
                 canceldeadline: toESTString(parsed.springcanceldeadline),
+                lastmodifieddate: toESTString(new Date()),
+                updateby: user.user.name ?? user.user.email ?? user.user.id
             })
             .where(eq(seasons.seasonid, inSeason.seasonid + 2))
             .returning();

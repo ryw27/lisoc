@@ -9,11 +9,12 @@ import { arrangementSchema } from "@/lib/shared/validation";
 import { getTermVariables } from "../../helpers";
 import { toESTString } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
 
 
 // TODO: more efficiency? Not sure if this is updating all that have been edited or just all of them regardless
 export async function editArrangement(data: z.infer<typeof arrangementArraySchema>, season: seasonObj) {
-    // const user = await requireRole(["ADMIN"]);
+    const user = await requireRole(["ADMIN"]);
     return await db.transaction(async (tx) => {
         const parsedArray = arrangementArraySchema.parse(data);
         // Ensure arrangeid is present and valid. It should since it's an update
@@ -37,7 +38,7 @@ export async function editArrangement(data: z.infer<typeof arrangementArraySchem
             specialfeeH: regClass.specialfeeH?.toString() ?? null,
             bookfeeH: regClass.bookfeeH?.toString() ?? null,
             lastmodify: toESTString(new Date()),
-            updateby: "testaccount"
+            updateby: user.user.name ?? user.user.email ?? user.user.id
         } satisfies arrangementInsert;
 
         await tx

@@ -10,9 +10,12 @@ import { eq, and } from "drizzle-orm";
 import { classRegObj, famBalanceInsert } from "@/lib/shared/types";
 import { getTotalPrice, type Transaction } from "../../helpers";
 import { FAMILYBALANCE_STATUS_PENDING, FAMILYBALANCE_TYPE_OTHER, REGISTRATION_FEE } from "@/lib/utils";
+import { requireRole } from "@/lib/auth";
 
 
 async function deleteAllRegistrations(tx: Transaction, registrations: classRegObj[], classData: uiClasses) {
+    await requireRole(["ADMIN"])
+
     const totalPrice = await getTotalPrice(tx, classData);
     for (const reg of registrations) {
         // Delete the class registration
