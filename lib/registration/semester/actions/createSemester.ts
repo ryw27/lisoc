@@ -10,6 +10,7 @@ import { toESTString } from "@/lib/utils";
 import { z } from "zod/v4";
 import { eq, or } from "drizzle-orm";
 import { requireRole } from "@/lib/auth";
+import { getTermVariables } from "../../helpers";
 
 
 export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
@@ -32,8 +33,8 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 seasonnamecn: semData.seasonnamecn,
                 seasonnameeng: semData.seasonnameen,
                 isspring: false,
-                relatedseasonid: 0,
-                beginseasonid: 0,
+                relatedseasonid: 0, // To replace later
+                beginseasonid: 0, // To replace later
                 haslateregfee: semData.haslateregfee,
                 haslateregfee4newfamily: semData.haslateregfee4newfamily,
                 hasdutyfee: semData.hasdutyfee,
@@ -67,7 +68,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 seasonnameeng: `${semData.seasonnamecn} Fall Semester`,
                 isspring: false,
                 relatedseasonid: academicYear.seasonid,
-                beginseasonid: 0,
+                beginseasonid: 0, // To edit later
                 haslateregfee: semData.haslateregfee,
                 haslateregfee4newfamily: semData.haslateregfee4newfamily,
                 hasdutyfee: semData.hasdutyfee,
@@ -94,7 +95,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
             .returning()
 
         // Create spring sem
-        const [springSem] = await tx
+        await tx
             .insert(seasons)
             .values({
                 seasonnamecn: `${semData.seasonnamecn} 春季`,
@@ -126,12 +127,22 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 updateby: user.user.name ?? user.user.email ?? "Unknown admin" 
             })
             .returning()
+        
             
+        // CRUCIAL TO ENSURE DATA MODEL INVARIANTS!!!!!!!!!!!
+        await tx
+            .update(seasons)
+            .set({
+                relatedseasonid: academicYear.seasonid,
+                beginseasonid: fallSem.seasonid
+            })
+            .where(eq(seasons.seasonid, fallSem.seasonid))
+
         // Set related season and begin season to ensure that you can get the spring and fall semesters from the academic year
         await tx
             .update(seasons)
             .set({
-                relatedseasonid: springSem.seasonid,
+                relatedseasonid: academicYear.seasonid, // Set to itself
                 beginseasonid: fallSem.seasonid,
             })
             .where(eq(seasons.seasonid, academicYear.seasonid))
@@ -148,21 +159,8 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
         for (const classData of semData.arrangements) {
             const parsedRegClass = arrangementSchema.parse(classData.regClass);
             // TODO: Uncomment once this is fixed
-            // const { seasonid, activestatus, regstatus } = await getTermVariables(parsedClass, academicYear, tx);
-            // Term should only appear if semester only is chosen for suitable term
-            let seasonid = academicYear.seasonid;
-            let activestatus = "Active";
-            let regstatus = "Open";
-            
-            if ("term" in parsedRegClass && parsedRegClass.term === "SPRING") {
-                seasonid = springSem.seasonid
-                activestatus = "Inactive";
-                regstatus = "Closed"
-            }
+            const { seasonid, activestatus, regstatus } = await getTermVariables(parsedRegClass, academicYear, tx);
 
-            if ("term" in parsedRegClass && parsedRegClass.term === "FALL") {
-                seasonid = fallSem.seasonid
-            }
             const regClassValues = {
                 seasonid: seasonid,
                 classid: parsedRegClass.classid,
