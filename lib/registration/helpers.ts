@@ -4,6 +4,7 @@ import {
     uiClasses, 
     regKind,
     uniqueRegistration,
+    threeSeasons,
 } from "@/lib/registration/types";
 import { seasonObj } from "@/lib/shared/types";
 import { z } from "zod/v4";
@@ -134,26 +135,58 @@ export async function getTermVariables(
 
 
 
-// TODO: This is slightly suspicious and relies on a lot of things going correct. See if a better, more reliable solution can be found
-export async function getThreeSeasons(tx: Transaction) {
-    const year = await tx.query.seasons.findFirst({
-        where: (s, { eq }) => eq(s.status, "Active"),
-        orderBy: (s, { asc }) => asc(s.seasonid)
-    });
+// export async function getThreeSeasons(tx: Transaction) {
+//     const year = await tx.query.seasons.findFirst({
+//         where: (s, { eq }) => eq(s.status, "Active"),
+//         orderBy: (s, { asc }) => asc(s.seasonid)
+//     });
 
-    if (!year) {
-        throw new Error("No active year found");
+//     if (!year) {
+//         throw new Error("No active year found");
+//     }
+
+//     const terms = await tx.query.seasons.findMany({
+//         where: (s, { or, eq }) => or(
+//             eq(s.seasonid, year.beginseasonid),
+//             eq(s.seasonid, year.relatedseasonid)
+//         ),
+//         orderBy: (s, { asc }) => asc(s.seasonid)
+//     });
+
+//     return { year: year, fall: terms[0], spring: terms[1] };
+// }
+
+// TODO: This is slightly suspicious and relies on a lot of things going correct. See if a better, more reliable solution can be found
+// TODO: Cache this -> unstable_cache with cache tag
+export async function getThreeSeasons(tx: Transaction) {
+    const seasonGroupID = await tx.query.seasons.findFirst({
+        where: (s, { eq }) => eq(s.status, "Active"),
+        columns: {
+            relatedseasonid: true
+        }
+    })
+
+    if (!seasonGroupID) {
+        throw new Error("Active season not found");
+    }
+    
+    // Should get all that have year as year
+    const seasonRows = await tx.query.seasons.findMany({
+        where: (s, { eq }) => eq(s.relatedseasonid, seasonGroupID.relatedseasonid)
+    });
+    
+    const threeSeasons: threeSeasons = { year: seasonRows[0], fall: seasonRows[1], spring: seasonRows[2] };
+    for (let i = 0; i < 3; i++) {
+        if (seasonRows[i].beginseasonid == seasonRows[i].seasonid) {
+            threeSeasons.fall = seasonRows[i];
+        } else if (seasonRows[i].relatedseasonid == seasonRows[i].seasonid) {
+            threeSeasons.year = seasonRows[i];
+        } else {
+            threeSeasons.spring = seasonRows[i];
+        }
     }
 
-    const terms = await tx.query.seasons.findMany({
-        where: (s, { or, eq }) => or(
-            eq(s.seasonid, year.beginseasonid),
-            eq(s.seasonid, year.relatedseasonid)
-        ),
-        orderBy: (s, { asc }) => asc(s.seasonid)
-    });
-
-    return { year: year, fall: terms[0], spring: terms[1] };
+    return threeSeasons
 }
 
 export async function getArrSeason(tx: Transaction, arrData: uiClasses): Promise<"year" | "fall" | "spring"> {
