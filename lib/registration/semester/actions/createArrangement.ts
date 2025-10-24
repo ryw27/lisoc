@@ -8,11 +8,12 @@ import { arrangementSchema } from "@/lib/shared/validation";
 import { getTermVariables } from "../../helpers";
 import { toESTString, UNKNOWN_CLASSROOMID, UNKNOWN_TEACHERID } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
 
 // Create new regclas with constituent classrooms
 export async function createArrangement(data: z.infer<typeof arrangementArraySchema>, season: seasonObj) {
     // 1. Auth Check 
-    // const user = await requireRole(["ADMIN"]);
+    const user = await requireRole(["ADMIN"], { redirect: true });
 
     // 2. Parse data
     const parsedArray = arrangementArraySchema.parse(data);
@@ -43,8 +44,9 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
             notes: regclass.notes ?? "",
             lastmodify: toESTString(new Date()),
             isregclass: true,
-            updateby: "admin"   // TODO: Switch to user
+            updateby: user.user.name ?? user.user.email ?? user.user.id
         }
+
         // 6. Insert reg class
         await tx
             .insert(arrangement)
