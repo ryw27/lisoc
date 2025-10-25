@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 import { FormSections, FormSelectOptions } from "@/lib/data-view/types";
-import getIDRow from "@/lib/data-view/actions/getIDRow";
+import { getIDRow } from "@/lib/data-view/actions/getIDRow";
 import { classTypeMap } from "@/lib/utils";
 import { ClassObject } from "@/lib/data-view/entity-configs/(classes)/classes";
 

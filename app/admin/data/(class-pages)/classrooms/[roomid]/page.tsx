@@ -1,7 +1,7 @@
 import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
 import { ClassroomObject } from '@/lib/data-view/entity-configs/(classes)/classrooms';
 import { notFound } from 'next/navigation';
-import getIDRow from '@/lib/data-view/actions/getIDRow';
+import { getIDRow } from '@/lib/data-view/actions/getIDRow';
 
 interface ClassroomPageProps {
     params: Promise<{

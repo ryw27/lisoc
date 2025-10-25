@@ -1,5 +1,5 @@
 import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
-import getIDRow from '@/lib/data-view/actions/getIDRow';
+import { getIDRow } from '@/lib/data-view/actions/getIDRow';
 import { ClassObject } from '@/lib/data-view/entity-configs/(classes)/classes';
 import { classTypeMap } from '@/lib/utils';
 import { notFound } from 'next/navigation';

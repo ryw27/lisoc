@@ -1,6 +1,6 @@
 import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 import { FormSections } from "@/lib/data-view/types";
-import getIDRow from "@/lib/data-view/actions/getIDRow";
+import { getIDRow } from "@/lib/data-view/actions/getIDRow";
 import { notFound } from "next/navigation";
 import { StudentObject } from "@/lib/data-view/entity-configs/(people)/student";
 

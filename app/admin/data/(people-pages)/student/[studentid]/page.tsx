@@ -1,5 +1,5 @@
 import EntityId, { displaySectionGroup } from "@/components/data-view/id-entity-view/entity-id";
-import getIDRow from "@/lib/data-view/actions/getIDRow";
+import { getIDRow } from "@/lib/data-view/actions/getIDRow";
 import { StudentObject } from "@/lib/data-view/entity-configs/(people)/student";
 import { notFound } from "next/navigation";
 
