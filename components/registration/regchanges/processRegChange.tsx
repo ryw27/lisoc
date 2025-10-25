@@ -3,7 +3,7 @@ import { classregistration, student } from "@/lib/db/schema";
 import {  InferSelectModel } from "drizzle-orm";
 
 //import { useRouter } from 'next/navigation';
-import { cn, REQUEST_STATUS_PENDING,REQUEST_STATUS_APPROVED,REQUEST_STATUS_REJECTED } from "@/lib/utils";
+import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { 
     PencilIcon, 
     MoreHorizontal, 
