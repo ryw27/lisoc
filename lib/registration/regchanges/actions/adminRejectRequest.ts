@@ -9,34 +9,45 @@ import { revalidatePath } from "next/cache";
 // TODO: Check
 export async function adminRejectRequest(requestid: number, registerid: number, adminMemo: string) {
     try {
-        const txResult = await db.transaction(async (tx) => {
+        // need lock and check,  it is possible some one else change it     
+        //const txResult = await db.transaction(async (tx) => {
+        await db.transaction(async (tx) => {
             // 1. Get the request
-            const famRequest = await tx.query.regchangerequest.findFirst({
-                where: (rgr, { eq }) => eq(rgr.requestid, requestid)
-            });
+            const [famRequest] = await tx
+                            .select()
+                            .from(regchangerequest)
+                            .where(eq(regchangerequest.requestid, requestid))
+                            .for('update'); // This is the key part for SELECT FOR UPDATE
+
+
             if (!famRequest) {
-                return { ok: false, errormsg: "Cannot find reg change request" };
-            }
-            if (famRequest.reqstatusid !== REQUEST_STATUS_PENDING) {
-                return { ok: false, errormsg: "Reg change request has already been processed" };
+                throw new Error( `Cannot find reg change request requestid =${requestid}`);
             }
 
-            // 2. Find the old registration
+            if (famRequest.reqstatusid !== REQUEST_STATUS_PENDING) {
+                throw new Error( `some one changed requst  requestid =${requestid}`);
+            }
+
+            // 2. Find the old registration this should not happen
+            // but needs check 
             const oldReg = await tx.query.classregistration.findFirst({
                 where: (cr, { eq }) => eq(cr.regid, registerid)
             });
             if (!oldReg) {
-                return { ok: false, errormsg: "Cannot find original registration" };
+                throw new Error(`releated registration can not be found requestid =${requestid}, regid=${registerid}`)
             }
 
             // 3. Check if the old registration is actually only submitted, not paid 
             if (oldReg.statusid !== REGSTATUS_REGISTERED) {
+                /*
                 await tx
                     .delete(regchangerequest)
                     .where(eq(regchangerequest.requestid, requestid));
                 revalidatePath("/dashboard/classes");
                 revalidatePath("/admin/management/semester");
                 return { ok: true };
+                */
+               throw new Error(`registration regid=${registerid} changed status on request=${requestid}`)
             }
 
             // 4. Update the regchange status
@@ -54,7 +65,7 @@ export async function adminRejectRequest(requestid: number, registerid: number, 
             return { ok: true };
         });
 
-        if (txResult && typeof txResult === 'object' && 'ok' in txResult) return txResult;
+        //if (txResult && typeof txResult === 'object' && 'ok' in txResult) return txResult;
         return { ok: true };
     } catch (error) {
         console.error('adminRejectRequest error', error);

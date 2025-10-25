@@ -5,3 +5,4 @@ export { adminTransferStudent } from "./actions/adminTransferStudent";
 export { familyRequestDrop } from "./actions/familyRequestDrop";
 export { familyRequestTransfer } from "./actions/familyRequestTransfer";
 export { familyRequestUndo } from "./actions/familyRequestUndo";
+export { adminUndoRequest} from "./actions/adminUndoRequest"

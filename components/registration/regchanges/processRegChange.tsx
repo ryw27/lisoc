@@ -3,7 +3,7 @@ import { classregistration, student } from "@/lib/db/schema";
 import {  InferSelectModel } from "drizzle-orm";
 
 //import { useRouter } from 'next/navigation';
-import { cn} from "@/lib/utils";
+import { cn, REQUEST_STATUS_PENDING,REQUEST_STATUS_APPROVED,REQUEST_STATUS_REJECTED } from "@/lib/utils";
 import { 
     PencilIcon, 
     MoreHorizontal, 
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/popover";
 
 
-import {adminApproveRequest, adminRejectRequest } from "@/lib/registration/regchanges";
+import {adminApproveRequest, adminRejectRequest,adminUndoRequest } from "@/lib/registration/regchanges";
  
 
 export type processRegChangeRow = {
@@ -59,7 +59,7 @@ type processRegChangeProps = {
     regId : number,
     appliedRegId: number,
     classId: number 
- //  familyId: number,
+    familyId: number,
     status: number,
  //   requestDate: string,
     registration: (InferSelectModel<typeof classregistration> & { 
@@ -133,14 +133,12 @@ const columns: ColumnDef<processRegChangeRow>[] = [
     */
 ];
 
-async function handleDropTransfer(requestId:number, regId:number, adminMemo: string, extraFee: number, action:string )
+async function handleDropTransfer(requestId:number, regId:number, adminMemo: string, balanceType:number, extraFee: number, action:string )
 {
-    console.log("requestId",requestId);
-    console.log("action")
 
     if (action == "A")
     {
-         adminApproveRequest(requestId, regId,adminMemo,extraFee);
+         adminApproveRequest(requestId, regId,adminMemo,balanceType,extraFee);
     }   
     else if(action == "R") {
 
@@ -196,7 +194,7 @@ function NumericTextInput({onValueChange}:handleFunction) {
 }
 
 
-export default function ProcessRegChange({requestId, regId,appliedRegId,classId, status, registration, classMap,feeMap } :processRegChangeProps) {
+export default function ProcessRegChange({requestId, regId,appliedRegId,classId, familyId, status, registration, classMap,feeMap } :processRegChangeProps) {
 
     const router = useRouter();
     
@@ -206,7 +204,7 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
     const [validationOpen, setValidationOpen] = useState(false);
     //const [validationError, setValidationError] = useState<string | null>(null);
 
-    const canEdit = status === 1 ; // pending 
+    //const canEdit = status === 1 ; // pending 
 
     const handleExtraFeeChange = (newValue:string ) =>{
         extraFeeRef.current = newValue;
@@ -244,7 +242,9 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                 side="bottom"
                                 sideOffset={5}
                             >
-                                <button 
+                             {status == REQUEST_STATUS_PENDING ?
+                               ( <>
+                               <button 
                                     className={cn(
                                         cn(
                                             "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
@@ -258,17 +258,18 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                     onClick={() => {
                                         const adminMemo = adminMemoRef.current?.value || ""
                                         const extraFeeStr = extraFeeRef.current ; 
+                                        const balanceTypeStr = balanceTypeRef.current?.value || "6";
+                                        console.log("balanceTypeStr",balanceTypeStr);
                                         let extraFee =0.0;
                                         if( extraFeeStr.length != 0)
                                         {
                                             extraFee = parseFloat(extraFeeStr)
                                         }
-                                        handleDropTransfer(requestId, regId, adminMemo, extraFee, "A");
+                                        handleDropTransfer(requestId, regId, adminMemo, parseInt(balanceTypeStr), extraFee, "A");
                                         router.push("/admin/management/regchangerequests/")
                                     }}
-                                    disabled = {!canEdit}
                                 >
-                                    {canEdit? <PencilIcon className="w-4 h-4" />: <div/>} Approve
+                                    <PencilIcon className="w-4 h-4" />Approve
                                 </button>
                                 <button 
                                     className={cn(
@@ -283,13 +284,40 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
                                     )}
                                     onClick={() => {
                                         const adminMemo = adminMemoRef.current?.value || ""
-                                        handleDropTransfer(requestId, regId, adminMemo, 0.0, "R");
+                                        handleDropTransfer(requestId, regId, adminMemo, 6,0.0, "R");
                                         router.push("/admin/management/regchangerequests/")
                                     }}
-                                    disabled = {!canEdit}
                                 >
-                                    {canEdit? <PencilIcon className="w-4 h-4" />: <div/>}  Reject
+                                    <PencilIcon className="w-4 h-4" />Reject
                                 </button>
+                                </>
+                               )
+                               :
+                               ( <>
+                                  <button 
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                            false
+                                                ? "cursor-not-allowed text-gray-300"
+                                                : "text-blue-500 hover:text-blue-600 cursor-pointer"
+                                        )
+                                    )}
+                                    onClick={() => {
+                                        // handle undo 
+                                        
+                                        adminUndoRequest(requestId,familyId,status);
+
+                                        router.push("/admin/management/regchangerequests/")
+                                    }}
+                                >
+                                    <PencilIcon className="w-4 h-4" /> UNDO
+                                </button>
+                                </>
+                               )
+                             }
                             </PopoverContent>
                         </Popover>
                         <AlertDialog open={validationOpen} onOpenChange={setValidationOpen}>
@@ -367,10 +395,10 @@ export default function ProcessRegChange({requestId, regId,appliedRegId,classId,
             
             return (
                     <div>
-                     <select ref={balanceTypeRef}>   
+                     <select ref={balanceTypeRef} defaultValue={6}>   
                     {/*<option value="">-- Please Select  --</option> */}
                     {Object.entries(feeMap).map(([key, value]) => (
-                        <option key={key} value={`${key}-${value}`}>
+                        <option key={key} value={`${key}`}>
                             {key}-{value}
                         </option>)
                     )}
