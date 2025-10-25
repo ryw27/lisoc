@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { Controller, useFormContext, useWatch, type FieldArrayWithId } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Edit, Trash, Info } from 'lucide-react';
 import { 
     AlertDialog, 
@@ -29,7 +29,6 @@ import { useRegistrationContext } from '@/lib/registration/registration-context'
 
 
 type classBoxProps = {
-    field: FieldArrayWithId<z.infer<typeof arrangementSchema>>;
     idx: number;
     deleteSemClass: (index: number) => void;
 }
@@ -62,11 +61,11 @@ function LabeledInput({
                 required={required}
                 disabled={disabled}
                 className={inputClassName}
-                {...register(`classes.${idx}.${name}`)}
+                {...register(`arrangements.${idx}.regClass.${name}`)}
             /> 
-            {errors?.classes?.[idx]?.[name] && (
+            {errors?.arrangements?.[idx]?.regClass?.[name] && (
                 <p className="text-xs text-red-600">
-                    {errors.classes[idx][name]?.message}
+                    {errors.arrangements[idx].regClass?.[name]?.message as string}
                 </p>
             )}
         </div>
@@ -86,13 +85,13 @@ export default function SemesterClassBox({
     const { control, setValue } = useFormContext<z.infer<typeof startSemFormSchema>>();
     const classValues = useWatch({
         control,
-        name: `classes.${idx}`
+        name: `arrangements.${idx}.regClass`
     })
     const { selectOptions, idMaps } = useRegistrationContext();
 
     
     const setField = <T extends string | number | boolean | null | undefined>(field: keyof z.infer<typeof arrangementSchema>, value: T) => {
-        setValue(`classes.${idx}.${field}`, value, { shouldValidate: true })
+        setValue(`arrangements.${idx}.regClass.${field}`, value, { shouldValidate: true })
     }
 
 
@@ -158,7 +157,7 @@ export default function SemesterClassBox({
     const termSelect = (
         <Controller
             control={control}
-            name={`classes.${idx}.term`}
+            name={`arrangements.${idx}.regClass.term`}
             render={({ field }) => (
                 <div className="flex flex-col gap-1">
                     <label className="block text-sm text-gray-400 font-bold mb-2" htmlFor={`${idx}-term`}>Semester Term</label>
@@ -186,7 +185,7 @@ export default function SemesterClassBox({
     const timeSelect = (
         <Controller
             control={control}
-            name={`classes.${idx}.timeid`}
+            name={`arrangements.${idx}.regClass.timeid`}
             render={({ field }) => (
                 <div className="flex flex-col gap-1">
                     <label className="block text-sm text-gray-400 font-bold mb-2" htmlFor={`${idx}-timeid`}>Class Time</label>
@@ -226,7 +225,7 @@ export default function SemesterClassBox({
                     <div>
                         <Controller
                             control={control}
-                            name={`classes.${idx}.classid`}
+                            name={`arrangements.${idx}.regClass.classid`}
                             render={({ field }) => (
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-bold text-gray-600">Class Name</label>
@@ -254,7 +253,7 @@ export default function SemesterClassBox({
                     <div>
                         <Controller
                             control={control}
-                            name={`classes.${idx}.suitableterm`}
+                            name={`arrangements.${idx}.regClass.suitableterm`}
                             render={({ field }) => (
                             <div className="flex flex-col gap-1">
                                 <label className="text-sm font-medium text-gray-600">Suitable Term</label>
@@ -328,7 +327,7 @@ export default function SemesterClassBox({
                         {/* Waive Registration Fee */}
                         <div className="flex items-center gap-2 col-span-1">
                             <Controller
-                                name={`classes.${idx}.waiveregfee`}
+                                name={`arrangements.${idx}.regClass.waiveregfee`}
                                 render={({ field }) => (
                                     <>                                        
 
@@ -352,7 +351,7 @@ export default function SemesterClassBox({
                         {/* Close Registration */}
                         <div className="flex items-center col-span-1 w-full gap-2">
                             <Controller
-                                name={`classes.${idx}.closeregistration`}
+                                name={`arrangements.${idx}.regClass.closeregistration`}
                                 render={({ field }) => (
                                     <>
                                         <Input
@@ -374,7 +373,7 @@ export default function SemesterClassBox({
                         </div>
                     </div>
                     <Controller
-                        name={`classes.${idx}.notes`}
+                        name={`arrangements.${idx}.regClass.notes`}
                         render={({ field }) => (
                             <Textarea
                                 {...field}
@@ -483,7 +482,7 @@ export default function SemesterClassBox({
 }
 
 
-function ExpandedClass({ classValues, timeMap }: { classValues: z.infer<typeof startSemFormSchema>["classes"][number], timeMap: Record<number, { period: string | null }> }) {
+function ExpandedClass({ classValues, timeMap }: { classValues: z.infer<typeof arrangementSchema>, timeMap: Record<number, { period: string | null }> }) {
     return (
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
             <h4 className="font-semibold text-gray-700 mb-2">Additional Details</h4>

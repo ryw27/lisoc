@@ -49,7 +49,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
         resolver: zodResolver(startSemFormSchema),
         mode: "onChange",
         defaultValues: {
-            classes: drafts,
+            arrangements: drafts.map((d) => ({ regClass: d, classrooms: [] })),
             fallstart: getInputDateForm(lastSeason[0]?.startdate),
             fallend: getInputDateForm(lastSeason[0]?.enddate),
             springstart: getInputDateForm(lastSeason[1]?.startdate),
@@ -81,7 +81,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
 
     const { fields, append, remove } = useFieldArray({
         control: semClassForm.control,
-        name: "classes"
+        name: "arrangements"
     })
 
 
@@ -127,10 +127,9 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                         {/* Individual Classes */}
                         <h2 className="font-bold text-xl p-4">Classes</h2>
                         {fields.map((c, idx) => (
-                            <div key={`${c.classid}-${idx}`} className="flex flex-col rounded-lg shadow-md p-2 border-gray-400 border-1">
+                            <div key={c.id} className="flex flex-col rounded-lg shadow-md p-2 border-gray-400 border-1">
                                 <SemesterClassBox 
                                     idx={idx}
-                                    field={c}
                                     deleteSemClass={deleteSemClass}
                                 />
                             </div>
@@ -140,16 +139,29 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                             type="button"
                             // Room and teacher are not chosen for R (registration) classes. These are IDs to TBD values. Rest are non-existent values as placeholders
                             onClick={() => append({
-                                teacherid: 7, 
-                                roomid: 59,
-                                timeid: 3,
-                                tuitionH: "0.00",
-                                bookfeeH: "0.00",
-                                bookfeeW: "0.00",
-                                specialfeeH: "0.00",
-                                specialfeeW: "0.00",
-                                tuitionW: "0.00",
-                            } as uiClasses)}
+                                regClass: {
+                                    arrangeid: undefined,
+                                    classid: 0,
+                                    teacherid: 7,
+                                    roomid: 59,
+                                    timeid: 3,
+                                    seatlimit: null,
+                                    agelimit: null,
+                                    suitableterm: 0,
+                                    term: undefined,
+                                    waiveregfee: false,
+                                    closeregistration: false,
+                                    tuitionW: 0,
+                                    bookfeeW: 0,
+                                    specialfeeW: 0,
+                                    tuitionH: 0,
+                                    bookfeeH: 0,
+                                    specialfeeH: 0,
+                                    isregclass: true,
+                                    notes: ""
+                                },
+                                classrooms: []
+                            })}
                             className="self-center flex items-center gap-2 text-blue-700 text-sm mt-2"
                         >
                             <PlusIcon className="h-4 w-4" /> Add Class
