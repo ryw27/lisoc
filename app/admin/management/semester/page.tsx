@@ -5,10 +5,11 @@ import Link from "next/link";
 import SemesterView from "@/components/registration/admin/sem-view";
 import { getSelectOptions } from "@/lib/registration/semester";
 import { type Transaction } from "@/lib/registration/helpers";
-import { type adminStudentView, type fullSemClassesData, fullClassStudents, fullRegClass } from "@/lib/registration/types";
+import { type adminStudentView, type fullSemClassesData, arrangeClasses, availableClasses, fullClassStudents, fullRegClass } from "@/lib/registration/types";
 import { InferSelectModel } from "drizzle-orm";
-import { arrangement, classregistration, student } from "@/lib/db/schema";
+import { arrangement, classregistration, student,classes } from "@/lib/db/schema";
 import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
+import { getTableColumns,eq,or,asc,sql } from 'drizzle-orm';
 
 
 export default async function SemesterPage() {
@@ -65,13 +66,53 @@ export default async function SemesterPage() {
 
 
     // All reg classes for the year, both full, fall, and spring
-    const classData = await db.query.arrangement.findMany({
+/*    const classData = await db.query.arrangement.findMany({
         where: (arr, { and, or, eq }) => and(
             or(eq(arr.seasonid, year.seasonid), eq(arr.seasonid, fall.seasonid), eq(arr.seasonid, spring.seasonid)),
             eq(arr.isregclass, true)
         ),
+        with: {
+                class: {
+                    columns:{classno: true }
+                },
+        },
         orderBy: (arr, { asc }) => [asc(arr.arrangeid)]
     });
+*/
+
+    const allClassData = await db.select({
+        ...getTableColumns(arrangement),
+        classno: sql<number>`CAST(${classes.classno} AS INTEGER)`,
+        }).from(arrangement)
+          .innerJoin(classes, eq(arrangement.classid, classes.classid))
+          .where(or(eq(arrangement.seasonid, year.seasonid), 
+                   eq(arrangement.seasonid, fall.seasonid),
+                   eq(arrangement.seasonid, spring.seasonid)))
+           .orderBy(asc(classes.classno), asc(arrangement.arrangeid));
+    
+
+    const classDataMap: Map<number, (InferSelectModel<typeof arrangement>&{ classno: number})[] > = new Map();
+
+    for (const classItem of allClassData) {
+        const bucket = classDataMap.get(classItem.classno);
+        if(!bucket) {
+            classDataMap.set(classItem.classno, [classItem]);
+        }
+        else {
+            bucket.push(classItem);
+        }
+//        bucket.push(classItem);
+//        classDataMap[classItem.classno].push(classItem);
+    }
+
+    const gradeClass : (InferSelectModel<typeof arrangement>&{ classno: number } )[][] = [];
+    const sortdGradeClasses = Array.from(classDataMap.keys()).sort((a,b) => a - b);
+    for (const classno of sortdGradeClasses) {
+        const classItems = classDataMap.get(classno);
+        if (classItems) {
+            gradeClass.push(classItems)
+        }
+    }
 
     // TODO: type student better if you want lol
     const getStudentView = async (studentReg: InferSelectModel<typeof classregistration> & { student: InferSelectModel<typeof student> } ) => {
@@ -108,11 +149,12 @@ export default async function SemesterPage() {
             namefirsten: studentReg.student.namefirsten,
             dob: studentReg.student.dob,
             gender: studentReg.student.gender || "Unknown",
-            notes: studentReg.notes || ""
+            notes: studentReg.notes || "",
+            classid: studentReg.classid,
         } satisfies adminStudentView;
     }
 
-    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>) => {
+    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>&{classno:number}) => {
         const regClassStudents = await tx.query.classregistration.findMany({
             where: (studentreg, { and, or, eq }) => and(
                 eq(studentreg.classid, curClass.classid), 
@@ -156,32 +198,77 @@ export default async function SemesterPage() {
     }
 
     // Get student view data and transform into data table form
-    const getStudentsAndClassrooms = async (regClass: InferSelectModel<typeof arrangement>): Promise<fullRegClass> => {
+    const getStudentsAndClassrooms = async (regClass: (InferSelectModel<typeof arrangement>&{ classno: number })[] ): Promise<fullRegClass> => {
         // Get the students who have registered. These are attached to regclasses like 3R because of how we queried for classData 13 lines up.
         // This is done pre or post dispersal. All registrations are first sent to R classes.
         return await db.transaction(async (tx) => {
-            // 1. Create an array for all dropped students which we want to store separately
+
+            if(regClass.length == 0){
+                throw new Error("No reg class found");
+            }
             const allDropped = []
-            // 2. Get student views for dropped students and students in reg.
-            // We have to run this for every class because students can drop while in reg class or any other constituent class
-            const [regDroppedStudents, regStudentViews] = await splitStudents(tx, regClass);
+            const constituentClassObjs = []
+
+           const constiuentClassrooms = await tx.query.classes.findMany({
+                where: (classes, { eq }) => eq (classes.classno, String(regClass[0].classno)),
+                columns: {
+                    classid: true,
+                    classnamecn: true,
+                    description: true
+                }
+            });
+
+            const [regDroppedStudents, regStudentViews] = await splitStudents(tx, regClass[0]);
+                    // 2. Get student views for dropped students and students in reg.
+                    // We have to run this for every class because students can drop while in reg class or any other constituent class
 
             allDropped.push(...regDroppedStudents);
 
+
+            for(let index = 1 ; index < regClass.length; index++ ){
+                    // constituent classes
+                    const specificArrangement = regClass[index];
+
+                    const [droppedStudentViews, classStudentViews] = await splitStudents(tx, specificArrangement);
+                    // 6. Do this for the constituent classroom
+                    const classObj = {
+                        arrinfo: specificArrangement,
+                        students: classStudentViews,
+                    } satisfies fullClassStudents 
+ 
+                    constituentClassObjs.push(classObj);
+                    allDropped.push(...droppedStudentViews);
+
+            }        
+                
             // 3. Get the specific classes of this reg class, i.e. 3A, 3B, 3C
             // Check which classes have regclassid as a gradeclassid.
-            const constiuentClassrooms = await tx.query.classes.findMany({
+            /*const constiuentClassrooms = await tx.query.classes.findMany({
                 where: (classes, { eq }) => eq(classes.gradeclassid, regClass.classid),
                 columns: {
                     classid: true
                 }
+            });*/
+
+           /* const constiuentClassrooms = await tx.query.classes.findMany({
+                where: (classes, { eq }) => eq(classes.classno, regClass.class.classno),
+                columns: {
+                    classid: true,
+                    classnamecn: true,
+                    description: true
+                }
             });
 
+            
             // 4. Set up constituent classrooms as a list and loop
-            const constituentClassObjs = []
+            //const constituentClassObjs = []
 
             for (const gradeClass of constiuentClassrooms) {
                 // 5. Find the arrangement in the academic year or the semester
+                if (gradeClass.classid == regClass.classid) {
+                    // it is the same class, skip
+                    continue;
+                }
                 const specificArrangement = await tx.query.arrangement.findFirst({
                     where: (arr, { eq, and }) => and(
                         eq(arr.classid, gradeClass.classid), 
@@ -203,11 +290,12 @@ export default async function SemesterPage() {
                 constituentClassObjs.push(classObj);
                 allDropped.push(...droppedStudentViews);
             }
-
+            */
             const dataview = {
-                arrinfo: regClass,
+                arrinfo: regClass[0],
                 students: regStudentViews,
                 classrooms: constituentClassObjs,
+                availablerooms: constiuentClassrooms.filter(item =>item.classid != regClass[0].classid),
                 dropped: allDropped
             } satisfies fullRegClass
 
@@ -218,8 +306,8 @@ export default async function SemesterPage() {
 
     // Fetch all student data upfront
     const classDataWithStudents: fullSemClassesData = await Promise.all(
-        classData.map((classItem) => {
-            const regClassInfo = getStudentsAndClassrooms(classItem);
+        gradeClass.map((classItems) => {
+            const regClassInfo = getStudentsAndClassrooms(classItems);
             return regClassInfo;
         })
     );
@@ -230,12 +318,23 @@ export default async function SemesterPage() {
 
     const threeTerms = { year: year, fall: fall, spring: spring }
 
+    const allCurClasses =allClassData.map( (classItem) =>{
+        const classid = classItem.classid;
+        const cls = options.classes.find( (cls) => cls.classid === classid );
+        return {arrangeid: classItem.arrangeid,
+                seasonid: classItem.seasonid,
+                classid:cls? cls.classid : -1,
+                classnamecn: cls? cls.classnamecn :"unknown", 
+                description:"" } as arrangeClasses;    
+
+    })
     return (
         <SemesterView 
             academicYear={threeTerms}
             fullData={classDataWithStudents}
             selectOptions={options}
             idMaps={idMaps}
+            allClasses={allCurClasses}
         />
     )
 }

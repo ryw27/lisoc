@@ -18,12 +18,27 @@ import {
     PopoverContent, 
     PopoverTrigger 
 } from "@/components/ui/popover";
-import { adminStudentView, uiClasses } from "@/lib/registration/types";
+
+import { 
+    AlertDialog, 
+    AlertDialogTrigger, 
+    AlertDialogContent, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogFooter, 
+    AlertDialogCancel, 
+    AlertDialogAction 
+} from "@/components/ui/alert-dialog";
+
+
+
+
+import { adminStudentView, uiClasses,arrangeClasses } from "@/lib/registration/types";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
 import { Action, fullRegID, fullSemDataID } from "./sem-view";
-import { adminTransferStudent, adminDropRegistration } from "@/lib/registration/regchanges";
+import { adminTransferStudent, adminDropRegistration,adminTransferStudent2 } from "@/lib/registration/regchanges";
 import { useRegistrationContext } from "@/lib/registration/registration-context";
 import { ClientTable } from "@/components/client-table";
 
@@ -101,6 +116,7 @@ type studentTableProps = {
     reducerState: fullSemDataID;
     dispatch: React.Dispatch<Action>;
     // uuid: string;
+    allClasses: arrangeClasses[];
 }
 
 // Helper function to find a student in the current class or its classrooms
@@ -241,7 +257,96 @@ const addStudentToTargetClass = (
     };
 };
 
-export default function StudentTable({ registrations, reducerState, curClass, dispatch }: studentTableProps) {
+function TransferButton({student, allClasses}: {student: adminStudentView,allClasses:arrangeClasses[]}) {    
+
+    const sname = student.namecn;
+    const currCid = student.classid;
+    const regid = student.regid;
+    const familyid = student.familyid;  
+    const studentid = student.studentid;
+    const [selection, setSelection] = useState<String>("")
+
+    const handleTransfer = async () => {
+        
+        try {
+                // Call the server action
+                const newarrangeid = parseInt(selection.toString());
+                const adminOverride = true;
+                const newCls :  arrangeClasses|undefined = allClasses.find(c=>c.arrangeid===newarrangeid);
+                const newArrangeObj:uiClasses= {
+                    arrangeid: newarrangeid,
+                    seasonid: newCls? newCls.seasonid : 0,
+                    classid: newCls? newCls.classid : 0,
+                }
+                // make sure phase matches adminTransferStudents
+                const newRegObj = await adminTransferStudent2(regid, studentid, familyid, newArrangeObj);
+                
+               // console.log("Transferring student", studentid, "to arrangement", newarrangeid);
+               // console.log(newCls);
+               // console.log("Transfer successful");
+
+        } 
+        catch (error) {
+            console.error("Transfer failed:", error);
+        }
+    }
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <button
+                    type="button"
+                    className={`text-md text-gray-500 rounded-md hover:text-red-600 cursor-pointer`}
+                    onClick={e => e.stopPropagation()}
+                    title={"transfer student to another class"}
+                    disabled={false}
+                >
+                    transfer
+                </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Transfer  Student {sname}  ?
+                    </AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="text-sm text-gray-600 mb-4">
+                    <Select onValueChange={setSelection}>
+                      <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Please Choose Class" />
+                       </SelectTrigger>
+                       <SelectContent>
+                        {
+                            allClasses.filter(c=>c.classid!==currCid).map((cls)=>{
+                                return <SelectItem key={cls.classid} value={cls.arrangeid.toString()}>{cls.classnamecn}</SelectItem>  
+
+                            })
+                        }
+                        </SelectContent>
+                    </Select>
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="cursor-pointer" onClick={e => e.stopPropagation()}>
+                        Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+                        disabled = {selection === "" }
+                        onClick={e => {
+                            e.stopPropagation();
+                           handleTransfer();
+                        }}
+                    >
+                        Transfer
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+
+export default function StudentTable({ registrations, reducerState, curClass, dispatch,allClasses }: studentTableProps) {
     const { idMaps } = useRegistrationContext();
     const [sorting, setSorting] = useState<SortingState>([
         {
@@ -420,7 +525,10 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                     setBusy(false);
                 }
             };
+            return (<div> <TransferButton student = {row.original} 
+                                           allClasses={allClasses} /> </div>);  
             return (
+                
                 <Popover>
                     <PopoverTrigger 
                         className={cn(
@@ -443,7 +551,8 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                         side="bottom"
                         sideOffset={5}
                     >
-                        {phase === "transfer" && (
+                    
+                       {phase === "transfer" && (
                             <>
                                 <button 
                                     className={cn(
@@ -564,9 +673,11 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                                 </div>
                             </div>
                         )}
+                    
+                       
                     </PopoverContent>
                 </Popover>
-
+                
             )
         }
     }

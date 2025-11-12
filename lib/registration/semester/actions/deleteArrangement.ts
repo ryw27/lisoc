@@ -76,7 +76,6 @@ export async function deleteArrangement(classData: uiClasses, override: boolean)
         if (!deleted.length) {
             throw new Error("Failed to delete class arrangement");
         }
-
         return deleted[0];
     });
 }

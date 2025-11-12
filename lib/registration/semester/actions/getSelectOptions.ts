@@ -18,8 +18,10 @@ export async function getSelectOptions() {
         // where: (classes, { eq }) => eq(classes.gradeclassid, classes.classid), // TODO: Uncomment this
         columns: {
             classid: true,
+            classno: true,
             classnamecn: true,
             classnameen: true,
+            
         }
     })
 

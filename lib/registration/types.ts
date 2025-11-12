@@ -29,6 +29,16 @@ export type uiClasses = {
     notes: string | null;
 } 
 
+export type arrangeClasses = {
+    arrangeid: number;
+    seasonid: number;
+    classid: number;
+    classnamecn: string;
+    description: string|null;
+} 
+
+
+
 export type term = "year" | "fall" | "spring" | "any"
 
 // Common views for dropdowns and data fetches
@@ -82,7 +92,8 @@ export type adminStudentView = {
     namefirsten: string;
     dob: string;
     gender: string;
-    notes: string
+    notes: string;
+    classid: number;
 } 
 
 // New semester page overhaul. Probably the final. 
@@ -93,6 +104,7 @@ export type fullClassStudents = {
 
 export type fullRegClass = fullClassStudents & {
     classrooms: fullClassStudents[]
+    availablerooms: availableClasses[];
     dropped: adminStudentView[];
 }
 

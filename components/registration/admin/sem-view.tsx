@@ -16,7 +16,9 @@ import {
   type IdMaps,
   type fullRegClass,
   type threeSeasons,
-  uiClasses,
+  type uiClasses,
+  type availableClasses,
+  type arrangeClasses,
 } from "@/lib/registration/types";
 import { seasons } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
@@ -30,6 +32,7 @@ type semViewProps = {
     academicYear: threeSeasons;
     selectOptions: selectOptions
     idMaps: IdMaps;
+    allClasses: arrangeClasses[];
 }
 
 export type fullRegID = fullRegClass & { id: string }
@@ -146,7 +149,7 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
 
 // Start with a general class overview that is clickable. Each one expands into a data table of students
 // Season is always the academic year.
-export default function SemesterView({ fullData, academicYear, selectOptions, idMaps } : semViewProps) {
+export default function SemesterView({ fullData, academicYear, selectOptions, idMaps,allClasses } : semViewProps) {
     // Augment each fullData item with a uuid for local state management
     const [regClasses, dispatch] = useReducer(
         reducer,
@@ -319,6 +322,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                             dataWithStudents={classItem}
                             dispatch={dispatch}
                             reducerState={regClasses}
+                            allClasses={allClasses}
                         />
                     ))}
 

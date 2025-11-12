@@ -149,7 +149,7 @@ export const classes = pgTable("classes", {
 	ageid: smallint().default(0),
 	typeid: smallint().notNull(),
 	gradeclassid: integer(),
-	classno: numeric({ precision: 8, scale:  0 }).default('0').notNull(),
+	classno: numeric({ precision: 8, scale:  0 }).default(0).notNull(),
 	classnamecn: varchar({ length: 50 }).notNull(),
 	classupid: integer().notNull(),
 	classnameen: varchar({ length: 100 }).notNull(),

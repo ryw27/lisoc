@@ -86,10 +86,10 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     const onAddClassroom = async () => {
         const newIndex = fields.length;
         append({
-            classid: childClasses[newIndex - 1], //.classid
+            classid: null, // childClasses[newIndex - 1], //.classid
             teacherid: 7,
             roomid: 59,
-            seatlimit: 0,
+            seatlimit: 20,
             agelimit: fields[0].agelimit,
             tuitionW: fields[0].tuitionW,
             bookfeeW: fields[0].bookfeeW,
@@ -104,7 +104,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
             isregclass: false,
         });
         setClassEdited(newIndex);
-
+        
         // editForm.setValue(`classrooms.${newIndex}.classid`, childClasses[newIndex - 1], {
         //     shouldDirty: true,
         //     shouldValidate: true,
@@ -306,7 +306,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 )}
                             >
-                                {idx === 0 ? "Reg Class" : `Field ${idx}`} ({classMap[(field.classid as number)]?.classnamecn ?? `Class ${field.classid}`})
+                                {idx === 0 ? "Reg Class" : `${idx}:`} ({classMap[(field.classid as number)]?.classnamecn ?? `Class ${field.classid}`})
                             </button>
                         ))}
                     </div>
@@ -335,12 +335,13 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                                                 <SelectTrigger className="w-full border rounded p-1">
                                                     <SelectValue placeholder="Select a class" />
                                                 </SelectTrigger>
-                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                {<SelectContent className="max-h-[200px] overflow-y-auto">
                                                     {selectOptions.classes.map((obj) => (
                                                         <SelectItem key={obj.classid} value={obj.classid.toString()}>
                                                             {classMap[obj.classid]?.classnamecn ?? `Class ${obj.classid}`}
                                                         </SelectItem>
                                                     ))}
+                                                </SelectContent>}
                                                     {/* {uuid !== "ADDING"
                                                         ? fields.map((obj) => (
                                                             <SelectItem key={obj.id} value={(obj.classid as number).toString()}>
@@ -353,7 +354,6 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                                                             </SelectItem>
                                                         ))
                                                     } */}
-                                                </SelectContent>
                                             </Select>
                                         )}
                                     />
@@ -361,6 +361,33 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                             )}
 
                             {classEdited !== 0 && (
+                                <>
+                                <div className="flex-1 min-w-0">
+                                    <label className="block text-sm text-gray-400 font-bold mb-2">Choose Class</label>
+                                        <Controller
+                                            name={`classrooms.${classEdited}.classid`}
+                                            control={editForm.control}
+                                            render={({ field }) => (
+                                                <Select
+                                                    required
+                                                    aria-required
+                                                    value={field.value?.toString()}
+                                                    onValueChange={value => field.onChange(Number(value))}
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Select a class" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                        {initialData.availablerooms.map((obj: { classid: number, classnamecn: string, description: string | null }) => (
+                                                            <SelectItem key= {obj.classid.toString()} value={obj.classid.toString()} >
+                                                                {`${obj.classnamecn} ${obj.description ?? ""}`}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                </div>
                                 <div className="flex flex-row gap-4 mb-4">
                                     <div className="flex-1 min-w-0">
                                         <label className="block text-sm text-gray-400 font-bold mb-2">Teacher</label>
@@ -415,6 +442,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                                         />
                                     </div>
                                 </div>
+                                </>
                             )}
                             <div className="flex-1 min-w-0">
                                 <label className="block text-sm text-gray-400 font-bold mb-2">Seat Limit</label>
