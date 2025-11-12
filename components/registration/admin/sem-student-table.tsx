@@ -296,7 +296,12 @@ function TransferButton({student, allClasses}: {student: adminStudentView,allCla
             <AlertDialogTrigger asChild>
                 <button
                     type="button"
-                    className={`text-md text-gray-500 rounded-md hover:text-red-600 cursor-pointer`}
+                    className={cn(
+                                        "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                        "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
+                                        "text-red-500 hover:text-blue-600 gap-1","bg-blue-100",
+                                        "focus:outline-none focus:bg-gray-100"
+                                    )}                    
                     onClick={e => e.stopPropagation()}
                     title={"transfer student to another class"}
                     disabled={false}

@@ -102,6 +102,7 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                                             ([key]) => CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
                                         )
                                     ),
+                                    classid: action.roomDraft.classid || 0,
                                 } as uiClasses,
                                 students: [],
                                 dropped: [],
