@@ -17,7 +17,7 @@ import {
   type fullRegClass,
   type threeSeasons,
   type uiClasses,
-  type availableClasses,
+ // type availableClasses,
   type arrangeClasses,
 } from "@/lib/registration/types";
 import { seasons } from "@/lib/db/schema";
@@ -338,7 +338,8 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                                 arrinfo: {} as uiClasses,
                                 students: [],
                                 classrooms: [],
-                                dropped: []
+                                dropped: [],
+                                availablerooms: [],
                             } satisfies fullRegID}
                             dispatch={dispatch}
                             endEdit={() => setAdding(false)}

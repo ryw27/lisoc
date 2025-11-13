@@ -17,10 +17,10 @@ import { type Action, type fullSemDataID } from "./sem-view";
 import { adminDistribute, adminRollback } from "@/lib/registration/";
 import { deleteArrangement } from "@/lib/registration/semester";
 import { type fullRegID } from "./sem-view";
-import { arrangeClasses, type IdMaps,type availableClasses } from "@/lib/registration/types";
+import { arrangeClasses, type IdMaps } from "@/lib/registration/types";
 import { cn } from "@/lib/utils";
 import { useRegistrationContext } from "@/lib/registration/registration-context";
-import { useRouter } from 'next/navigation';
+//import { useRouter } from 'next/navigation';
 
 type semViewBoxProps = {
     uuid: string;
@@ -80,7 +80,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [classShown, setClassShown] = useState<number>(-1); // Index, -1 is the reg class
-    const router = useRouter();
+  //  const router = useRouter();
 
 
     const handleDelete = async () => {
@@ -90,7 +90,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
 //        return ;
         try {
             //dispatch({ type: "reg/remove", id: uuid });
-            dispatch({ type: "class/remove", id: uuid,arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid : allClassrooms[classShown].arrinfo.arrangeid });
+            dispatch({ type: "class/remove", id: uuid,arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid?? 0 : allClassrooms[classShown].arrinfo.arrangeid?? 0 });
             const adminOverride = false;
             const classTobeDeleted = classShown == -1 ? regClassInfo : allClassrooms[classShown].arrinfo;
 

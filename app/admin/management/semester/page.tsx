@@ -5,7 +5,7 @@ import Link from "next/link";
 import SemesterView from "@/components/registration/admin/sem-view";
 import { getSelectOptions } from "@/lib/registration/semester";
 import { type Transaction } from "@/lib/registration/helpers";
-import { type adminStudentView, type fullSemClassesData, arrangeClasses, availableClasses, fullClassStudents, fullRegClass } from "@/lib/registration/types";
+import { type adminStudentView, type fullSemClassesData, arrangeClasses, fullClassStudents, fullRegClass } from "@/lib/registration/types";
 import { InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, student,classes } from "@/lib/db/schema";
 import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";

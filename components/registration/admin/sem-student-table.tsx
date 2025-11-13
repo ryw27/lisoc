@@ -264,22 +264,39 @@ function TransferButton({student, allClasses}: {student: adminStudentView,allCla
     const regid = student.regid;
     const familyid = student.familyid;  
     const studentid = student.studentid;
-    const [selection, setSelection] = useState<String>("")
+    const [selection, setSelection] = useState<string>("")
 
     const handleTransfer = async () => {
         
         try {
                 // Call the server action
                 const newarrangeid = parseInt(selection.toString());
-                const adminOverride = true;
+                //const adminOverride = true;
                 const newCls :  arrangeClasses|undefined = allClasses.find(c=>c.arrangeid===newarrangeid);
                 const newArrangeObj:uiClasses= {
                     arrangeid: newarrangeid,
                     seasonid: newCls? newCls.seasonid : 0,
                     classid: newCls? newCls.classid : 0,
+                    teacherid: 0,
+                    roomid: 0,
+                    seatlimit: 0,
+                    isregclass: false,
+                    tuitionW: null,
+                    specialfeeW: null,
+                    bookfeeW: null,
+                    tuitionH: null,
+                    specialfeeH: null,
+                    bookfeeH: null,
+                    waiveregfee: false,
+                    timeid: 0,
+                    agelimit: null,
+                    suitableterm:0,
+                    closeregistration:false,
+                    notes:""
                 }
                 // make sure phase matches adminTransferStudents
-                const newRegObj = await adminTransferStudent2(regid, studentid, familyid, newArrangeObj);
+                //const newRegObj = 
+                await adminTransferStudent2(regid, studentid, familyid, newArrangeObj);
                 
                // console.log("Transferring student", studentid, "to arrangement", newarrangeid);
                // console.log(newCls);

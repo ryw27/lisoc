@@ -102,6 +102,12 @@ export type fullClassStudents = {
     students: adminStudentView[];
 }
 
+export type availableClasses = {
+    classid: number;
+    classnamecn: string;
+    description: string | null;
+}
+
 export type fullRegClass = fullClassStudents & {
     classrooms: fullClassStudents[]
     availablerooms: availableClasses[];

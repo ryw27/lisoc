@@ -78,11 +78,11 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
     //     return () => { isMounted = false; };
     // }, [initialData]);
 
-    const [childClasses, setChildClasses] = useState<number[]>([]);
+    /*const [childClasses, setChildClasses] = useState<number[]>([]);
     useEffect(() => {
         setChildClasses([1, 2, 4, 6, 8, 12]);
     }, [])
-
+    */
     const onAddClassroom = async () => {
         const newIndex = fields.length;
         append({
