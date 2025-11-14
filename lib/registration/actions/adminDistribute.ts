@@ -1,7 +1,7 @@
 "use server";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { toESTString } from "@/lib/utils";
 import { fullRegClass } from "@/lib/registration/types";
 
