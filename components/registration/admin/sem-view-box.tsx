@@ -89,8 +89,13 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
         console.log("current classrom classshown", classShown);
 //        return ;
         try {
-            //dispatch({ type: "reg/remove", id: uuid });
-            dispatch({ type: "class/remove", id: uuid,arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid?? 0 : allClassrooms[classShown].arrinfo.arrangeid?? 0 });
+            if (classShown === -1) {
+                dispatch({ type: "reg/remove", id: uuid });
+            }else{
+                dispatch({ type: "class/remove", id: uuid,arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid?? 0 : allClassrooms[classShown].arrinfo.arrangeid?? 0 });
+            }
+
+            
             const adminOverride = false;
             const classTobeDeleted = classShown == -1 ? regClassInfo : allClassrooms[classShown].arrinfo;
 
@@ -234,7 +239,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
                         <Edit className="w-4 h-4"/>
                     </button>
                     {/* Delete */}
-                    <DeleteButton disabled={classShown == -1 ? true : ( allClassrooms? allClassrooms[classShown]?.students.length>0 : true) } onDelete={handleDelete} />
+                    <DeleteButton disabled={classShown == -1 ? (allClassrooms.length==0 && regStudents.length==0 ? false:true) : ( allClassrooms? allClassrooms[classShown]?.students.length>0 : true) } onDelete={handleDelete} />
                 </div>
             </div>
             {/* More Info button */}
