@@ -65,14 +65,22 @@ export async function adminDistribute(data: fullRegClass, moved: { studentid: nu
                     classid: student.toclassid,
                     lastmodify: toESTString(new Date())
                 })
-                .where(or(
+                .where(
+                    and(
+                        eq(classregistration.studentid, student.studentid), 
+                      //  eq(classregistration.classid, student.toclassid),
+                        eq(classregistration.seasonid, data.arrinfo.seasonid)
+                    )
+                   )
+
+              /*.where(or(
                     and(
                         eq(classregistration.studentid, student.studentid), 
                         eq(classregistration.classid, student.toclassid),
                         eq(classregistration.seasonid, data.arrinfo.seasonid)
                     ),
                     eq(classregistration.arrangeid, data.arrinfo.arrangeid as number) // Should be in registrations. If not, this is the wrong function
-                ))
+                ))*/
         }
     })
 }
