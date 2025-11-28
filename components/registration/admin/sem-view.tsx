@@ -156,7 +156,8 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         reducer,
         fullData.map(item => ({
             ...item,
-            id: crypto.randomUUID()
+           // id: crypto.randomUUID()
+           id:item.arrinfo.classkey.toString()
         }))
     );
 

@@ -27,14 +27,17 @@ export type uiClasses = {
     bookfeeH: string | null;
     isregclass: boolean;
     notes: string | null;
+    classkey: number;
 } 
 
 export type arrangeClasses = {
     arrangeid: number;
     seasonid: number;
     classid: number;
+    typeid: number;
+    classno: number;
     classnamecn: string;
-    description: string|null;
+    description: string|null
 } 
 
 

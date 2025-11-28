@@ -80,9 +80,10 @@ export default async function SemesterPage() {
     });
 */
 
+    // same grade class and type will be grouped together to become classkey 
     const allClassData = await db.select({
         ...getTableColumns(arrangement),
-        classno: sql<number>`CAST(${classes.classno} AS INTEGER)`,
+        classkey: sql<number>`(CAST(${classes.classno} AS INTEGER)+100)*1000+CAST(${classes.typeid} AS INTEGER)`,
         }).from(arrangement)
           .innerJoin(classes, eq(arrangement.classid, classes.classid))
           .where(or(eq(arrangement.seasonid, year.seasonid), 
@@ -91,24 +92,22 @@ export default async function SemesterPage() {
            .orderBy(asc(classes.classno), asc(arrangement.arrangeid));
     
 
-    const classDataMap: Map<number, (InferSelectModel<typeof arrangement>&{ classno: number})[] > = new Map();
+    const classDataMap: Map<number, (InferSelectModel<typeof arrangement>&{ classkey: number})[] > = new Map();
 
     for (const classItem of allClassData) {
-        const bucket = classDataMap.get(classItem.classno);
+        const bucket = classDataMap.get(classItem.classkey);
         if(!bucket) {
-            classDataMap.set(classItem.classno, [classItem]);
+            classDataMap.set(classItem.classkey, [classItem]);
         }
         else {
             bucket.push(classItem);
         }
-//        bucket.push(classItem);
-//        classDataMap[classItem.classno].push(classItem);
     }
 
-    const gradeClass : (InferSelectModel<typeof arrangement>&{ classno: number } )[][] = [];
+    const gradeClass : (InferSelectModel<typeof arrangement>&{ classkey: number } )[][] = [];
     const sortdGradeClasses = Array.from(classDataMap.keys()).sort((a,b) => a - b);
-    for (const classno of sortdGradeClasses) {
-        const classItems = classDataMap.get(classno);
+    for (const classkey of sortdGradeClasses) {
+        const classItems = classDataMap.get(classkey);
         if (classItems) {
             gradeClass.push(classItems)
         }
@@ -154,7 +153,7 @@ export default async function SemesterPage() {
         } satisfies adminStudentView;
     }
 
-    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>&{classno:number}) => {
+    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>&{classkey:number}) => {
         const regClassStudents = await tx.query.classregistration.findMany({
             where: (studentreg, { and, or, eq }) => and(
                 eq(studentreg.classid, curClass.classid), 
@@ -198,7 +197,7 @@ export default async function SemesterPage() {
     }
 
     // Get student view data and transform into data table form
-    const getStudentsAndClassrooms = async (regClass: (InferSelectModel<typeof arrangement>&{ classno: number })[] ): Promise<fullRegClass> => {
+    const getStudentsAndClassrooms = async (regClass: (InferSelectModel<typeof arrangement>&{ classkey: number })[] ): Promise<fullRegClass> => {
         // Get the students who have registered. These are attached to regclasses like 3R because of how we queried for classData 13 lines up.
         // This is done pre or post dispersal. All registrations are first sent to R classes.
         return await db.transaction(async (tx) => {
@@ -210,7 +209,10 @@ export default async function SemesterPage() {
             const constituentClassObjs = []
 
            const constiuentClassrooms = await tx.query.classes.findMany({
-                where: (classes, { eq }) => eq (classes.classno, String(regClass[0].classno)),
+//                where: (classes, { eq }) => eq (classes.classno, String(regClass[0].classno)),
+                where: (classes, { eq, and  }) => and(eq (classes.classno, String(Math.trunc(regClass[0].classkey/1000)-100)),
+                                                      eq (classes.typeid, regClass[0].classkey % 1000)),
+
                 columns: {
                     classid: true,
                     classnamecn: true,
@@ -325,7 +327,9 @@ export default async function SemesterPage() {
                 seasonid: classItem.seasonid,
                 classid:cls? cls.classid : -1,
                 classnamecn: cls? cls.classnamecn :"unknown", 
-                description:"" } as arrangeClasses;    
+                typeid: cls? cls.typeid : -1,
+                classno: parseInt(cls? cls.classno: "-1"),
+                description:cls?.description } as arrangeClasses;    
 
     })
     return (

@@ -196,6 +196,7 @@ const handleIntraClassTransfer = (
                     return { ...c, students: c.students.filter(s => s.regid !== regid) };
                 }
                 if (c.arrinfo.arrangeid === newArrangeObj.arrangeid) {
+                    student.classid = c.arrinfo.classid; // Update classid
                     return { ...c, students: [...c.students, student] };
                 }
                 return c;
@@ -245,25 +246,41 @@ const updateRegIdInClass = (
 // Helper function to add student to target class with new regid
 const addStudentToTargetClass = (
     studentData: adminStudentView,
-    newRegId: number,
+    newArrangeId: number,
     targetClass: fullRegID
 ): fullRegID => {
-    return {
-        ...targetClass,
-        students: [
-            ...targetClass.students,
-            { ...studentData, regid: newRegId }
-        ],
-    };
+return {
+    ...targetClass,
+    students:
+        targetClass.arrinfo.arrangeid === newArrangeId
+            ? [...targetClass.students, studentData]
+            : targetClass.students,
+    classrooms: targetClass.classrooms.map(classroom => ({
+        ...classroom,
+        students:
+            classroom.arrinfo.arrangeid === newArrangeId
+                ? [...classroom.students, studentData]
+                : classroom.students,
+    })),
 };
 
-function TransferButton({student, allClasses}: {student: adminStudentView,allClasses:arrangeClasses[]}) {    
+
+};
+
+function TransferButton({student, dispatch , curClass,allClasses,reducerState}:
+ {student: adminStudentView, dispatch: React.Dispatch<Action>,
+  curClass: fullRegID,allClasses:arrangeClasses[],
+  reducerState: fullSemDataID}) 
+{    
 
     const sname = student.namecn;
     const currCid = student.classid;
     const regid = student.regid;
     const familyid = student.familyid;  
     const studentid = student.studentid;
+    const curClasskey = curClass.arrinfo.classkey;
+    //const currArrangeid = curClass.arrinfo.arrangeid;
+
     const [selection, setSelection] = useState<string>("")
 
     const handleTransfer = async () => {
@@ -273,10 +290,12 @@ function TransferButton({student, allClasses}: {student: adminStudentView,allCla
                 const newarrangeid = parseInt(selection.toString());
                 //const adminOverride = true;
                 const newCls :  arrangeClasses|undefined = allClasses.find(c=>c.arrangeid===newarrangeid);
+
                 const newArrangeObj:uiClasses= {
                     arrangeid: newarrangeid,
                     seasonid: newCls? newCls.seasonid : 0,
                     classid: newCls? newCls.classid : 0,
+                    classkey: newCls? (newCls.classno+100)*1000+newCls.typeid : 0,
                     teacherid: 0,
                     roomid: 0,
                     seatlimit: 0,
@@ -296,11 +315,73 @@ function TransferButton({student, allClasses}: {student: adminStudentView,allCla
                 }
                 // make sure phase matches adminTransferStudents
                 //const newRegObj = 
-                await adminTransferStudent2(regid, studentid, familyid, newArrangeObj);
+                const newRegObj = await adminTransferStudent2(regid, studentid, familyid, newArrangeObj);
+
+                const newClsKey = newCls? (newCls.classno+100)*1000 + newCls.typeid : -1;
                 
-               // console.log("Transferring student", studentid, "to arrangement", newarrangeid);
-               // console.log(newCls);
-               // console.log("Transfer successful");
+                if( newClsKey === curClasskey ) {
+                    // intra-class transfer
+                    const updatedCurClass = handleIntraClassTransfer(regid, newArrangeObj, curClass);
+
+                    const updatedClass = updateRegIdInClass(regid, newRegObj.regid, updatedCurClass);
+
+                  //  dispatch({ type: "reg/distribute", id: curClass.id, newDistr: updatedCurClass });
+                    dispatch({ type: "reg/distribute", id: curClass.id, newDistr: updatedClass });
+ 
+                }
+                else {
+                    // Inter-class transfer setup
+                    //    isInterClassTransfer = true;
+                        
+                        // Class transfer - find target class in reducer state
+                    const targetClass = reducerState.find(
+                           // c => c.arrinfo.arrangeid === newarrangeid
+                            c=> c.id == String(newClsKey)  
+                    );
+                    if (!targetClass) {
+                        throw new Error("Target class not found");
+                    }
+
+                        // Snapshot both classes for rollback
+                    const sourceSnapshot = { ...curClass };
+                    const targetSnapshot = { ...targetClass };
+
+                    //const newArrangeObj = targetClass.arrinfo;
+                    const student = findStudentInClass(regid, curClass);
+                        
+                    if (!student) {
+                        throw new Error("Student not found in current class");
+                    }
+
+                        // Remove student from current class
+                    const updatedCurClass = removeStudentFromClass(regid, curClass);
+                    dispatch({ type: "reg/distribute", id: curClass.id, newDistr: updatedCurClass });
+
+                    // Add student to target class
+                    /*const updatedTargetClass: fullRegID = {
+                        ...targetClass,
+                        students: [...targetClass.students, student]
+                    };*/
+                    //dispatch({ type: "reg/distribute", id: targetClass.id, newDistr: updatedTargetClass });
+
+                        // Inter-class transfer: add student to target class with new regid
+                      /*  if (!sourceSnapshot || !targetSnapshot) {
+                            throw new Error("Missing snapshots for inter-class transfer");
+                        }*/
+                    const studentData = findStudentInClass(regid, sourceSnapshot)!;
+                    studentData.classid = newRegObj.classid; // Update classid to target class
+                    studentData.regid = newRegObj.regid; // Update regid to new regid
+                    const updatedTargetClass = addStudentToTargetClass(
+                            studentData,
+                            newRegObj.arrangeid,
+                            targetSnapshot
+                        );
+                    dispatch({
+                            type: "reg/distribute",
+                            id: targetSnapshot.id,
+                            newDistr: updatedTargetClass,
+                    });
+                }
 
         } 
         catch (error) {
@@ -547,8 +628,8 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                     setBusy(false);
                 }
             };
-            return (<div> <TransferButton student = {row.original} 
-                                           allClasses={allClasses} /> </div>);  
+            return (<div> <TransferButton student = {row.original}  curClass={curClass} dispatch={dispatch} 
+                                           allClasses={allClasses} reducerState={reducerState} /> </div>);  
             return (
                 
                 <Popover>

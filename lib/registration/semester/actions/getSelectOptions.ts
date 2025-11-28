@@ -21,6 +21,9 @@ export async function getSelectOptions() {
             classno: true,
             classnamecn: true,
             classnameen: true,
+            typeid: true,
+            description: true   
+
             
         }
     })
