@@ -293,11 +293,13 @@ export default async function SemesterPage() {
                 allDropped.push(...droppedStudentViews);
             }
             */
+            const regClassIds = new Set(regClass.map(c => c.classid));
+
             const dataview = {
                 arrinfo: regClass[0],
                 students: regStudentViews,
                 classrooms: constituentClassObjs,
-                availablerooms: constiuentClassrooms.filter(item =>item.classid != regClass[0].classid),
+                availablerooms: constiuentClassrooms.filter(item => !regClassIds.has(item.classid)),
                 dropped: allDropped
             } satisfies fullRegClass
 

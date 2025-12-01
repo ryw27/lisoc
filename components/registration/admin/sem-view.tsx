@@ -107,7 +107,10 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                                 students: [],
                                 dropped: [],
                             }
-                        ]
+                        ],
+                        availablerooms: regClass.availablerooms.filter(
+                            (room) => room.classid !== action.roomDraft.classid
+                        ),
                     }
                     : regClass
             );
@@ -132,12 +135,41 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
         case "class/remove":
             return state.map((regClass) =>
                 regClass.id === action.id
-                    ? {
-                        ...regClass,
-                        classrooms: regClass.classrooms.filter(
+                    ? (() => {
+                        // Find the classroom being removed
+                        const removedClass = regClass.classrooms.find(
+                            (classroom) => classroom.arrinfo.arrangeid === action.arrangeid
+                        );
+
+                        // Remove the classroom from the arranged classrooms list
+                        const remainingClassrooms = regClass.classrooms.filter(
                             (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
-                        ),
-                    }
+                        );
+
+                        // If nothing was found, just return the class with updated classrooms
+                        if (!removedClass) {
+                            return {
+                                ...regClass,
+                                classrooms: remainingClassrooms,
+                            };
+                        }
+
+                        // Prepare the availableroom to re-add - strip arrangeid so it's a pure available room
+                        const { arrangeid, ...availableRoom } = removedClass.arrinfo as any;
+
+                        // Prevent duplicate available rooms by classid
+                        const alreadyExists = regClass.availablerooms.some(
+                            (room) => room.classid === availableRoom.classid
+                        );
+
+                        return {
+                            ...regClass,
+                            classrooms: remainingClassrooms,
+                            availablerooms: alreadyExists
+                                ? regClass.availablerooms
+                                : [...regClass.availablerooms, availableRoom],
+                        };
+                    })()
                     : regClass
             );
         case "reg/distribute":
