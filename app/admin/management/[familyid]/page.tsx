@@ -35,7 +35,8 @@ const fetchFamilyData = async (familyid: number) => {
         : [];
     
     const balances = await db.query.familybalance.findMany({
-        where: (fb, { eq }) => eq(fb.familyid, fam.familyid)
+        where: (fb, { eq }) => eq(fb.familyid, fam.familyid),
+        orderBy: (fb, { desc }) => [desc(fb.registerdate)],
     });
 
     return { fam, studentsInFamily, registrations, balances };
@@ -63,7 +64,7 @@ const FamilyDetails: FC<{ familyid: number}> = async ({ familyid }) => {
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-4">Family: {fam.fatherfirsten || fam.motherfirsten}</h1>
+            <h1 className="text-2xl font-bold mb-4">Family: {fam.fatherfirsten || fam.motherfirsten} ({fam.familyid})</h1>
             <div className="mb-6">
                 <h2 className="text-lg font-semibold">Contact</h2>
                 <div className="text-gray-700">

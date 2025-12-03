@@ -1,9 +1,26 @@
 "use client"
 import { ColumnDef, SortingState, useReactTable } from "@tanstack/react-table";
-import { getCoreRowModel, getSortedRowModel } from "@tanstack/react-table";
+import { getCoreRowModel, getSortedRowModel , getFilteredRowModel,  getFacetedUniqueValues, } from "@tanstack/react-table";
 import { useState } from "react";
 import { ClientTable } from "@/components/client-table";
 
+function SelectColumnFilter({ column }: { column: any }) {
+  const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
+
+  return (
+    <select
+      value={(column.getFilterValue() ?? '')}
+      onChange={(e) => column.setFilterValue(e.target.value)}
+    >
+      <option value="">All</option>
+      {uniqueValues.map((value) => (
+        <option key={String(value)} value={String(value)}>
+          {String(value)}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 type balanceTypes = {
     balanceid: number;
@@ -23,18 +40,31 @@ const columns: ColumnDef<balanceTypes>[] = [
         accessorKey: "regdate",
     },
     {
-        header: "Semester",
+        //header: "Semester",
         accessorKey: "semester",
-    },
+        header: ({ column }) => (
+          <div>
+            Semester<br/>
+            <SelectColumnFilter column={column} />
+         </div>
+        ),
+        filterFn: 'equalsString', // Use a built-in filter function
+        //filterFn: 'uniqueValueFilterFn', // Use a built-in filter function
+        enableColumnFilter: true,
+        enableSorting: false, // Disable sorting for this column
+   },
+    
     {
         header: "Amount",
         accessorKey: "amount",
         cell: ({ getValue }) => {
             const amount = getValue() as number;
-            return new Intl.NumberFormat('en-US', {
+            const valStr =new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD'
             }).format(amount);
+            const style = amount < 0 ? { color: 'red' } : { color: 'green' }; // Conditional styling
+            return <span style={style}>{valStr}</span>;
         }
     },
     {
@@ -55,6 +85,8 @@ const columns: ColumnDef<balanceTypes>[] = [
 type balanceTableProps = {
     balanceData: balanceTypes[];
 }
+
+
 export default function BalanceTable({ balanceData }: balanceTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const table = useReactTable<balanceTypes>({
@@ -62,8 +94,12 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
         columns: columns, 
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        
         enableSorting: true,
         onSortingChange: setSorting,
+        enableColumnFilters: true,
+        getFacetedUniqueValues: getFacetedUniqueValues(), // Enable faceting
+        getFilteredRowModel: getFilteredRowModel(),
         state: { sorting }
     });
     return (
