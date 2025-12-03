@@ -63,6 +63,14 @@ export default function ApplyButton({ family }: { family: familyObj }) {
                 className="border border-gray-300 rounded-md p-2 w-40"
                 {...checkForm.register("paidDate")}
             />
+            <Input
+                placeholder="Note"
+                type="text"
+                className="border border-gray-300 rounded-md p-2 w-60"
+                {...checkForm.register("note")}
+            />
+
+
             <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"

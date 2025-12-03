@@ -52,7 +52,8 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
             totalamount: (-parsed.amount).toString(),
             paiddate: toESTString(parsed.paidDate),
             tuition: (-parsed.amount).toString(),
-            notes: "Tuition paid with check"
+            //notes: "Tuition paid with check"
+            notes: parsed.note || ""
         } satisfies famBalanceInsert
         await tx
             .insert(familybalance)

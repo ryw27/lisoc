@@ -59,6 +59,7 @@ const FamilyDetails: FC<{ familyid: number}> = async ({ familyid }) => {
             amount: Number(balance.totalamount),
             check_no: balance.checkno || "N/A",
             paiddate: balance.paiddate,
+            note: balance.notes || "",
         }
     }));
 

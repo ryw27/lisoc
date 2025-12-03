@@ -79,7 +79,12 @@ const columns: ColumnDef<balanceTypes>[] = [
             if (paiddate === "1900-01-01 00:00:00") return "N/A";
             return paiddate ? new Date(paiddate).toLocaleDateString() : "N/A";
         }
+    },
+    {
+        header: "Note",
+        accessorKey: "note",
     }
+
 ];
 
 type balanceTableProps = {
