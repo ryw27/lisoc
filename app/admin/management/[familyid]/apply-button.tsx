@@ -6,8 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
 import { familyObj } from "@/lib/shared/types";
+import { useRef } from "react";
 
 export default function ApplyButton({ family }: { family: familyObj }) {
+    const formRef = useRef<HTMLFormElement>(null);
+    
     const today = new Date().toISOString().split('T')[0];
 
     const checkForm = useForm({
@@ -25,10 +28,13 @@ export default function ApplyButton({ family }: { family: familyObj }) {
             checkForm.setError("root", { message: errorMessage });
             console.error(error);
         }
+        finally {
+            formRef.current?.reset();   // Optionally reset the form or provide feedback to the user
+        }
     };
 
     return (
-        <form
+        <form ref={formRef}
             onSubmit={checkForm.handleSubmit(onSubmit)}
             className="flex gap-2 items-center mx-auto container justify-center"
         >

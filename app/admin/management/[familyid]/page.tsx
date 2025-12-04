@@ -88,7 +88,7 @@ const FamilyDetails: FC<{ familyid: number}> = async ({ familyid }) => {
                 )}
             </div>
             <div>
-                <h2 className="text-lg font-semibold">Registrations</h2>
+                
                 {registrations.length === 0 ? (
                     <div className="text-gray-500">No class registrations found.</div>
                 ) : (

@@ -135,3 +135,26 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
         revalidatePath(`/admin/management/${oldFB.familyid}`);
     })
 }
+
+
+export async function removeBalance(balanceid: number) {
+    // 1. Auth and parse
+    // const user = await requireRole(["ADMIN"]);
+     await db.transaction(async (tx) => {
+        // 2. Find old family balance vals
+        const oldFB = await tx.query.familybalance.findFirst({
+            where: (fb, {eq} ) => eq(fb.balanceid,balanceid)
+        })
+
+        if (!oldFB) {
+            throw new Error("No family balance found")
+        }
+
+    const familyid = oldFB.familyid;    
+    await tx
+        .delete(familybalance)
+        .where(eq(familybalance.balanceid, balanceid));
+        
+    revalidatePath(`/admin/management/${familyid}`);
+    })
+}   
