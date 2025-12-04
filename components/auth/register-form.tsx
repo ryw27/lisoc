@@ -3,7 +3,7 @@
 //import { Button } from "@/components/ui/button";
 import { FormSubmit, FormInput, FormError } from "./form-components"
 import Logo from "@/components/logo";
-import React, { useState } from "react";
+import { useState } from "react";
 import ResendCodeButton from './resend-code-button'
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

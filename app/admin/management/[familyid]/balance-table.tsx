@@ -1,6 +1,6 @@
 "use client"
-import React, { useMemo, useEffect } from 'react';
-import { ColumnDef, SortingState, useReactTable } from "@tanstack/react-table";
+import { useMemo } from 'react';
+import { ColumnDef, SortingState, useReactTable, Row } from "@tanstack/react-table";
 import { getCoreRowModel, getSortedRowModel , getFilteredRowModel,  getFacetedUniqueValues, } from "@tanstack/react-table";
 import { useState } from "react";
 import { ClientTable } from "@/components/client-table";
@@ -29,15 +29,6 @@ const csvConfig = mkConfig({
   useKeysAsHeaders: true,
 })
 
-// export function
-// Note: change _ in Row<_>[] with your Typescript type.
-const exportExcel = (rows: Row<_>[]) => {
-  const rowData = rows.map((row) => row.original)
-  const csv = generateCsv(csvConfig)(rowData)
-  download(csvConfig)(csv)
-}
-
-
 function SelectColumnFilter({ column }: { column: any }) {
   const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
 
@@ -65,6 +56,16 @@ type balanceTypes = {
     paiddate: string;
     note: string;
 }
+
+// export function
+// Note: change _ in Row<_>[] with your Typescript type.
+const exportExcel = (rows: Row<balanceTypes>[]) => {
+  const rowData = rows.map((row) => row.original)
+  const csv = generateCsv(csvConfig)(rowData)
+  download(csvConfig)(csv)
+}
+
+
 const columns: ColumnDef<balanceTypes>[] = [
     {
         header: "Balance ID",

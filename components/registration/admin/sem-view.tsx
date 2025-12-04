@@ -19,6 +19,7 @@ import {
   type uiClasses,
  // type availableClasses,
   type arrangeClasses,
+  uiClassKey,
 } from "@/lib/registration/types";
 import { seasons } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
@@ -94,16 +95,16 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                                 arrinfo: {
                                     ...Object.fromEntries(
                                         Object.entries(regClass.arrinfo).filter(
-                                            ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                                            ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses & uiClassKey)
                                         )
                                     ),
                                     ...Object.fromEntries(
                                         Object.entries(action.roomDraft).filter(
-                                            ([key]) => CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses)
+                                            ([key]) => CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses & uiClassKey)
                                         )
                                     ),
                                     classid: action.roomDraft.classid || 0,
-                                } as uiClasses,
+                                } as uiClasses & uiClassKey,
                                 students: [],
                                 dropped: [],
                             }
@@ -368,7 +369,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                             uuid="ADDING"
                             initialData={{
                                 id: "ADDING",
-                                arrinfo: {} as uiClasses,
+                                arrinfo: {} as uiClasses & uiClassKey,
                                 students: [],
                                 classrooms: [],
                                 dropped: [],

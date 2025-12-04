@@ -100,7 +100,7 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             const classTobeDeleted = classShown == -1 ? regClassInfo : allClassrooms[classShown].arrinfo;
 
 
-  //          await deleteArrangement(classTobeDeleted, adminOverride); // Server mutation
+            await deleteArrangement(classTobeDeleted, adminOverride); // Server mutation
             //router.refresh();
             setClassShown(-1);
 

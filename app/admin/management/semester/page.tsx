@@ -5,7 +5,7 @@ import Link from "next/link";
 import SemesterView from "@/components/registration/admin/sem-view";
 import { getSelectOptions } from "@/lib/registration/semester";
 import { type Transaction } from "@/lib/registration/helpers";
-import { type adminStudentView, type fullSemClassesData, arrangeClasses, fullClassStudents, fullRegClass } from "@/lib/registration/types";
+import { type adminStudentView, type fullSemClassesData, arrangeClasses, fullClassStudents, fullRegClass, uiClassKey } from "@/lib/registration/types";
 import { InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, student,classes } from "@/lib/db/schema";
 import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
@@ -83,7 +83,10 @@ export default async function SemesterPage() {
     // same grade class and type will be grouped together to become classkey 
     const allClassData = await db.select({
         ...getTableColumns(arrangement),
+        classUid: classes.classid,
         classkey: sql<number>`(CAST(${classes.classno} AS INTEGER)+100)*1000+CAST(${classes.typeid} AS INTEGER)`,
+        classnamecn: classes.classnamecn,
+        description: classes.description
         }).from(arrangement)
           .innerJoin(classes, eq(arrangement.classid, classes.classid))
           .where(or(eq(arrangement.seasonid, year.seasonid), 
@@ -92,7 +95,7 @@ export default async function SemesterPage() {
            .orderBy(asc(classes.classno), asc(arrangement.arrangeid));
     
 
-    const classDataMap: Map<number, (InferSelectModel<typeof arrangement>&{ classkey: number})[] > = new Map();
+    const classDataMap: Map<number, (InferSelectModel<typeof arrangement>& uiClassKey)[] > = new Map();
 
     for (const classItem of allClassData) {
         const bucket = classDataMap.get(classItem.classkey);
@@ -104,7 +107,7 @@ export default async function SemesterPage() {
         }
     }
 
-    const gradeClass : (InferSelectModel<typeof arrangement>&{ classkey: number } )[][] = [];
+    const gradeClass : (InferSelectModel<typeof arrangement>& uiClassKey )[][] = [];
     const sortdGradeClasses = Array.from(classDataMap.keys()).sort((a,b) => a - b);
     for (const classkey of sortdGradeClasses) {
         const classItems = classDataMap.get(classkey);
@@ -153,7 +156,7 @@ export default async function SemesterPage() {
         } satisfies adminStudentView;
     }
 
-    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>&{classkey:number}) => {
+    const splitStudents = async (tx: Transaction, curClass: InferSelectModel<typeof arrangement>& uiClassKey) => {
         const regClassStudents = await tx.query.classregistration.findMany({
             where: (studentreg, { and, or, eq }) => and(
                 eq(studentreg.classid, curClass.classid), 
@@ -197,7 +200,7 @@ export default async function SemesterPage() {
     }
 
     // Get student view data and transform into data table form
-    const getStudentsAndClassrooms = async (regClass: (InferSelectModel<typeof arrangement>&{ classkey: number })[] ): Promise<fullRegClass> => {
+    const getStudentsAndClassrooms = async (regClass: (InferSelectModel<typeof arrangement>& uiClassKey)[] ): Promise<fullRegClass> => {
         // Get the students who have registered. These are attached to regclasses like 3R because of how we queried for classData 13 lines up.
         // This is done pre or post dispersal. All registrations are first sent to R classes.
         return await db.transaction(async (tx) => {

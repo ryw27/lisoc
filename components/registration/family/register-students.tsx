@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema"
 import { InferSelectModel } from "drizzle-orm"
 import { type IdMaps, type threeSeasons, type uiClasses } from "@/lib/registration/types"

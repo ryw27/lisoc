@@ -27,8 +27,18 @@ export type uiClasses = {
     bookfeeH: string | null;
     isregclass: boolean;
     notes: string | null;
-    classkey: number;
 } 
+
+export type uiClassKey={
+    classUid: number|null;
+    classkey: number;
+    classnamecn: string|null;
+    description: string | null;
+
+}
+
+export type uiClasses2 = uiClasses& uiClassKey 
+
 
 export type arrangeClasses = {
     arrangeid: number;
@@ -101,7 +111,7 @@ export type adminStudentView = {
 
 // New semester page overhaul. Probably the final. 
 export type fullClassStudents = {
-    arrinfo: uiClasses;
+    arrinfo: uiClasses & uiClassKey;
     students: adminStudentView[];
 }
 

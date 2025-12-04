@@ -160,7 +160,7 @@ const removeStudentFromClass = (regid: number, curClass: fullRegID): fullRegID =
 // Helper function for intra-class transfer
 const handleIntraClassTransfer = (
     regid: number,
-    newArrangeObj: uiClasses,
+    newArrangeObj: uiClasses&{classkey:number},
     curClass: fullRegID
 ): fullRegID => {
     const student = findStudentInClass(regid, curClass);
@@ -291,7 +291,7 @@ function TransferButton({student, dispatch , curClass,allClasses,reducerState}:
                 //const adminOverride = true;
                 const newCls :  arrangeClasses|undefined = allClasses.find(c=>c.arrangeid===newarrangeid);
 
-                const newArrangeObj:uiClasses= {
+                const newArrangeObj:uiClasses &{classkey:number}= {
                     arrangeid: newarrangeid,
                     seasonid: newCls? newCls.seasonid : 0,
                     classid: newCls? newCls.classid : 0,
@@ -500,7 +500,7 @@ export default function StudentTable({ registrations, reducerState, curClass, di
                         throw new Error("Invalid class selection");
                     }
 
-                    let newArrangeObj: uiClasses;
+                    let newArrangeObj: uiClasses&{classkey:number};
                     let updatedCurClass: fullRegID;
 
                     if (phase === "intraTransfer") {

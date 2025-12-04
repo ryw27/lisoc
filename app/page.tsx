@@ -1,6 +1,5 @@
 'use client' ;
 import { FamilyLoginForm } from "@/components/auth/family-login-form"
-import React from "react"
 
 export default function Page() {
   return (

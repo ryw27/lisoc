@@ -205,6 +205,10 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                         tuitionH: formData.classrooms[0].tuitionH?.toString() || null,
                         specialfeeH: formData.classrooms[0].specialfeeH?.toString() || null,
                         bookfeeH: formData.classrooms[0].bookfeeH?.toString() || null,
+                        classUid: null,
+                        classkey: initialData.arrinfo.classkey ,
+                        classnamecn: null,
+                        description: null,
                     },
                     classrooms: formData.classrooms.map((c) => ({
                         arrinfo: {
@@ -217,6 +221,11 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                             tuitionH: c.tuitionH?.toString() || null,
                             specialfeeH: c.specialfeeH?.toString() || null,
                             bookfeeH: c.bookfeeH?.toString() || null,
+                            classUid: null,
+                            classkey: initialData.arrinfo.classkey ,
+                            classnamecn: null,
+                            description: null,
+
                         },
                         students: [],
                     })),

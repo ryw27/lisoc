@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import FilterBox from "./filter-box";
 import { FilterableColumn } from "@/lib/data-view/types";
-import React, { useMemo, useReducer, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
 import { startOfToday, sub, formatISO, Duration, parseISO, isValid } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
