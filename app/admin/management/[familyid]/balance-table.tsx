@@ -20,6 +20,22 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { removeBalance } from "@/lib/payments/actions/adminApplyCheck";
+import { mkConfig, generateCsv, download } from 'export-to-csv'
+
+const csvConfig = mkConfig({
+  fieldSeparator: ',',
+  filename: 'lisoc_'+Date.now().toString(), // export file name (without .csv)
+  decimalSeparator: '.',
+  useKeysAsHeaders: true,
+})
+
+// export function
+// Note: change _ in Row<_>[] with your Typescript type.
+const exportExcel = (rows: Row<_>[]) => {
+  const rowData = rows.map((row) => row.original)
+  const csv = generateCsv(csvConfig)(rowData)
+  download(csvConfig)(csv)
+}
 
 
 function SelectColumnFilter({ column }: { column: any }) {
@@ -202,7 +218,11 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
         <>
         <div>
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Registrations </h2>
+              <div>
+              <button className="bg-blue-600 rounded-md p-2 text-white font-bold" onClick={() => exportExcel(table.getFilteredRowModel().rows)}>
+                Export To Excel</button>
+              </div>
+              <h2 className="text-lg font-semibold">Registrations  </h2>
                
               <span style={totalBalance < 0 ? { color: 'red' } : { color: 'green' }}>
                 <strong style={{ color: 'black' }}>TotalBalance : </strong> {totalBalance.toLocaleString('en-US', {
