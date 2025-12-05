@@ -8,7 +8,7 @@ import { type Transaction } from "@/lib/registration/helpers";
 import { type adminStudentView, type fullSemClassesData, arrangeClasses, fullClassStudents, fullRegClass, uiClassKey } from "@/lib/registration/types";
 import { InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, student,classes } from "@/lib/db/schema";
-import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
+import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED } from "@/lib/utils";
 import { getTableColumns,eq,or,asc,sql } from 'drizzle-orm';
 
 

@@ -104,7 +104,7 @@ export type adminStudentView = {
     gender: string;
     notes: string;
     classid: number;
-} ``
+} 
 
 // New semester page overhaul. Probably the final. 
 export type fullClassStudents = {

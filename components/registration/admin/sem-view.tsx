@@ -153,11 +153,19 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                         const remainingClassrooms = regClass.classrooms.filter(
                             (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
                         );
-                        const newclass: classJoin|undefined =  action.selection.classes.find(c =>c.classid ==removedClass.arrinfo.classid );
 
 
                         // If nothing was found, just return the class with updated classrooms
-                        if (!removedClass || !newclass) {
+                        if (!removedClass ) {
+                            return {
+                                ...regClass,
+                                classrooms: remainingClassrooms,
+                                availablerooms: regClass.availablerooms,
+                            };
+                        }
+                        const newclass: classJoin|undefined =  action.selection.classes.find(c =>c.classid ==removedClass.arrinfo.classid );
+
+                        if (!newclass) {
                             return {
                                 ...regClass,
                                 classrooms: remainingClassrooms,
