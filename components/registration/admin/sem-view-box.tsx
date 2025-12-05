@@ -74,7 +74,7 @@ function rollbackReg(data: fullRegID) {
 }
 
 export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, reducerState,allClasses }: semViewBoxProps) {
-    const { seasons, idMaps } = useRegistrationContext();
+    const { seasons, selectOptions,idMaps } = useRegistrationContext();
     const [editing, setEditing] = useState<boolean>(false);
     const [expanded, setExpanded] = useState<boolean>(false);
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
@@ -92,7 +92,10 @@ export default function SemesterViewBox({ uuid, dataWithStudents, dispatch, redu
             if (classShown === -1) {
                 dispatch({ type: "reg/remove", id: uuid });
             }else{
-                dispatch({ type: "class/remove", id: uuid,arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid?? 0 : allClassrooms[classShown].arrinfo.arrangeid?? 0 });
+                dispatch({ type: "class/remove", id: uuid,
+                    arrangeid: classShown == -1 ? dataWithStudents.arrinfo.arrangeid?? 0 : 
+                    allClassrooms[classShown].arrinfo.arrangeid?? 0 ,
+                    selection:selectOptions});
             }
 
             

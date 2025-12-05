@@ -94,7 +94,7 @@ const navItems = [
             }
         ]
     }, 
-]
+]   
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const user = await requireRole(["ADMIN"]);
     return (

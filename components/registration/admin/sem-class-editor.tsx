@@ -12,12 +12,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { z } from "zod/v4";
 import { arrangementArraySchema } from "@/lib/registration/validation";
-import { uiClasses } from "@/lib/registration/types";
+import { classJoin, uiClasses } from "@/lib/registration/types";
 import { type Action, type fullRegID } from "./sem-view";
 import { createArrangement, editArrangement } from "@/lib/registration/semester";
 import { cn } from "@/lib/utils";
 import { useRegistrationContext } from "@/lib/registration/registration-context";
-
+import { useRouter } from 'next/navigation';
 
 type semClassEditorProps = {
     uuid: string | "ADDING";
@@ -34,6 +34,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
 
     const [classEdited, setClassEdited] = useState<number>(0);
     // const [addClassroom, setAddClassroom] = useState<boolean>(false);
+    const router = useRouter();
 
     const editForm = useForm({
         resolver: zodResolver(arrangementArraySchema),
@@ -113,7 +114,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
 
     const onSubmit = async (formData: z.infer<typeof arrangementArraySchema>) => {
         const snapshot = initialData;
-        const new_uuid = crypto.randomUUID();
+        let new_uuid = crypto.randomUUID();
         try {
             // Safely check if classrooms is defined and is an array
             if (uuid !== "ADDING") {
@@ -191,6 +192,12 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                 }
                 // Generate a UUID for the new reg class on the client
                 // Prepare the regDraft for the new registration class
+                const classid = formData.classrooms[0].classid;
+                const classinfo : classJoin | undefined = selectOptions.classes.find(c => c.classid === classid);
+
+                if (classinfo) {
+                    new_uuid = String((parseInt(classinfo.classno)+100)*1000 +classinfo.typeid)
+                }
                 const regDraft = {
                     ...initialData,
                     id: new_uuid,
@@ -205,12 +212,9 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                         tuitionH: formData.classrooms[0].tuitionH?.toString() || null,
                         specialfeeH: formData.classrooms[0].specialfeeH?.toString() || null,
                         bookfeeH: formData.classrooms[0].bookfeeH?.toString() || null,
-                        classUid: null,
                         classkey: initialData.arrinfo.classkey ,
-                        classnamecn: null,
-                        description: null,
                     },
-                    classrooms: formData.classrooms.map((c) => ({
+                    /*classrooms: formData.classrooms.map((c) => ({
                         arrinfo: {
                             ...c,
                             seasonid: seasonid,
@@ -221,19 +225,19 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                             tuitionH: c.tuitionH?.toString() || null,
                             specialfeeH: c.specialfeeH?.toString() || null,
                             bookfeeH: c.bookfeeH?.toString() || null,
-                            classUid: null,
                             classkey: initialData.arrinfo.classkey ,
-                            classnamecn: null,
-                            description: null,
 
                         },
                         students: [],
-                    })),
+                    })),*/
                 } satisfies fullRegID;
 
+                             
                 dispatch({ type: "reg/add", regDraft: regDraft });
 
                 await createArrangement(formData, seasons.year);
+                router.refresh();
+
             }
             endEdit();
         } catch (error) {

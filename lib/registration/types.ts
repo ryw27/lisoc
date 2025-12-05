@@ -30,10 +30,7 @@ export type uiClasses = {
 } 
 
 export type uiClassKey={
-    classUid: number|null;
     classkey: number;
-    classnamecn: string|null;
-    description: string | null;
 
 }
 
@@ -56,7 +53,7 @@ export type term = "year" | "fall" | "spring" | "any"
 
 // Common views for dropdowns and data fetches
 type teacherJoin = { teacherid: number, namecn: string, namelasten: string, namefirsten: string}
-type classJoin = { classid: number, classnamecn: string, classnameen: string };
+export type classJoin = { classid: number, classno: string, classnamecn: string, classnameen: string,typeid: number, description: string | null };
 // type seasonJoin = { seasonid: number, seasonnamecn: string, seasonnameeng: string }
 type roomJoin = { roomid: number, roomno: string };
 type timeJoin = { timeid: number, period: string | null };
@@ -107,7 +104,7 @@ export type adminStudentView = {
     gender: string;
     notes: string;
     classid: number;
-} 
+} ``
 
 // New semester page overhaul. Probably the final. 
 export type fullClassStudents = {

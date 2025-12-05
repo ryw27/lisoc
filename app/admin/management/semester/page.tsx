@@ -83,10 +83,7 @@ export default async function SemesterPage() {
     // same grade class and type will be grouped together to become classkey 
     const allClassData = await db.select({
         ...getTableColumns(arrangement),
-        classUid: classes.classid,
         classkey: sql<number>`(CAST(${classes.classno} AS INTEGER)+100)*1000+CAST(${classes.typeid} AS INTEGER)`,
-        classnamecn: classes.classnamecn,
-        description: classes.description
         }).from(arrangement)
           .innerJoin(classes, eq(arrangement.classid, classes.classid))
           .where(or(eq(arrangement.seasonid, year.seasonid), 
@@ -178,7 +175,7 @@ export default async function SemesterPage() {
                 eq(studentreg.classid, curClass.classid), 
                 eq(studentreg.seasonid, curClass.seasonid),
                 or(
-                    eq(studentreg.statusid, REGSTATUS_TRANSFERRED), 
+                    //eq(studentreg.statusid, REGSTATUS_TRANSFERRED), 
                     eq(studentreg.statusid, REGSTATUS_DROPOUT), 
                     eq(studentreg.statusid, REGSTATUS_DROPOUT_SPRING)
                 )

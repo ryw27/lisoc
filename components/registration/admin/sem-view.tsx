@@ -20,6 +20,8 @@ import {
  // type availableClasses,
   type arrangeClasses,
   uiClassKey,
+  availableClasses,
+  classJoin,
 } from "@/lib/registration/types";
 import { seasons } from "@/lib/db/schema";
 import { InferSelectModel } from "drizzle-orm";
@@ -45,7 +47,7 @@ export type Action =
     | { type: "reg/remove", id: string } // Remove a whole class
     | { type: "class/add", id: string, roomDraft: Partial<uiClasses> } // Add a new classroom (non reg class)
     | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> } // Edit a classroom (only the teacher, room, seat limit)
-    | { type: "class/remove", id: string, arrangeid: number } // Remove a classroom
+    | { type: "class/remove", id: string, arrangeid: number,selection:selectOptions } // Remove a classroom
     | { type: "reg/distribute", id: string, newDistr: fullRegID } // Distribute students, requires full object
 
 
@@ -56,7 +58,12 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
         case "hydrate":
             return action.classes;
         case "reg/add": 
-            return [...state, { ...action.regDraft }];
+            const tmp = [...state, { ...action.regDraft }];
+            //sort it 
+            tmp.sort((a, b) => {
+                return a.arrinfo.classkey - b.arrinfo.classkey;
+            }); 
+            return tmp; 
         case "reg/update": {
             // Only update non-unique fields for all classrooms in the reg class
             return state.map((regClass) => {
@@ -146,21 +153,27 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                         const remainingClassrooms = regClass.classrooms.filter(
                             (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
                         );
+                        const newclass: classJoin|undefined =  action.selection.classes.find(c =>c.classid ==removedClass.arrinfo.classid );
+
 
                         // If nothing was found, just return the class with updated classrooms
-                        if (!removedClass) {
+                        if (!removedClass || !newclass) {
                             return {
                                 ...regClass,
                                 classrooms: remainingClassrooms,
+                                availablerooms: regClass.availablerooms,
                             };
                         }
 
-                        // Prepare the availableroom to re-add - strip arrangeid so it's a pure available room
-                        const { arrangeid, ...availableRoom } = removedClass.arrinfo as any;
-
+                        const newroom = {
+                            classid:newclass.classid,
+                            classnamecn:newclass.classnamecn,
+                            description:""
+                        } satisfies availableClasses;
+                       
                         // Prevent duplicate available rooms by classid
                         const alreadyExists = regClass.availablerooms.some(
-                            (room) => room.classid === availableRoom.classid
+                            (room) => room.classid === removedClass.arrinfo.classid 
                         );
 
                         return {
@@ -168,7 +181,7 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                             classrooms: remainingClassrooms,
                             availablerooms: alreadyExists
                                 ? regClass.availablerooms
-                                : [...regClass.availablerooms, availableRoom],
+                                : [...regClass.availablerooms, newroom],
                         };
                     })()
                     : regClass
