@@ -46,11 +46,13 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
             updateby: "admin"   // TODO: Switch to user
         }
         // 6. Insert reg class
-        await tx
+        const [record] = await tx
             .insert(arrangement)
             .values({
                 ...regClassValues,
-            })
+            }).returning({arrangeid:arrangement.arrangeid})
+
+        const arid = record.arrangeid; 
 
         // 7. Loop through constituent classrooms
         for (let i = 1; i < parsedArray.classrooms.length; i++) {
@@ -74,5 +76,7 @@ export async function createArrangement(data: z.infer<typeof arrangementArraySch
         // 10. Revalidate
         revalidatePath(`/admin/management/semester`);
         revalidatePath("/dashboard/register");
+
+        return arid ; 
     })
 }

@@ -63,7 +63,8 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
             tmp.sort((a, b) => {
                 return a.arrinfo.classkey - b.arrinfo.classkey;
             }); 
-            return tmp; 
+            
+            return tmp ; 
         case "reg/update": {
             // Only update non-unique fields for all classrooms in the reg class
             return state.map((regClass) => {

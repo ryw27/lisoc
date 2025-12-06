@@ -181,7 +181,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                 await editArrangement(formData, seasons.year);
             } else {
                 let seasonid;
-                if (formData.classrooms[0].suitableterm === 2) {
+                if (formData.classrooms[0].suitableterm === 3) {
                     seasonid = seasons.year.seasonid;
                 } else {
                     if (formData.classrooms[0].term === "FALL") {
@@ -212,7 +212,7 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                         tuitionH: formData.classrooms[0].tuitionH?.toString() || null,
                         specialfeeH: formData.classrooms[0].specialfeeH?.toString() || null,
                         bookfeeH: formData.classrooms[0].bookfeeH?.toString() || null,
-                        classkey: initialData.arrinfo.classkey ,
+                        classkey: parseInt(new_uuid),
                     },
                     /*classrooms: formData.classrooms.map((c) => ({
                         arrinfo: {
@@ -231,13 +231,13 @@ export default function SemClassEditor({ uuid, initialData, dispatch, endEdit }:
                         students: [],
                     })),*/
                 } satisfies fullRegID;
-
-                             
+                
+                const arid = await createArrangement(formData, seasons.year);
+                console.log(arid)
+                regDraft.arrinfo.arrangeid = arid; 
                 dispatch({ type: "reg/add", regDraft: regDraft });
-
-                await createArrangement(formData, seasons.year);
                 router.refresh();
-
+                
             }
             endEdit();
         } catch (error) {
