@@ -2,6 +2,8 @@ import { requireRole } from "@/lib/auth/actions/requireRole"
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
+import { eq, sum } from "drizzle-orm";
+import { familybalance } from "@/lib/db/schema";
 
 export default async function Dashboard() {
     // Check if allowed here.
@@ -24,6 +26,15 @@ export default async function Dashboard() {
     const famStudents = await db.query.student.findMany({
         where: (s, { eq }) => eq(s.familyid, familyInfo.familyid)
     });
+
+    const currentBalance = await db.select({ total: sum(familybalance.totalamount) })
+                                    .from(familybalance)
+                                    .where(eq(familybalance.familyid, familyInfo.familyid));
+
+    let balanceTotal = 0.0;
+    if (currentBalance && currentBalance.length > 0) {  
+        balanceTotal = currentBalance[0].total || 0.0;  
+    }  
 
     return  (
         <div className="flex flex-col w-full gap-4">
@@ -84,6 +95,17 @@ export default async function Dashboard() {
                             {`${familyInfo.familyid}`}
                         </div>
                     </div>
+                    <div className="grid grid-cols-[220px_1fr] gap-x-4 items-start">
+                        <label className="font-bold text-right pr-2">账号金额 Account Balance:</label>
+                        <div className={`text-black ${balanceTotal < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                             {new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD'
+                                }).format(balanceTotal)
+                             }
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -95,11 +117,33 @@ export default async function Dashboard() {
 
                 <div className="container mx-auto flex flex-col max-w-5xl space-y-3">
                     <div className="flex flex-col space-y-2">
-                        {famStudents.map((s) => (
-                            <span key={s.studentid}>
-                                {s.namecn} {s.namefirsten} {s.namelasten}
-                            </span>
-                        ))}
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead>
+                             <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">中文名</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Birth Day</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reg Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {famStudents.map((student) => (
+                                    <tr key={student.studentid}>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.studentid}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.namefirsten} {student.namelasten}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.namecn}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.gender}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.ageof}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{new Date(student.dob).toLocaleDateString("en-US")}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{new Date(student.createddate).toLocaleDateString("en-US")}</td>
+                                    </tr>
+                            ))}
+                        </tbody>
+                     </table>
+
                     </div>
                 </div>
             </div>

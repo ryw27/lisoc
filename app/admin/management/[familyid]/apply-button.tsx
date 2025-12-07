@@ -52,7 +52,6 @@ export default function ApplyButton({ family }: { family: familyObj }) {
                 placeholder="Amount"
                 type="number"
                 className="border border-gray-300 rounded-md p-2 w-40"
-                min="0"
                 step="0.01"
                 {...checkForm.register("amount", { required: true, valueAsNumber: true })}
             />
