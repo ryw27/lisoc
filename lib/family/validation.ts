@@ -10,8 +10,8 @@ export const studentSchema = z.object({
 	namelasten: z.string().optional().or(z.literal("")),
 	namefirsten: z.string().optional().or(z.literal("")),
 	gender: z.enum(["Male", "Female", "Other"]),
-	// ageof: z.string(), // minimum age student can theoretically be
-	age: z.coerce.number({ message: "Please enter a number"}).min(1, { message: "Age must be positive"}),
+	//ageof: z.string(), // minimum age student can theoretically be
+	//age: z.coerce.number({ message: "Please enter a number"}).min(1, { message: "Age must be positive"}),
 	dob: z.coerce.date({ message: "Please enter a valid date"}).default(new Date("1900-01-01T00:00:00Z")),
 	active: z.boolean().default(true),
 	notes: z.string().default(""),

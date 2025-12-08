@@ -3,17 +3,87 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from 'zod/v4'
 import { Input } from "@/components/ui/input";
-import { createStudent } from "@/lib/family/actions/createStudent";
+import { createStudent, getFammilyStudent,removeStudent } from "@/lib/family/actions/createStudent";
 import { studentSchema } from "@/lib/family/validation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+//import { db } from "@/lib/db";
+import { student } from "@/lib/db/schema";
+import { InferSelectModel } from "drizzle-orm";
 
+import { ColumnDef, useReactTable } from "@tanstack/react-table";
+import { getCoreRowModel, } from "@tanstack/react-table";
+import { ClientTable } from "@/components/client-table";
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover";
+
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+
+import { 
+    PencilIcon, 
+    MoreHorizontal, 
+    XIcon,
+} from "lucide-react";
+
+import { cn  } from "@/lib/utils";
+
+type studentInfo = InferSelectModel<typeof student> 
+
+const columns: ColumnDef<studentInfo>[] = [
+    {
+        header: "Student Id",
+        accessorKey: "studentid",
+    },
+    {
+        header: "Last Name",
+        accessorKey: "namelasten",
+    },
+    {
+        header: "First Name",
+        accessorKey: "namefirsten",
+   },
+    
+    {
+        header: "Chinese Name",
+        accessorKey: "namecn",
+    },
+    {
+        header: "Gender",
+        accessorKey: "gender",
+    },
+    {
+        header: "Birth Day",
+        accessorKey: "dob",
+        cell: ({ getValue }) => {
+            const date = new Date(getValue() as string);
+            return date.toLocaleDateString("en-US");
+        }
+    }
+
+];
 
 
 
 export default function CreateStudentForm({ familyid }: { familyid: number }) {
+    const [sid, setStudentId] = useState<number >(-1); // default to add student
+    const [title , setTitle] = useState<string>("Add New Student");
     const [error, setError] = useState<string | null>()
     const [busy, setBusy] = useState<boolean>(false);
+    const [famStudents, setFamStudents] = useState<studentInfo[]>([]);
+    const [reload, setReload] = useState<boolean>(false);
 
     const studentForm = useForm({
         resolver: zodResolver(studentSchema),
@@ -28,8 +98,10 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
         setError(null);
         try {
             const studentData = studentSchema.parse(data);
-            await createStudent(studentData, familyid);
+            await createStudent(studentData, familyid,sid);
             studentForm.reset();
+            setStudentId(-1);
+            setTitle("Add New Student");
         } catch (error) {
             if (error instanceof z.ZodError) {
                 error.issues.map((e) => {
@@ -42,14 +114,162 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
             }
         } finally {
             setBusy(false);
+            setReload(true);
         }
     }
+    useEffect(() => {
+        const loadStudents = async () => {
+            const students = await getFammilyStudent(familyid);
+            setFamStudents(students);
+        };
+        loadStudents();
+        setReload(false);
+    }, [familyid, reload]);
 
 
+    const editColumn: ColumnDef<studentInfo>[] = [
+        {
+            id: "edit",
+            header:"Edit/Delete",
+            cell: ({ row}) => {
+            const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+            return (
+                    <>
+                        <Popover>
+                            <PopoverTrigger 
+                                className={cn(
+                                    "items-center rounded-md p-1 cursor-pointer",
+                                    "border-1 border-gray-300 hover:border-gray-700",
+                                    "focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                )}
+                                aria-label="Row actions"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                 <MoreHorizontal className="w-4 h-4" />
+                            </PopoverTrigger>
+                            <PopoverContent 
+                                className={cn(
+                                    "flex flex-col gap-1 justify-begin items-center w-48",
+                                    "bg-white border border-gray-300 rounded-md",
+                                    "p-1"
+                                )}
+                                align="end"
+                                side="bottom"
+                                sideOffset={5}
+                            >
+                               { 
+                               (
+                                <>
+                                <button
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const studentid = row.original.studentid?? -1 ;
+                                        const gender = row.original.gender=="Male" ? "Male" :"Female"
+                                        const namecn = row.original.namecn
+                                        const namelasten = row.original.namelasten
+                                        const namefirsten = row.original.namefirsten
+                                        //const ageof = row.original.ageof
+                                        const dob = row.original.dob ;
+                                        const dobDate = new Date(dob);
+                                        const year = dobDate.getFullYear();
+                                        const month = dobDate.getMonth() + 1;
+                                        const day = dobDate.getDate();
+
+                                        const dobFormatted = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                        setStudentId(studentid);
+                                        setTitle("Edit Student Info - ID: " + studentid);
+                                        studentForm.setValue("gender", gender);         
+                                        studentForm.setValue("namecn", namecn);
+                                        studentForm.setValue("namelasten", namelasten);
+                                        studentForm.setValue("namefirsten", namefirsten);
+                                        //studentForm.setValue("age", ageof);
+                                        studentForm.setValue("dob", dobFormatted);    
+                                        setError(null);
+
+                                    }}
+                                >
+                                    <PencilIcon className="w-4 h-4" /> Edit
+                                </button>
+                                <>        
+                                <button 
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
+                                            "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200 gap-1",
+                                            "focus:outline-none focus:bg-gray-100",
+                                            "text-blue-500 hover:text-blue-600 cursor-pointer"
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowConfirmDialog(true);
+                                    }}
+                                >
+                                  <XIcon className="w-5 h-5 text-red-500 cursor-pointer hover:text-red-700" /> Delete
+                                </button>
+                                        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                                          <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                  <AlertDialogTitle>Confirm Deletion </AlertDialogTitle>
+                                                      <AlertDialogDescription>
+                                                          您将不能删除以前或现在在本校注册过课程的学生记录。确定要删除这个学生的记录吗? {row.original.studentid} ? <br/> ou will not be able to delete any student who has registered any courses in the past. Are you sure to continue deleting the student?
+                                                      </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              
+                                              <AlertDialogFooter>
+                                                  <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>Cancel</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={async () => {
+                                                          try {
+                                                                await removeStudent(row.original.studentid!);
+                                                                
+                                                          } catch (err) {
+                                                              const msg = err instanceof Error ? err.message : String(err);
+                                                              setReload(true);
+                                                              //setError(" can not delet " + row.original.studentid + " : " + msg ) ;
+                                                              alert(" Cannot delete student ID " + row.original.studentid + " : " + msg ) ;
+                                                          } finally {
+                                                                  setShowConfirmDialog(false);
+                                                                  setReload(true);
+                                                          }
+                                                        }}>
+                                                      Confirm
+                                                  </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                      </AlertDialog>
+
+
+                                </>
+                               </>
+                                ) }
+                            </PopoverContent>
+                        </Popover>
+
+                    </>
+                )
+            }
+        }
+    ]
+   
+    const table = useReactTable<studentInfo>({
+        data: famStudents,
+        columns: [...columns,...editColumn ], 
+        getCoreRowModel: getCoreRowModel(),
+    });
+    
 
     return (
+        <div>
         <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-8 mt-8">
-            <h2 className="text-2xl font-semibold mb-6 text-center">Add New Student</h2>
+            <h2 className="text-2xl font-semibold mb-6 text-center">{title}</h2>
             <form
                 onSubmit={studentForm.handleSubmit(onSubmit)}
                 className="space-y-5"
@@ -108,14 +328,15 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                         )}
                     </div>
                 </div>
-                <div>
+                <div className="flex gap-3">
+                    <div>
                     <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-                        Gender
+                        Gender（性别）
                     </label>
                     {/* Use shadcn/ui Select for gender */}
                     <Select
                         value={studentForm.watch('gender') || ""}
-                        onValueChange={value => studentForm.setValue('gender', value as "Male" | "Female" | "Other", { shouldValidate: true })}
+                        onValueChange={value => studentForm.setValue('gender', value as "Male" | "Female" , { shouldValidate: true })}
                         name="gender"
                     >
                         <SelectTrigger
@@ -123,12 +344,11 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             aria-invalid={!!studentForm.formState.errors.gender}
                         >
-                            <SelectValue placeholder="Select gender" />
+                            <SelectValue placeholder="gender" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Male">Male</SelectItem>
                             <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                     </Select>
                     {studentForm.formState.errors.gender && (
@@ -137,27 +357,10 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                         </span>
                     )}
                 </div>
-                <div className="flex gap-3">
+                
                     <div className="flex-1">
-                        <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-                            Age
-                        </label>
-                        <Input
-                            type="number"
-                            id="age"
-                            min={1}
-                            {...studentForm.register('age', { valueAsNumber: true })}
-                            className="w-full"
-                        />
-                        {studentForm.formState.errors.age && (
-                            <span className="text-red-500 text-xs">
-                                {studentForm.formState.errors.age.message}
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex-1">
-                        <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-1">
-                            Date of Birth
+                        <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-1 align-right">
+                            Date of Birth（出生日期）
                         </label>
                         <Input
                             type="date"
@@ -203,18 +406,46 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                 {error && (
                     <div className="text-red-600 text-sm text-center">{error}</div>
                 )}
-                <button
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-60 `}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        setStudentId(-1);
+                        setTitle("Add New Student");
+                        setError(null);
+                        studentForm.reset();
+                    }}
+                 >
+                    Reset( 重置 )
+                 </button>
+
+                 <button
                     type="submit"
                     className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-60 ${
-                        busy || !studentForm.formState.isValid || studentForm.formState.isSubmitting
+                        busy || studentForm.formState.isSubmitting
                             ? "cursor-not-allowed"
                             : "cursor-pointer"
-                    }`}
-                    disabled={busy || !studentForm.formState.isValid || studentForm.formState.isSubmitting}
+                        
+                    }`
+                }
+                    disabled={busy }
+                    name="submit"                    
                 >
-                    {busy ? "Creating..." : "Create Student"}
-                </button>
+                    {busy ? "Creating..." : "Add/Edit(更新)"}
+                 </button>
+                </div>
             </form>
+
         </div>
+            <div></div>
+            <div className="mx-auto bg-white rounded-lg shadow-md p-8 mt-10">
+                <h3 className="text-xl font-semibold mb-4 text-center">Students in Family</h3>
+                <ClientTable table={table} />
+            </div>
+
+        </div>
+
     )
 }

@@ -5,10 +5,9 @@ import { z } from "zod/v4";
 import { toESTString } from "@/lib/utils";
 import { studentSchema } from "../validation";
 import { requireRole } from "@/lib/auth";
-import { InferInsertModel } from "drizzle-orm";
+import { InferInsertModel,InferSelectModel,eq } from "drizzle-orm";
 
-
-export async function createStudent(data: z.infer<typeof studentSchema>, familyid: number) {
+export async function createStudent(data: z.infer<typeof studentSchema>, familyid: number, studentid: number) {
     const parsed = studentSchema.parse(data);
     await requireRole(["FAMILY"]);
 
@@ -26,31 +25,100 @@ export async function createStudent(data: z.infer<typeof studentSchema>, familyi
 
         const newStudentNo = curStudents.length + 1;
 
-        const newStudent = {
-            familyid: familyid,
-            studentno: newStudentNo.toString(),
-            namecn: parsed.namecn ?? "",
-            namelasten: parsed.namelasten ?? "",
-            namefirsten: parsed.namefirsten ?? "",
-            gender: parsed.gender ?? "",
-            ageof: parsed.age.toString(),
-            age: parsed.age,
-            dob: toESTString(parsed.dob),
-            active: parsed.active,
-            createddate: toESTString(new Date()),
-            lastmodify: toESTString(new Date()),
-            notes: parsed.notes ?? "",
-            upgradable: 0,
-        } satisfies InferInsertModel<typeof student>;
+        if (studentid == -1 ) {
+                const newStudent = {
+                familyid: familyid,
+                studentno: newStudentNo.toString(),
+                namecn: parsed.namecn ?? "",
+                namelasten: parsed.namelasten ?? "",
+                namefirsten: parsed.namefirsten ?? "",
+                gender: parsed.gender ?? "",
+                ageof: 'Child',
+                age: null,
+                dob: toESTString(parsed.dob),
+                active: parsed.active,
+                createddate: toESTString(new Date()),
+                lastmodify: toESTString(new Date()),
+                notes: parsed.notes ?? "",
+                upgradable: 0,
+            } satisfies InferInsertModel<typeof student>;
 
-        const [inserted] = await tx
-            .insert(student)
-            .values(newStudent)
-            .returning();
-        return inserted;
+            const [inserted] = await tx
+                .insert(student)
+                .values(newStudent)
+                .returning();
+            return inserted;
+
+        }
+        else {
+            
+            const existingStudents = curStudents.filter(s => s.studentid === studentid);
+            if (existingStudents.length === 0) {
+                throw new Error("Student to update not found");
+            }
+
+            const updatedStudent = {
+                namecn: parsed.namecn ?? "",
+                namelasten: parsed.namelasten ?? "",
+                namefirsten: parsed.namefirsten ?? "",  
+                dob: toESTString(parsed.dob),
+                gender: parsed.gender ?? "",
+                active: parsed.active,
+                lastmodify: toESTString(new Date()),
+                notes: parsed.notes ?? "",
+            };
+
+            await tx
+                .update(student)
+                .set(updatedStudent)
+                .where(eq(student.studentid, studentid));
+
+            const [updated] = await tx.query.student.findMany({
+                where: (s, { eq }) => eq(s.studentid, studentid)
+            });
+
+            return updated;
+        }
     })
 }
 
+
+export async function getFammilyStudent(familyid: number): Promise<InferSelectModel<typeof student>[]> {
+
+    return  await db.query.student.findMany({
+        where: (s, { eq }) => eq(s.familyid, familyid)
+    });
+
+}
+
+
+export async function removeStudent(studentid: number)  {
+
+    const students =await db.query.student.findMany({
+        where: (s, { eq }) => eq(s.studentid, studentid)
+    });
+
+    if (students.length === 0) {
+        throw new Error("Student not found");
+    }
+
+    const studentToDelete = students[0];
+
+    // Check for existing registrations
+    const registrations = await db.query.classregistration.findMany({
+        where: (cr, { eq }) => eq(cr.studentid, studentToDelete.studentid)
+    });
+
+    if (registrations.length > 0) {
+        throw new Error("Cannot delete student with registration history 系统无法删除有注册记录的学生");
+    }
+
+    // If no registrations, proceed to delete
+    await db
+        .delete(student)
+        .where(eq(student.studentid, studentToDelete.studentid));   
+
+}
 
 
 

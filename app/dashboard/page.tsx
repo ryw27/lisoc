@@ -33,7 +33,8 @@ export default async function Dashboard() {
 
     let balanceTotal = 0.0;
     if (currentBalance && currentBalance.length > 0) {  
-        balanceTotal = currentBalance[0].total || 0.0;  
+        const tmp = currentBalance[0].total || 0.0;  
+        balanceTotal = Number(tmp);
     }  
 
     return  (
