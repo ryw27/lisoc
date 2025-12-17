@@ -91,24 +91,29 @@ export const nameEmailSchema = z.object({
 export const userSchema = z.object({
     address: z
         .string()
-        .min(1, { message: "Address has to be filled（请填地址）" })
-        .max(100, { message: "Address is too long" }),
+//        .min(1, { message: "Address has to be filled（请填地址）" })
+        .max(100, { message: "Address is too long" })
+        .optional(),
     city: z
         .string()
-        .min(1, { message: "City has to be filled（请填城市）" })
-        .max(24, { message: "City is too long" }),
+//        .min(1, { message: "City has to be filled（请填城市）" })
+        .max(24, { message: "City is too long" })
+        .optional(),
     state: z
         .string()
-        .min(1, { message: "State has to be filled（请填州名）" })
-        .max(24, { message: "State is too long" }),
+//        .min(1, { message: "State has to be filled（请填州名）" })
+        .max(24, { message: "State is too long" })
+        .optional(),
     zip: z
         .string()
-        .min(1, { message: "Zip code has to be filled（请填邮编）" })
-        .max(10, { message: "Zip code is too long" }),
+//        .min(1, { message: "Zip code has to be filled（请填邮编）" })
+        .max(10, { message: "Zip code is too long" })
+        .optional(),
     phone: z
         .string()
-        .min(1, { message: "Phone number has to be filled"})
-        .max(15, { message: "Phone number is too long" }),
+//        .min(1, { message: "Phone number has to be filled"})
+        .max(15, { message: "Phone number is too long" })
+        .optional(),
 })
 
 export const familySchema = z

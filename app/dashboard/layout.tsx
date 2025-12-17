@@ -32,11 +32,17 @@ const navItems: NavSection[] = [
                 icon: <FaChalkboardTeacher className="w-4 h-4" />,
             },
             {
-                label: "Manage Students（添加学生）",
+                label: "Manage Students（更新学生）",
                 href: [`${DASHBOARD}/students`],
                 icon: <UserIcon className="w-4 h-4" />,
             },
-             {
+            {
+                label: "Manage Family（更新家庭）",
+                href: [`${DASHBOARD}/family`],
+                icon: <UserIcon className="w-4 h-4" />,
+            },
+
+            {
                  label: "Parent Duty（家长值班）",
                  href: [`${DASHBOARD}/parentduty`],
                  icon: <UserIcon className="w-4 h-4" />,

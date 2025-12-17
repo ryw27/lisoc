@@ -14,7 +14,7 @@ interface FormInputProps {
 export function FormInput({ label, type, extras, register, required, error }: FormInputProps) {
     return (
         <div className="flex flex-col w-full">
-            <label className="block text-sm text-gray-400 font-bold mb-2">
+            <label className="block text-sm text-black-400 font-bold mb-2">
                 {label}
                 {required && <span className="text-red-500 ml-1">*</span>}
             </label>

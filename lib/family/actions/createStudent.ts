@@ -6,6 +6,9 @@ import { toESTString } from "@/lib/utils";
 import { studentSchema } from "../validation";
 import { requireRole } from "@/lib/auth";
 import { InferInsertModel,InferSelectModel,eq } from "drizzle-orm";
+import { family } from "@/lib/db/schema";
+import { familySchema } from '@/lib/auth/validation';
+
 
 export async function createStudent(data: z.infer<typeof studentSchema>, familyid: number, studentid: number) {
     const parsed = studentSchema.parse(data);
@@ -120,5 +123,25 @@ export async function removeStudent(studentid: number)  {
 
 }
 
+
+export async function updateFamily(familyData: z.infer<typeof familySchema>,familyid: number)  {
+
+            await db.update(family)
+                .set({
+                    mothernamecn: familyData.mothernamecn,
+                    motherfirsten: familyData.motherfirsten,
+                    motherlasten: familyData.motherlasten,
+                    fathernamecn: familyData.fathernamecn,
+                    fatherfirsten: familyData.fatherfirsten,
+                    fatherlasten: familyData.fatherlasten,
+                    address1: familyData.address,
+                    officephone: familyData.phone,
+                    cellphone: familyData.phonealt,
+                    email2: familyData.emailalt,
+                })
+                .where(eq(family.familyid,familyid))
+             ;
+
+}
 
 
