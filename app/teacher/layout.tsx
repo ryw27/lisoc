@@ -27,19 +27,24 @@ const navItems = [
         ]
     }
 ]
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const user = await requireRole(["TEACHER"]);
+
     return (
-        <div className="flex h-screen">
-            <div className="fixed h-screen">
+        <div className="flex h-screen w-full bg-background overflow-hidden">
+            {/* SideNav */}
                 <SideNav items={navItems} />
-            </div>
-            <div className="flex flex-col flex-1 overflow-hidden ml-64">
+            { /* Header + Content */ }
+            <div className="flex flex-col flex-1 min-w-0 h-full relative">
+                {/* Header */}
                 <Header user={user.user} />
-                <main className="flex-1 overflow-auto p-6 bg-white">
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                    <div className="max-w-[1400px] mx-auto w-full">
                     {children}
+                    </div>
                 </main>
             </div>
         </div>
     );
-} 
+}

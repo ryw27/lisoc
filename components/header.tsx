@@ -4,10 +4,38 @@ import LanguageToggle from "./language-toggle";
 import { ChevronRight, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type DefaultSession } from "next-auth"
+import { usePathname } from "next/navigation";
+import { BREADCRUMB_LABELS } from "@/lib/breadcrumps-map";
+import { validate as isUUID } from "uuid";
+
+export function useBreadCrumbs(): string[] {
+    const pathname = usePathname();
+    // Get all segments and filter out empty parts
+    const segments = pathname.split("/").filter(Boolean);
+
+    if (segments.length === 1 && (segments[0] === "admin" || segments[0] === "teacher")) {
+        return ["Home"]
+    }
+
+    let filteredSegments = segments
+    if (segments[0] === "admin" || segments[0] === "teacher") {
+        filteredSegments = segments.slice(1,);
+    }
+
+    return filteredSegments 
+        .map((segment) => {
+            if (!isNaN(Number(segment)) || isUUID(segment)) {
+                return "Details"
+            }
+
+            return BREADCRUMB_LABELS[segment] || segment;
+        })
+
+}
 
 
-
-export default function Header({ breadcrumbs = ["Management", "Semester"], user }: { breadcrumbs: string[], user: DefaultSession["user"] }) {
+export default function Header({ user }: { user: DefaultSession["user"] }) {
+    const breadcrumbs = useBreadCrumbs()
     return (
         <header className="h-16 w-full border-b border-brand-brass/10 bg-background/95 backdrop-blur-sm flex items-center justify-between px-8 z-40 shrink-0 font-heritage">
             {/* Breadcrumbs */}

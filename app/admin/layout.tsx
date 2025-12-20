@@ -71,7 +71,7 @@ const navItems = [
         ]
     },  
     {
-        header: "Settings",
+        header: "Other",
         items: [
             // {
             //     label: "Settings",
@@ -80,12 +80,12 @@ const navItems = [
             // },
             {
                 label: "Family Search",
-                href: [`${beginlink}/find-family`],
+                href: [`${beginlink}/other/find-family`],
                 icon: <Search className="w-4 h-4" />
             },
             {
                 label: "Site Guide",
-                href: [`${beginlink}/site-guide`],
+                href: [`${beginlink}/other/site-guide`],
                 icon: <Book className="w-4 h-4" />
             },
             {
@@ -106,7 +106,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             { /* Header + Content */ }
             <div className="flex flex-col flex-1 min-w-0 h-full relative">
                 {/* Header */}
-                <Header user={user.user} breadcrumbs={["Management", "Dashboard"]} />
+                <Header user={user.user} />
                 <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
                     <div className="max-w-[1400px] mx-auto w-full">
                     {children}
