@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+// import { Crimson_Pro, Noto_Serif_SC } from "next/font/google";
+import localFont from 'next/font/local'
 import "./globals.css";
 import { getLocale } from "next-intl/server";
 import { NextIntlClientProvider } from 'next-intl';
 
-
-const geistSans = Geist({
-	variable: "--font-geist-sans",
-	subsets: ["latin"],
+const crimson = localFont({
+	src: '../public/fonts/CrimsonPro-VariableFont_wght.ttf',
+	variable: "--font-crimson", 
+	display: "swap",
+	adjustFontFallback: false,
 });
 
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
+const notoSerif = localFont({
+  src: '../public/fonts/NotoSerifSC-VariableFont_wght.ttf', 
+  variable: '--font-noto-serif',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -30,10 +33,8 @@ export default async function RootLayout({
 }>) {
 	const locale = await getLocale();
 	return (
-		<html lang={locale}>
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
+		<html lang={locale} className={`${crimson.variable} ${notoSerif.variable} antialiased`}>
+			<body>
 				<NextIntlClientProvider>
 					{children}
 				</NextIntlClientProvider>

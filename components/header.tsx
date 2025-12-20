@@ -1,81 +1,44 @@
 'use client';
-import { useState } from "react";
-import { ChevronDown, User, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { signOut } from "next-auth/react";
-import { type DefaultSession } from "next-auth"
+import React from "react";
 import LanguageToggle from "./language-toggle";
-// import LogoutButton from "./LEGACY_logout-button";
-
-
-export default function Header({ user }: { user: DefaultSession["user"] }) {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-    const handleLogout = () => {
-        signOut({
-            callbackUrl: "/",
-        });
-    };
+import { ChevronRight, UserCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { type DefaultSession } from "next-auth"
 
 
 
+export default function Header({ breadcrumbs = ["Management", "Semester"], user }: { breadcrumbs: string[], user: DefaultSession["user"] }) {
     return (
-        <header className="bg-white border-gray-200 sticky top-0 z-10">
-            <div className="px-4">
-                <div className="flex items-center h-16 w-full">
-                    {/* Center with search bar */}
-                    {/* ...search bar code omitted for brevity... */}
+        <header className="h-16 w-full border-b border-brand-brass/10 bg-background/95 backdrop-blur-sm flex items-center justify-between px-8 z-40 shrink-0 font-heritage">
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] text-muted-foreground/60">
+                {breadcrumbs.map((crumb: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                        <span className={cn("uppercase", idx === breadcrumbs.length - 1 && "text-brand-navy")}>
+                            {crumb}
+                        </span>
+                        {idx < breadcrumbs.length - 1 && <ChevronRight size={12} className="opacity-40" />}
+                    </React.Fragment>
+                ))}
+            </div>
 
-                    {/* Right side with actions */}
-                    <div className="flex items-center space-x-4 ml-auto">
-                        {/* Language toggle */}
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-4">
                         <LanguageToggle /> 
 
-                        {/* Profile dropdown */}
-                        <div className="relative ml-3">
-                            <div>
-                                <button
-                                    onClick={() => setIsProfileOpen((open) => !open)}
-                                    className="flex cursor-pointer text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    <div className="flex items-center">
-                                        <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                            <User className="h-5 w-5 text-gray-500" />
-                                        </div>
-                                        <ChevronDown className={`ml-1 h-4 w-4 text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
-                                    </div>
-                                </button>
-                            </div>
+                <div className="h-4 w-px bg-brand-brass/20 mx-2" />
 
-                            {/* Profile dropdown menu */}
-                            {isProfileOpen && (
-                                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-gray-100">
-                                    <div className="flex flex-col px-4 py-2 gap-0.5">
-                                        <p className="text-base font-semibold text-gray-900">
-                                            {user?.name ?? "Username"}
-                                        </p>
-                                        <p className="text-sm text-gray-500 truncate">
-                                            {user?.email ?? "Email"}
+                <div className="flex items-center gap-3 pl-2 group cursor-pointer">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-[11px] font-black text-brand-navy leading-tight mb-0.5 tracking-tight">
+                            ADMIN PORTAL
+                        </p>
+                        <p className="text-[10px] text-brand-brass font-bold uppercase leading-tight italic">
+                            {user?.name ?? "Registrar"}
                                         </p>
                                     </div>
-                                    <div className="border-t border-gray-800 my-1" />
-                                    <div className="pb-1">
-                                        <button
-                                            onClick={handleLogout}
-                                            className={cn(
-                                                'flex items-center gap-3 px-4 py-2 text-sm rounded-md transition-colors cursor-pointer w-full group',
-                                                'bg-gradient-to-r from-gray-50 to-gray-100 hover:from-blue-50 hover:to-blue-100'
-                                            )}
-                                        >
-                                            <div className="flex-shrink-0 flex items-center justify-center">
-                                                <LogOut className="w-5 h-5 text-gray-600" />
-                                            </div>
-                                            <span className="text-gray-600">Log out</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                    <div className="w-10 h-10 rounded-full bg-brand-navy flex items-center justify-center text-brand-gold ring-2 ring-brand-gold/20 group-hover:ring-brand-gold transition-all duration-300">
+                        <UserCircle size={26} />
                     </div>
                 </div>
             </div>

@@ -1,9 +1,9 @@
 "use client";
 import { useTransition } from "react";
 import { setLocale } from "@/lib/i18n/";
-import { Button } from "./ui/button";
 import { useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 
 export default function LanguageToggle() {
@@ -19,14 +19,15 @@ export default function LanguageToggle() {
     }
 
     return (
-        <Button
+        <button
             onClick={toggleLocale}
             disabled={pending}
-            className="text-gray-500 text-sm cursor-pointer hover:text-gray-700 p-2 rounded-md hover:bg-blue-50 transition-colors"
+            className={cn(
+                "w-16 h-8 flex items-center justify-center rounded-md text-[11px] font-black cursor-pointer tracking-widest transition-all",
+                "text-brand-navy border border-brand-navy/10 hover:border-brand-gold hover:text-brand-gold hover:bg-brand-gold/5"
+            )}
         >
-            {locale === 'en' ? '中文' : 'English'}
-            <span className="sr-only">Toggle language</span>
-        </Button>
-
-    )
+            {locale === 'en' ? '中文' : 'ENG'}
+        </button>
+    );
 }

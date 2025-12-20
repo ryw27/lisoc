@@ -1,9 +1,10 @@
 import React from 'react';
 import SideNav from '@/components/sidenav';
-import { Home, Users, School, CreditCard, MessageCircle, FileText, Calendar, Receipt, Book, Search, LogOut } from 'lucide-react';
+import { Home, Users, School, CreditCard, MessageCircle, Calendar, Receipt, Book, Search, LogOut } from 'lucide-react';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 import Header from '@/components/header';
 import { requireRole } from '@/lib/auth';
+
 
 const beginlink = "/admin"
 const navItems = [
@@ -37,11 +38,11 @@ const navItems = [
                 href: [`${beginlink}/accounting/billing`],
                 icon: <CreditCard className="w-4 h-4 " />
             }, 
-            {
-                label: "Payments", // Invoices for this semester, creating fees owed to the school
-                href: [`${beginlink}/accounting/payments`],
-                icon: <FileText className="w-4 h-4 " />
-            },
+            // {
+            //     label: "Payments", // Invoices for this semester, creating fees owed to the school
+            //     href: [`${beginlink}/accounting/payments`],
+            //     icon: <FileText className="w-4 h-4 " />
+            // },
             {
                 label: "Transaction Reports", // Comprehensive financial transactions, including analysis, payments, refunds, family balnaces, and school balances
                 href: [`${beginlink}/accounting/transaction-reports`],
@@ -97,15 +98,19 @@ const navItems = [
 ]   
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const user = await requireRole(["ADMIN"]);
+
     return (
-        <div className="flex h-screen">
-            <div className="fixed h-screen">
+        <div className="flex h-screen w-full bg-background overflow-hidden">
+            {/* SideNav */}
                 <SideNav items={navItems} />
-            </div>
-            <div className="flex flex-col flex-1 overflow-hidden ml-64">
-                <Header user={user.user}  />
-                <main className="flex-1 overflow-auto p-6 bg-white">
+            { /* Header + Content */ }
+            <div className="flex flex-col flex-1 min-w-0 h-full relative">
+                {/* Header */}
+                <Header user={user.user} breadcrumbs={["Management", "Dashboard"]} />
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                    <div className="max-w-[1400px] mx-auto w-full">
                     {children}
+                    </div>
                 </main>
             </div>
         </div>
