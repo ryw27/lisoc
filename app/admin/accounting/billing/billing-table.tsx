@@ -1,39 +1,31 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { RefObject, useImperativeHandle, useMemo, useState } from "react";
 import { 
     ChevronDown,
-    ArrowUpRight,
     Users,
     Calendar,
     Search,
     Filter,
-    Check,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Check,
+    ArrowUpRight,
 } from "lucide-react"
-import { cn, formatCurrency, monthAbbrevMap } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { BillingRow, FamilyRow } from "./page";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, Table } from "@tanstack/react-table";
 import { useReactTable } from "@tanstack/react-table";
 import Link from "next/link";
+import { exportExcel, formatBillingDate, TableExportType } from "./billing-ledger";
 
 
 type BillingTableProps = {
     families: FamilyRow[]
     globalActivity: BillingRow[]
+    rowRef: RefObject<TableExportType | null> 
 }
 
-const formatBillingDate = (date: string) => {
-    const dateObj = new Date(date);
-    const abbrev = monthAbbrevMap[dateObj.getMonth()];
 
-    let day = dateObj.getDate().toString();
-    if (day.length == 1) {
-        day = "0" + day;
-    }
-
-    return [abbrev + " " + day, dateObj.getFullYear()];
-}
 
 const billingColumns: ColumnDef<BillingRow>[] = [
     {
@@ -71,7 +63,7 @@ const billingColumns: ColumnDef<BillingRow>[] = [
 
 
 
-function GlobalTable({ globalActivity }: { globalActivity: BillingRow[] }) {
+function GlobalTable({ globalActivity, rowRef }: { globalActivity: BillingRow[], rowRef: RefObject<TableExportType | null> }) {
     const [filterOpen, setFilterOpen] = useState<boolean>(false);
     const [globalFilter, setGlobalFilter] = useState<string>("");
 
@@ -93,6 +85,23 @@ function GlobalTable({ globalActivity }: { globalActivity: BillingRow[] }) {
         const column = globalTable.getColumn("desc");
         column?.setFilterValue(undefined);
     }
+
+    useImperativeHandle(rowRef, () => ({
+        triggerExport: (option) => {
+            let exportData;
+
+            if (option === "all") {
+                exportData = globalTable.getPrePaginationRowModel().rows.map((row) => row.original);
+            } else if (option === "page") {
+                exportData = globalTable.getRowModel().rows.map((row) => row.original);
+            } else {
+                exportData = globalTable.getSelectedRowModel().rows.map((row) => row.original);
+            }
+
+            exportExcel(exportData);
+        }
+    }))
+
 
     const globalTable = useReactTable({
         columns: billingColumns,
@@ -127,7 +136,7 @@ function GlobalTable({ globalActivity }: { globalActivity: BillingRow[] }) {
                         type="text"
                         value={globalFilter ?? ""}
                         onChange={(e) => setGlobalFilter(e.target.value)}
-                        placeholder={"Search transaction ID..."}
+                        placeholder={"Search..."}
                         className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-transparent focus:bg-card focus:border-ring rounded text-sm font-medium text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-ring/20"
                     />
                 </div>
@@ -268,10 +277,6 @@ const familyColumns: ColumnDef<FamilyRow>[] = [
         accessorKey: "fid",
     }, 
     {
-        id: "fbid",
-        accessorKey: "fbid"
-    },
-    {
         id: "family",
         accessorKey: "family"
     },
@@ -295,11 +300,17 @@ const familyColumns: ColumnDef<FamilyRow>[] = [
     },
     {
         id: "students",
-        accessorKey: "students"
+        accessorKey: "students",
+        accessorFn: (row) => {
+            const allStudents = row.students
+                .map((s) => [s.namecn, s.namefirsten, s.namelasten].filter(Boolean).join(" "))
+                .join(" ")
+            return allStudents;
+        },
     }
 ]
 
-function FamilyTable({ families }: { families: FamilyRow[] }) {
+function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefObject<TableExportType | null> }) {
     const [filterOpen, setFilterOpen] = useState<boolean>(false);
     const [expandedRow, setExpandedRow] = useState<string>("");
 
@@ -332,6 +343,31 @@ function FamilyTable({ families }: { families: FamilyRow[] }) {
         column?.setFilterValue(undefined);
     }
 
+    useImperativeHandle(rowRef, () => ({
+        triggerExport: (option) => {
+            let exportData;
+
+            if (option === "all") {
+                exportData = familyTable.getPrePaginationRowModel().rows.map((row) => row.original);
+            } else if (option === "page") {
+                exportData = familyTable.getRowModel().rows.map((row) => row.original);
+            } else {
+                exportData = familyTable.getSelectedRowModel().rows.map((row) => row.original);
+            }
+
+            const cleanData = exportData.map((row) => {
+                const { lastActivity, students, ...rest } = row;
+                return {
+                    ...rest,
+                    students: students.map((student) => student.namecn || [student.namefirsten, student.namelasten].filter(Boolean).join(" ")).join(" ")
+                }
+            })
+
+
+            exportExcel(cleanData);
+        }
+    }))
+
     const familyTable = useReactTable({
         columns: familyColumns,
         data: families,
@@ -360,7 +396,7 @@ function FamilyTable({ families }: { families: FamilyRow[] }) {
                         type="text"
                         value={globalFilter ?? ""}
                         onChange={(e) => setGlobalFilter(e.target.value)}
-                        placeholder={"Search family ID..."}
+                        placeholder={"Search..."}
                         className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-transparent focus:bg-card focus:border-ring rounded text-sm font-medium text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-ring/20"
                     />
                 </div>
@@ -377,6 +413,12 @@ function FamilyTable({ families }: { families: FamilyRow[] }) {
                     >
                         <Filter size={14} /> Filter View
                     </button>
+
+                    {/* <button
+                        onClick={() => setSelectOn(!selectOn)}
+                    >
+
+                    </button> */}
 
                     {filterOpen && (
                         <div className="absolute right-0 top-full mt-2 w-64 bg-background border border-primary/20 shadow-md rounded-lg z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
@@ -480,7 +522,9 @@ function FamilyTable({ families }: { families: FamilyRow[] }) {
                                     <td className="px-4 py-5">
                                         <div className="flex flex-wrap gap-2">
                                             {row.original.students.map((student, idx) => (
-                                                <span key={idx} className="px-2 py-1 rounded bg-muted text-foreground/70 text-[11px] font-bold tracking-wide uppercase">{student.namecn}</span>
+                                                <span key={idx} className="px-2 py-1 rounded bg-muted text-foreground/70 text-[11px] font-bold tracking-wide uppercase">
+                                                    {student.namecn || [student.namefirsten, student.namelasten].filter(Boolean).join(" ")}
+                                                </span>
                                             ))}
                                         </div>
                                     </td>
@@ -568,42 +612,65 @@ function FamilyTable({ families }: { families: FamilyRow[] }) {
                     )}
                 </tbody>
             </table>
-
             <PaginationControls table={familyTable} />
-
         </div>
     );
 }
 
-export function PaginationControls<T>({ table }: { table: Table<T> }) {
+function PaginationControls<T>({ table }: { table: Table<T> }) {
     return (
-        <div className="flex items-center justify-between px-2">
-            <div className="text-xs text-muted-foreground">
-                Page <strong>{table.getState().pagination.pageIndex + 1}</strong> of{" "}
-                <strong>{table.getPageCount()}</strong>
+        <div className="flex items-center justify-between p-2">
+            <div className="flex w-[100px] items-center justify-center text-xs font-medium text-muted-foreground">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
             </div>
-            <div className="flex items-center space-x-2 py-2.5">
-                <button
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                    className="p-2 rounded-md bg-transparent hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                    className="p-2 rounded-md bg-transparent hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </button>
+
+            <div className="flex items-center space-x-6 lg:space-x-8">
+                <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium text-primary">Rows:</p>
+                    <div className="relative">
+                        <select
+                            value={table.getState().pagination.pageSize}
+                            onChange={(e) => {
+                                table.setPageSize(Number(e.target.value))
+                            }}
+                            className="h-8 w-[70px] appearance-none rounded-md border border-border bg-white pl-3 pr-8 text-sm font-bold text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer hover:bg-background transition-colors"
+                        >
+                            {[10, 20, 40, 50, 75, 100].map((pageSize) => (
+                                <option key={pageSize} value={pageSize}>
+                                    {pageSize}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-2.5 h-3 w-3 text-secondary pointer-events-none" />
+                    </div>
+                </div>
+
+                <div className="h-5 w-[1px] bg-gray-400" />
+
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                        className="h-8 w-8 flex items-center justify-center rounded-md border border-transparent hover:border-border hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                    >
+                        <ChevronLeft className="h-4 w-4 text-primary" />
+                    </button>
+                    <button
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                        className="h-8 w-8 flex items-center justify-center rounded-md border border-transparent hover:border-border hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                    >
+                        <ChevronRight className="h-4 w-4 text-primary" />
+                    </button>
+                </div>
             </div>
         </div>
     )
 }
 
-export default function BillingTable({ families, globalActivity }: BillingTableProps) {
-    const [view, setView] = useState<"family" | "activity">("activity");
+export default function BillingTable({ families, globalActivity, rowRef }: BillingTableProps) {
+    const [view, setView] = useState<"family" | "activity">("family");
     return (
         <section className="bg-card rounded-xl border border-border shadow-sm overflow-visible min-h-[200px] flex flex-col relative z-10">
             {/* TABS */}
@@ -642,9 +709,9 @@ export default function BillingTable({ families, globalActivity }: BillingTableP
             {/* TABLE */}
             <div className="flex-1">
                 {view === 'family' ? (
-                    <FamilyTable families={families} />
+                    <FamilyTable families={families} rowRef={rowRef}/>
                 ) : (
-                    <GlobalTable globalActivity={globalActivity} />
+                    <GlobalTable globalActivity={globalActivity} rowRef={rowRef}/>
                 )}
             </div>
         </section>
