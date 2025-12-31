@@ -20,6 +20,7 @@ type billingJoin = Omit<InferSelectModel<typeof familybalance>, "family"> &
         students: {
             namecn: string,
             namefirsten: string,
+            namelasten: string,
         }[]
     },
     familybalancetype: {
@@ -55,6 +56,7 @@ export async function getLedgerData(
                             columns: {
                                 namecn: true,
                                 namefirsten: true,
+                                namelasten: true,
                             }
                         }
                     }
@@ -143,10 +145,15 @@ export async function getLedgerData(
             const familyName = billingRow.family;
             if (!familyRec[familyName]) {
                 familyRec[familyName] = {
-                    fbid: row.balanceid,
                     fid: row.familyid,
                     family: familyName,
-                    students: row.family.students,
+                    students: (row.family.students).map((studentObj) => {
+                        return {
+                            namecn: studentObj.namecn.trim(),
+                            namefirsten: studentObj.namefirsten.trim(),
+                            namelasten: studentObj.namelasten.trim(),
+                        }
+                    }),
                     billed: amtBilled,
                     paid: amtPaid,
                     status: "paid", // Calculate after loop
@@ -169,7 +176,7 @@ export async function getLedgerData(
 
         Object.values(familyRec).forEach(rec => {
             if (rec.paid >= rec.billed) {
-                rec.status = "paid"
+                rec.status = "paid";
             } else if (rec.paid > 0 ) {
                 rec.status = "partial";
             } else {
@@ -177,7 +184,10 @@ export async function getLedgerData(
             }
         })
 
-        summary.progress = (summary.collected / summary.billed) * 100
+        
+        summary.progress = summary.billed === 0 
+            ? 100 
+            : (summary.collected / summary.billed) * 100;
 
         const familyRows = Object.values(familyRec);
         return {

@@ -5,10 +5,9 @@ import { db } from '@/lib/db';
 
 
 export type FamilyRow = {
-    fbid: number  // family balance id
     fid: number  // family id
     family: string // family name
-    students: { namecn: string, namefirsten: string }[] // students
+    students: { namecn: string, namefirsten: string, namelasten: string }[] // students
 
     billed: number // how much they are billed this sem
     paid: number // how much they paid
@@ -45,6 +44,8 @@ export default async function BillingPage() {
             seasonid: true,
             seasonnamecn: true,
             seasonnameeng: true,
+            earlyregdate: true,
+            enddate: true,
         }
     });
     return (
@@ -53,7 +54,13 @@ export default async function BillingPage() {
             <BillingLedger
                 initialData={{ family: ledgerData.familyRows, global: ledgerData.globalRows }}
                 initialSummary={ledgerData.summary}
-                defaultSeason={{ seasonid: seasons.year.seasonid, seasonnamecn: seasons.year.seasonnamecn, seasonnameeng: seasons.year.seasonnameeng }}
+                defaultSeason={{ 
+                    seasonid: seasons.year.seasonid, 
+                    seasonnamecn: seasons.year.seasonnamecn, 
+                    seasonnameeng: seasons.year.seasonnameeng,
+                    earlyregdate: seasons.year.earlyregdate,
+                    enddate: seasons.year.enddate 
+                }}
                 seasons={allSeasons}
             />
 
