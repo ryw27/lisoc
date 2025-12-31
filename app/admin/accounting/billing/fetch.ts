@@ -86,10 +86,6 @@ export async function getLedgerData(
                 getFullName(names.motherfirsten, names.motherlasten)
             ].filter(Boolean).join("-");
 
-            if (names.fatherfirsten === "Kun") {
-                console.log(enName)
-            }
-
             return enName.trim() ?? "Unknown"
         }
 

@@ -5,7 +5,6 @@ import BillingTable from "./billing-table"
 import { 
     ChevronDown,
     Download,
-    ArrowUpRight,
     TableIcon,
     FileText,
     CheckSquare,
@@ -104,7 +103,6 @@ export default function BillingLedger({ initialData, initialSummary, defaultSeas
 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
-            {/* 1. Header + Global Controls */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-primary/10">
                 <div className="space-y-2">
                     <div className="flex items-baseline gap-4">
@@ -112,8 +110,6 @@ export default function BillingLedger({ initialData, initialSummary, defaultSeas
                             Financial Ledger
                         </h1>
                         <span className="text-3xl text-muted-foreground/40 font-light italic hidden md:inline">/</span>
-                        
-                        {/* SEASON SELECTOR WITH PENDING STATE */}
                         <div className="relative group">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild disabled={pending}>
@@ -156,13 +152,15 @@ export default function BillingLedger({ initialData, initialSummary, defaultSeas
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* EXPORT DROPDOWN (Disable when pending) */}
                     <DropdownMenu>
                         <DropdownMenuTrigger 
                             disabled={pending}
                             className={cn(
-                                "h-10 px-5 bg-background border border-primary/20 rounded-sm text-sm font-semibold text-primary transition-all flex items-center gap-2 focus:outline-none",
-                                pending ? "opacity-50 cursor-not-allowed" : "hover:bg-primary hover:text-white cursor-pointer"
+
+                                "h-10 px-6 bg-primary text-white border border-primary rounded-sm shadow-sm transition-all text-sm font-semibold tracking-wide flex items-center gap-2",
+                                pending ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 cursor-pointer"
+                                // "h-10 px-5 bg-background border border-primary/20 rounded-sm text-sm font-semibold text-primary transition-all flex items-center gap-2 focus:outline-none",
+                                // pending ? "opacity-50 cursor-not-allowed" : "hover:bg-primary hover:text-white cursor-pointer"
                             )}
                         >
                             {pending ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
@@ -199,24 +197,19 @@ export default function BillingLedger({ initialData, initialSummary, defaultSeas
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* RECORD PAYMENT (Disable when pending) */}
-                    <button 
+                    {/* <button 
                         disabled={pending}
+                        onClick={() => router.push("/admin/accounting/billing/record")}
                         className={cn(
                             "h-10 px-6 bg-primary text-white border border-primary rounded-sm shadow-sm transition-all text-sm font-semibold tracking-wide flex items-center gap-2",
                             pending ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90 cursor-pointer"
                         )}
                     >
                         <ArrowUpRight size={16} /> Record Payment
-                    </button>
+                    </button> */}
                 </div>
             </header>
 
-            {/* THE WRAPPER:
-                This creates the smooth "Stale Data" effect.
-                When pending is true, the old data fades out slightly and becomes unclickable.
-                When pending finishes, the new data snaps in at full opacity.
-            */}
             <div 
                 className={cn(
                     "transition-all duration-500 ease-in-out space-y-8",

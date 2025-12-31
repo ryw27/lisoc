@@ -50,7 +50,6 @@ export default async function BillingPage() {
     });
     return (
         <div className="min-h-screen w-full bg-background text-foreground  p-8 selection:bg-primary selection:text-primary-foreground">
-
             <BillingLedger
                 initialData={{ family: ledgerData.familyRows, global: ledgerData.globalRows }}
                 initialSummary={ledgerData.summary}
@@ -63,11 +62,9 @@ export default async function BillingPage() {
                 }}
                 seasons={allSeasons}
             />
-
             <div className="text-center text-muted-foreground/20 text-xs font-normal uppercase tracking-[0.2em] py-8">
                 Confidential Financial Record • Do Not Distribute
             </div>
-
         </div>
     );
 }

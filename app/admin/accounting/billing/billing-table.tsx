@@ -359,7 +359,6 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
     const toggleRow = (row: Row<FamilyRow>) => {
         if (selectMode) {
             // If we're in select mode, don't expand, just select
-            console.log("HEre");
             row.toggleSelected();
         } else {
             if (expandedRow === row.id) {
@@ -585,7 +584,10 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
                                     <td className="px-4 py-5">
                                         <div className="flex flex-wrap gap-2">
                                             {row.original.students.map((student, idx) => (
-                                                <span key={idx} className="px-2 py-1 rounded bg-muted text-foreground/70 text-[11px] font-bold tracking-wide uppercase">
+                                                <span 
+                                                    key={idx} 
+                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full border border-primary/20 bg-primary/5 text-primary text-[11px] font-medium transition-colors hover:bg-primary/10"
+                                                >
                                                     {student.namecn || [student.namefirsten, student.namelasten].filter(Boolean).join(" ")}
                                                 </span>
                                             ))}
