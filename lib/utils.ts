@@ -17,6 +17,13 @@ export function toESTString(date: Date) {
 
 
 // ----------------------------------------------------------------
+// Format Currency
+// ----------------------------------------------------------------
+export const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
+
+
+// ----------------------------------------------------------------
 // Link
 // ----------------------------------------------------------------
 
@@ -32,6 +39,21 @@ export const US_STATES = [
     "NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA",
     "WI","WV","WY",
 ] as const;
+
+export const monthAbbrevMap: Record<number, string> = {
+	0: "JAN",
+	1: "FEB",
+	2: "MAR",
+	3: "APR",
+	4: "MAY",
+	5: "JUN",
+	6: "JUL",
+	7: "AUG",
+	8: "SEP",
+	9: "OCT",
+	10: "NOV",
+	11: "DEC",
+}
 
 
 export const SITE_LINK = process.env.SITE_LINK; 
@@ -49,6 +71,12 @@ export const LATE_REG_FEE_2 = 0;
 export const EARLY_REG_DISCOUNT = 50;
 
 // Family balance types
+export const familybalancetypes = [
+    "Old_Balance", "Tuition", "Payment", "Credit", 
+    "School_Check", "Other_Fee", "Donation", "Transfer",
+    "Dropout", "Credit_ManageFee", "Credit_DutyFee", "DutyFee_Deposit",
+    "Duty_Abs_Charge", "Online_Banking_Fee",
+];
 export const FAMILYBALANCE_TYPE_OLDBALANCE = 1;
 export const FAMILYBALANCE_TYPE_TUITION = 2;
 export const FAMILYBALANCE_TYPE_PAYMENT = 3;
