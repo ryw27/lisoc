@@ -10,10 +10,11 @@ import {
     ChevronRight,
     Check,
     ArrowUpRight,
+    BoxSelect,
 } from "lucide-react"
 import { cn, formatCurrency } from "@/lib/utils";
 import { BillingRow, FamilyRow } from "./page";
-import { ColumnDef, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, Table } from "@tanstack/react-table";
+import { ColumnDef, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, Row, RowSelectionState, Table } from "@tanstack/react-table";
 import { useReactTable } from "@tanstack/react-table";
 import Link from "next/link";
 import { exportExcel, formatBillingDate, TableExportType } from "./billing-ledger";
@@ -65,7 +66,10 @@ const billingColumns: ColumnDef<BillingRow>[] = [
 
 function GlobalTable({ globalActivity, rowRef }: { globalActivity: BillingRow[], rowRef: RefObject<TableExportType | null> }) {
     const [filterOpen, setFilterOpen] = useState<boolean>(false);
+    const [selectMode, setSelectMode] = useState<boolean>(false);
+
     const [globalFilter, setGlobalFilter] = useState<string>("");
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
     const handleFilterCheck = (option: string, checked: boolean) => {
         const column = globalTable.getColumn("desc");
@@ -110,8 +114,10 @@ function GlobalTable({ globalActivity, rowRef }: { globalActivity: BillingRow[],
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         state: {
-            globalFilter
+            globalFilter,
+            rowSelection,
         },
+        onRowSelectionChange: setRowSelection,
         onGlobalFilterChange: setGlobalFilter,
         initialState: {
             pagination: {
@@ -142,17 +148,36 @@ function GlobalTable({ globalActivity, rowRef }: { globalActivity: BillingRow[],
                 </div>
 
                 <div className="relative">
-                    <button
-                        onClick={() => setFilterOpen(!filterOpen)}
-                        className={cn(
-                            "px-4 py-2 rounded text-sm font-bold flex items-center gap-2 transition-all border",
-                            filterOpen
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                        )}
-                    >
-                        <Filter size={14} /> Filter View
-                    </button>
+                    <div className="flex gap-2 items-center">
+                        <button
+                            onClick={() => {
+                                if (selectMode) globalTable.resetRowSelection();
+                                setSelectMode(!selectMode);
+                            }}
+                            className={cn(
+                                "h-9 px-4 rounded-md text-sm font-medium flex items-center gap-2 transition-all border",
+                                selectMode
+                                    ? "bg-secondary/80 text-primary border-primary/20 shadow-sm"
+                                    : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground"
+                            )}
+                        >
+                            <BoxSelect size={15} /> 
+                            <span className={cn(selectMode && "font-bold")}>Select Mode</span>
+                        </button>
+
+                        <button
+                            onClick={() => setFilterOpen(!filterOpen)}
+                            className={cn(
+                                "px-4 py-2 rounded text-sm font-bold flex items-center gap-2 transition-all border",
+                                filterOpen
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                            )}
+
+                        >
+                            <Filter size={14} /> Filter View
+                        </button> 
+                    </div>
 
                     {filterOpen && (
                         <div className="absolute right-0 top-full mt-2 w-64 bg-background border border-primary/20 shadow-md rounded-lg z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
@@ -220,7 +245,19 @@ function GlobalTable({ globalActivity, rowRef }: { globalActivity: BillingRow[],
                 <tbody className="divide-y divide-border">
                     {globalTable.getRowModel().rows.length > 0 ? (
                         globalTable.getRowModel().rows.map((row) => ( 
-                            <tr key={row.id} className="group hover:bg-muted/30 transition-colors cursor-default">
+                            <tr 
+                                key={row.id} 
+                                onClick={() => {
+                                    if (selectMode) {
+                                        row.toggleSelected();
+                                    }
+                                }}
+
+                                className={cn(
+                                    "group hover:bg-muted/30 transition-colors cursor-default",
+                                    row.getIsSelected() ? "bg-secondary/10" : "",
+                                )}
+                            >
                                 <td className="pl-6 pr-4 py-5 text-sm font-medium text-muted-foreground tabular-nums">
                                     <div className="font-medium text-foreground tabular-nums leading-none">{formatBillingDate(row.original.date)[0]}</div>
                                     <div className="text-xs text-muted-foreground mt-0.5 leading-tight">{formatBillingDate(row.original.date)[1]}</div>
@@ -314,13 +351,22 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
     const [filterOpen, setFilterOpen] = useState<boolean>(false);
     const [expandedRow, setExpandedRow] = useState<string>("");
 
-    const [globalFilter, setGlobalFilter] = useState<string>("")
+    const [selectMode, setSelectMode] = useState<boolean>(false);
 
-    const toggleRow = (rowid: string) => {
-        if (expandedRow === rowid) {
-            setExpandedRow("");
+    const [globalFilter, setGlobalFilter] = useState<string>()
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+
+    const toggleRow = (row: Row<FamilyRow>) => {
+        if (selectMode) {
+            // If we're in select mode, don't expand, just select
+            console.log("HEre");
+            row.toggleSelected();
         } else {
-            setExpandedRow(rowid);
+            if (expandedRow === row.id) {
+                setExpandedRow("");
+            } else {
+                setExpandedRow(row.id);
+            }
         }
     }
 
@@ -375,8 +421,10 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         state: {
-            globalFilter
+            globalFilter,
+            rowSelection,
         },
+        onRowSelectionChange: setRowSelection,
         onGlobalFilterChange: setGlobalFilter,
         initialState: {
             pagination: {
@@ -402,23 +450,36 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
                 </div>
 
                 <div className="relative">
-                    <button
-                        onClick={() => setFilterOpen(!filterOpen)}
-                        className={cn(
-                            "px-4 py-2 rounded text-sm font-bold flex items-center gap-2 transition-all border",
-                            filterOpen
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                        )}
-                    >
-                        <Filter size={14} /> Filter View
-                    </button>
+                    <div className="flex gap-2 items-center">
+                        <button
+                            onClick={() => {
+                                if (selectMode) familyTable.resetRowSelection();
+                                setSelectMode(!selectMode);
+                            }}
+                            className={cn(
+                                "h-9 px-4 rounded-md text-sm font-medium flex items-center gap-2 transition-all border",
+                                selectMode
+                                    ? "bg-secondary/80 text-primary border-primary/20 shadow-sm"
+                                    : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground"
+                            )}
+                        >
+                            <BoxSelect size={15} /> 
+                            <span className={cn(selectMode && "font-bold")}>Select Mode</span>
+                        </button>
 
-                    {/* <button
-                        onClick={() => setSelectOn(!selectOn)}
-                    >
+                        <button
+                            onClick={() => setFilterOpen(!filterOpen)}
+                            className={cn(
+                                "px-4 py-2 rounded text-sm font-bold flex items-center gap-2 transition-all border",
+                                filterOpen
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                            )}
 
-                    </button> */}
+                        >
+                            <Filter size={14} /> Filter View
+                        </button> 
+                    </div>
 
                     {filterOpen && (
                         <div className="absolute right-0 top-full mt-2 w-64 bg-background border border-primary/20 shadow-md rounded-lg z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
@@ -487,13 +548,15 @@ function FamilyTable({ families, rowRef }: { families: FamilyRow[], rowRef: RefO
                     {familyTable.getRowModel().rows.length > 0 ? (
                         familyTable.getRowModel().rows.map((row) => { 
                         const isExpanded = expandedRow === row.id;
+                        const isSelected = selectMode && row.getIsSelected();
                         // const lastActivity = formatBillingDate(row.original.lastActive).join(" ");
                         return (
                             <React.Fragment key={row.id}>
                                 <tr
-                                    onClick={() => toggleRow(row.id)}
+                                    onClick={() => toggleRow(row)}
                                     className={cn(
                                         "group transition-colors cursor-pointer",
+                                        isSelected ? "bg-secondary/10" : "",
                                         isExpanded ? "bg-muted/50" : "hover:bg-muted/30"
                                     )}
                                 >
