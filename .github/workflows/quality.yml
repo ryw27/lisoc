@@ -1,0 +1,38 @@
+name: PR Quality Gate
+
+on:
+    # Run on PRs targeting main or beta
+    pull_request:
+        branches: [main, beta]
+    # Run on direct pushes to main or beta
+    push:
+        branches: [main, beta]
+
+jobs:
+    check:
+        name: Typecheck & Lint
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "npm" # Caches node_modules for faster runs
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Check Formatting
+              # Fails if code isn't formatted. It won't fix it just tells you to fix it.
+              run: npx prettier --check .
+
+            - name: Linting
+              run: npm run lint
+
+            - name: Type Checking (Build)
+              # Running build includes type checking. This catches "Property x does not exist" errors.
+              run: npm run build
