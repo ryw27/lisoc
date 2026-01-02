@@ -1,8 +1,12 @@
 const config = {
-    semi: true,
-    tabWidth: 4,
-    trailingComma: "es5",
     printWidth: 100,
+    tabWidth: 4,
+    semi: true,
+    trailingComma: "es5",
+
+    bracketSpacing: true,
+    arrowParens: true,
+
     plugins: ["prettier-plugin-tailwindcss"],
 };
 
