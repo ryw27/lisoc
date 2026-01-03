@@ -1,4 +1,3 @@
-
 export default async function PreviousClassesPage() {
-    return <div>Previous Classes Page</div>
+    return <div>Previous Classes Page</div>;
 }

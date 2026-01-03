@@ -1,9 +1,17 @@
-import React from 'react';
-import SideNav from '@/components/sidenav';
-import Header from '@/components/header';
-import { HomeIcon, UserIcon, FileTextIcon, BookOpenIcon, DollarSign, Mail, LogOut } from 'lucide-react';
-import { requireRole } from '@/lib/auth';
+import React from "react";
+import {
+    BookOpenIcon,
+    DollarSign,
+    FileTextIcon,
+    HomeIcon,
+    LogOut,
+    Mail,
+    UserIcon,
+} from "lucide-react";
 import { FaChalkboardTeacher } from "react-icons/fa";
+import { requireRole } from "@/server/auth/actions";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
 
 const DASHBOARD = "/dashboard";
 interface NavItem {
@@ -24,29 +32,29 @@ const navItems: NavSection[] = [
             {
                 label: "Home(首页)",
                 href: [DASHBOARD],
-                icon: <HomeIcon className="w-4 h-4" />,
+                icon: <HomeIcon className="h-4 w-4" />,
             },
             {
                 label: "Register（注册）",
                 href: [`${DASHBOARD}/register`],
-                icon: <FaChalkboardTeacher className="w-4 h-4" />,
+                icon: <FaChalkboardTeacher className="h-4 w-4" />,
             },
             {
                 label: "Manage Students（更新学生）",
                 href: [`${DASHBOARD}/students`],
-                icon: <UserIcon className="w-4 h-4" />,
+                icon: <UserIcon className="h-4 w-4" />,
             },
             {
                 label: "Manage Family（更新家庭）",
                 href: [`${DASHBOARD}/family`],
-                icon: <UserIcon className="w-4 h-4" />,
+                icon: <UserIcon className="h-4 w-4" />,
             },
 
             {
-                 label: "Parent Duty（家长值班）",
-                 href: [`${DASHBOARD}/parentduty`],
-                 icon: <UserIcon className="w-4 h-4" />,
-             },
+                label: "Parent Duty（家长值班）",
+                href: [`${DASHBOARD}/parentduty`],
+                icon: <UserIcon className="h-4 w-4" />,
+            },
         ],
     },
     {
@@ -55,17 +63,17 @@ const navItems: NavSection[] = [
             {
                 label: "Course List（课程列表）",
                 href: [`${DASHBOARD}/courselist`],
-                icon: <BookOpenIcon className="w-4 h-4" />,
+                icon: <BookOpenIcon className="h-4 w-4" />,
             },
             {
                 label: "Registration History（注册记录）",
                 href: [`${DASHBOARD}/reghistory`],
-                icon: <FileTextIcon className="w-4 h-4" />,
+                icon: <FileTextIcon className="h-4 w-4" />,
             },
             {
                 label: "Balance History（缴费记录）",
                 href: [`${DASHBOARD}/balhistory`],
-                icon: <DollarSign className="w-4 h-4" />,
+                icon: <DollarSign className="h-4 w-4" />,
             },
         ],
     },
@@ -75,12 +83,12 @@ const navItems: NavSection[] = [
             {
                 label: "Contact us（联系我们）",
                 href: [`${DASHBOARD}/contact`],
-                icon: <Mail className="w-4 h-4" />,
+                icon: <Mail className="h-4 w-4" />,
             },
             {
                 label: "Logout（退出）",
                 href: [`${DASHBOARD}/logout`],
-                icon: <LogOut className="w-4 h-4" />,
+                icon: <LogOut className="h-4 w-4" />,
             },
         ],
     },
@@ -90,17 +98,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const user = await requireRole(["FAMILY"]);
 
     return (
-        <div className="flex h-screen w-full bg-background overflow-hidden">
+        <div className="bg-background flex h-screen w-full overflow-hidden">
             {/* SideNav */}
-                <SideNav items={navItems} />
-            { /* Header + Content */ }
-            <div className="flex flex-col flex-1 min-w-0 h-full relative">
+            <SideNav items={navItems} />
+            {/* Header + Content */}
+            <div className="relative flex h-full min-w-0 flex-1 flex-col">
                 {/* Header */}
                 <Header user={user.user} />
-                <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
-                    <div className="max-w-[1400px] mx-auto w-full">
-                    {children}
-                    </div>
+                <main className="custom-scrollbar flex-1 overflow-y-auto p-8">
+                    <div className="mx-auto w-full max-w-[1400px]">{children}</div>
                 </main>
             </div>
         </div>

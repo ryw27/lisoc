@@ -1,54 +1,51 @@
-import { db } from "@/lib/db";
-import { requireRole } from "@/lib/auth/actions/requireRole";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { requireRole } from "@/server/auth/actions";
 
 export default async function TeacherPage() {
     const user = await requireRole(["TEACHER"], { redirect: true });
     const teacher = await db.query.teacher.findFirst({
-        where: (teacher, { eq }) => eq(teacher.userid, user.user.id)
+        where: (teacher, { eq }) => eq(teacher.userid, user.user.id),
     });
 
     if (!teacher) {
-        redirect("/login/teacher")
+        redirect("/login/teacher");
     }
 
     const classesToTeach = await db.query.arrangement.findMany({
         where: (arrangement, { eq }) => eq(arrangement.teacherid, teacher.teacherid),
         with: {
-            class: {
-
-            },
+            class: {},
             classroom: {
                 columns: {
                     roomid: true,
-                    roomno: true
-                }
-            }
-        }
+                    roomno: true,
+                },
+            },
+        },
     });
 
     if (!classesToTeach) {
-        <div>No active semester</div>
+        <div>No active semester</div>;
     }
 
-
-
     return (
-        <div className="flex flex-col container mx-auto">
+        <div className="container mx-auto flex flex-col">
             {classesToTeach.map(async (c, idx) => {
                 // TODO: Fix when adding transferring/dropping
                 const students = await db.query.classregistration.findMany({
-                    where: (reg, { and, eq }) => and(eq(reg.classid, c.classid), eq(reg.isdropspring, false)),
+                    where: (reg, { and, eq }) =>
+                        and(eq(reg.classid, c.classid), eq(reg.isdropspring, false)),
                     with: {
                         student: {
                             columns: {
                                 namecn: true,
                                 namefirsten: true,
                                 namelasten: true,
-                            }
-                        }
-                    }
-                })
+                            },
+                        },
+                    },
+                });
                 return (
                     <div key={c.arrangeid} className="flex flex-col gap-2">
                         <h1 className="font-bold">Class {idx.toString()}</h1>
@@ -58,18 +55,16 @@ export default async function TeacherPage() {
                         {students.map((s) => {
                             return (
                                 <div key={s.regid}>
-                                    <p>
-                                        {s.student?.namecn}
-                                    </p>
+                                    <p>{s.student?.namecn}</p>
                                     <p>
                                         {s.student?.namefirsten} {s.student?.namelasten}
                                     </p>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
-                )
+                );
             })}
         </div>
-    )
+    );
 }

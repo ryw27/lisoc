@@ -1,8 +1,8 @@
-import InfoBoxClass from "@/components/registration/family/info-box-class";
-import { requireRole } from "@/lib/auth/actions/requireRole";
-import { db } from "@/lib/db";
-import { getThreeSeasons } from "@/lib/registration/helpers";
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { requireRole } from "@/server/auth/actions";
+import getThreeSeasons from "@/server/seasons/data";
+import InfoBoxClass from "@/components/registration/family/info-box-class";
 
 export default async function CourseListPage() {
     await requireRole(["FAMILY"]);
@@ -11,57 +11,64 @@ export default async function CourseListPage() {
         const seasons = await getThreeSeasons(tx);
 
         const yearArrangements = await db.query.arrangement.findMany({
-            where: (arrangement, { and, eq }) => and(
-                eq(arrangement.seasonid, seasons.year.seasonid),
-                eq(arrangement.isregclass, true)
-            ),
+            where: (arrangement, { and, eq }) =>
+                and(
+                    eq(arrangement.seasonid, seasons.year.seasonid),
+                    eq(arrangement.isregclass, true)
+                ),
             with: {
-                class: {}
-            }
+                class: {},
+            },
         });
 
         const fallArrangements = await db.query.arrangement.findMany({
-            where: (arrangement, { and, eq }) => and(
-                eq(arrangement.seasonid, seasons.fall.seasonid),
-                eq(arrangement.isregclass, true)
-            ),
+            where: (arrangement, { and, eq }) =>
+                and(
+                    eq(arrangement.seasonid, seasons.fall.seasonid),
+                    eq(arrangement.isregclass, true)
+                ),
             with: {
-                class: {}
-            }
+                class: {},
+            },
         });
 
         const springArrangements = await db.query.arrangement.findMany({
-            where: (arrangement, { and, eq }) => and(
-                eq(arrangement.seasonid, seasons.spring.seasonid),
-                eq(arrangement.isregclass, true)
-            ),
+            where: (arrangement, { and, eq }) =>
+                and(
+                    eq(arrangement.seasonid, seasons.spring.seasonid),
+                    eq(arrangement.isregclass, true)
+                ),
             with: {
-                class: {}
-            }
+                class: {},
+            },
         });
 
-        const allArrs = { year: yearArrangements, fall: fallArrangements, spring: springArrangements };
+        const allArrs = {
+            year: yearArrangements,
+            fall: fallArrangements,
+            spring: springArrangements,
+        };
         if (allArrs.year.length + allArrs.fall.length + allArrs.spring.length === 0) {
             return (
-                <div className="flex justify-center items-center text-2xl font-bold min-h-screen">
+                <div className="flex min-h-screen items-center justify-center text-2xl font-bold">
                     No classes found
                 </div>
-            )
+            );
         }
 
         return (
-            <div className="flex flex-col w-full max-w-5xl mx-auto px-4 py-8 gap-2 items-start">
-                <h1 className="text-2xl font-bold text-black mb-2">Class List</h1>
-                <p className="text-xl mb-6">
+            <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-2 px-4 py-8">
+                <h1 className="mb-2 text-2xl font-bold text-black">Class List</h1>
+                <p className="mb-6 text-xl">
                     In order to register, please visit{" "}
-                    <Link href="/dashboard/register" className="underline text-blue-600">
+                    <Link href="/dashboard/register" className="text-blue-600 underline">
                         the registration link
                     </Link>
                 </p>
 
-                <section className="w-full border-1 rounded-md shadow-md p-4">
-                    <h2 className="font-bold text-lg mb-3">Year Classes</h2>
-                    <div className="flex flex-col gap-4 w-full">
+                <section className="w-full rounded-md border-1 p-4 shadow-md">
+                    <h2 className="mb-3 text-lg font-bold">Year Classes</h2>
+                    <div className="flex w-full flex-col gap-4">
                         {allArrs.year.map((classData) => (
                             <InfoBoxClass
                                 key={classData.arrangeid}
@@ -73,9 +80,9 @@ export default async function CourseListPage() {
                     </div>
                 </section>
 
-                <section className="w-full border-1 rounded-md shadow-md p-4">
-                    <h2 className="font-bold text-lg mb-3">Fall-only Classes</h2>
-                    <div className="flex flex-col gap-4 w-full">
+                <section className="w-full rounded-md border-1 p-4 shadow-md">
+                    <h2 className="mb-3 text-lg font-bold">Fall-only Classes</h2>
+                    <div className="flex w-full flex-col gap-4">
                         {allArrs.fall.map((classData) => (
                             <InfoBoxClass
                                 key={classData.arrangeid}
@@ -87,9 +94,9 @@ export default async function CourseListPage() {
                     </div>
                 </section>
 
-                <section className="w-full border-1 rounded-md shadow-md p-4">
-                    <h2 className="font-bold text-lg mb-3">Spring-only Classes</h2>
-                    <div className="flex flex-col gap-4 w-full">
+                <section className="w-full rounded-md border-1 p-4 shadow-md">
+                    <h2 className="mb-3 text-lg font-bold">Spring-only Classes</h2>
+                    <div className="flex w-full flex-col gap-4">
                         {allArrs.spring.map((classData) => (
                             <InfoBoxClass
                                 key={classData.arrangeid}
@@ -101,10 +108,6 @@ export default async function CourseListPage() {
                     </div>
                 </section>
             </div>
-        )
-    })
-
-
-
-    
-} 
+        );
+    });
+}
