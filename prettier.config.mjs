@@ -5,9 +5,27 @@ const config = {
     trailingComma: "es5",
 
     bracketSpacing: true,
-    arrowParens: true,
+    arrowParens: "always",
 
-    plugins: ["prettier-plugin-tailwindcss"],
+    plugins: [
+        "@ianvs/prettier-plugin-sort-imports",
+        "prettier-plugin-tailwindcss",
+        "prettier-plugin-packagejson",
+    ],
+    importOrder: [
+        "^(react/(.*)$)|^(react$)",
+        "^(next/(.*)$)|^(next$)",
+
+        "<THIRD_PARTY_MODULES>",
+
+        "^@/lib/(.*)$",
+        "^@/types/(.*)$",
+        "^@/server/(.*)$",
+        "^@/components/(.*)$",
+        "^@/styles/(.*)$",
+
+        "^[./]",
+    ],
 };
 
 export default config;
