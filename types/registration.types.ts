@@ -1,4 +1,4 @@
-import { uiClasses, uiClassKey } from "@/lib/types.shared";
+import { uiClasses, uiClassKey } from "@/types/shared.types";
 
 export type studentStatus =
     | "Submitted"

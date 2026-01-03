@@ -1,4 +1,4 @@
-import { seasonObj } from "@/lib/types.shared";
+import { seasonObj } from "@/types/shared.types";
 
 export type threeSeasons = {
     year: seasonObj;
