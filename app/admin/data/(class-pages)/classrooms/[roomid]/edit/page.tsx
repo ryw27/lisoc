@@ -1,16 +1,17 @@
-import EditEntity from '@/components/data-view/edit-entity/edit-entity'
-import getIDRow from '@/lib/data-view/actions/getIDRow'
-import { ClassroomObject } from '@/lib/data-view/entity-configs/(classes)/classrooms'
-import { FormSections, FormSelectOptions } from '@/lib/data-view/types'
+import { InferSelectModel } from "drizzle-orm";
+import { classrooms } from "@/lib/db/schema";
+import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
+import { getIDRow } from "@/server/data-view/actions/getIDRow";
+import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 
 export default async function EditClassroomPage({
     params,
 }: {
-    params: Promise<{ roomid: string }>
+    params: Promise<{ roomid: string }>;
 }) {
     const { roomid } = await params;
     const room_id = parseInt(roomid);
-    
+
     // Fetch the classroom data
     const response = await getIDRow("classrooms", room_id);
 
@@ -18,11 +19,11 @@ export default async function EditClassroomPage({
         return <div>Classroom not found</div>;
     }
 
-    const currentClassroom = response.data as ClassroomObject;
+    const currentClassroom = response.data as InferSelectModel<typeof classrooms>;
 
     const statusOptions = [
         { val: "Active", labelen: "Active", labelcn: "Active" },
-        { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" }
+        { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" },
     ];
 
     // Define form fields with current values
@@ -35,14 +36,14 @@ export default async function EditClassroomPage({
                     label: "Room Number",
                     type: "text",
                     required: true,
-                    defaultValue: currentClassroom.roomno ?? ""
+                    defaultValue: currentClassroom.roomno ?? "",
                 },
                 {
                     name: "roomcapacity",
                     label: "Room Capacity",
                     type: "number",
                     required: true,
-                    defaultValue: currentClassroom.roomcapacity?.toString() ?? ""
+                    defaultValue: currentClassroom.roomcapacity?.toString() ?? "",
                 },
                 {
                     name: "status",
@@ -50,9 +51,9 @@ export default async function EditClassroomPage({
                     type: "select",
                     defaultValue: currentClassroom.status ?? "",
                     required: true,
-                    options: statusOptions as FormSelectOptions[]
-                }
-            ]
+                    options: statusOptions as FormSelectOptions[],
+                },
+            ],
         },
         {
             section: "Extra Information",
@@ -62,16 +63,15 @@ export default async function EditClassroomPage({
                     label: "Notes",
                     type: "textarea",
                     required: false,
-                    defaultValue: currentClassroom.notes ?? ""
-                }
-            ]
-        }
+                    defaultValue: currentClassroom.notes ?? "",
+                },
+            ],
+        },
     ];
 
     const hiddenInputs = {
-        "roomid": currentClassroom.roomid,
-    }
-
+        roomid: currentClassroom.roomid,
+    };
 
     return (
         <EditEntity
@@ -80,6 +80,6 @@ export default async function EditClassroomPage({
             description="Current values have already been filled in."
             fields={fields}
             hiddenInputs={hiddenInputs}
-        /> 
+        />
     );
-} 
+}

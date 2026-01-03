@@ -1,14 +1,12 @@
-import { FormSelectOptions, FormSections } from '@/lib/data-view/types';
-import AddEntity from '@/components/data-view/add-entity/add-entity';
-import EntityFormsHeader from '@/components/data-view/entity-forms-header';
-import { ADMIN_DATAVIEW_LINK } from '@/lib/utils';
+import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
+import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
+import AddEntity from "@/components/data-view/add-entity/add-entity";
+import EntityFormsHeader from "@/components/data-view/entity-forms-header";
 
-
-export default async function AddClassroom({
-}) {
+export default async function AddClassroom({}) {
     const statusOptions = [
         { val: "Active", labelen: "Active", labelcn: "Active" },
-        { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" }
+        { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" },
     ];
 
     // Define form fields. Match form schema to names
@@ -21,22 +19,22 @@ export default async function AddClassroom({
                     label: "Room Number",
                     type: "text",
                     placeholder: "Enter the room number...",
-                    required: true
+                    required: true,
                 },
                 {
                     name: "roomcapacity",
                     label: "Room Capacity",
                     type: "number",
                     placeholder: "Enter the room capacity",
-                    required: true
+                    required: true,
                 },
                 {
                     name: "status",
                     label: "Status",
                     type: "select",
                     required: true,
-                    options: statusOptions as FormSelectOptions[]
-                }
+                    options: statusOptions as FormSelectOptions[],
+                },
             ],
         },
         {
@@ -47,18 +45,15 @@ export default async function AddClassroom({
                     label: "Notes",
                     type: "textarea",
                     placeholder: "Enter any additional notes",
-                    required: false
-                }
-            ]
-        }
+                    required: false,
+                },
+            ],
+        },
     ];
 
     return (
         <>
-            <EntityFormsHeader
-                type="add"
-                gobacklink={`${ADMIN_DATAVIEW_LINK}/classrooms`}
-            />
+            <EntityFormsHeader type="add" gobacklink={`${ADMIN_DATAVIEW_LINK}/classrooms`} />
             <AddEntity
                 entity="classrooms"
                 title="Add a new classroom"
@@ -67,4 +62,4 @@ export default async function AddClassroom({
             />
         </>
     );
-} 
+}
