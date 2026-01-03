@@ -1,29 +1,28 @@
-import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { db } from "../db"
-import { pool } from "../db"
-import bcrypt from "bcrypt"
-import PostgresAdapter from "@auth/pg-adapter"
-import { type Adapter } from "next-auth/adapters"
-import { credSchema, loginSchema, adminloginSchema } from "@/lib/auth/validation"
-import authConfig from "@/auth.config"
+import authConfig from "@/auth.config";
+import PostgresAdapter from "@auth/pg-adapter";
+import bcrypt from "bcrypt";
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
+import { type Adapter } from "next-auth/adapters";
 // @ts-expect-error JWT needs to be used to edit the module
-import { type JWT } from "next-auth/jwt" // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
+import { type JWT } from "next-auth/jwt"; // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
+import Credentials from "next-auth/providers/credentials";
+import { adminloginSchema, credSchema, loginSchema } from "@/server/auth/schema";
+import { db, pool } from "./db";
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
-    interface User { 
+    interface User {
         id: string;
-        role: "ADMIN" | "TEACHER" | "FAMILY"
-    } 
+        role: "ADMIN" | "TEACHER" | "FAMILY";
+    }
 
     interface Session {
-        user: User & DefaultSession["user"]
+        user: User & DefaultSession["user"];
     }
 }
 
 declare module "next-auth/jwt" {
-    interface JWT { 
+    interface JWT {
         sub: string; // user id
         role: "ADMIN" | "TEACHER" | "FAMILY";
     }
@@ -32,18 +31,16 @@ declare module "next-auth/jwt" {
 export const pgadapter = PostgresAdapter(pool) as Required<Adapter>;
 
 class IncorrectEmailPasswordError extends CredentialsSignin {
-  code = "incorrect-email-password";          
+    code = "incorrect-email-password";
 }
 
 class NewAccountError extends CredentialsSignin {
-    code = "missing-password"
+    code = "missing-password";
 }
 
 class InternalServerError extends CredentialsSignin {
-  code = "internal-server-error";         
+    code = "internal-server-error";
 }
-
-
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
@@ -82,15 +79,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const { emailUsername, password } = parsedCredentials.data;
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
-                        isEmail
-                            ? eq(users.email, emailUsername)
-                            : eq(users.name, emailUsername),
+                        isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
                     with: {
-                        adminusers: {}
-                    }
+                        adminusers: {},
+                    },
                 });
 
-                if (!result || !result.roles.includes("ADMINUSER") || (!result.emailVerified && !result.adminusers?.ischangepwdnext) || !result.adminusers) {
+                if (
+                    !result ||
+                    !result.roles.includes("ADMINUSER") ||
+                    (!result.emailVerified && !result.adminusers?.ischangepwdnext) ||
+                    !result.adminusers
+                ) {
                     // Don't reveal that their account does not exist
                     throw new IncorrectEmailPasswordError();
                 }
@@ -149,15 +149,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const { emailUsername, password } = parsedCredentials.data;
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
-                        isEmail
-                            ? eq(users.email, emailUsername)
-                            : eq(users.name, emailUsername),
+                        isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
                     with: {
-                        teachers: {}
-                    }
+                        teachers: {},
+                    },
                 });
 
-                if (!result || !result.roles.includes("TEACHER") || (!result.emailVerified && !result.teachers?.ischangepwdnext)) {
+                if (
+                    !result ||
+                    !result.roles.includes("TEACHER") ||
+                    (!result.emailVerified && !result.teachers?.ischangepwdnext)
+                ) {
                     throw new IncorrectEmailPasswordError();
                 }
 
@@ -214,9 +216,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const { emailUsername, password } = parsedCredentials.data;
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
-                        isEmail
-                            ? eq(users.email, emailUsername)
-                            : eq(users.name, emailUsername),
+                        isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
                 });
 
                 if (!result || !result.emailVerified || !result.roles.includes("FAMILY")) {
@@ -239,4 +239,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }),
     ],
     adapter: pgadapter,
-})
+});
