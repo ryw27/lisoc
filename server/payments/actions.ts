@@ -5,7 +5,6 @@ import { eq, InferSelectModel } from "drizzle-orm";
 import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { famBalanceInsert } from "@/lib/types.shared";
 import {
     FAMILYBALANCE_STATUS_PAID,
     FAMILYBALANCE_STATUS_PROCESSED,
@@ -13,6 +12,7 @@ import {
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
+import { famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { checkApplySchema } from "@/server/payments/schema";
 

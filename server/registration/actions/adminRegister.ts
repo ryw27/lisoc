@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { type famBalanceInsert, type seasonObj, type uiClasses } from "@/lib/types.shared";
 import {
     EARLY_REG_DISCOUNT,
     LATE_REG_FEE_1,
@@ -14,6 +13,7 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
+import { type famBalanceInsert, type seasonObj, type uiClasses } from "@/types/shared.types";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // const regValidation = z.object({

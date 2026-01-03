@@ -3,13 +3,13 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { arrangement, classregistration, familybalance } from "@/lib/db/schema";
-import { type classRegObj, type famBalanceInsert, type uiClasses } from "@/lib/types.shared";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_OTHER,
     REGISTRATION_FEE,
 } from "@/lib/utils";
 import { type Transaction } from "@/types/server.types";
+import { type classRegObj, type famBalanceInsert, type uiClasses } from "@/types/shared.types";
 import { getTotalPrice } from "@/server/registration/data";
 
 async function deleteAllRegistrations(

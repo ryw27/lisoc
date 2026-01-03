@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
-import { type uiClasses } from "@/lib/types.shared";
 import { type threeSeasons } from "@/types/seasons.types";
 import { type dbClient } from "@/types/server.types";
+import { type uiClasses } from "@/types/shared.types";
 
 export default async function getThreeSeasons(client: dbClient = db) {
     return await client.transaction(async (tx) => {

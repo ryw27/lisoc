@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { eq, type InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
-import { type famBalanceInsert, type uiClasses } from "@/lib/types.shared";
 import {
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
@@ -14,6 +13,7 @@ import {
     REQUEST_STATUS_PENDING,
     toESTString,
 } from "@/lib/utils";
+import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
 import { canTransferOutandIn, getArrSeason, getTotalPrice, type Transaction } from "../../data";
 
 //import { ca } from "zod/v4/locales";

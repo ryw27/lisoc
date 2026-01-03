@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { type famBalanceInsert, type uiClasses } from "@/lib/types.shared";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_STATUS_PROCESSED,
@@ -15,6 +14,7 @@ import {
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
+import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
 import { canDrop, getTotalPrice, Transaction } from "../../data";
 
 async function createRemoveFamBalanceVals(

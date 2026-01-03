@@ -6,8 +6,8 @@ import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { arrangementArraySchema, arrangementSchema } from "@/lib/schema";
-import { type arrangementInsert, type seasonObj } from "@/lib/types.shared";
 import { toESTString } from "@/lib/utils";
+import { type arrangementInsert, type seasonObj } from "@/types/shared.types";
 import { getTermVariables } from "@/server/registration/data";
 
 // TODO: more efficiency? Not sure if this is updating all that have been edited or just all of them regardless

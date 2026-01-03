@@ -5,8 +5,8 @@ import { eq, InferSelectModel, or } from "drizzle-orm";
 import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
-import { type term } from "@/lib/types.shared";
 import { toESTString } from "@/lib/utils";
+import { type term } from "@/types/shared.types";
 import { seasonRegSettingsSchema } from "../schema";
 
 export async function updateRegControls(

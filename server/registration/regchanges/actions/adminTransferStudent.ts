@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { type famBalanceInsert, type uiClasses } from "@/lib/types.shared";
 import {
     EARLY_REG_DISCOUNT,
     FAMILYBALANCE_STATUS_PENDING,
@@ -18,6 +17,7 @@ import {
     REGSTATUS_TRANSFERRED,
     toESTString,
 } from "@/lib/utils";
+import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
 import {
     canTransferOutandIn,
     getArrSeason,

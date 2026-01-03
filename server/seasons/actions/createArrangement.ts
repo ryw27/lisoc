@@ -5,8 +5,8 @@ import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { arrangementArraySchema, arrangementSchema } from "@/lib/schema";
-import { type seasonObj } from "@/lib/types.shared";
 import { toESTString, UNKNOWN_CLASSROOMID, UNKNOWN_TEACHERID } from "@/lib/utils";
+import { type seasonObj } from "@/types/shared.types";
 import { getTermVariables } from "@/server/registration/data";
 
 // Create new regclas with constituent classrooms

@@ -5,7 +5,6 @@ import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
-import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/lib/types.shared";
 import {
     EARLY_REG_DISCOUNT,
     FAMILYBALANCE_STATUS_PENDING,
@@ -18,6 +17,7 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
+import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // TODO: Check stuff with student

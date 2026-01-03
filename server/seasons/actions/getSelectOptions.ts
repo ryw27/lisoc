@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { type IdMaps, type selectOptions } from "@/lib/types.shared";
+import { type IdMaps, type selectOptions } from "@/types/shared.types";
 
 export async function getSelectOptions() {
     const teachers = await db.query.teacher.findMany({
