@@ -1,70 +1,76 @@
 "use client";
+
 import { useReducer, useState } from "react";
-import { PlusIcon, ChevronUp, ChevronDown } from "lucide-react";
-import SemesterViewBox from "./sem-view-box";
-import SemesterControlsPopover from "./sem-control-popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  type selectOptions,
-  type fullSemClassesData,
-  type IdMaps,
-  type fullRegClass,
-  type threeSeasons,
-  type uiClasses,
- // type availableClasses,
-  type arrangeClasses,
-  uiClassKey,
-  availableClasses,
-  classJoin,
-} from "@/lib/registration/types";
-import { seasons } from "@/lib/db/schema";
-import { InferSelectModel } from "drizzle-orm";
-import SemClassEditor from "./sem-class-editor";
 import Link from "next/link";
+import { InferSelectModel } from "drizzle-orm";
+import { ChevronDown, ChevronUp, PlusIcon } from "lucide-react";
 import { FaRegQuestionCircle } from "react-icons/fa";
-import { RegistrationProvider } from "@/lib/registration/registration-context";
+import { seasons } from "@/lib/db/schema";
+import {
+    type availableClasses,
+    type fullRegClass,
+    type fullSemClassesData,
+} from "@/types/registration.types";
+import { type threeSeasons } from "@/types/seasons.types";
+import {
+    classJoin,
+    uiClassKey,
+    type arrangeClasses,
+    type IdMaps,
+    type selectOptions,
+    type uiClasses,
+} from "@/types/shared.types";
+import { RegistrationProvider } from "@/components/registration/registration-context";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import SemClassEditor from "./sem-class-editor";
+import SemesterControlsPopover from "./sem-control-popover";
+import SemesterViewBox from "./sem-view-box";
 
 type semViewProps = {
-    fullData: fullSemClassesData
+    fullData: fullSemClassesData;
     academicYear: threeSeasons;
-    selectOptions: selectOptions
+    selectOptions: selectOptions;
     idMaps: IdMaps;
     allClasses: arrangeClasses[];
-}
+};
 
-export type fullRegID = fullRegClass & { id: string }
-export type fullSemDataID = fullRegID[]
-export type Action = 
-    | { type: "hydrate", classes: fullSemDataID}
-    | { type: "reg/add", regDraft: fullRegID } // Add a whole new class
-    | { type: "reg/update", id: string, next: Partial<uiClasses> } // Arrangement information
-    | { type: "reg/remove", id: string } // Remove a whole class
-    | { type: "class/add", id: string, roomDraft: Partial<uiClasses> } // Add a new classroom (non reg class)
-    | { type: "class/update", id: string, arrangeid: number, update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit"> } // Edit a classroom (only the teacher, room, seat limit)
-    | { type: "class/remove", id: string, arrangeid: number,selection:selectOptions } // Remove a classroom
-    | { type: "reg/distribute", id: string, newDistr: fullRegID } // Distribute students, requires full object
+export type fullRegID = fullRegClass & { id: string };
+export type fullSemDataID = fullRegID[];
+export type Action =
+    | { type: "hydrate"; classes: fullSemDataID }
+    | { type: "reg/add"; regDraft: fullRegID } // Add a whole new class
+    | { type: "reg/update"; id: string; next: Partial<uiClasses> } // Arrangement information
+    | { type: "reg/remove"; id: string } // Remove a whole class
+    | { type: "class/add"; id: string; roomDraft: Partial<uiClasses> } // Add a new classroom (non reg class)
+    | {
+          type: "class/update";
+          id: string;
+          arrangeid: number;
+          update: Pick<uiClasses, "teacherid" | "roomid" | "seatlimit">;
+      } // Edit a classroom (only the teacher, room, seat limit)
+    | { type: "class/remove"; id: string; arrangeid: number; selection: selectOptions } // Remove a classroom
+    | { type: "reg/distribute"; id: string; newDistr: fullRegID }; // Distribute students, requires full object
 
-
-const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"]
+const CLASS_UNIQUE_FIELDS: (keyof uiClasses)[] = ["teacherid", "roomid", "seatlimit"];
 
 function reducer(state: fullSemDataID, action: Action): fullSemDataID {
     switch (action.type) {
         case "hydrate":
             return action.classes;
-        case "reg/add": 
+        case "reg/add":
             const tmp = [...state, { ...action.regDraft }];
-            //sort it 
+            //sort it
             tmp.sort((a, b) => {
                 return a.arrinfo.classkey - b.arrinfo.classkey;
-            }); 
-            
-            return tmp ; 
+            });
+
+            return tmp;
         case "reg/update": {
             // Only update non-unique fields for all classrooms in the reg class
             return state.map((regClass) => {
@@ -96,31 +102,36 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
             return state.map((regClass) =>
                 regClass.id === action.id
                     ? {
-                        ...regClass,
-                        classrooms: [
-                            ...regClass.classrooms,
-                            {
-                                arrinfo: {
-                                    ...Object.fromEntries(
-                                        Object.entries(regClass.arrinfo).filter(
-                                            ([key]) => !CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses & uiClassKey)
-                                        )
-                                    ),
-                                    ...Object.fromEntries(
-                                        Object.entries(action.roomDraft).filter(
-                                            ([key]) => CLASS_UNIQUE_FIELDS.includes(key as keyof uiClasses & uiClassKey)
-                                        )
-                                    ),
-                                    classid: action.roomDraft.classid || 0,
-                                } as uiClasses & uiClassKey,
-                                students: [],
-                                dropped: [],
-                            }
-                        ],
-                        availablerooms: regClass.availablerooms.filter(
-                            (room) => room.classid !== action.roomDraft.classid
-                        ),
-                    }
+                          ...regClass,
+                          classrooms: [
+                              ...regClass.classrooms,
+                              {
+                                  arrinfo: {
+                                      ...Object.fromEntries(
+                                          Object.entries(regClass.arrinfo).filter(
+                                              ([key]) =>
+                                                  !CLASS_UNIQUE_FIELDS.includes(
+                                                      key as keyof uiClasses & uiClassKey
+                                                  )
+                                          )
+                                      ),
+                                      ...Object.fromEntries(
+                                          Object.entries(action.roomDraft).filter(([key]) =>
+                                              CLASS_UNIQUE_FIELDS.includes(
+                                                  key as keyof uiClasses & uiClassKey
+                                              )
+                                          )
+                                      ),
+                                      classid: action.roomDraft.classid || 0,
+                                  } as uiClasses & uiClassKey,
+                                  students: [],
+                                  dropped: [],
+                              },
+                          ],
+                          availablerooms: regClass.availablerooms.filter(
+                              (room) => room.classid !== action.roomDraft.classid
+                          ),
+                      }
                     : regClass
             );
         case "class/update":
@@ -131,12 +142,12 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
                     classrooms: regClass.classrooms.map((classroom) =>
                         classroom.arrinfo.arrangeid === action.arrangeid
                             ? {
-                                ...classroom,
-                                arrinfo: {
-                                    ...classroom.arrinfo,
-                                    ...action.update,
-                                },
-                            }
+                                  ...classroom,
+                                  arrinfo: {
+                                      ...classroom.arrinfo,
+                                      ...action.update,
+                                  },
+                              }
                             : classroom
                     ),
                 };
@@ -145,79 +156,86 @@ function reducer(state: fullSemDataID, action: Action): fullSemDataID {
             return state.map((regClass) =>
                 regClass.id === action.id
                     ? (() => {
-                        // Find the classroom being removed
-                        const removedClass = regClass.classrooms.find(
-                            (classroom) => classroom.arrinfo.arrangeid === action.arrangeid
-                        );
+                          // Find the classroom being removed
+                          const removedClass = regClass.classrooms.find(
+                              (classroom) => classroom.arrinfo.arrangeid === action.arrangeid
+                          );
 
-                        // Remove the classroom from the arranged classrooms list
-                        const remainingClassrooms = regClass.classrooms.filter(
-                            (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
-                        );
+                          // Remove the classroom from the arranged classrooms list
+                          const remainingClassrooms = regClass.classrooms.filter(
+                              (classroom) => classroom.arrinfo.arrangeid !== action.arrangeid
+                          );
 
+                          // If nothing was found, just return the class with updated classrooms
+                          if (!removedClass) {
+                              return {
+                                  ...regClass,
+                                  classrooms: remainingClassrooms,
+                                  availablerooms: regClass.availablerooms,
+                              };
+                          }
+                          const newclass: classJoin | undefined = action.selection.classes.find(
+                              (c) => c.classid == removedClass.arrinfo.classid
+                          );
 
-                        // If nothing was found, just return the class with updated classrooms
-                        if (!removedClass ) {
-                            return {
-                                ...regClass,
-                                classrooms: remainingClassrooms,
-                                availablerooms: regClass.availablerooms,
-                            };
-                        }
-                        const newclass: classJoin|undefined =  action.selection.classes.find(c =>c.classid ==removedClass.arrinfo.classid );
+                          if (!newclass) {
+                              return {
+                                  ...regClass,
+                                  classrooms: remainingClassrooms,
+                                  availablerooms: regClass.availablerooms,
+                              };
+                          }
 
-                        if (!newclass) {
-                            return {
-                                ...regClass,
-                                classrooms: remainingClassrooms,
-                                availablerooms: regClass.availablerooms,
-                            };
-                        }
+                          const newroom = {
+                              classid: newclass.classid,
+                              classnamecn: newclass.classnamecn,
+                              description: "",
+                          } satisfies availableClasses;
 
-                        const newroom = {
-                            classid:newclass.classid,
-                            classnamecn:newclass.classnamecn,
-                            description:""
-                        } satisfies availableClasses;
-                       
-                        // Prevent duplicate available rooms by classid
-                        const alreadyExists = regClass.availablerooms.some(
-                            (room) => room.classid === removedClass.arrinfo.classid 
-                        );
+                          // Prevent duplicate available rooms by classid
+                          const alreadyExists = regClass.availablerooms.some(
+                              (room) => room.classid === removedClass.arrinfo.classid
+                          );
 
-                        return {
-                            ...regClass,
-                            classrooms: remainingClassrooms,
-                            availablerooms: alreadyExists
-                                ? regClass.availablerooms
-                                : [...regClass.availablerooms, newroom],
-                        };
-                    })()
+                          return {
+                              ...regClass,
+                              classrooms: remainingClassrooms,
+                              availablerooms: alreadyExists
+                                  ? regClass.availablerooms
+                                  : [...regClass.availablerooms, newroom],
+                          };
+                      })()
                     : regClass
             );
         case "reg/distribute":
-            return state.map((regClass) => regClass.id === action.id ? action.newDistr : regClass);
+            return state.map((regClass) =>
+                regClass.id === action.id ? action.newDistr : regClass
+            );
         default:
             return state;
     }
 }
 
-
 // Start with a general class overview that is clickable. Each one expands into a data table of students
 // Season is always the academic year.
-export default function SemesterView({ fullData, academicYear, selectOptions, idMaps,allClasses } : semViewProps) {
+export default function SemesterView({
+    fullData,
+    academicYear,
+    selectOptions,
+    idMaps,
+    allClasses,
+}: semViewProps) {
     // Augment each fullData item with a uuid for local state management
     const [regClasses, dispatch] = useReducer(
         reducer,
-        fullData.map(item => ({
+        fullData.map((item) => ({
             ...item,
-           // id: crypto.randomUUID()
-           id:item.arrinfo.classkey.toString()
+            // id: crypto.randomUUID()
+            id: item.arrinfo.classkey.toString(),
         }))
     );
 
-
-    const [currentView, setCurrentView] = useState<'fall' | 'spring' | 'academic' | 'all'>('all');
+    const [currentView, setCurrentView] = useState<"fall" | "spring" | "academic" | "all">("all");
     const [adding, setAdding] = useState<boolean>(false);
 
     const { year, fall, spring } = academicYear;
@@ -227,32 +245,31 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         const filtered: Array<{ item: fullRegID }> = [];
         regClasses.forEach((item) => {
             let shouldInclude = true;
-            
+
             switch (currentView) {
                 case "fall":
-                    shouldInclude = fall.seasonid === item.arrinfo.seasonid // If the academic year's fall sem is this items seasonid
+                    shouldInclude = fall.seasonid === item.arrinfo.seasonid; // If the academic year's fall sem is this items seasonid
                     break;
                 case "spring":
-                    shouldInclude = spring.seasonid === item.arrinfo.seasonid // If the academic year's spring sem is this item's seasonid
+                    shouldInclude = spring.seasonid === item.arrinfo.seasonid; // If the academic year's spring sem is this item's seasonid
                     break;
                 case "academic":
                     shouldInclude = year.seasonid === item.arrinfo.seasonid; // If academic years seasonid is this item's seasonid
                     break;
                 case "all":
-                    shouldInclude = true // Include all
+                    shouldInclude = true; // Include all
                 default:
                     shouldInclude = true;
                     break;
             }
-            
+
             if (shouldInclude) {
                 filtered.push({ item });
             }
         });
-        
-        return filtered;
-    }
 
+        return filtered;
+    };
 
     const getCurrentPhase = (term: InferSelectModel<typeof seasons>, termName: string) => {
         const curDate = new Date(Date.now());
@@ -271,67 +288,78 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
         } else {
             return `${termName} semester has ended`;
         }
-    }
+    };
 
     const CurrentPhase = () => {
         return (
             <>
-                {(currentView !== "spring") && <h2 className="text-md font-semibold mb-1">Fall Phase: {getCurrentPhase(fall, "Fall")}</h2>}
-                {(currentView != "fall") && <h2 className="text-md font-semibold mb-1">Spring Phase: {getCurrentPhase(spring, "Spring")}</h2>}
+                {currentView !== "spring" && (
+                    <h2 className="text-md mb-1 font-semibold">
+                        Fall Phase: {getCurrentPhase(fall, "Fall")}
+                    </h2>
+                )}
+                {currentView != "fall" && (
+                    <h2 className="text-md mb-1 font-semibold">
+                        Spring Phase: {getCurrentPhase(spring, "Spring")}
+                    </h2>
+                )}
             </>
-        )
-    }
+        );
+    };
 
     const Dates = ({ term }: { term: InferSelectModel<typeof seasons> }) => {
-        return <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-            <div>
-                <span className="font-medium">Early Registration: </span>
-                {term.earlyregdate ? new Date(term.earlyregdate).toLocaleString() : "N/A"}
+        return (
+            <div className="grid grid-cols-1 gap-2 text-sm text-gray-700 md:grid-cols-2">
+                <div>
+                    <span className="font-medium">Early Registration: </span>
+                    {term.earlyregdate ? new Date(term.earlyregdate).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Normal Registration: </span>
+                    {term.normalregdate ? new Date(term.normalregdate).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Late Registration 1: </span>
+                    {term.lateregdate1 ? new Date(term.lateregdate1).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Late Registration 2: </span>
+                    {term.lateregdate2 ? new Date(term.lateregdate2).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Close Registration: </span>
+                    {term.closeregdate ? new Date(term.closeregdate).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Cancel Deadline: </span>
+                    {term.canceldeadline ? new Date(term.canceldeadline).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Academic Year Start: </span>
+                    {term.startdate ? new Date(term.startdate).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Academic Year End: </span>
+                    {term.enddate ? new Date(term.enddate).toLocaleString() : "N/A"}
+                </div>
             </div>
-            <div>
-                <span className="font-medium">Normal Registration: </span>
-                {term.normalregdate ? new Date(term.normalregdate).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Late Registration 1: </span>
-                {term.lateregdate1 ? new Date(term.lateregdate1).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Late Registration 2: </span>
-                {term.lateregdate2 ? new Date(term.lateregdate2).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Close Registration: </span>
-                {term.closeregdate ? new Date(term.closeregdate).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Cancel Deadline: </span>
-                {term.canceldeadline ? new Date(term.canceldeadline).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Academic Year Start: </span>
-                {term.startdate ? new Date(term.startdate).toLocaleString() : "N/A"}
-            </div>
-            <div>
-                <span className="font-medium">Academic Year End: </span>
-                {term.enddate ? new Date(term.enddate).toLocaleString() : "N/A"}
-            </div>
-        </div>
-    }
-
+        );
+    };
 
     return (
-        <RegistrationProvider value={{
-            seasons: academicYear,
-            selectOptions: selectOptions,
-            idMaps: idMaps
-        }}>
+        <RegistrationProvider
+            value={{
+                seasons: academicYear,
+                selectOptions: selectOptions,
+                idMaps: idMaps,
+            }}
+        >
             <div className="container mx-auto flex flex-col">
                 <div className="flex justify-between">
-                    <h1 className="font-bold text-3xl mb-4">{year.seasonnamecn}</h1>
+                    <h1 className="mb-4 text-3xl font-bold">{year.seasonnamecn}</h1>
                     <div className="flex gap-2">
-                        <Link 
-                            className="flex gap-2 bg-red-600 p-4 rounded-md text-white items-center" 
+                        <Link
+                            className="flex items-center gap-2 rounded-md bg-red-600 p-4 text-white"
                             href="/admin/management/regchangerequests"
                         >
                             <FaRegQuestionCircle /> Reg Change Requests
@@ -343,20 +371,31 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     <CurrentPhase />
                     {(currentView === "academic" || currentView === "all") && <Dates term={year} />}
                     {currentView === "fall" && <Dates term={fall} />}
-                    {currentView === "spring" && <Dates term={spring} />} 
+                    {currentView === "spring" && <Dates term={spring} />}
                 </div>
 
                 {/* Add view selector */}
                 <div className="mb-4">
-                    <div className="w-56 mb-2">
-                        <label htmlFor="view-select" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div className="mb-2 w-56">
+                        <label
+                            htmlFor="view-select"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
                             View Semester
                         </label>
-                        <Select value={currentView} onValueChange={v => setCurrentView(v as 'academic' | 'fall' | 'spring' | 'all')}>
-                            <SelectTrigger id="view-select" className="flex flex-row items-center gap-2 [&>svg]:hidden">
+                        <Select
+                            value={currentView}
+                            onValueChange={(v) =>
+                                setCurrentView(v as "academic" | "fall" | "spring" | "all")
+                            }
+                        >
+                            <SelectTrigger
+                                id="view-select"
+                                className="flex flex-row items-center gap-2 [&>svg]:hidden"
+                            >
                                 <div className="flex flex-col justify-center">
-                                    <ChevronUp className="w-4 h-4 text-gray-400 -mb-1" />
-                                    <ChevronDown className="w-4 h-4 text-gray-400 -mt-1" />
+                                    <ChevronUp className="-mb-1 h-4 w-4 text-gray-400" />
+                                    <ChevronDown className="-mt-1 h-4 w-4 text-gray-400" />
                                 </div>
                                 <SelectValue placeholder="Select view" />
                             </SelectTrigger>
@@ -370,7 +409,7 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                     </div>
                 </div>
 
-                { /* Classes */} 
+                {/* Classes */}
                 <div className="flex flex-col gap-2">
                     {getFilteredClassesWithIndices().map(({ item: classItem }) => (
                         <SemesterViewBox
@@ -383,27 +422,31 @@ export default function SemesterView({ fullData, academicYear, selectOptions, id
                         />
                     ))}
 
-                    <button className="font-md text-blue-600 px-4 py-2 rounded-md flex justify-center items-center gap-2" onClick={() => setAdding(true)}>
-                        <PlusIcon className="w-4 h-4" /> Add Class 
+                    <button
+                        className="font-md flex items-center justify-center gap-2 rounded-md px-4 py-2 text-blue-600"
+                        onClick={() => setAdding(true)}
+                    >
+                        <PlusIcon className="h-4 w-4" /> Add Class
                     </button>
-                    {adding && 
+                    {adding && (
                         <SemClassEditor
                             uuid="ADDING"
-                            initialData={{
-                                id: "ADDING",
-                                arrinfo: {} as uiClasses & uiClassKey,
-                                students: [],
-                                classrooms: [],
-                                dropped: [],
-                                availablerooms: [],
-                            } satisfies fullRegID}
+                            initialData={
+                                {
+                                    id: "ADDING",
+                                    arrinfo: {} as uiClasses & uiClassKey,
+                                    students: [],
+                                    classrooms: [],
+                                    dropped: [],
+                                    availablerooms: [],
+                                } satisfies fullRegID
+                            }
                             dispatch={dispatch}
                             endEdit={() => setAdding(false)}
                         />
-
-                    }
+                    )}
                 </div>
             </div>
         </RegistrationProvider>
-    )
+    );
 }

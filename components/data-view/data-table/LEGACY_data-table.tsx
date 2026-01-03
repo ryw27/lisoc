@@ -24,16 +24,16 @@
 //     primaryKey: keyof TData;
 //     deleteAction: (ids: (string | number | null)[]) => Promise<InferSelectModel<T>[]>;
 // }
- 
+
 // export default function DataTable<
 //     T extends Table,
 //     TData extends InferSelectModel<T> = InferSelectModel<T>
 // >({
-//     data, 
-//     columns, 
-//     totalCount, 
-//     tableName, 
-//     primaryKey, 
+//     data,
+//     columns,
+//     totalCount,
+//     tableName,
+//     primaryKey,
 //     deleteAction
 // }: DataTableProps<T, TData>) {
 //     const [rowSelection, setRowSelection] = useState({});
@@ -49,32 +49,30 @@
 //     const pathname = usePathname();
 //     const searchParams = useSearchParams();
 
-
-
 //     // Handle column visibility
 //     useEffect(() => {
 //         // Helper function to set default column visibility
 //         const setDefaultColumnVisibility = () => {
 //             const initialVisibility: Record<string, boolean> = {};
-            
+
 //             // Set all columns to hidden by default
 //             columns.forEach((column) => {
 //                 initialVisibility[column.id as string] = false;
 //             });
-            
+
 //             // Show special columns and non-hideable columns
 //             columns.forEach((column) => {
 //                 if (column.enableHiding === false || column.id === 'select' || column.id === 'edit') {
 //                     initialVisibility[column.id as string] = true;
 //                 }
 //             });
-            
+
 //             setColumnVisibility(initialVisibility);
 //         };
 //         try {
 //             const storageKey = `LISOC_${tableName}_COLVIS`;
 //             const storedVisibility = localStorage.getItem(storageKey);
-            
+
 //             if (storedVisibility) {
 //                 const parsed = JSON.parse(storedVisibility);
 //                 // Validate that parsed data is an object
@@ -93,8 +91,6 @@
 //         }
 //     }, [tableName, columns]);
 
-
-
 //     // Save column visibility
 //     useEffect(() => {
 //         if (Object.keys(columnVisibility).length > 0) {
@@ -107,17 +103,17 @@
 //         }
 //     }, [columnVisibility, tableName]);
 
-//     // Create select checkbox column 
+//     // Create select checkbox column
 //     const selectionColumn: ColumnDef<TData>[] = useMemo(() => [
 //         {
 //             id: "select",
 //             header: ({ table }) => {
 //                 const isAllSelected = table.getIsAllPageRowsSelected();
 //                 const isSomeSelected = table.getIsSomePageRowsSelected();
-                
+
 //                 return (
 //                     <div className="flex items-center justify-center h-4">
-//                         <Checkbox 
+//                         <Checkbox
 //                             className={cn(
 //                                 "cursor-pointer group",
 //                                 isAllSelected || isSomeSelected
@@ -133,10 +129,10 @@
 //             },
 //             cell: ({ row }) => {
 //                 const isSelected = row.getIsSelected();
-                
+
 //                 return (
 //                     <div className="flex items-center justify-center h-4">
-//                         <Checkbox 
+//                         <Checkbox
 //                             className={cn(
 //                                 "cursor-pointer group",
 //                                 isSelected
@@ -153,7 +149,7 @@
 //         }
 //     ], []);
 
-//     // Create edit column 
+//     // Create edit column
 //     const editColumn: ColumnDef<TData>[] = useMemo(() => [
 //         {
 //             id: "edit",
@@ -181,7 +177,7 @@
 
 //                 return (
 //                     <Popover>
-//                         <PopoverTrigger 
+//                         <PopoverTrigger
 //                             className={cn(
 //                                 "items-center rounded-md p-1 cursor-pointer",
 //                                 "border-1 border-gray-300 hover:border-gray-700",
@@ -191,7 +187,7 @@
 //                         >
 //                             <MoreHorizontal className="w-4 h-4" />
 //                         </PopoverTrigger>
-//                         <PopoverContent 
+//                         <PopoverContent
 //                             className={cn(
 //                                 "flex flex-col gap-1 justify-begin items-center w-36",
 //                                 "bg-white border border-gray-300 rounded-md",
@@ -201,7 +197,7 @@
 //                             side="bottom"
 //                             sideOffset={5}
 //                         >
-//                             <button 
+//                             <button
 //                                 className={cn(
 //                                     "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
 //                                     "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
@@ -213,7 +209,7 @@
 //                             >
 //                                 <PencilIcon className="w-4 h-4 mr-2" /> Edit
 //                             </button>
-//                             <button 
+//                             <button
 //                                 className={cn(
 //                                     "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
 //                                     "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
@@ -239,7 +235,7 @@
 //     // Set sorting from URL params
 //     useEffect(() => {
 //         const sortBy = searchParams.get('sortBy');
-//         const sortOrder = searchParams.get('sortOrder');    
+//         const sortOrder = searchParams.get('sortOrder');
 //         if (sortBy && sortOrder) {
 //             setSorting([{id: sortBy, desc: sortOrder === 'desc'}]);
 //         } else {
@@ -274,19 +270,19 @@
 //         }
 //     };
 
-//     // Delete handler 
+//     // Delete handler
 //     const handleDelete = async (selectedRow?: Row<TData>) => {
 //         if (isDeleting) return; // Prevent multiple simultaneous delete operations
-        
+
 //         setIsDeleting(true);
-        
+
 //         try {
 //             if (selectedRow) {
 //                 table.resetRowSelection(); // Clear other selections when deleting single row
 //             }
-            
+
 //             const selectedRows = selectedRow ? [selectedRow] : table.getSelectedRowModel().rows;
-            
+
 //             if (selectedRows.length === 0) {
 //                 console.warn(`[DataTable] No rows selected for deletion`);
 //                 return;
@@ -301,12 +297,11 @@
 //                 return id as PKVal<T>;
 //             });
 
-            
 //             await deleteAction(ids);
-            
+
 //             // Reset selection after successful deletion
 //             table.resetRowSelection();
-            
+
 //         } catch (error) {
 //             console.error(`[DataTable] Error deleting rows from ${tableName}:`, error);
 //         } finally {
@@ -316,7 +311,7 @@
 
 //     const table = useReactTable({
 //         data,
-//         columns: allColumns, 
+//         columns: allColumns,
 //         state: {
 //             columnPinning,
 //             rowSelection,
@@ -330,12 +325,12 @@
 //         enableRowSelection: true,
 //         onColumnVisibilityChange: setColumnVisibility,
 //         onRowSelectionChange: setRowSelection,
-//         onColumnPinningChange: setColumnPinning, 
+//         onColumnPinningChange: setColumnPinning,
 //         getCoreRowModel: getCoreRowModel(),
 //         // Server-side pagination
 //         manualPagination: true,
 //         manualFiltering: true,
-//         pageCount: pageCount 
+//         pageCount: pageCount
 //     });
 
 //     // Memoize the columns passed to TableHeader
@@ -364,7 +359,7 @@
 //                         </p>
 //                         <AlertDialog>
 //                             <AlertDialogTrigger asChild>
-//                                 <button 
+//                                 <button
 //                                     className={cn(
 //                                         "text-red-500 font-medium cursor-pointer px-2 py-1 rounded",
 //                                         "hover:bg-red-50 transition-colors",
@@ -387,8 +382,8 @@
 //                                 </AlertDialogHeader>
 //                                 <AlertDialogFooter>
 //                                     <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-//                                     <AlertDialogAction 
-//                                         onClick={() => handleDelete()} 
+//                                     <AlertDialogAction
+//                                         onClick={() => handleDelete()}
 //                                         className="cursor-pointer bg-red-600 hover:bg-red-700"
 //                                         disabled={isDeleting}
 //                                     >
@@ -400,8 +395,8 @@
 //                     </div>
 //                 )}
 //             </div>
-            
-//             <TableHeader 
+
+//             <TableHeader
 //                 columns={memoizedTableColumns}
 //                 columnDefs={columns}
 //                 tableName={tableName}
@@ -413,9 +408,9 @@
 //                     {/* Header */}
 //                     <thead className="border-b border-gray-200">
 //                         {table.getHeaderGroups().map((headerGroup) => (
-//                             <tr key={headerGroup.id}> 
+//                             <tr key={headerGroup.id}>
 //                                 {headerGroup.headers.map((header) => (
-//                                     <th 
+//                                     <th
 //                                         key={header.id}
 //                                         className={cn(
 //                                             "whitespace-nowrap cursor-pointer px-3 py-3 text-left text-xs font-bold text-black text-lg tracking-wider",
@@ -430,10 +425,10 @@
 //                                             }
 //                                         }}
 //                                         aria-sort={
-//                                             sorting.length > 0 
-//                                                 ? sorting[0].id === header.id 
-//                                                     ? sorting[0].desc === true ? 'descending' : 'ascending' 
-//                                                     : 'none' 
+//                                             sorting.length > 0
+//                                                 ? sorting[0].id === header.id
+//                                                     ? sorting[0].desc === true ? 'descending' : 'ascending'
+//                                                     : 'none'
 //                                                 : 'none'
 //                                         }
 //                                     >
@@ -449,7 +444,7 @@
 //                     <tbody className="divide-y divide-gray-200">
 //                         {/* Table rows */}
 //                         {table.getRowModel().rows.map((row) => (
-//                             <tr 
+//                             <tr
 //                                 key={row.id}
 //                                 className={cn(
 //                                     "cursor-pointer hover:bg-blue-50 transition-colors",
@@ -457,7 +452,7 @@
 //                                 )}
 //                             >
 //                                 {row.getVisibleCells().map((cell) => (
-//                                     <td 
+//                                     <td
 //                                         key={cell.id}
 //                                         className={cn(
 //                                             "px-3 py-1 text-sm text-gray-600",
@@ -475,7 +470,7 @@
 //                     </tbody>
 //                 </table>
 //             </div>
-            
+
 //             {/* Server-side pagination controls */}
 //             <div className="relative flex items-center justify-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
 //                 <div className="absolute left-4">
@@ -493,18 +488,18 @@
 //                             "px-3 py-1 text-sm rounded-md cursor-pointer",
 //                             "focus:outline-none focus:ring-2 focus:ring-blue-500",
 //                             currentPage > 1
-//                                 ? "text-blue-600 hover:bg-blue-50" 
+//                                 ? "text-blue-600 hover:bg-blue-50"
 //                                 : "text-gray-400 cursor-not-allowed"
 //                         )}
 //                         aria-label="Previous page"
 //                     >
 //                         <ChevronLeftIcon className="w-5 h-5" />
 //                     </button>
-                    
+
 //                     <div className="flex items-center gap-1">
 //                         {/* First page */}
-//                         <button 
-//                             onClick={() => handlePageChange(1)} 
+//                         <button
+//                             onClick={() => handlePageChange(1)}
 //                             className={cn(
 //                                 "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
 //                                 "focus:outline-none focus:ring-2 focus:ring-blue-500",
@@ -523,12 +518,12 @@
 //                         {Array.from({length: pageCount || 1}).map((_, i) => {
 //                             const pageNumber = i + 1;
 //                             // Show 2 pages before and after current page
-//                             if (pageNumber > 1 && pageNumber < (pageCount || 1) && 
+//                             if (pageNumber > 1 && pageNumber < (pageCount || 1) &&
 //                                 pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1) {
 //                                 return (
-//                                     <button 
+//                                     <button
 //                                         key={pageNumber}
-//                                         onClick={() => handlePageChange(pageNumber)} 
+//                                         onClick={() => handlePageChange(pageNumber)}
 //                                         className={cn(
 //                                             "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
 //                                             "focus:outline-none focus:ring-2 focus:ring-blue-500",
@@ -549,8 +544,8 @@
 
 //                         {/* Last page */}
 //                         {(pageCount || 1) > 1 && (
-//                             <button 
-//                                 onClick={() => handlePageChange(pageCount || 1)} 
+//                             <button
+//                                 onClick={() => handlePageChange(pageCount || 1)}
 //                                 className={cn(
 //                                     "px-3 py-1 text-sm font-bold rounded-md cursor-pointer text-black border-1 border-gray-300 hover:bg-blue-100 transition-colors",
 //                                     "focus:outline-none focus:ring-2 focus:ring-blue-500",
@@ -561,7 +556,7 @@
 //                             </button>
 //                         )}
 //                     </div>
-                    
+
 //                     <button
 //                         onClick={() => handlePageChange(currentPage + 1)}
 //                         disabled={currentPage >= (pageCount || 1)}
@@ -569,7 +564,7 @@
 //                             "px-3 py-1 text-sm rounded-md cursor-pointer",
 //                             "focus:outline-none focus:ring-2 focus:ring-blue-500",
 //                             currentPage < (pageCount || 1)
-//                                 ? "text-blue-600 hover:bg-blue-50" 
+//                                 ? "text-blue-600 hover:bg-blue-50"
 //                                 : "text-gray-400 cursor-not-allowed"
 //                         )}
 //                         aria-label="Next page"

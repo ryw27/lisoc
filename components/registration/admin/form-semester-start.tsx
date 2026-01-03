@@ -1,41 +1,42 @@
 "use client";
-import {
-  FormProvider,
-  useFieldArray,
-  useForm,
-  UseFormReturn,
-  Controller,
-} from "react-hook-form";
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod/v4';
-import { startSemFormSchema } from "@/lib/registration/validation";
-import { uiClasses, selectOptions, IdMaps } from "@/lib/registration/types";
-import { cn } from '@/lib/utils';
-import SemesterClassBox from './form-class-box';
-import { useRouter } from 'next/navigation';
-import { PlusIcon } from 'lucide-react';
-import { seasons } from '@/lib/db/schema';
-import { DrizzleError, InferSelectModel } from 'drizzle-orm';
-import { toESTString } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { createContext } from "react";
-import { createSemester } from "@/lib/registration/semester";
 
+import { createContext } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DrizzleError, InferSelectModel } from "drizzle-orm";
+import { PlusIcon } from "lucide-react";
+import { Controller, FormProvider, useFieldArray, useForm, UseFormReturn } from "react-hook-form";
+import { z } from "zod/v4";
+import { seasons } from "@/lib/db/schema";
+import { cn, toESTString } from "@/lib/utils";
+import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
+import { createSemester } from "@/server/seasons/actions/createSemester";
+import { startSemFormSchema } from "@/server/seasons/schema";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import SemesterClassBox from "./form-class-box";
 
 type semesterClassesProps = {
-    drafts: uiClasses[]
+    drafts: uiClasses[];
     selectOptions: selectOptions;
     idMaps: IdMaps;
     lastSeason: InferSelectModel<typeof seasons>[];
     // startSemester: (data: z.infer<typeof startSemFormSchema>) => Promise<void>
-}
+};
 
-const MapsAndOptionsProvider = createContext<{ selectOptions: selectOptions; idMaps: IdMaps;} | null>(null);
+const MapsAndOptionsProvider = createContext<{
+    selectOptions: selectOptions;
+    idMaps: IdMaps;
+} | null>(null);
 
 type FormType = UseFormReturn<z.infer<typeof startSemFormSchema>>;
 
-export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSeason } : semesterClassesProps) {
+export default function StartSemesterForm({
+    drafts,
+    selectOptions,
+    idMaps,
+    lastSeason,
+}: semesterClassesProps) {
     const router = useRouter();
     const getInputDateForm = (date: string | undefined) => {
         // new Date(field.value).toISOString().slice(0, 10)
@@ -43,7 +44,7 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
         const newDate = new Date(date);
         newDate.setFullYear(newDate.getFullYear() + 1);
         return toESTString(newDate).slice(0, 10);
-    }
+    };
 
     const semClassForm = useForm({
         resolver: zodResolver(startSemFormSchema),
@@ -65,8 +66,16 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
             springclosereg: getInputDateForm(lastSeason[1]?.closeregdate),
             springcanceldeadline: getInputDateForm(lastSeason[1]?.canceldeadline),
             // Registration settings defaults
-            seasonnamecn: new Date(Date.now()).getFullYear() + "-" + (new Date(Date.now()).getFullYear() + 1) + " 学年",
-            seasonnameen: new Date(Date.now()).getFullYear() + "-" + (new Date(Date.now()).getFullYear() + 1) + " Academic Year",
+            seasonnamecn:
+                new Date(Date.now()).getFullYear() +
+                "-" +
+                (new Date(Date.now()).getFullYear() + 1) +
+                " 学年",
+            seasonnameen:
+                new Date(Date.now()).getFullYear() +
+                "-" +
+                (new Date(Date.now()).getFullYear() + 1) +
+                " Academic Year",
             haslateregfee: lastSeason[0]?.haslateregfee,
             haslateregfee4newfamily: lastSeason[0]?.haslateregfee4newfamily,
             hasdutyfee: lastSeason[0]?.hasdutyfee,
@@ -75,91 +84,95 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
             days4showteachername: lastSeason[0]?.days4showteachername,
             allownewfamilytoregister: lastSeason[0]?.allownewfamilytoregister,
             date4newfamilytoregister: getInputDateForm(lastSeason[0]?.date4newfamilytoregister),
-        }
+        },
     });
-
 
     const { fields, append, remove } = useFieldArray({
         control: semClassForm.control,
-        name: "classes"
-    })
-
+        name: "classes",
+    });
 
     const deleteSemClass = (index: number) => {
         remove(index);
-    }
-
+    };
 
     const onSemSubmit = async (data: z.infer<typeof startSemFormSchema>) => {
         try {
-            console.log("Submitting semester data: ", data)
-            await createSemester(data)
-            
+            console.log("Submitting semester data: ", data);
+            await createSemester(data);
+
             // Add success feedback and navigation
-            console.log("Semester started successfully!")
+            console.log("Semester started successfully!");
             // Navigate to success page or show success message
-            router.push("/admin/semester")
+            router.push("/admin/semester");
         } catch (err) {
             if (err instanceof DrizzleError) {
-                console.error("Drizzle semester start error.")
-                semClassForm.setError("root", { message: err.message[0]})
+                console.error("Drizzle semester start error.");
+                semClassForm.setError("root", { message: err.message[0] });
             } else {
-                console.error("Semester Start Error: ", err)
+                console.error("Semester Start Error: ", err);
                 semClassForm.setError("root", {
-                    message: "Failed to start semester. Please try again or report this error."
-                })
+                    message: "Failed to start semester. Please try again or report this error.",
+                });
             }
         }
-    }
-
+    };
 
     return (
-        <MapsAndOptionsProvider.Provider value={{selectOptions, idMaps}}>
+        <MapsAndOptionsProvider.Provider value={{ selectOptions, idMaps }}>
             <div className="flex flex-col">
-                <h1 className="font-bold text-2xl mb-2">Start Semester Form</h1>
+                <h1 className="mb-2 text-2xl font-bold">Start Semester Form</h1>
                 {/* Form should submit semClassesSchema shape*/}
                 <FormProvider {...semClassForm}>
-                    <form onSubmit={semClassForm.handleSubmit(onSemSubmit)} className="flex flex-col gap-1">
-                        { /* TODO: I have no idea how to resolve this without casting */} 
-                        <NameAndDates semClassForm={semClassForm as FormType} /> 
+                    <form
+                        onSubmit={semClassForm.handleSubmit(onSemSubmit)}
+                        className="flex flex-col gap-1"
+                    >
+                        {/* TODO: I have no idea how to resolve this without casting */}
+                        <NameAndDates semClassForm={semClassForm as FormType} />
                         <RegSettingsForm semClassForm={semClassForm as FormType} />
 
                         {/* Individual Classes */}
-                        <h2 className="font-bold text-xl p-4">Classes</h2>
+                        <h2 className="p-4 text-xl font-bold">Classes</h2>
                         {fields.map((c, idx) => (
-                            <div key={`${c.classid}-${idx}`} className="flex flex-col rounded-lg shadow-md p-2 border-gray-400 border-1">
-                                <SemesterClassBox 
+                            <div
+                                key={`${c.classid}-${idx}`}
+                                className="flex flex-col rounded-lg border-1 border-gray-400 p-2 shadow-md"
+                            >
+                                <SemesterClassBox
                                     idx={idx}
                                     field={c}
                                     deleteSemClass={deleteSemClass}
                                 />
                             </div>
-                        ))} 
+                        ))}
                         {/* Add Class button */}
                         <button
                             type="button"
                             // Room and teacher are not chosen for R (registration) classes. These are IDs to TBD values. Rest are non-existent values as placeholders
-                            onClick={() => append({
-                                teacherid: 7, 
-                                roomid: 59,
-                                timeid: 3,
-                                tuitionH: "0.00",
-                                bookfeeH: "0.00",
-                                bookfeeW: "0.00",
-                                specialfeeH: "0.00",
-                                specialfeeW: "0.00",
-                                tuitionW: "0.00",
-                            } as uiClasses)}
-                            className="self-center flex items-center gap-2 text-blue-700 text-sm mt-2"
+                            onClick={() =>
+                                append({
+                                    teacherid: 7,
+                                    roomid: 59,
+                                    timeid: 3,
+                                    tuitionH: "0.00",
+                                    bookfeeH: "0.00",
+                                    bookfeeW: "0.00",
+                                    specialfeeH: "0.00",
+                                    specialfeeW: "0.00",
+                                    tuitionW: "0.00",
+                                } as uiClasses)
+                            }
+                            className="mt-2 flex items-center gap-2 self-center text-sm text-blue-700"
                         >
                             <PlusIcon className="h-4 w-4" /> Add Class
                         </button>
 
                         {/* Cancel and Submit buttons */}
-                        <div className="flex gap-4 mt-6 justify-end">
-                            <button 
+                        <div className="mt-6 flex justify-end gap-4">
+                            <button
                                 type="button"
-                                className="rounded-md text-sm flex items-center gap-1 border-gray-300 border-1 font-semibold hover:bg-gray-50 cursor-pointer p-2"
+                                className="flex cursor-pointer items-center gap-1 rounded-md border-1 border-gray-300 p-2 text-sm font-semibold hover:bg-gray-50"
                                 onClick={() => router.push("/admin/semester")}
                             >
                                 Cancel
@@ -167,29 +180,36 @@ export default function StartSemesterForm({drafts, selectOptions, idMaps, lastSe
                             <button
                                 type="submit"
                                 disabled={semClassForm.formState.isSubmitting}
-                                className={cn("self-end px-4 py-2 rounded-md text-white bg-blue-600 font-semibold",
-                                    semClassForm.formState.isSubmitting && "opacity-50 cursor-not-allowed"
+                                className={cn(
+                                    "self-end rounded-md bg-blue-600 px-4 py-2 font-semibold text-white",
+                                    semClassForm.formState.isSubmitting &&
+                                        "cursor-not-allowed opacity-50"
                                 )}
                             >
-                                {semClassForm.formState.isSubmitting ? "Starting…" : "Start Semester"}
+                                {semClassForm.formState.isSubmitting
+                                    ? "Starting…"
+                                    : "Start Semester"}
                             </button>
                         </div>
                     </form>
                 </FormProvider>
             </div>
         </MapsAndOptionsProvider.Provider>
-    )
+    );
 }
 
-function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
+function NameAndDates({ semClassForm }: { semClassForm: FormType }) {
     return (
         <>
-            {/* Names */ }
+            {/* Names */}
             {/* <label className="block text-sm text-gray-400 font-bold mb-2">Season Name (CN)</label> */}
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Season Name</h2>
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Season Name</h2>
                 <div className="flex-1">
-                    <label htmlFor="seasonnamecn" className="block text-sm text-gray-400 font-bold mb-1">
+                    <label
+                        htmlFor="seasonnamecn"
+                        className="mb-1 block text-sm font-bold text-gray-400"
+                    >
                         Season Name (CN)
                     </label>
                     <Input
@@ -202,10 +222,13 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         className="w-full"
                     />
                 </div>
-                
+
                 {/* <label className="block text-sm text-gray-400 font-bold mb-2">Season Name (EN)</label> */}
                 <div className="flex-1">
-                    <label htmlFor="seasonnameen" className="block text-sm text-gray-400 font-bold mb-1">
+                    <label
+                        htmlFor="seasonnameen"
+                        className="mb-1 block text-sm font-bold text-gray-400"
+                    >
                         Season Name (EN)
                     </label>
                     <Input
@@ -220,11 +243,13 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
             </div>
 
             {/* Dates */}
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Fall Dates</h2>
-                <div className="flex mb-2 gap-2">
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Fall Dates</h2>
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall Start Date</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall Start Date
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("fallstart")}
@@ -233,7 +258,9 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall End Date</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall End Date
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("fallend")}
@@ -243,9 +270,11 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                     </div>
                 </div>
 
-                <div className="flex mb-2 gap-2">
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall Early Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall Early Registration Start
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("fallearlyreg")}
@@ -254,7 +283,9 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall Normal Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall Normal Registration Start
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("fallnormalreg")}
@@ -263,9 +294,11 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                 </div>
-                <div className="flex mb-2 gap-2">
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall Late Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall Late Registration Start
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("falllatereg")}
@@ -274,7 +307,9 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Fall Registration End</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Fall Registration End
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("fallclosereg")}
@@ -283,8 +318,10 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                 </div>
-                <div className="flex flex-col mb-2">
-                    <label className="block text-sm text-gray-400 font-bold mb-2">Fall Cancel Deadline</label>
+                <div className="mb-2 flex flex-col">
+                    <label className="mb-2 block text-sm font-bold text-gray-400">
+                        Fall Cancel Deadline
+                    </label>
                     <Input
                         type="date"
                         {...semClassForm.register("fallcanceldeadline")}
@@ -294,11 +331,13 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                 </div>
             </div>
 
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Spring Dates</h2>
-                <div className="flex mb-2 gap-2">
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Spring Dates</h2>
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring Start Date</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring Start Date
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("springstart")}
@@ -307,7 +346,9 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring End Date</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring End Date
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("springend")}
@@ -316,18 +357,22 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                 </div>
-                <div className="flex mb-2 gap-2">
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring Early Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring Early Registration Start
+                        </label>
                         <Input
                             type="date"
-                        {...semClassForm.register("springearlyreg")}
+                            {...semClassForm.register("springearlyreg")}
                             required
                             aria-required
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring Normal Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring Normal Registration Start
+                        </label>
                         <Input
                             type="date"
                             {...semClassForm.register("springnormalreg")}
@@ -336,39 +381,44 @@ function NameAndDates({ semClassForm }: {semClassForm: FormType}) {
                         />
                     </div>
                 </div>
-                <div className="flex mb-2 gap-2">
+                <div className="mb-2 flex gap-2">
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring Late Registration Start</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring Late Registration Start
+                        </label>
                         <Input
                             type="date"
-                        {...semClassForm.register("springlatereg")}
+                            {...semClassForm.register("springlatereg")}
                             required
                             aria-required
                         />
                     </div>
                     <div className="w-1/2">
-                        <label className="block text-sm text-gray-400 font-bold mb-2">Spring Registration End</label>
+                        <label className="mb-2 block text-sm font-bold text-gray-400">
+                            Spring Registration End
+                        </label>
                         <Input
                             type="date"
-                        {...semClassForm.register("springclosereg")}
+                            {...semClassForm.register("springclosereg")}
                             required
                             aria-required
                         />
                     </div>
                 </div>
-                <div className="flex flex-col mb-2 gap-2">
-                    <label className="block text-sm text-gray-400 font-bold mb-2">Spring Cancel Deadline</label>
+                <div className="mb-2 flex flex-col gap-2">
+                    <label className="mb-2 block text-sm font-bold text-gray-400">
+                        Spring Cancel Deadline
+                    </label>
                     <Input
                         type="date"
-                    {...semClassForm.register("springcanceldeadline")}
-                    required
+                        {...semClassForm.register("springcanceldeadline")}
+                        required
                         aria-required
                     />
                 </div>
-
             </div>
         </>
-    )
+    );
 }
 
 interface RegSettingsFormProps {
@@ -393,11 +443,8 @@ export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {
 
     function SwitchField(field: SettingField) {
         return (
-            <div className="flex items-center gap-4 justify-between" key={field.id}>
-                <label
-                    className="font-medium text-gray-700"
-                    htmlFor={field.id}
-                >
+            <div className="flex items-center justify-between gap-4" key={field.id}>
+                <label className="font-medium text-gray-700" htmlFor={field.id}>
                     {field.label}
                 </label>
                 <Controller
@@ -413,16 +460,13 @@ export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {
                     )}
                 />
             </div>
-        )
+        );
     }
 
     function InputField(field: SettingField) {
         return (
-            <div className="flex justify-between items-center w-full gap-3" key={field.id}>
-                <label
-                    className="font-medium text-gray-700"
-                    htmlFor={field.id}
-                >
+            <div className="flex w-full items-center justify-between gap-3" key={field.id}>
+                <label className="font-medium text-gray-700" htmlFor={field.id}>
                     {field.label}
                 </label>
                 <Controller
@@ -443,40 +487,40 @@ export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {
                     )}
                 />
             </div>
-        )
+        );
     }
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Fee Settings</h2>
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Fee Settings</h2>
                 <SwitchField id="haslateregfee" label="Late Registration Fee For All Classes" />
-                <SwitchField id="haslateregfee4newfamily" label="Late Regstration Fee for New Families" />
+                <SwitchField
+                    id="haslateregfee4newfamily"
+                    label="Late Regstration Fee for New Families"
+                />
                 <SwitchField id="hasdutyfee" label="Duty Fee For All Classes" />
             </div>
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Visibility Settings</h2>
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Visibility Settings</h2>
                 <SwitchField id="showadmissionnotice" label="Show Admission Notice" />
                 <SwitchField id="showteachername" label="Show Teacher Name" />
-                <InputField 
-                    id="days4showteachername" 
-                    label="Days to Show Teacher Name" 
-                    type="number" 
-                    min={0} 
-                    disabled={!showTeacherName} 
-                    className="border rounded px-2 py-1 w-32" 
-                    registerOptions={{ valueAsNumber: true }} 
-                    errorKey="days4showteachername" 
+                <InputField
+                    id="days4showteachername"
+                    label="Days to Show Teacher Name"
+                    type="number"
+                    min={0}
+                    disabled={!showTeacherName}
+                    className="w-32 rounded border px-2 py-1"
+                    registerOptions={{ valueAsNumber: true }}
+                    errorKey="days4showteachername"
                 />
             </div>
-            <div className="rounded-lg shadow-md flex flex-col space-y-2 border-2 border-gray-200 p-4 mb-2">
-                <h2 className="font-bold text-lg">Registration Settings</h2>
+            <div className="mb-2 flex flex-col space-y-2 rounded-lg border-2 border-gray-200 p-4 shadow-md">
+                <h2 className="text-lg font-bold">Registration Settings</h2>
                 <SwitchField id="allownewfamilytoregister" label="Allow New Family Registration" />
-                <div className="flex justify-between items-center w-full gap-3">
-                    <label
-                        className="font-medium text-gray-700"
-                        htmlFor="date4newfamilytoregister"
-                    >
+                <div className="flex w-full items-center justify-between gap-3">
+                    <label className="font-medium text-gray-700" htmlFor="date4newfamilytoregister">
                         New Family Registration Date
                     </label>
                     <Controller
@@ -487,8 +531,12 @@ export function RegSettingsForm({ semClassForm }: RegSettingsFormProps) {
                                 id="date4newfamilytoregister"
                                 type="date"
                                 disabled={!allowNewFamily}
-                                className="border rounded px-2 py-1 w-48"
-                                value={field.value ? new Date(field.value).toISOString().slice(0, 10) : ""}
+                                className="w-48 rounded border px-2 py-1"
+                                value={
+                                    field.value
+                                        ? new Date(field.value).toISOString().slice(0, 10)
+                                        : ""
+                                }
                                 {...semClassForm.register("date4newfamilytoregister")}
                             />
                         )}

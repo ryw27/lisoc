@@ -1,61 +1,48 @@
 "use client";
-import React, { useState } from "react";
-import { 
-    Popover, 
-    PopoverContent, 
-    PopoverTrigger 
-} from "@/components/ui/popover";
-import {
-  Settings,
-  Calendar,
-  Power,
-  Cog,
-  AlertTriangle,
-} from "lucide-react";
-import { 
-    useForm, 
-    Controller 
-} from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod/v4";
-import { 
-    seasonDatesSchema,
-    seasonRegSettingsSchema
-} from "@/lib/registration/validation";
-import { Input } from "@/components/ui/input";
-import { 
-    updateDates, 
-    updateRegControls 
-} from "@/lib/registration/semester";
-import { Switch } from "@/components/ui/switch";
-import { threeSeasons } from "@/lib/registration/types";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-  SelectItem,
-} from "@/components/ui/select";
-import { useRegistrationContext } from "@/lib/registration/registration-context";
 
-type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS"
+import React, { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Calendar, Cog, Power, Settings } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
+import { type threeSeasons } from "@/types/seasons.types";
+import { updateDates } from "@/server/seasons/actions/updateDates";
+import { updateRegControls } from "@/server/seasons/actions/updateRegControls";
+import { seasonDatesSchema, seasonRegSettingsSchema } from "@/server/seasons/schema";
+import { useRegistrationContext } from "@/components/registration/registration-context";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+
+type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS";
 export default function SemesterControlsPopover() {
     const { seasons } = useRegistrationContext();
-    const [settings, setSettings] = useState<settingOptions>("HOME")
+    const [settings, setSettings] = useState<settingOptions>("HOME");
     return (
         <Popover>
-            <PopoverTrigger onClick={() => setSettings("HOME")} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <Settings className="w-4 h-4" />
+            <PopoverTrigger
+                onClick={() => setSettings("HOME")}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+            >
+                <Settings className="h-4 w-4" />
                 Controls
             </PopoverTrigger>
-            <PopoverContent
-                className="p-3 min-w-[400px] min-h-[220px]"
-                align="end"
-            >
+            <PopoverContent className="min-h-[220px] min-w-[400px] p-3" align="end">
                 <div className="flex flex-col gap-4">
                     {settings === "HOME" && <HomeControls setSettings={setSettings} />}
-                    {settings === "DATES" && <DateControls setSettings={setSettings} seasons={seasons}/>}
-                    {settings === "REGISTRATION" && <RegistrationControls setSettings={setSettings} season={seasons}/>}
+                    {settings === "DATES" && (
+                        <DateControls setSettings={setSettings} seasons={seasons} />
+                    )}
+                    {settings === "REGISTRATION" && (
+                        <RegistrationControls setSettings={setSettings} season={seasons} />
+                    )}
                     {settings === "CONTROLS" && <Controls setSettings={setSettings} />}
                 </div>
             </PopoverContent>
@@ -63,38 +50,55 @@ export default function SemesterControlsPopover() {
     );
 }
 
-function HomeControls({ setSettings }: {setSettings: React.Dispatch<React.SetStateAction<settingOptions>>}) {
+function HomeControls({
+    setSettings,
+}: {
+    setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
+}) {
     return (
         <>
-            <h3 className="font-semibold text-gray-800 border-b pb-2">Semester Controls</h3>
+            <h3 className="border-b pb-2 font-semibold text-gray-800">Semester Controls</h3>
 
-            <button onClick={() => setSettings("CONTROLS")} className="flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 rounded transition-colors cursor-pointer">
-                <Power className="w-4 h-4" />
-                Change Semester Status 
-            </button>           
-
-
-            <button onClick={() => setSettings("DATES")} className="flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 rounded transition-colors cursor-pointer">
-                <Calendar className="w-4 h-4" />
-                Change Semester Dates 
+            <button
+                onClick={() => setSettings("CONTROLS")}
+                className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+            >
+                <Power className="h-4 w-4" />
+                Change Semester Status
             </button>
 
+            <button
+                onClick={() => setSettings("DATES")}
+                className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+            >
+                <Calendar className="h-4 w-4" />
+                Change Semester Dates
+            </button>
 
-            <button onClick={() => setSettings("REGISTRATION")}className="flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 rounded transition-colors cursor-pointer">
-                <Cog className="w-4 h-4" />
+            <button
+                onClick={() => setSettings("REGISTRATION")}
+                className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+            >
+                <Cog className="h-4 w-4" />
                 Change Registration Settings
             </button>
         </>
-    )
+    );
 }
 
-function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, seasons: threeSeasons}) {
+function DateControls({
+    setSettings,
+    seasons,
+}: {
+    setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
+    seasons: threeSeasons;
+}) {
     // Simple function to format date for HTML date input (YYYY-MM-DD)
     const formatDateForInput = (dateString: string | null) => {
         if (!dateString) return "";
-        return new Date(dateString).toISOString().split('T')[0];
+        return new Date(dateString).toISOString().split("T")[0];
     };
-    
+
     const dateForm = useForm({
         defaultValues: {
             fallstart: formatDateForInput(seasons.fall.startdate),
@@ -113,19 +117,19 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
             springcanceldeadline: formatDateForInput(seasons.spring.canceldeadline),
         },
         resolver: zodResolver(seasonDatesSchema),
-        mode: "all"
-    })
+        mode: "all",
+    });
 
     const onSubmit = async (data: z.infer<typeof seasonDatesSchema>) => {
         try {
             // Convert string dates back to Date objects for the API
             const dateData = Object.fromEntries(
                 Object.entries(data).map(([key, value]) => [
-                    key, 
-                    value ? new Date(value as unknown as string) : undefined
+                    key,
+                    value ? new Date(value as unknown as string) : undefined,
                 ])
             ) as z.infer<typeof seasonDatesSchema>;
-            
+
             await updateDates(dateData, seasons.year);
             setSettings("HOME");
         } catch (error) {
@@ -135,69 +139,73 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
             });
             console.error("Error occured while updating dates", error);
         }
-    }
+    };
     return (
         <>
-            <h3 className="font-semibold text-gray-800 border-b pb-2">Change dates</h3>
-            <form
-                onSubmit={dateForm.handleSubmit(onSubmit)}
-                className="flex flex-col gap-4 mt-4"
-            >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="border-b pb-2 font-semibold text-gray-800">Change dates</h3>
+            <form onSubmit={dateForm.handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallstart">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallstart"
+                        >
                             Fall Start
                         </label>
-                        <Input
-                            id="fallstart"
-                            type="date"
-                            {...dateForm.register("fallstart")}
-                        />
+                        <Input id="fallstart" type="date" {...dateForm.register("fallstart")} />
                         {dateForm.formState.errors.fallstart && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallstart.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallstart.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallend">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallend"
+                        >
                             Fall End
                         </label>
-                        <Input
-                            id="fallend"
-                            type="date"
-                            {...dateForm.register("fallend")}
-                        />
+                        <Input id="fallend" type="date" {...dateForm.register("fallend")} />
                         {dateForm.formState.errors.fallend && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallend.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallend.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springstart">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springstart"
+                        >
                             Spring Start
                         </label>
-                        <Input
-                            id="springstart"
-                            type="date"
-                            {...dateForm.register("springstart")}
-                        />
+                        <Input id="springstart" type="date" {...dateForm.register("springstart")} />
                         {dateForm.formState.errors.springstart && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springstart.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springstart.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springend">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springend"
+                        >
                             Spring End
                         </label>
-                        <Input
-                            id="springend"
-                            type="date"
-                            {...dateForm.register("springend")}
-                        />
+                        <Input id="springend" type="date" {...dateForm.register("springend")} />
                         {dateForm.formState.errors.springend && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springend?.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springend?.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallearlyreg">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallearlyreg"
+                        >
                             Early Registration (Fall)
                         </label>
                         <Input
@@ -206,13 +214,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("fallearlyreg")}
                         />
                         {dateForm.formState.errors.fallearlyreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallearlyreg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallearlyreg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallnormalreg">
-                            Normal Registration
-                            (Fall)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallnormalreg"
+                        >
+                            Normal Registration (Fall)
                         </label>
                         <Input
                             id="fallnormalreg"
@@ -220,27 +232,31 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("fallnormalreg")}
                         />
                         {dateForm.formState.errors.fallnormalreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallnormalreg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallnormalreg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="falllatereg">
-                            Late Registration
-                            (Fall)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="falllatereg"
+                        >
+                            Late Registration (Fall)
                         </label>
-                        <Input
-                            id="falllatereg"
-                            type="date"
-                            {...dateForm.register("falllatereg")}
-                        />
+                        <Input id="falllatereg" type="date" {...dateForm.register("falllatereg")} />
                         {dateForm.formState.errors.falllatereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.falllatereg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.falllatereg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallclosereg">
-                            Close Registration
-                            (Fall)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallclosereg"
+                        >
+                            Close Registration (Fall)
                         </label>
                         <Input
                             id="fallclosereg"
@@ -248,13 +264,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("fallclosereg")}
                         />
                         {dateForm.formState.errors.fallclosereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallclosereg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallclosereg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="fallcanceldeadline">
-                            Cancel Deadline
-                            (Fall)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallcanceldeadline"
+                        >
+                            Cancel Deadline (Fall)
                         </label>
                         <Input
                             id="fallcanceldeadline"
@@ -262,11 +282,16 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("fallcanceldeadline")}
                         />
                         {dateForm.formState.errors.fallcanceldeadline && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.fallcanceldeadline.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallcanceldeadline.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springearlyreg">
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springearlyreg"
+                        >
                             Early Registration (Spring)
                         </label>
                         <Input
@@ -275,13 +300,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("springearlyreg")}
                         />
                         {dateForm.formState.errors.springearlyreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springearlyreg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springearlyreg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springnormalreg">
-                            Normal Registration
-                            (Spring)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springnormalreg"
+                        >
+                            Normal Registration (Spring)
                         </label>
                         <Input
                             id="springnormalreg"
@@ -289,13 +318,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("springnormalreg")}
                         />
                         {dateForm.formState.errors.springnormalreg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springnormalreg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springnormalreg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springlatereg">
-                            Late Registration
-                            (Spring)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springlatereg"
+                        >
+                            Late Registration (Spring)
                         </label>
                         <Input
                             id="springlatereg"
@@ -303,13 +336,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("springlatereg")}
                         />
                         {dateForm.formState.errors.springlatereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springlatereg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springlatereg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springclosereg">
-                            Close Registration
-                            (Spring)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springclosereg"
+                        >
+                            Close Registration (Spring)
                         </label>
                         <Input
                             id="springclosereg"
@@ -317,13 +354,17 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("springclosereg")}
                         />
                         {dateForm.formState.errors.springclosereg && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springclosereg.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springclosereg.message}
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="springcanceldeadline">
-                            Cancel Deadline
-                            (Spring)
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springcanceldeadline"
+                        >
+                            Cancel Deadline (Spring)
                         </label>
                         <Input
                             id="springcanceldeadline"
@@ -331,21 +372,23 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                             {...dateForm.register("springcanceldeadline")}
                         />
                         {dateForm.formState.errors.springcanceldeadline && (
-                            <span className="text-xs text-red-500">{dateForm.formState.errors.springcanceldeadline.message}</span>
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springcanceldeadline.message}
+                            </span>
                         )}
                     </div>
                 </div>
-                <div className="flex gap-2 mt-4">
+                <div className="mt-4 flex gap-2">
                     <button
                         type="button"
-                        className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                        className="rounded bg-gray-200 px-4 py-2 text-gray-700 transition hover:bg-gray-300"
                         onClick={() => setSettings("HOME")}
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                        className="rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
                         disabled={dateForm.formState.isSubmitting}
                     >
                         Save Changes
@@ -353,13 +396,19 @@ function DateControls({ setSettings, seasons }: {setSettings: React.Dispatch<Rea
                 </div>
             </form>
         </>
-    )
+    );
 }
 
-function RegistrationControls({ setSettings, season }: { setSettings: React.Dispatch<React.SetStateAction<settingOptions>>, season: threeSeasons}) {
-    const [termEditing, setTermEditing] = useState<'fall' | 'spring' | 'year'>('year');
+function RegistrationControls({
+    setSettings,
+    season,
+}: {
+    setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
+    season: threeSeasons;
+}) {
+    const [termEditing, setTermEditing] = useState<"fall" | "spring" | "year">("year");
 
-    const getTermRegSettings = (term: 'fall' | 'spring' | 'year') => {
+    const getTermRegSettings = (term: "fall" | "spring" | "year") => {
         return {
             isspring: season[term].isspring,
             haslateregfee: season[term].haslateregfee,
@@ -369,19 +418,21 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
             showteachername: season[term].showteachername,
             days4showteachername: season[term].days4showteachername,
             allownewfamilytoregister: season[term].allownewfamilytoregister,
-            date4newfamilytoregister: season[term].date4newfamilytoregister ? new Date(season[term].date4newfamilytoregister) : undefined,
-        }
-    }
+            date4newfamilytoregister: season[term].date4newfamilytoregister
+                ? new Date(season[term].date4newfamilytoregister)
+                : undefined,
+        };
+    };
     const {
         control,
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
-        setError
+        setError,
     } = useForm({
         defaultValues: {
-            ...getTermRegSettings("year")
+            ...getTermRegSettings("year"),
         },
         resolver: zodResolver(seasonRegSettingsSchema),
         mode: "all",
@@ -401,7 +452,8 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
         } catch (err) {
             setError("root", {
                 type: "manual",
-                message: "Failed to update registration settings. Please check the form for errors.",
+                message:
+                    "Failed to update registration settings. Please check the form for errors.",
             });
             console.error("Error occured while updating registration settings", err);
         }
@@ -409,14 +461,17 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
 
     return (
         <>
-            <h3 className="font-semibold text-gray-800 border-b pb-2">Registration Settings</h3>
+            <h3 className="border-b pb-2 font-semibold text-gray-800">Registration Settings</h3>
             <div className="mb-4">
-                <label htmlFor="term-select" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                    htmlFor="term-select"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                >
                     Select Term
                 </label>
                 <Select
                     value={termEditing}
-                    onValueChange={(value: 'year' | 'spring' | 'fall') => {
+                    onValueChange={(value: "year" | "spring" | "fall") => {
                         setTermEditing(value);
                         reset(getTermRegSettings(value));
                     }}
@@ -433,10 +488,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
             </div>
             <form
                 onSubmit={handleSubmit(onSubmit)}
-                className="flex flex-col gap-4 mt-4"
+                className="mt-4 flex flex-col gap-4"
                 autoComplete="off"
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="flex items-center justify-between">
                         <label htmlFor="isspring" className="text-sm font-medium text-gray-700">
                             Is Spring Semester
@@ -454,7 +509,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="haslateregfee" className="text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="haslateregfee"
+                            className="text-sm font-medium text-gray-700"
+                        >
                             Late Registration Fee
                         </label>
                         <Controller
@@ -470,7 +528,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="haslateregfee4newfamily" className="text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="haslateregfee4newfamily"
+                            className="text-sm font-medium text-gray-700"
+                        >
                             Late Reg Fee for New Family
                         </label>
                         <Controller
@@ -502,7 +563,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="showadmissionnotice" className="text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="showadmissionnotice"
+                            className="text-sm font-medium text-gray-700"
+                        >
                             Show Admission Notice
                         </label>
                         <Controller
@@ -518,7 +582,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="showteachername" className="text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="showteachername"
+                            className="text-sm font-medium text-gray-700"
+                        >
                             Show Teacher Name
                         </label>
                         <Controller
@@ -534,7 +601,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div>
-                        <label htmlFor="days4showteachername" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                            htmlFor="days4showteachername"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
                             Days to Show Teacher Name
                         </label>
                         <Input
@@ -544,11 +614,16 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                             {...register("days4showteachername", { valueAsNumber: true })}
                         />
                         {errors.days4showteachername && (
-                            <span className="text-xs text-red-500">{errors.days4showteachername.message as string}</span>
+                            <span className="text-xs text-red-500">
+                                {errors.days4showteachername.message as string}
+                            </span>
                         )}
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="allownewfamilytoregister" className="text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="allownewfamilytoregister"
+                            className="text-sm font-medium text-gray-700"
+                        >
                             Allow New Family to Register
                         </label>
                         <Controller
@@ -564,7 +639,10 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                         />
                     </div>
                     <div>
-                        <label htmlFor="date4newfamilytoregister" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                            htmlFor="date4newfamilytoregister"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
                             New Family Registration Date
                         </label>
                         <Controller
@@ -574,27 +652,37 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
                                 <Input
                                     id="date4newfamilytoregister"
                                     type="date"
-                                    value={field.value ? (field.value as Date).toISOString().slice(0, 10) : ""} // Remove the time from the database version
-                                    onChange={e => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
+                                    value={
+                                        field.value
+                                            ? (field.value as Date).toISOString().slice(0, 10)
+                                            : ""
+                                    } // Remove the time from the database version
+                                    onChange={(e) =>
+                                        field.onChange(
+                                            e.target.value ? new Date(e.target.value) : undefined
+                                        )
+                                    }
                                 />
                             )}
                         />
                         {errors.date4newfamilytoregister && (
-                            <span className="text-xs text-red-500">{errors.date4newfamilytoregister.message as string}</span>
+                            <span className="text-xs text-red-500">
+                                {errors.date4newfamilytoregister.message as string}
+                            </span>
                         )}
                     </div>
                 </div>
-                <div className="flex gap-2 mt-4">
+                <div className="mt-4 flex gap-2">
                     <button
                         type="button"
-                        className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                        className="rounded bg-gray-200 px-4 py-2 text-gray-700 transition hover:bg-gray-300"
                         onClick={() => setSettings("HOME")}
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                        className="rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
                         disabled={isSubmitting}
                     >
                         Save Changes
@@ -605,28 +693,34 @@ function RegistrationControls({ setSettings, season }: { setSettings: React.Disp
     );
 }
 
-function Controls({ setSettings }: {setSettings: React.Dispatch<React.SetStateAction<settingOptions>>}) {
+function Controls({
+    setSettings,
+}: {
+    setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
+}) {
     return (
         <>
-            <h3 className="font-semibold text-gray-800 border-b pb-2">Change Semester Status</h3>
+            <h3 className="border-b pb-2 font-semibold text-gray-800">Change Semester Status</h3>
 
-            <p className="flex gap-2 justify-center items-center">Be careful with these settings! <AlertTriangle className="w-4 h-4"/></p>
+            <p className="flex items-center justify-center gap-2">
+                Be careful with these settings! <AlertTriangle className="h-4 w-4" />
+            </p>
 
-            <div className="flex gap-2 mt-4">
+            <div className="mt-4 flex gap-2">
                 <button
                     type="button"
-                    className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                    className="rounded bg-gray-200 px-4 py-2 text-gray-700 transition hover:bg-gray-300"
                     onClick={() => setSettings("HOME")}
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
-                    className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                    className="rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
                 >
                     Save Changes
                 </button>
-            </div> 
+            </div>
         </>
-    )
+    );
 }

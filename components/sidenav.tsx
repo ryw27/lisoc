@@ -1,23 +1,23 @@
-'use client';
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
-import { ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import Image from 'next/image';
-import { signOut } from 'next-auth/react';
+"use client";
+
+import React, { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 interface SideNavProps {
     items: {
-		header: string;
-		items: {
-			label: string;
-			href: string[];
-			icon: React.ReactNode;
-		}[];
-    }[],
+        header: string;
+        items: {
+            label: string;
+            href: string[];
+            icon: React.ReactNode;
+        }[];
+    }[];
 }
-
 
 export default function SideNav({ items }: SideNavProps) {
     const [navCollapsed, setNavCollapsed] = useState(false);
@@ -30,58 +30,84 @@ export default function SideNav({ items }: SideNavProps) {
     };
 
     return (
-        <aside className={cn(
-            "bg-brand-navy h-full shadow-2xl transition-all duration-500 ease-in-out relative flex flex-col z-50",
-            navCollapsed ? "w-20" : "w-64"
-        )}>
+        <aside
+            className={cn(
+                "bg-brand-navy relative z-50 flex h-full flex-col shadow-2xl transition-all duration-500 ease-in-out",
+                navCollapsed ? "w-20" : "w-64"
+            )}
+        >
             {/* Heritage Border */}
-            <div className="pointer-events-none absolute inset-2 z-10 border border-brand-gold/70 rounded-xl transition-all duration-500" />
+            <div className="border-brand-gold/70 pointer-events-none absolute inset-2 z-10 rounded-xl border transition-all duration-500" />
 
-            <div className="relative z-20 h-full flex flex-col overflow-hidden">
+            <div className="relative z-20 flex h-full flex-col overflow-hidden">
                 {/* Brand Section */}
-                <div className="pt-8 pb-6 px-6 h-24">
-                    <div className={cn("flex items-center", navCollapsed ? "justify-center" : "justify-between")}>
-                        <div className={cn(
-                            "flex items-center gap-3 overflow-hidden transition-all duration-500",
-                            navCollapsed ? "opacity-0 w-0 -translate-x-5" : "opacity-100 w-auto translate-x-0"
-                        )}>
-                            <Image src="/lisoc.png" alt="Logo" width={32} height={32} className="brightness-110 shrink-0" />
-                            <span className="text-lg font-bold text-brand-gold tracking-tight whitespace-nowrap font-heritage">
+                <div className="h-24 px-6 pt-8 pb-6">
+                    <div
+                        className={cn(
+                            "flex items-center",
+                            navCollapsed ? "justify-center" : "justify-between"
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "flex items-center gap-3 overflow-hidden transition-all duration-500",
+                                navCollapsed
+                                    ? "w-0 -translate-x-5 opacity-0"
+                                    : "w-auto translate-x-0 opacity-100"
+                            )}
+                        >
+                            <Image
+                                src="/lisoc.png"
+                                alt="Logo"
+                                width={32}
+                                height={32}
+                                className="shrink-0 brightness-110"
+                            />
+                            <span className="text-brand-gold font-heritage text-lg font-bold tracking-tight whitespace-nowrap">
                                 长岛中文学校
                             </span>
                         </div>
                         <button
                             onClick={() => setNavCollapsed(!navCollapsed)}
-                            className="text-brand-gold/60 hover:text-brand-gold transition-colors p-1 shrink-0"
+                            className="text-brand-gold/60 hover:text-brand-gold shrink-0 p-1 transition-colors"
                         >
-                            {navCollapsed ? <ArrowRightToLine size={22}/> : <ArrowLeftToLine size={18}/>}
+                            {navCollapsed ? (
+                                <ArrowRightToLine size={22} />
+                            ) : (
+                                <ArrowLeftToLine size={18} />
+                            )}
                         </button>
                     </div>
-            </div>
+                </div>
 
                 {/* Navigation Items */}
-                <nav className="flex-1 px-4 py-2 space-y-8 overflow-y-auto no-scrollbar font-heritage">
+                <nav className="no-scrollbar font-heritage flex-1 space-y-8 overflow-y-auto px-4 py-2">
                     {items.map((group, idx) => (
                         <div key={idx} className="space-y-2">
-                            <p className={cn(
-                                "px-4 text-[11px] font-black text-brand-brass uppercase tracking-[0.25em] transition-all duration-500 overflow-hidden",
-                                navCollapsed ? "opacity-0 h-0" : "opacity-80 h-auto"
-                            )}>
+                            <p
+                                className={cn(
+                                    "text-brand-brass overflow-hidden px-4 text-[11px] font-black tracking-[0.25em] uppercase transition-all duration-500",
+                                    navCollapsed ? "h-0 opacity-0" : "h-auto opacity-80"
+                                )}
+                            >
                                 {group.header}
                             </p>
-                                <div className="space-y-1">
+                            <div className="space-y-1">
                                 {group.items.map((item: any, itemIdx: number) => {
                                     const isActive = item.href.includes(pathname);
                                     const isLogout = item.label === "Logout";
-                                    
-                                    const iconElement = React.isValidElement(item.icon) 
-                                        ? React.cloneElement(item.icon as React.ReactElement<any>, { size: 20 }) : null;
+
+                                    const iconElement = React.isValidElement(item.icon)
+                                        ? React.cloneElement(item.icon as React.ReactElement<any>, {
+                                              size: 20,
+                                          })
+                                        : null;
 
                                     // Shared Tailwind classes for both Link and Button
                                     const itemClasses = cn(
                                         "group flex items-center px-4 py-3 rounded-lg transition-all duration-300 border-l-2 border-transparent w-full text-left cursor-pointer",
-                                        isActive 
-                                            ? "bg-brand-gold text-brand-navy shadow-lg border-brand-brass font-bold" 
+                                        isActive
+                                            ? "bg-brand-gold text-brand-navy shadow-lg border-brand-brass font-bold"
                                             : "text-white/70 hover:bg-brand-gold/10 hover:text-brand-gold",
                                         navCollapsed ? "justify-center gap-0" : "gap-3"
                                     );
@@ -89,40 +115,51 @@ export default function SideNav({ items }: SideNavProps) {
                                     // Shared Inner Content
                                     const itemContent = (
                                         <>
-                                            <div className={cn("shrink-0 transition-all duration-300", isActive ? "" : "text-brand-gold group-hover:scale-110")}>
+                                            <div
+                                                className={cn(
+                                                    "shrink-0 transition-all duration-300",
+                                                    isActive
+                                                        ? ""
+                                                        : "text-brand-gold group-hover:scale-110"
+                                                )}
+                                            >
                                                 {iconElement}
                                             </div>
-                                            <span className={cn(
-                                                "text-[15px] tracking-wide whitespace-nowrap transition-all duration-500 overflow-hidden",
-                                                navCollapsed ? "opacity-0 w-0 -translate-x-3" : "opacity-100 w-auto translate-x-0"
-                                            )}>
+                                            <span
+                                                className={cn(
+                                                    "overflow-hidden text-[15px] tracking-wide whitespace-nowrap transition-all duration-500",
+                                                    navCollapsed
+                                                        ? "w-0 -translate-x-3 opacity-0"
+                                                        : "w-auto translate-x-0 opacity-100"
+                                                )}
+                                            >
                                                 {item.label}
                                             </span>
                                         </>
                                     );
 
                                     return isLogout ? (
-                                                <button
-                                            key={itemIdx} 
-                                                    onClick={handleLogout}
+                                        <button
+                                            key={itemIdx}
+                                            onClick={handleLogout}
                                             className={itemClasses}
-                                                >
+                                        >
                                             {itemContent}
-                                                </button>
+                                        </button>
                                     ) : (
-                                            <Link
-                                            key={itemIdx} 
-                                            href={item.href[0]} 
+                                        <Link
+                                            key={itemIdx}
+                                            href={item.href[0]}
                                             className={itemClasses}
-                                            >
+                                        >
                                             {itemContent}
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
+                                        </Link>
+                                    );
+                                })}
                             </div>
-                        ))}
-                    </nav>
+                        </div>
+                    ))}
+                </nav>
             </div>
         </aside>
     );

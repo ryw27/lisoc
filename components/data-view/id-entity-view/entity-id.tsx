@@ -1,18 +1,17 @@
-import { Registry } from "@/lib/data-view/registry";
-import EntityFormsHeader from "../entity-forms-header";
-import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
 import Link from "next/link";
-
+import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
+import { Registry } from "@/server/data-view/registry";
+import EntityFormsHeader from "../entity-forms-header";
 
 export type displaySection = {
     label: string;
     value: string;
-}
+};
 
 export type displaySectionGroup = {
     section: string;
     display: displaySection[];
-}
+};
 
 interface EntityIdProps {
     entity: keyof Registry;
@@ -21,15 +20,9 @@ interface EntityIdProps {
     id: string;
 }
 
-export default async function EntityId({
-    title,
-    entity,
-    displayFields,
-    id,
-}: EntityIdProps) {
-
+export default async function EntityId({ title, entity, displayFields, id }: EntityIdProps) {
     return (
-        <div className="p-6 space-y-4 h-screen">
+        <div className="h-screen space-y-4 p-6">
             <EntityFormsHeader
                 type="view"
                 gobacklink={`${ADMIN_DATAVIEW_LINK}/${entity}`}
@@ -38,15 +31,15 @@ export default async function EntityId({
 
             <div className="mx-auto max-w-6xl px-4 py-8">
                 <div className="flex justify-between">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 break-words">
+                    <h1 className="text-3xl font-bold tracking-tight break-words text-slate-900">
                         {title}
                     </h1>
                     <Link
                         href={`${ADMIN_DATAVIEW_LINK}/${entity}/${id}/edit`}
-                        className="bg-blue-600 px-4 py-2 text-md text-white font-bold rounded-md"
+                        className="text-md rounded-md bg-blue-600 px-4 py-2 font-bold text-white"
                     >
                         Edit
-                    </Link> 
+                    </Link>
                 </div>
 
                 <div className="mt-6 grid grid-cols-2">
@@ -60,13 +53,10 @@ export default async function EntityId({
                             "grid-rows-1",
                             isLeft
                                 ? "rounded-l-2xl rounded-r-none border-r-0"
-                                : "rounded-r-2xl rounded-l-none border-l-0"
+                                : "rounded-r-2xl rounded-l-none border-l-0",
                         ].join(" ");
                         return (
-                            <section
-                                key={sectionGroup.section}
-                                className={sectionClass}
-                            >
+                            <section key={sectionGroup.section} className={sectionClass}>
                                 <div className="mb-4 flex items-center gap-2">
                                     <h2 className="text-xl font-semibold text-blue-700">
                                         {sectionGroup.section}
@@ -76,12 +66,12 @@ export default async function EntityId({
                                     {sectionGroup.display.map((section, i) => (
                                         <div
                                             key={`${String(section.label)}-${i}`}
-                                            className="grid grid-cols-2 items-start gap-3 "
+                                            className="grid grid-cols-2 items-start gap-3"
                                         >
-                                            <dt className="text-md font-medium uppercase tracking-wide text-slate-500 text-right px-4">
+                                            <dt className="text-md px-4 text-right font-medium tracking-wide text-slate-500 uppercase">
                                                 {section.label}
                                             </dt>
-                                            <dd className="text-md text-slate-900 break-words px-4">
+                                            <dd className="text-md px-4 break-words text-slate-900">
                                                 {section.value ?? "—"}
                                             </dd>
                                         </div>
@@ -93,5 +83,5 @@ export default async function EntityId({
                 </div>
             </div>
         </div>
-    )
+    );
 }

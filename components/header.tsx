@@ -1,12 +1,12 @@
-'use client';
+"use client";
+
 import React from "react";
-import LanguageToggle from "./language-toggle";
-import { ChevronRight, UserCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { type DefaultSession } from "next-auth"
 import { usePathname } from "next/navigation";
-import { BREADCRUMB_LABELS } from "@/lib/breadcrumps-map";
+import { ChevronRight, UserCircle } from "lucide-react";
+import { type DefaultSession } from "next-auth";
 import { validate as isUUID } from "uuid";
+import { BREADCRUMB_LABELS, cn } from "@/lib/utils";
+import LanguageToggle from "./language-toggle";
 
 export function useBreadCrumbs(): string[] {
     const pathname = usePathname();
@@ -14,58 +14,62 @@ export function useBreadCrumbs(): string[] {
     const segments = pathname.split("/").filter(Boolean);
 
     if (segments.length === 1 && (segments[0] === "admin" || segments[0] === "teacher")) {
-        return ["Home"]
+        return ["Home"];
     }
 
-    let filteredSegments = segments
+    let filteredSegments = segments;
     if (segments[0] === "admin" || segments[0] === "teacher") {
-        filteredSegments = segments.slice(1,);
+        filteredSegments = segments.slice(1);
     }
 
-    return filteredSegments 
-        .map((segment) => {
-            if (!isNaN(Number(segment)) || isUUID(segment)) {
-                return "Details"
-            }
+    return filteredSegments.map((segment) => {
+        if (!isNaN(Number(segment)) || isUUID(segment)) {
+            return "Details";
+        }
 
-            return BREADCRUMB_LABELS[segment] || segment;
-        })
-
+        return BREADCRUMB_LABELS[segment] || segment;
+    });
 }
 
-
 export default function Header({ user }: { user: DefaultSession["user"] }) {
-    const breadcrumbs = useBreadCrumbs()
+    const breadcrumbs = useBreadCrumbs();
     return (
-        <header className="h-16 w-full border-b border-brand-brass/10 bg-background/95 backdrop-blur-sm flex items-center justify-between px-8 z-40 shrink-0 font-heritage">
+        <header className="border-brand-brass/10 bg-background/95 font-heritage z-40 flex h-16 w-full shrink-0 items-center justify-between border-b px-8 backdrop-blur-sm">
             {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] text-muted-foreground/60">
+            <div className="text-muted-foreground/60 flex items-center gap-2 text-[12px] font-bold tracking-[0.12em]">
                 {breadcrumbs.map((crumb: string, idx: number) => (
                     <React.Fragment key={idx}>
-                        <span className={cn("uppercase", idx === breadcrumbs.length - 1 && "text-brand-navy")}>
+                        <span
+                            className={cn(
+                                "uppercase",
+                                idx === breadcrumbs.length - 1 && "text-brand-navy"
+                            )}
+                        >
                             {crumb}
                         </span>
-                        {idx < breadcrumbs.length - 1 && <ChevronRight size={12} className="opacity-40" />}
+                        {idx < breadcrumbs.length - 1 && (
+                            <ChevronRight size={12} className="opacity-40" />
+                        )}
                     </React.Fragment>
                 ))}
             </div>
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-4">
-                        <LanguageToggle /> 
+                <LanguageToggle />
 
-                <div className="h-4 w-px bg-brand-brass/20 mx-2" />
+                <div className="bg-brand-brass/20 mx-2 h-4 w-px" />
 
-                <div className="flex items-center gap-3 pl-2 group cursor-pointer">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-[11px] font-black text-brand-navy leading-tight mb-0.5 tracking-tight">
+                <div className="group flex cursor-pointer items-center gap-3 pl-2">
+                    <div className="hidden text-right sm:block">
+                        <p className="text-brand-navy mb-0.5 text-[11px] leading-tight font-black tracking-tight">
                             ADMIN PORTAL
                         </p>
-                        <p className="text-[10px] text-brand-brass font-bold uppercase leading-tight italic">
+                        <p className="text-brand-brass text-[10px] leading-tight font-bold uppercase italic">
                             {user?.name ?? "Registrar"}
-                                        </p>
-                                    </div>
-                    <div className="w-10 h-10 rounded-full bg-brand-navy flex items-center justify-center text-brand-gold ring-2 ring-brand-gold/20 group-hover:ring-brand-gold transition-all duration-300">
+                        </p>
+                    </div>
+                    <div className="bg-brand-navy text-brand-gold ring-brand-gold/20 group-hover:ring-brand-gold flex h-10 w-10 items-center justify-center rounded-full ring-2 transition-all duration-300">
                         <UserCircle size={26} />
                     </div>
                 </div>

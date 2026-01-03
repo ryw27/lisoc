@@ -1,24 +1,23 @@
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
-
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 type entityFormsHeaderProps = {
-    type: "add" | "edit" | "view"
+    type: "add" | "edit" | "view";
     gobacklink: string;
     editlink?: string;
-}
-export default function EntityFormsHeader({ 
+};
+export default function EntityFormsHeader({
     // type,
     gobacklink,
     // editlink,
 }: entityFormsHeaderProps) {
     return (
-        <div className="container mx-auto max-w-5xl flex justify-between">
+        <div className="container mx-auto flex max-w-5xl justify-between">
             <Link
-                className="flex items-center gap-1 text-blue-600 underline text-xs font-bold"
+                className="flex items-center gap-1 text-xs font-bold text-blue-600 underline"
                 href={gobacklink}
             >
-                <ArrowLeft className="w-4 h-4" /> Go Back
+                <ArrowLeft className="h-4 w-4" /> Go Back
             </Link>
             {/* {type === "view" && (
                 <Link
@@ -29,5 +28,5 @@ export default function EntityFormsHeader({
                 </Link>
             )} */}
         </div>
-    ) 
+    );
 }

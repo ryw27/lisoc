@@ -1,22 +1,33 @@
 "use client";
-import { type Table } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+
 import { useState } from "react";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { useRouter, useSearchParams } from "next/navigation";
+import { type Table } from "@tanstack/react-table";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
-    tableType: "client" | "server"
-    totalCount: number
+    tableType: "client" | "server";
+    totalCount: number;
 }
 
-export default function DataTablePagination<TData>({ table, tableType, totalCount }: DataTablePaginationProps<TData>) {
+export default function DataTablePagination<TData>({
+    table,
+    tableType,
+    totalCount,
+}: DataTablePaginationProps<TData>) {
     const [pageSize, setPageSize] = useState<number>(table.getState().pagination.pageSize);
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     // const submitPageSize = () => {
     //     const params = new URLSearchParams(Array.from(searchParams.entries()));
     //     params.set('pageSize', pageSize.toString());
@@ -26,9 +37,9 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
 
     const setPage_server = (page: number) => {
         const params = new URLSearchParams(Array.from(searchParams.entries()));
-        params.set('page', page.toString());
+        params.set("page", page.toString());
         router.replace(`?${params.toString()}`);
-    }
+    };
 
     const serverPage = Number(searchParams.get("page")) || 1;
     const serverPageSize = Number(searchParams.get("pageSize")) || 10;
@@ -44,37 +55,45 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
             </div>
             <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">Rows per page:</p>
+                    <p className="text-sm font-semibold">Rows per page:</p>
                     <div className="flex items-center gap-2">
                         {/* <span className="text-sm">Show</span> */}
-                            <Select
-                                value={pageSize.toString()}
-                                onValueChange={(value) => {
-                                    const num = Number(value);
-                                    setPageSize(num);
-                                    if (tableType === "client") {
-                                        table.setPageSize(num);
-                                        table.setPageIndex(0);
-                                    } else {
-                                        // For server, reset to first page and update params
-                                        const params = new URLSearchParams(Array.from(searchParams.entries()));
-                                        params.set('pageSize', num.toString());
-                                        params.set('page', "1");
-                                        router.replace(`?${params.toString()}`);
-                                    }
-                                }}
-                            >
-                                <SelectTrigger className="h-8 px-2 text-sm" aria-label="Rows per page">
-                                    <SelectValue></SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {[10, 20, 30, 40, 50, 100, 150, 200, 250, 400, 500].map((option) => (
-                                        <SelectItem key={option} value={option.toString()} className="text-sm">
+                        <Select
+                            value={pageSize.toString()}
+                            onValueChange={(value) => {
+                                const num = Number(value);
+                                setPageSize(num);
+                                if (tableType === "client") {
+                                    table.setPageSize(num);
+                                    table.setPageIndex(0);
+                                } else {
+                                    // For server, reset to first page and update params
+                                    const params = new URLSearchParams(
+                                        Array.from(searchParams.entries())
+                                    );
+                                    params.set("pageSize", num.toString());
+                                    params.set("page", "1");
+                                    router.replace(`?${params.toString()}`);
+                                }
+                            }}
+                        >
+                            <SelectTrigger className="h-8 px-2 text-sm" aria-label="Rows per page">
+                                <SelectValue></SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {[10, 20, 30, 40, 50, 100, 150, 200, 250, 400, 500].map(
+                                    (option) => (
+                                        <SelectItem
+                                            key={option}
+                                            value={option.toString()}
+                                            className="text-sm"
+                                        >
                                             {option}
                                         </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                    )
+                                )}
+                            </SelectContent>
+                        </Select>
                         <span className="text-sm">rows</span>
                     </div>
                     {/* <DropdownMenu>
@@ -133,12 +152,11 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                     {tableType === "server" ? (
                         <span className="font-semibold">
-                            Page {serverPage} of {" "}
-                            {totalPages}
+                            Page {serverPage} of {totalPages}
                         </span>
-                    ): (
+                    ) : (
                         <span className="font-semibold">
-                            Page {table.getState().pagination.pageIndex + 1} of {" "}
+                            Page {table.getState().pagination.pageIndex + 1} of{" "}
                             {table.getPageCount()}
                         </span>
                     )}
@@ -149,10 +167,12 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                         size="icon"
                         className="hidden size-8 lg:flex"
                         onClick={() => {
-                            table.setPageIndex(0)
-                            setPage_server(0)
+                            table.setPageIndex(0);
+                            setPage_server(0);
                         }}
-                        disabled={tableType === "server" ? serverPage === 1 : !table.getCanPreviousPage()}
+                        disabled={
+                            tableType === "server" ? serverPage === 1 : !table.getCanPreviousPage()
+                        }
                     >
                         <span className="sr-only">Go to first page</span>
                         <ChevronsLeft />
@@ -162,10 +182,12 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                         size="icon"
                         className="size-8"
                         onClick={() => {
-                            table.previousPage()
-                            setPage_server(serverPage - 1)
+                            table.previousPage();
+                            setPage_server(serverPage - 1);
                         }}
-                        disabled={tableType === "server" ? serverPage === 1 : !table.getCanPreviousPage()}
+                        disabled={
+                            tableType === "server" ? serverPage === 1 : !table.getCanPreviousPage()
+                        }
                     >
                         <span className="sr-only">Go to previous page</span>
                         <ChevronLeft />
@@ -175,10 +197,14 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                         size="icon"
                         className="size-8"
                         onClick={() => {
-                            table.nextPage()
-                            setPage_server(serverPage + 1) 
+                            table.nextPage();
+                            setPage_server(serverPage + 1);
                         }}
-                        disabled={tableType === "server" ? serverPage === totalPages : !table.getCanNextPage()}
+                        disabled={
+                            tableType === "server"
+                                ? serverPage === totalPages
+                                : !table.getCanNextPage()
+                        }
                     >
                         <span className="sr-only">Go to next page</span>
                         <ChevronRight />
@@ -188,10 +214,14 @@ export default function DataTablePagination<TData>({ table, tableType, totalCoun
                         size="icon"
                         className="hidden size-8 lg:flex"
                         onClick={() => {
-                            table.setPageIndex(table.getPageCount() - 1)
-                            setPage_server(totalPages)
+                            table.setPageIndex(table.getPageCount() - 1);
+                            setPage_server(totalPages);
                         }}
-                        disabled={tableType === "server" ? serverPage === totalPages : !table.getCanNextPage()}
+                        disabled={
+                            tableType === "server"
+                                ? serverPage === totalPages
+                                : !table.getCanNextPage()
+                        }
                     >
                         <span className="sr-only">Go to last page</span>
                         <ChevronsRight />

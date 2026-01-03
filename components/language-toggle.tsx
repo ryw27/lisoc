@@ -1,10 +1,10 @@
 "use client";
-import { useTransition } from "react";
-import { setLocale } from "@/lib/i18n/";
-import { useLocale } from "next-intl";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
+import { useTransition } from "react";
+import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
+import { cn } from "@/lib/utils";
+import { setLocale } from "@/server/i18n/setLocale";
 
 export default function LanguageToggle() {
     const [pending, start] = useTransition();
@@ -16,18 +16,18 @@ export default function LanguageToggle() {
             const switchTo = locale === "en" ? "zh" : "en";
             await setLocale(switchTo, pathname);
         });
-    }
+    };
 
     return (
         <button
             onClick={toggleLocale}
             disabled={pending}
             className={cn(
-                "w-16 h-8 flex items-center justify-center rounded-md text-[11px] font-black cursor-pointer tracking-widest transition-all",
-                "text-brand-navy border border-brand-navy/10 hover:border-brand-gold hover:text-brand-gold hover:bg-brand-gold/5"
+                "flex h-8 w-16 cursor-pointer items-center justify-center rounded-md text-[11px] font-black tracking-widest transition-all",
+                "text-brand-navy border-brand-navy/10 hover:border-brand-gold hover:text-brand-gold hover:bg-brand-gold/5 border"
             )}
         >
-            {locale === 'en' ? '中文' : 'ENG'}
+            {locale === "en" ? "中文" : "ENG"}
         </button>
     );
 }
