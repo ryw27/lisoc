@@ -3,7 +3,7 @@ import { type FormSections, type FormSelectOptions } from "@/types/dataview.type
 import AddEntity from "@/components/data-view/add-entity/add-entity";
 import EntityFormsHeader from "@/components/data-view/entity-forms-header";
 
-export default async function AddClassroom({}) {
+export default async function AddClassroom() {
     const statusOptions = [
         { val: "Active", labelen: "Active", labelcn: "Active" },
         { val: "Inactive", labelen: "Inactive", labelcn: "Inactive" },
