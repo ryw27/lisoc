@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { ColumnDef, getCoreRowModel, Row, useReactTable } from "@tanstack/react-table";
 import { InferSelectModel } from "drizzle-orm";
 import { MoreHorizontal, PencilIcon, XIcon } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod/v4";
 import { student } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,165 @@ const columns: ColumnDef<studentInfo>[] = [
     },
 ];
 
+const EditCell = ({
+    row,
+    setReload,
+    setError,
+    setTitle,
+    setStudentId,
+    studentForm,
+}: {
+    row: Row<studentInfo>;
+    setReload: React.Dispatch<React.SetStateAction<boolean>>;
+    setError: React.Dispatch<React.SetStateAction<string | null | undefined>>;
+    setTitle: React.Dispatch<React.SetStateAction<string>>;
+    setStudentId: React.Dispatch<React.SetStateAction<number>>;
+    studentForm: UseFormReturn<z.infer<typeof studentSchema>>;
+}) => {
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+    return (
+        <>
+            <Popover>
+                <PopoverTrigger
+                    className={cn(
+                        "cursor-pointer items-center rounded-md p-1",
+                        "border-1 border-gray-300 hover:border-gray-700",
+                        "focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    )}
+                    aria-label="Row actions"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <MoreHorizontal className="h-4 w-4" />
+                </PopoverTrigger>
+                <PopoverContent
+                    className={cn(
+                        "justify-begin flex w-48 flex-col items-center gap-1",
+                        "rounded-md border border-gray-300 bg-white",
+                        "p-1"
+                    )}
+                    align="end"
+                    side="bottom"
+                    sideOffset={5}
+                >
+                    {
+                        <>
+                            <button
+                                className={cn(
+                                    cn(
+                                        "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
+                                        "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
+                                        "focus:bg-gray-100 focus:outline-none"
+                                    )
+                                )}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const studentid = row.original.studentid ?? -1;
+                                    const gender =
+                                        row.original.gender == "Male" ? "Male" : "Female";
+                                    const namecn = row.original.namecn;
+                                    const namelasten = row.original.namelasten;
+                                    const namefirsten = row.original.namefirsten;
+                                    //const ageof = row.original.ageof
+                                    const dob = row.original.dob;
+                                    const dobDate = new Date(dob);
+                                    const year = dobDate.getFullYear();
+                                    const month = dobDate.getMonth() + 1;
+                                    const day = dobDate.getDate();
+
+                                    const dobFormatted = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+                                    setStudentId(studentid);
+                                    setTitle("Edit Student Info - ID: " + studentid);
+                                    studentForm.setValue("gender", gender);
+                                    studentForm.setValue("namecn", namecn);
+                                    studentForm.setValue("namelasten", namelasten);
+                                    studentForm.setValue("namefirsten", namefirsten);
+                                    //studentForm.setValue("age", ageof);
+                                    studentForm.setValue("dob", new Date(dobFormatted));
+                                    setError(null);
+                                }}
+                            >
+                                <PencilIcon className="h-4 w-4" /> Edit
+                            </button>
+                            <>
+                                <button
+                                    className={cn(
+                                        cn(
+                                            "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
+                                            "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
+                                            "focus:bg-gray-100 focus:outline-none",
+                                            "cursor-pointer text-blue-500 hover:text-blue-600"
+                                        )
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowConfirmDialog(true);
+                                    }}
+                                >
+                                    <XIcon className="h-5 w-5 cursor-pointer text-red-500 hover:text-red-700" />{" "}
+                                    Delete
+                                </button>
+                                <AlertDialog
+                                    open={showConfirmDialog}
+                                    onOpenChange={setShowConfirmDialog}
+                                >
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirm Deletion </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                您将不能删除以前或现在在本校注册过课程的学生记录。确定要删除这个学生的记录吗?{" "}
+                                                {row.original.studentid} ? <br /> ou will not be
+                                                able to delete any student who has registered any
+                                                courses in the past. Are you sure to continue
+                                                deleting the student?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel
+                                                onClick={() => setShowConfirmDialog(false)}
+                                            >
+                                                Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={async () => {
+                                                    try {
+                                                        await removeStudent(
+                                                            row.original.studentid!
+                                                        );
+                                                    } catch (err) {
+                                                        const msg =
+                                                            err instanceof Error
+                                                                ? err.message
+                                                                : String(err);
+                                                        setReload(true);
+                                                        //setError(" can not delet " + row.original.studentid + " : " + msg ) ;
+                                                        alert(
+                                                            " Cannot delete student ID " +
+                                                                row.original.studentid +
+                                                                " : " +
+                                                                msg
+                                                        );
+                                                    } finally {
+                                                        setShowConfirmDialog(false);
+                                                        setReload(true);
+                                                    }
+                                                }}
+                                            >
+                                                Confirm
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </>
+                        </>
+                    }
+                </PopoverContent>
+            </Popover>
+        </>
+    );
+};
+
 export default function CreateStudentForm({ familyid }: { familyid: number }) {
     const [sid, setStudentId] = useState<number>(-1); // default to add student
     const [title, setTitle] = useState<string>("Add New Student");
@@ -108,6 +267,7 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
             setReload(true);
         }
     };
+
     useEffect(() => {
         const loadStudents = async () => {
             const students = await getFammilyStudent(familyid);
@@ -121,157 +281,17 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
         {
             id: "edit",
             header: "Edit/Delete",
-            cell: ({ row }) => {
-                const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-                return (
-                    <>
-                        <Popover>
-                            <PopoverTrigger
-                                className={cn(
-                                    "cursor-pointer items-center rounded-md p-1",
-                                    "border-1 border-gray-300 hover:border-gray-700",
-                                    "focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                )}
-                                aria-label="Row actions"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <MoreHorizontal className="h-4 w-4" />
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className={cn(
-                                    "justify-begin flex w-48 flex-col items-center gap-1",
-                                    "rounded-md border border-gray-300 bg-white",
-                                    "p-1"
-                                )}
-                                align="end"
-                                side="bottom"
-                                sideOffset={5}
-                            >
-                                {
-                                    <>
-                                        <button
-                                            className={cn(
-                                                cn(
-                                                    "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
-                                                    "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
-                                                    "focus:bg-gray-100 focus:outline-none"
-                                                )
-                                            )}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const studentid = row.original.studentid ?? -1;
-                                                const gender =
-                                                    row.original.gender == "Male"
-                                                        ? "Male"
-                                                        : "Female";
-                                                const namecn = row.original.namecn;
-                                                const namelasten = row.original.namelasten;
-                                                const namefirsten = row.original.namefirsten;
-                                                //const ageof = row.original.ageof
-                                                const dob = row.original.dob;
-                                                const dobDate = new Date(dob);
-                                                const year = dobDate.getFullYear();
-                                                const month = dobDate.getMonth() + 1;
-                                                const day = dobDate.getDate();
-
-                                                const dobFormatted = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-                                                setStudentId(studentid);
-                                                setTitle("Edit Student Info - ID: " + studentid);
-                                                studentForm.setValue("gender", gender);
-                                                studentForm.setValue("namecn", namecn);
-                                                studentForm.setValue("namelasten", namelasten);
-                                                studentForm.setValue("namefirsten", namefirsten);
-                                                //studentForm.setValue("age", ageof);
-                                                studentForm.setValue("dob", dobFormatted);
-                                                setError(null);
-                                            }}
-                                        >
-                                            <PencilIcon className="h-4 w-4" /> Edit
-                                        </button>
-                                        <>
-                                            <button
-                                                className={cn(
-                                                    cn(
-                                                        "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
-                                                        "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
-                                                        "focus:bg-gray-100 focus:outline-none",
-                                                        "cursor-pointer text-blue-500 hover:text-blue-600"
-                                                    )
-                                                )}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setShowConfirmDialog(true);
-                                                }}
-                                            >
-                                                <XIcon className="h-5 w-5 cursor-pointer text-red-500 hover:text-red-700" />{" "}
-                                                Delete
-                                            </button>
-                                            <AlertDialog
-                                                open={showConfirmDialog}
-                                                onOpenChange={setShowConfirmDialog}
-                                            >
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>
-                                                            Confirm Deletion{" "}
-                                                        </AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            您将不能删除以前或现在在本校注册过课程的学生记录。确定要删除这个学生的记录吗?{" "}
-                                                            {row.original.studentid} ? <br /> ou
-                                                            will not be able to delete any student
-                                                            who has registered any courses in the
-                                                            past. Are you sure to continue deleting
-                                                            the student?
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel
-                                                            onClick={() =>
-                                                                setShowConfirmDialog(false)
-                                                            }
-                                                        >
-                                                            Cancel
-                                                        </AlertDialogCancel>
-                                                        <AlertDialogAction
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await removeStudent(
-                                                                        row.original.studentid!
-                                                                    );
-                                                                } catch (err) {
-                                                                    const msg =
-                                                                        err instanceof Error
-                                                                            ? err.message
-                                                                            : String(err);
-                                                                    setReload(true);
-                                                                    //setError(" can not delet " + row.original.studentid + " : " + msg ) ;
-                                                                    alert(
-                                                                        " Cannot delete student ID " +
-                                                                            row.original.studentid +
-                                                                            " : " +
-                                                                            msg
-                                                                    );
-                                                                } finally {
-                                                                    setShowConfirmDialog(false);
-                                                                    setReload(true);
-                                                                }
-                                                            }}
-                                                        >
-                                                            Confirm
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </>
-                                    </>
-                                }
-                            </PopoverContent>
-                        </Popover>
-                    </>
-                );
-            },
+            cell: ({ row }) => (
+                <EditCell
+                    row={row}
+                    setReload={setReload}
+                    setError={setError}
+                    setTitle={setTitle}
+                    setStudentId={setStudentId}
+                    // Don't know how to fix the type error here
+                    studentForm={studentForm as UseFormReturn<z.infer<typeof studentSchema>>}
+                />
+            ),
         },
     ];
 

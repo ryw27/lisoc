@@ -93,15 +93,9 @@ export default function SideNav({ items }: SideNavProps) {
                                 {group.header}
                             </p>
                             <div className="space-y-1">
-                                {group.items.map((item: any, itemIdx: number) => {
+                                {group.items.map((item, itemIdx: number) => {
                                     const isActive = item.href.includes(pathname);
                                     const isLogout = item.label === "Logout";
-
-                                    const iconElement = React.isValidElement(item.icon)
-                                        ? React.cloneElement(item.icon as React.ReactElement<any>, {
-                                              size: 20,
-                                          })
-                                        : null;
 
                                     // Shared Tailwind classes for both Link and Button
                                     const itemClasses = cn(
@@ -123,7 +117,7 @@ export default function SideNav({ items }: SideNavProps) {
                                                         : "text-brand-gold group-hover:scale-110"
                                                 )}
                                             >
-                                                {iconElement}
+                                                {item.icon}
                                             </div>
                                             <span
                                                 className={cn(

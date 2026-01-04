@@ -224,7 +224,8 @@ export default function SemesterView({
     selectOptions,
     idMaps,
     allClasses,
-}: semViewProps) {
+    curDate = new Date(Date.now()), // bruh - impure functions error from eslint
+}: semViewProps & { curDate: Date }) {
     // Augment each fullData item with a uuid for local state management
     const [regClasses, dispatch] = useReducer(
         reducer,
@@ -272,7 +273,6 @@ export default function SemesterView({
     };
 
     const getCurrentPhase = (term: InferSelectModel<typeof seasons>, termName: string) => {
-        const curDate = new Date(Date.now());
         if (curDate <= new Date(term.earlyregdate)) {
             return `${termName} registration has not begun`;
         } else if (curDate <= new Date(term.normalregdate)) {
