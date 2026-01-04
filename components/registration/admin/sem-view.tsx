@@ -225,7 +225,7 @@ export default function SemesterView({
     idMaps,
     allClasses,
     curDate = new Date(Date.now()), // bruh - impure functions error from eslint
-}: semViewProps & { curDate: Date }) {
+}: semViewProps & { curDate?: Date }) {
     // Augment each fullData item with a uuid for local state management
     const [regClasses, dispatch] = useReducer(
         reducer,

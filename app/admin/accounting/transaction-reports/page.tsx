@@ -250,7 +250,7 @@ export default function BillingWorkspace() {
 
                                     <div className="text-center">
                                         <p className="text-brand-navy/50 font-serif text-sm italic">
-                                            "The collection rate is currently at{" "}
+                                            &quot The collection rate is currently at{" "}
                                             <strong className="text-brand-navy not-italic">
                                                 {MACRO_STATS.collectionRate}%
                                             </strong>
@@ -259,7 +259,7 @@ export default function BillingWorkspace() {
                                                 {FAMILIES.filter((f) => f.balance > 0).length}{" "}
                                                 families
                                             </strong>{" "}
-                                            requiring attention."
+                                            requiring attention. &quot
                                         </p>
                                     </div>
                                 </div>
