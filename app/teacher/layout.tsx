@@ -1,9 +1,9 @@
-import React from 'react';
-import SideNav from '@/components/sidenav';
-import { Home, Calendar } from 'lucide-react';
-import Header from '@/components/header';
-import { requireRole } from '@/lib/auth';
-import { FaChalkboardTeacher } from 'react-icons/fa';
+import React from "react";
+import { Calendar, Home } from "lucide-react";
+import { FaChalkboardTeacher } from "react-icons/fa";
+import { requireRole } from "@/server/auth/actions";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
 
 const navItems = [
     {
@@ -12,37 +12,35 @@ const navItems = [
             {
                 label: "Home",
                 href: ["/teacher"],
-                icon: <Home className="w-4 h-4 " />
+                icon: <Home className="h-4 w-4" />,
             },
             {
                 label: "Class Management",
                 href: ["/teacher/class"],
-                icon: <FaChalkboardTeacher className="w-4 h-4" />
+                icon: <FaChalkboardTeacher className="h-4 w-4" />,
             },
             {
                 label: "Previous Classes",
                 href: ["/teacher/previous-classes"],
-                icon: <Calendar className="w-4 h-4" />
-            }
-        ]
-    }
-]
+                icon: <Calendar className="h-4 w-4" />,
+            },
+        ],
+    },
+];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const user = await requireRole(["TEACHER"]);
 
     return (
-        <div className="flex h-screen w-full bg-background overflow-hidden">
+        <div className="bg-background flex h-screen w-full overflow-hidden">
             {/* SideNav */}
-                <SideNav items={navItems} />
-            { /* Header + Content */ }
-            <div className="flex flex-col flex-1 min-w-0 h-full relative">
+            <SideNav items={navItems} />
+            {/* Header + Content */}
+            <div className="relative flex h-full min-w-0 flex-1 flex-col">
                 {/* Header */}
                 <Header user={user.user} />
-                <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
-                    <div className="max-w-[1400px] mx-auto w-full">
-                    {children}
-                    </div>
+                <main className="custom-scrollbar flex-1 overflow-y-auto p-8">
+                    <div className="mx-auto w-full max-w-[1400px]">{children}</div>
                 </main>
             </div>
         </div>

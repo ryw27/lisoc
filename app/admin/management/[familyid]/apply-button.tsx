@@ -1,24 +1,25 @@
 "use client";
-import { applyCheck } from "@/lib/payments/actions/adminApplyCheck";
-import { Input } from "@/components/ui/input";
-import { checkApplySchema } from "@/lib/payments/validation";
+
+import { useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
-import { familyObj } from "@/lib/shared/types";
-import { useRef } from "react";
+import { familyObj } from "@/types/shared.types";
+import { applyCheck } from "@/server/payments/actions";
+import { checkApplySchema } from "@/server/payments/schema";
+import { Input } from "@/components/ui/input";
 
 export default function ApplyButton({ family }: { family: familyObj }) {
     const formRef = useRef<HTMLFormElement>(null);
-    
-    const today = new Date().toISOString().split('T')[0];
+
+    const today = new Date().toISOString().split("T")[0];
 
     const checkForm = useForm({
         resolver: zodResolver(checkApplySchema),
         defaultValues: {
-            paidDate: today 
-        }
-    })
+            paidDate: today,
+        },
+    });
 
     const onSubmit = async (formData: z.infer<typeof checkApplySchema>) => {
         try {
@@ -27,16 +28,16 @@ export default function ApplyButton({ family }: { family: familyObj }) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             checkForm.setError("root", { message: errorMessage });
             console.error(error);
-        }
-        finally {
-            formRef.current?.reset();   // Optionally reset the form or provide feedback to the user
+        } finally {
+            formRef.current?.reset(); // Optionally reset the form or provide feedback to the user
         }
     };
 
     return (
-        <form ref={formRef}
+        <form
+            ref={formRef}
             onSubmit={checkForm.handleSubmit(onSubmit)}
-            className="flex gap-2 items-center mx-auto container justify-center"
+            className="container mx-auto flex items-center justify-center gap-2"
         >
             <label className="text-sm" htmlFor="balanceid">
                 Apply to
@@ -45,40 +46,39 @@ export default function ApplyButton({ family }: { family: familyObj }) {
                 id="balanceid"
                 placeholder="Balance ID"
                 type="number"
-                className="border border-gray-300 rounded-md p-2 w-28"
+                className="w-28 rounded-md border border-gray-300 p-2"
                 {...checkForm.register("balanceid", { required: true })}
             />
             <Input
                 placeholder="Amount"
                 type="number"
-                className="border border-gray-300 rounded-md p-2 w-40"
+                className="w-40 rounded-md border border-gray-300 p-2"
                 step="0.01"
                 {...checkForm.register("amount", { required: true, valueAsNumber: true })}
             />
             <Input
                 placeholder="Check No"
                 type="text"
-                className="border border-gray-300 rounded-md p-2 w-40"
+                className="w-40 rounded-md border border-gray-300 p-2"
                 {...checkForm.register("checkNo")}
             />
             <Input
                 placeholder="Paid Date"
                 type="date"
                 defaultValue={today}
-                className="border border-gray-300 rounded-md p-2 w-40"
+                className="w-40 rounded-md border border-gray-300 p-2"
                 {...checkForm.register("paidDate")}
             />
             <Input
                 placeholder="Note"
                 type="text"
-                className="border border-gray-300 rounded-md p-2 w-60"
+                className="w-60 rounded-md border border-gray-300 p-2"
                 {...checkForm.register("note")}
             />
 
-
             <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
                 Apply
             </button>

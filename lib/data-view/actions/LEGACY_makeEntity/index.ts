@@ -1,1 +1,0 @@
-// export { makeEntity } from "./makeEntity";

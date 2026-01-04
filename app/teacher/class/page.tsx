@@ -1,12 +1,12 @@
-import { requireRole } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { requireRole } from "@/server/auth/actions";
 
 export default async function ClassPage() {
     const user = await requireRole(["TEACHER"]);
 
     const teacherRow = await db.query.teacher.findFirst({
-        where: (teacher, { eq }) => eq(teacher.userid, user.user.id)
+        where: (teacher, { eq }) => eq(teacher.userid, user.user.id),
     });
 
     if (!teacherRow) {
@@ -19,16 +19,16 @@ export default async function ClassPage() {
             class: {
                 columns: {
                     classid: true,
-                    classnamecn: true
-                }
+                    classnamecn: true,
+                },
             },
             classroom: {
                 columns: {
                     roomid: true,
-                    roomno: true
-                }
-            }
-        }
+                    roomno: true,
+                },
+            },
+        },
     });
 
     return (
@@ -43,5 +43,5 @@ export default async function ClassPage() {
                 ))}
             </div>
         </div>
-    )
+    );
 }

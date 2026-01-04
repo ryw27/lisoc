@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation"
-import { checkResetLink } from "@/lib/auth";
-import ResetPasswordForm from "@/components/auth/reset-password-form";
+import { notFound } from "next/navigation";
 import { z } from "zod/v4";
+import { checkResetLink } from "@/server/auth/resetpw.actions";
+import ResetPasswordForm from "@/components/auth/reset-password-form";
 
 const resetParamsSchema = z.object({
     token: z.uuid(),
@@ -22,16 +22,11 @@ export default async function ResetPassword({
 
     const { token, email } = parsed.data;
 
-    const response = await checkResetLink({ uuid: token, email} );
-    
+    const response = await checkResetLink({ uuid: token, email });
+
     if (!response.ok || (response.ok && response.data === false)) {
         return notFound();
     }
 
-    return (
-        <ResetPasswordForm
-            userEmail={email}
-            userToken={token}
-        />
-    );
+    return <ResetPasswordForm userEmail={email} userToken={token} />;
 }

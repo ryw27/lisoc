@@ -1,12 +1,13 @@
-import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
-import { ClassroomObject } from '@/lib/data-view/entity-configs/(classes)/classrooms';
-import { notFound } from 'next/navigation';
-import getIDRow from '@/lib/data-view/actions/getIDRow';
+import { notFound } from "next/navigation";
+import { InferSelectModel } from "drizzle-orm";
+import { classrooms } from "@/lib/db/schema";
+import { getIDRow } from "@/server/data-view/actions/getIDRow";
+import EntityId, { displaySectionGroup } from "@/components/data-view/id-entity-view/entity-id";
 
 interface ClassroomPageProps {
     params: Promise<{
         roomid: string;
-    }>
+    }>;
 }
 
 export default async function ClassroomPage({ params }: ClassroomPageProps) {
@@ -17,7 +18,7 @@ export default async function ClassroomPage({ params }: ClassroomPageProps) {
         return notFound();
     }
 
-    const curClassroom = response.data as ClassroomObject;
+    const curClassroom = response.data as InferSelectModel<typeof classrooms>;
 
     // Define display sections with type-safe keys using the table schema
     const displaySections: displaySectionGroup[] = [
@@ -26,32 +27,32 @@ export default async function ClassroomPage({ params }: ClassroomPageProps) {
             display: [
                 {
                     label: "Room ID",
-                    value: String(curClassroom.roomid)
+                    value: String(curClassroom.roomid),
                 },
                 {
                     label: "Room Number",
-                    value: curClassroom.roomno
+                    value: curClassroom.roomno,
                 },
                 {
                     label: "Room Capacity",
-                    value: String(curClassroom.roomcapacity)
+                    value: String(curClassroom.roomcapacity),
                 },
-            ]
+            ],
         },
         {
             section: "Other Information",
             display: [
                 {
                     label: "Status",
-                    value: curClassroom.status
+                    value: curClassroom.status,
                 },
                 {
                     label: "Notes",
-                    value: curClassroom.notes ?? "No notes available"
-                }
-            ]
-        }
-    ] 
+                    value: curClassroom.notes ?? "No notes available",
+                },
+            ],
+        },
+    ];
 
     return (
         <EntityId
@@ -61,4 +62,4 @@ export default async function ClassroomPage({ params }: ClassroomPageProps) {
             id={String(room_id)}
         />
     );
-} 
+}

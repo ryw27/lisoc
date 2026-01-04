@@ -1,0 +1,18 @@
+# Dependencies
+/node_modules
+
+# Build Outputs 
+/.next/
+dist
+/out/
+/build
+
+# Testing
+/coverage
+
+
+# Package Managers (Don't fight npm/pnpm)
+package-lock.json
+
+# System Files
+.DS_Store

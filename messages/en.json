@@ -20,7 +20,6 @@
         "ForgotPassword": {
             "reset-success-msg": "A link to reset your password has been sent to your email. If you did not receive an email, please \u2009",
             "try-again": "try again"
-
         },
         "Register": {
             "step2": "Verification Code",

@@ -1,1 +1,0 @@
-export { setLocale } from "./actions/setLocale";

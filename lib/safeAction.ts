@@ -1,12 +1,12 @@
 import { z } from "zod/v4";
 
 export type ActionResult<S extends z.ZodType, R> =
-  | { ok: true, data?: R}
-  | {
-      ok: false;
-      fieldErrors?: { [K in keyof z.infer<S>]?: string }
-      errorMessage?: string;          
-    };
+    | { ok: true; data?: R }
+    | {
+          ok: false;
+          fieldErrors?: { [K in keyof z.infer<S>]?: string };
+          errorMessage?: string;
+      };
 
 export function safeAction<S extends z.ZodType, R>(
     schema: S,
@@ -22,22 +22,22 @@ export function safeAction<S extends z.ZodType, R>(
                 fieldErrors: Object.fromEntries(
                     Object.entries(flatErrors.fieldErrors).map(([k, arr]) => [
                         k,
-                        Array.isArray(arr) ? arr[0] ?? undefined : undefined
+                        Array.isArray(arr) ? (arr[0] ?? undefined) : undefined,
                     ])
-                ) as { [K in keyof z.infer<S>]?: string }
-            }
+                ) as { [K in keyof z.infer<S>]?: string },
+            };
         }
 
         try {
             const res = await fn(parsedData.data);
-            return { ok: true, data: res }
+            return { ok: true, data: res };
         } catch (error) {
             if (error instanceof Error) {
-                return { ok: false, errorMessage: error.message }
+                return { ok: false, errorMessage: error.message };
             }
 
             console.error(error);
-            return { ok: false, errorMessage: "Something went wrong. Please try again." }
+            return { ok: false, errorMessage: "Something went wrong. Please try again." };
         }
-    }
+    };
 }

@@ -2,7 +2,6 @@
 // import { z } from 'zod/v4';
 // import { pgadapter } from '@/lib/auth/auth';
 
-
 // export default async function LinkRegisterPage({
 //     params
 // }: {
@@ -28,9 +27,8 @@
 //         return <div className="w-full h-full flex justify-center mt-15">Invalid registration link</div>;
 //     }
 
-
 //     return (
-//         <RegisterForm 
+//         <RegisterForm
 //             isTeacher={true}
 //             inStep={"CREDENTIALS"}
 //             inCredentials={{ email: email, username: "" }}

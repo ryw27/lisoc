@@ -1,6 +1,6 @@
-import FamilyFeedbackForm from "@/components/feedback/family-feedback-form"
-import { requireRole } from "@/lib/auth"
 import { db } from "@/lib/db";
+import { requireRole } from "@/server/auth/actions";
+import FamilyFeedbackForm from "@/components/feedback/family-feedback-form";
 
 export default async function ContactPage() {
     const user = await requireRole(["FAMILY"]);
@@ -10,10 +10,10 @@ export default async function ContactPage() {
         with: {
             families: {
                 columns: {
-                    familyid: true
-                }
-            }
-        }
+                    familyid: true,
+                },
+            },
+        },
     });
     if (!userRow) {
         throw new Error("User not found in database");
@@ -22,17 +22,12 @@ export default async function ContactPage() {
         throw new Error("Family account not found");
     }
 
-    const defaults = { 
-        name: userRow.name || "", 
-        email: userRow.email || "", 
-        phone: userRow.phone || "" , 
-        subject: "Comment and Feedback"  
-    }
+    const defaults = {
+        name: userRow.name || "",
+        email: userRow.email || "",
+        phone: userRow.phone || "",
+        subject: "Comment and Feedback",
+    };
 
-    return (
-        <FamilyFeedbackForm
-            defaults={defaults}
-            familyid={userRow.families.familyid}
-        />
-    )
+    return <FamilyFeedbackForm defaults={defaults} familyid={userRow.families.familyid} />;
 }

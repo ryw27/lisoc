@@ -32,10 +32,10 @@
 //     return (
 //         <AlertDialog>
 //             <AlertDialogTrigger asChild>
-//                 <button 
+//                 <button
 //                     className="rounded-md bg-blue-600 text-white text-sm flex items-center gap-1 hover:bg-blue-800 font-semibold cursor-pointer p-2"
 //                 >
-//                     Register 
+//                     Register
 //                 </button>
 //             </AlertDialogTrigger>
 //             <AlertDialogContent>
@@ -49,8 +49,8 @@
 //                                 <SelectContent>
 //                                     {hasStudents ? (
 //                                         students.map((student) => (
-//                                             <SelectItem 
-//                                                 key={student.studentid} 
+//                                             <SelectItem
+//                                                 key={student.studentid}
 //                                                 value={student.studentid.toString()}
 //                                             >
 //                                                 <div className="flex flex-col">
@@ -81,7 +81,7 @@
 //                             {error}
 //                         </div>
 //                     )}
-//                     <AlertDialogAction 
+//                     <AlertDialogAction
 //                         onClick={async () => {
 //                             try {
 //                                 setError(null);

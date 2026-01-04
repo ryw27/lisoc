@@ -1,8 +1,8 @@
-import { db } from '@/lib/db';
-import { FormSelectOptions, FormSections } from '@/lib/data-view/types';
-import { ADMIN_DATAVIEW_LINK, classTypeMap } from '@/lib/utils';
-import AddEntity from '@/components/data-view/add-entity/add-entity';
-import EntityFormsHeader from '@/components/data-view/entity-forms-header';
+import { db } from "@/lib/db";
+import { ADMIN_DATAVIEW_LINK, classTypeMap } from "@/lib/utils";
+import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
+import AddEntity from "@/components/data-view/add-entity/add-entity";
+import EntityFormsHeader from "@/components/data-view/entity-forms-header";
 
 export default async function AddClass() {
     // Not using this for now, need reg classes as well
@@ -14,7 +14,7 @@ export default async function AddClass() {
             classnamecn: true,
             classnameen: true,
             gradeclassid: true,
-        }
+        },
     });
 
     const regClassMap = regClasses.map((c) => ({
@@ -28,17 +28,17 @@ export default async function AddClass() {
         {
             val: 0,
             labelen: "Set as registration class (please follow the format)",
-            labelcn: "设置registration class. 请遵循格式"
-        }
+            labelcn: "设置registration class. 请遵循格式",
+        },
     ] satisfies FormSelectOptions[];
 
-
-    const formClassTypeOptions = Object.entries(classTypeMap).map(([val, { typenameen, typenamecn }]) => ({
-        val: val,
-        labelen: typenameen,
-        labelcn: typenamecn,
-    })) satisfies FormSelectOptions[];
-
+    const formClassTypeOptions = Object.entries(classTypeMap).map(
+        ([val, { typenameen, typenamecn }]) => ({
+            val: val,
+            labelen: typenameen,
+            labelcn: typenamecn,
+        })
+    ) satisfies FormSelectOptions[];
 
     // Define form fields. Match form schema to names
     const fields: FormSections[] = [
@@ -51,7 +51,7 @@ export default async function AddClass() {
                     type: "text",
                     placeholder: "输入中文课名字",
                     required: true,
-                    width: "half"
+                    width: "half",
                 },
                 {
                     name: "classnameen",
@@ -61,7 +61,7 @@ export default async function AddClass() {
                     required: true,
                     width: "half",
                 },
-            ]
+            ],
         },
         {
             section: "Details",
@@ -74,7 +74,7 @@ export default async function AddClass() {
                     min: 1,
                     max: 100,
                     placeholder: "Enter the Age required",
-                    width: "half"
+                    width: "half",
                 },
                 {
                     name: "typeid",
@@ -83,7 +83,7 @@ export default async function AddClass() {
                     placeholder: "Enter the type of class",
                     required: true,
                     options: formClassTypeOptions,
-                    width: "half"
+                    width: "half",
                 },
                 {
                     name: "classno",
@@ -93,7 +93,7 @@ export default async function AddClass() {
                     max: 100,
                     placeholder: "Enter class level",
                     required: true,
-                    width: "half"
+                    width: "half",
                 },
                 {
                     name: "sizelimits",
@@ -101,9 +101,9 @@ export default async function AddClass() {
                     type: "number",
                     placeholder: "Enter the size limits (0 if none)",
                     required: true,
-                    width: "half"
+                    width: "half",
                 },
-            ]
+            ],
         },
         {
             section: "Class Assignment",
@@ -118,7 +118,7 @@ export default async function AddClass() {
                     options: [
                         { val: "Active", labelcn: "注册状态", labelen: "Active" },
                         { val: "Inactive", labelcn: "注册关闭", labelen: "Active" },
-                    ]
+                    ],
                 },
                 {
                     name: "gradeclassid",
@@ -127,7 +127,7 @@ export default async function AddClass() {
                     required: true,
                     placeholder: "Select the registration or parent class",
                     width: "half",
-                    options: gradeClassMap  
+                    options: gradeClassMap,
                 },
                 {
                     name: "classupid",
@@ -136,9 +136,9 @@ export default async function AddClass() {
                     required: true,
                     placeholder: "Select the upgrade class",
                     width: "half",
-                    options: regClassMap
+                    options: regClassMap,
                 },
-            ]
+            ],
         },
         {
             section: "Notes",
@@ -147,18 +147,15 @@ export default async function AddClass() {
                     name: "description",
                     label: "Description",
                     type: "textarea",
-                    placeholder: "Enter the description"
-                }
-            ]
-        }
+                    placeholder: "Enter the description",
+                },
+            ],
+        },
     ];
 
     return (
-        <>  
-            <EntityFormsHeader
-                type="add"
-                gobacklink={`${ADMIN_DATAVIEW_LINK}/classes`}
-            />
+        <>
+            <EntityFormsHeader type="add" gobacklink={`${ADMIN_DATAVIEW_LINK}/classes`} />
             <AddEntity
                 entity="classes"
                 title="Add a new class"
@@ -166,6 +163,5 @@ export default async function AddClass() {
                 fields={fields}
             />
         </>
-       
     );
 }

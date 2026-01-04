@@ -4,43 +4,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --brand-navy: #002147;      /* Navy */
-    --brand-gold: #D4AF37;      /* Gold */
-    --brand-brass: #A3905D;     /* Brass */
-    --brand-parchment: #FAF9F6; /* Parchment */
+    --brand-navy: #002147; /* Navy */
+    --brand-gold: #d4af37; /* Gold */
+    --brand-brass: #a3905d; /* Brass */
+    --brand-parchment: #faf9f6; /* Parchment */
 
     /* --- Base UI variables --- */
     --background: var(--brand-parchment);
-    --foreground: #001A38; 
-    
+    --foreground: #001a38;
+
     --card: #ffffff;
-    --card-foreground: #001A38;
-    
+    --card-foreground: #001a38;
+
     --popover: #ffffff;
-    --popover-foreground: #001A38;
-    
+    --popover-foreground: #001a38;
+
     /* Primary buttons/actions */
     --primary: var(--brand-navy);
     --primary-foreground: var(--brand-parchment);
-    
+
     /* Secondary actions */
     --secondary: var(--brand-brass);
     --secondary-foreground: #ffffff;
-    
+
     --muted: #f1f1ee;
     --muted-foreground: #64748b;
-    
+
     /* Accents */
     --accent: var(--brand-gold);
     --accent-foreground: var(--brand-navy);
-    
+
     --destructive: #991b1b;
     --destructive-foreground: #fef2f2;
-    
+
     --border: #e2e8f0;
     --input: #e2e8f0;
     --ring: var(--brand-gold);
-    
+
     /* --- Sidebar Specific */
     --sidebar: var(--brand-navy);
     --sidebar-foreground: #ffffff;
@@ -50,42 +50,42 @@
     --sidebar-accent-foreground: #ffffff;
     --sidebar-ring: var(--brand-gold);
 
-	--radius: 0.625rem;
+    --radius: 0.625rem;
     --blue-color: rgb(35, 131, 226);
 }
 
 @theme inline {
-	--color-brand-navy: var(--brand-navy);
-	--color-brand-gold: var(--brand-gold);
-	--color-brand-brass: var(--brand-brass);
-		
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--font-sans: var(--font-geist-sans);
-	--font-mono: var(--font-geist-mono);
-	
-  	--color-sidebar: var(--sidebar);
-	--color-sidebar-foreground: var(--sidebar-foreground);
-	--color-sidebar-primary: var(--sidebar-primary);
-	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-	--color-sidebar-accent: var(--sidebar-accent);
-	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-	--color-sidebar-border: var(--sidebar-border);
-	--color-sidebar-ring: var(--sidebar-ring);
+    --color-brand-navy: var(--brand-navy);
+    --color-brand-gold: var(--brand-gold);
+    --color-brand-brass: var(--brand-brass);
 
-  	--color-primary: var(--primary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-border: var(--border);
-	--color-ring: var(--ring);
-	
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-border: var(--border);
+    --color-ring: var(--ring);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -95,46 +95,51 @@
     @apply bg-background;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-brand-navy/20 rounded-full hover:bg-brand-brass/40 transition-colors;
+    @apply bg-brand-navy/20 hover:bg-brand-brass/40 rounded-full transition-colors;
 }
 
 .dark {
-	--background: #001226; 
-	--foreground: #f8fafc;
-	
-	--card: #001a38;
-	--card-foreground: #f8fafc;
-	
-	--primary: var(--brand-gold);
-	--primary-foreground: var(--brand-navy);
-	
-	--secondary: #1e293b;
-	--secondary-foreground: #f1f5f9;
-	
-	--border: rgba(212, 175, 55, 0.2);
-	--sidebar: #000c1a;
+    --background: #001226;
+    --foreground: #f8fafc;
+
+    --card: #001a38;
+    --card-foreground: #f8fafc;
+
+    --primary: var(--brand-gold);
+    --primary-foreground: var(--brand-navy);
+
+    --secondary: #1e293b;
+    --secondary-foreground: #f1f5f9;
+
+    --border: rgba(212, 175, 55, 0.2);
+    --sidebar: #000c1a;
 }
 
 @layer base {
-	* {
-		@apply border-border outline-ring/50;
-	}
-    
-  body {
-    @apply bg-background text-foreground;
-		font-family: var(--font-crimson), var(--font-noto-serif), serif;
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-family: var(--font-crimson), var(--font-noto-serif), serif;
         font-variant-numeric: tabular-nums;
-        
+
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        
+
         /* Prevents vertical 'jumping' when switching languages */
-        line-height: 1.5; 
+        line-height: 1.5;
     }
-    
-    h1, h2, h3, h4, h5, h6 {
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
         @apply text-brand-navy font-bold tracking-tight;
         /* Ensures headers don't look 'crowded' in Chinese */
         line-height: 1.2;
-  	}
+    }
 }

@@ -1,17 +1,18 @@
 "use client";
-import { Input } from '@/components/ui/input';
-import { 
-    Select, 
-    SelectTrigger, 
-    SelectValue, 
-    SelectContent, 
-    SelectItem 
-} from "@/components/ui/select";
-import { Textarea } from '@/components/ui/textarea';
+
 import { useActionState, useMemo, useState } from "react";
-import { updateRow } from "@/lib/data-view/actions/updateRow";
-import { type Registry } from "@/lib/data-view/registry";
-import { type FormSections, type FormField } from '@/lib/data-view/types';
+import { type FormField, type FormSections } from "@/types/dataview.types";
+import { updateRow } from "@/server/data-view/actions/updateRow";
+import { type Registry } from "@/server/data-view/registry";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const renderField = (
     field: FormField,
@@ -23,7 +24,7 @@ const renderField = (
     }
 ) => {
     switch (field.type) {
-        case 'text':
+        case "text":
             return (
                 <Input
                     type="text"
@@ -37,7 +38,7 @@ const renderField = (
                     aria-required={field.required}
                 />
             );
-        case 'date':
+        case "date":
             return (
                 <Input
                     type="date"
@@ -51,7 +52,7 @@ const renderField = (
                     aria-required={field.required}
                 />
             );
-        case 'password':
+        case "password":
             return (
                 <Input
                     type="password"
@@ -65,7 +66,7 @@ const renderField = (
                     aria-required={field.required}
                 />
             );
-        case 'number':
+        case "number":
             return (
                 <Input
                     type="number"
@@ -86,7 +87,7 @@ const renderField = (
                     step={field.step}
                 />
             );
-        case 'textarea':
+        case "textarea":
             return (
                 <Textarea
                     name={field.name}
@@ -100,7 +101,7 @@ const renderField = (
                     rows={field.rows}
                 />
             );
-        case 'select':
+        case "select":
             return (
                 <>
                     <input
@@ -108,13 +109,13 @@ const renderField = (
                         name={field.name}
                         value={
                             opts.selectValues[field.name] ??
-                            (field.defaultValue ? String(field.defaultValue) : '')
+                            (field.defaultValue ? String(field.defaultValue) : "")
                         }
                     />
                     <Select
                         value={
                             opts.selectValues[field.name] ??
-                            (field.defaultValue ? String(field.defaultValue) : '')
+                            (field.defaultValue ? String(field.defaultValue) : "")
                         }
                         onValueChange={(v) => opts.setSelectValue(field.name, v)}
                         required={field.required}
@@ -157,7 +158,7 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
         for (const section of fields) {
             for (const f of section.sectionFields) {
                 if (
-                    f.type === 'select' &&
+                    f.type === "select" &&
                     f.defaultValue !== undefined &&
                     f.defaultValue !== null
                 ) {
@@ -179,8 +180,8 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="max-w-2xl mx-auto w-full">
-                <form className="flex flex-col p-2 gap-6" action={formAction} aria-busy={pending}>
+            <div className="mx-auto w-full max-w-2xl">
+                <form className="flex flex-col gap-6 p-2" action={formAction} aria-busy={pending}>
                     {hiddenInputs &&
                         Object.entries(hiddenInputs).map(([name, value]) => (
                             <input key={name} type="hidden" name={name} value={String(value)} />
@@ -198,19 +199,19 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                         const rows: FormField[][] = [];
                         let currentRow: FormField[] = [];
                         for (const f of section.sectionFields) {
-                            if (f.width === 'half') {
+                            if (f.width === "half") {
                                 currentRow.push(f);
                                 if (currentRow.length === 2) {
                                     rows.push(currentRow);
                                     currentRow = [];
                                 }
-                            } else if (f.width === 'third') {
+                            } else if (f.width === "third") {
                                 currentRow.push(f);
                                 if (currentRow.length === 3) {
                                     rows.push(currentRow);
                                     currentRow = [];
                                 }
-                            } else if (f.width === 'quarter') {
+                            } else if (f.width === "quarter") {
                                 currentRow.push(f);
                                 if (currentRow.length === 4) {
                                     rows.push(currentRow);
@@ -231,27 +232,36 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                                 key={section.section}
                                 className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
                             >
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                <h3 className="mb-4 text-lg font-semibold text-gray-800">
                                     {section.section}
                                 </h3>
                                 <div className="flex flex-col gap-4">
                                     {rows.map((row, idx) => (
                                         <div
                                             key={idx}
-                                            className={`flex ${row.length > 1 ? 'gap-3' : ''}`}
+                                            className={`flex ${row.length > 1 ? "gap-3" : ""}`}
                                         >
                                             {row.map((field) => {
                                                 const fieldErr = state?.fieldErrors?.[field.name];
                                                 return (
                                                     <div
                                                         key={field.name}
-                                                        className={row.length > 1 ? 'w-1/2' : 'w-full'}
+                                                        className={
+                                                            row.length > 1 ? "w-1/2" : "w-full"
+                                                        }
                                                     >
                                                         <label
-                                                            className="block text-sm text-gray-600 font-medium mb-2"
+                                                            className="mb-2 block text-sm font-medium text-gray-600"
                                                             htmlFor={field.name}
                                                         >
-                                                            {field.label} {field.required ? <span className="text-red-500">*</span> : ''}
+                                                            {field.label}{" "}
+                                                            {field.required ? (
+                                                                <span className="text-red-500">
+                                                                    *
+                                                                </span>
+                                                            ) : (
+                                                                ""
+                                                            )}
                                                         </label>
                                                         {renderField(field, {
                                                             pending,
@@ -264,7 +274,7 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                                                                 id={`${field.name}-error`}
                                                                 className="mt-1 text-xs text-red-600"
                                                             >
-                                                                {fieldErr.join(', ')}
+                                                                {fieldErr.join(", ")}
                                                             </p>
                                                         )}
                                                     </div>
@@ -280,7 +290,7 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                     {state?.message && (
                         <p
                             aria-live="polite"
-                            className={`text-sm ${state.ok ? 'text-green-700' : 'text-red-700'}`}
+                            className={`text-sm ${state.ok ? "text-green-700" : "text-red-700"}`}
                         >
                             {state.message}
                         </p>
@@ -290,9 +300,9 @@ export default function EditEntityForm({ entity, fields, hiddenInputs }: EditEnt
                         <button
                             type="submit"
                             disabled={pending}
-                            className="rounded-md bg-blue-600 text-white text-sm flex items-center gap-1 hover:bg-blue-800 font-semibold cursor-pointer p-2 disabled:opacity-60"
+                            className="flex cursor-pointer items-center gap-1 rounded-md bg-blue-600 p-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
                         >
-                            {pending ? 'Saving…' : 'Save changes'}
+                            {pending ? "Saving…" : "Save changes"}
                         </button>
                     </div>
                 </form>

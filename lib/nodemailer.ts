@@ -1,8 +1,7 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 
 dotenv.config();
-
 
 const configOptions = {
     host: process.env.EMAIL_HOST,
@@ -13,16 +12,8 @@ const configOptions = {
         pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
-        rejectUnauthorized: true
-    }
-}
-// const configOptions = {
-//     host: 'smtp.ethereal.email',
-//     port: 587,
-//     auth: {
-//         user: 'vivien31@ethereal.email',
-//         pass: 'wWMTT3NqGKT4PtB5yt'
-//     }
-// };
+        rejectUnauthorized: true,
+    },
+};
 
 export const transporter = nodemailer.createTransport(configOptions);

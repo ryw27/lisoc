@@ -1,12 +1,8 @@
-import { IdMapsProvider } from "@/lib/data-view/providers";
-import { getSelectOptions } from "@/lib/registration/semester";
 import React from "react";
+import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
+import { IdMapsProvider } from "@/components/data-view/providers";
 
 export default async function DataLayout({ children }: { children: React.ReactNode }) {
     const { idMaps } = await getSelectOptions();
-    return (
-        <IdMapsProvider idMaps={idMaps}>
-            {children}
-        </IdMapsProvider>
-    )
+    return <IdMapsProvider idMaps={idMaps}>{children}</IdMapsProvider>;
 }

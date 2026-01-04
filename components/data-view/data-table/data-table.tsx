@@ -1,59 +1,55 @@
 "use client";
-import { 
-    ColumnDef, 
-    useReactTable, 
-    getCoreRowModel, 
-    flexRender, 
-    ColumnPinningState, 
-    Row, 
-    VisibilityState,
-} from "@tanstack/react-table"
+
 import { useEffect, useMemo, useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
-import TableHeader from "./data-table-toolbar";
-import { 
-    Popover, 
-    PopoverContent, 
-    PopoverTrigger 
-} from "@/components/ui/popover";
-import { 
-    AlertDialog, 
-    AlertDialogAction, 
-    AlertDialogCancel, 
-    AlertDialogContent, 
-    AlertDialogDescription, 
-    AlertDialogFooter, 
-    AlertDialogHeader, 
-    AlertDialogTitle, 
-    AlertDialogTrigger
-} from '@/components/ui/alert-dialog'
-import { Table } from "@/lib/data-view/types";
-import { deleteRows } from "@/lib/data-view/actions/deleteRows";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Table as DTable,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader as DTHeader,
-  TableRow,
-} from "@/components/ui/table"
+    ColumnDef,
+    ColumnPinningState,
+    flexRender,
+    getCoreRowModel,
+    Row,
+    useReactTable,
+    VisibilityState,
+} from "@tanstack/react-table";
+import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { type Table } from "@/types/dataview.types";
+import { deleteRows } from "@/server/data-view/actions/deleteRows";
+import { useDataEntityContext } from "@/components/data-view/providers";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Table as DTable,
+    TableHeader as DTHeader,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+} from "@/components/ui/table";
 import DataTablePagination from "./data-table-pagination";
-import { useDataEntityContext } from "@/lib/data-view/providers";
+import TableHeader from "./data-table-toolbar";
 
 interface DataTableTestProps<TData> {
     data: TData[];
     totalCount: number;
 }
- 
 
 export default function DataTable<T extends Table, TData>({
     data,
-    totalCount
+    totalCount,
 }: DataTableTestProps<TData>) {
-    const { 
+    const {
         // table,
         columns,
         entity,
@@ -108,7 +104,7 @@ export default function DataTable<T extends Table, TData>({
                     candidate &&
                     typeof candidate === "object" &&
                     !Array.isArray(candidate) &&
-                    Object.values(candidate).every(v => typeof v === "boolean")
+                    Object.values(candidate).every((v) => typeof v === "boolean")
                 ) {
                     parsed = candidate;
                 }
@@ -128,85 +124,88 @@ export default function DataTable<T extends Table, TData>({
             localStorage.setItem(key, JSON.stringify(defaultVis));
             setColumnVisibility(defaultVis);
         }
-    // Only run on mount or if columns/tableName changes
+        // Only run on mount or if columns/tableName changes
     }, [columns, tableName]);
 
     const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
-        left: ['select'],
-        right: ['edit']
+        left: ["select"],
+        right: ["edit"],
     });
 
     const router = useRouter();
     const pathname = usePathname();
     // const searchParams = useSearchParams();
 
-    // Create select checkbox column 
-    const selectionColumn: ColumnDef<TData>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({ table }) => {
-                const isAllSelected = table.getIsAllPageRowsSelected();
-                const isSomeSelected = table.getIsSomePageRowsSelected();
-                
-                return (
-                    <div className="flex items-center justify-center h-4">
-                        <Checkbox 
-                            className={cn(
-                                "cursor-pointer group",
-                                isAllSelected || isSomeSelected
-                                    ? "bg-blue-600 border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                    : "bg-white hover:bg-blue-600/10 hover:shadow-md hover:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                            )}
-                            onClick={() => table.toggleAllPageRowsSelected()}
-                            checked={isAllSelected || isSomeSelected}
-                            aria-label="Select all rows"
-                        />
-                    </div>
-                );
+    // Create select checkbox column
+    const selectionColumn: ColumnDef<TData>[] = useMemo(
+        () => [
+            {
+                id: "select",
+                header: ({ table }) => {
+                    const isAllSelected = table.getIsAllPageRowsSelected();
+                    const isSomeSelected = table.getIsSomePageRowsSelected();
+
+                    return (
+                        <div className="flex h-4 items-center justify-center">
+                            <Checkbox
+                                className={cn(
+                                    "group cursor-pointer",
+                                    isAllSelected || isSomeSelected
+                                        ? "border-blue-600 bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                                        : "bg-white hover:border-blue-600 hover:bg-blue-600/10 hover:shadow-md data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                                )}
+                                onClick={() => table.toggleAllPageRowsSelected()}
+                                checked={isAllSelected || isSomeSelected}
+                                aria-label="Select all rows"
+                            />
+                        </div>
+                    );
+                },
+                cell: ({ row }) => {
+                    const isSelected = row.getIsSelected();
+
+                    return (
+                        <div className="flex h-4 items-center justify-center">
+                            <Checkbox
+                                className={cn(
+                                    "group cursor-pointer",
+                                    isSelected
+                                        ? "border-blue-600 bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                                        : "bg-white hover:border-blue-600 hover:bg-blue-600/10 hover:shadow-md data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                                )}
+                                onClick={() => row.toggleSelected()}
+                                checked={isSelected}
+                                aria-label={`Select row ${row.index + 1}`}
+                            />
+                        </div>
+                    );
+                },
             },
-            cell: ({ row }) => {
-                const isSelected = row.getIsSelected();
-                
-                return (
-                    <div className="flex items-center justify-center h-4">
-                        <Checkbox 
-                            className={cn(
-                                "cursor-pointer group",
-                                isSelected
-                                    ? "bg-blue-600 border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                    : "bg-white hover:bg-blue-600/10 hover:shadow-md hover:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                            )}
-                            onClick={() => row.toggleSelected()}
-                            checked={isSelected}
-                            aria-label={`Select row ${row.index + 1}`}
-                        />
-                    </div>
-                );
-            }
-        }
-    ], []);
+        ],
+        []
+    );
 
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async (selectedRow?: Row<TData>) => {
         if (isDeleting) return; // Prevent multiple simultaneous delete operations
-        
+
         setIsDeleting(true);
-        
+
         try {
             if (selectedRow) {
                 dataTable.resetRowSelection(); // Clear other selections when deleting single row
             }
-            
+
             const selectedRows = selectedRow ? [selectedRow] : dataTable.getSelectedRowModel().rows;
-            
+
             if (selectedRows.length === 0) {
                 console.warn(`[DataTable] No rows selected for deletion`);
                 return;
             }
 
             // Extract IDs with proper type safety
-            const ids: number[] = selectedRows.map(row => {
+            const ids: number[] = selectedRows.map((row) => {
                 const id = (row.original as TData)[primaryKey as unknown as keyof TData];
                 if (id === undefined || id === null) {
                     throw new Error(`Primary key ${String(primaryKey)} not found in row data`);
@@ -214,12 +213,10 @@ export default function DataTable<T extends Table, TData>({
                 return id as number;
             });
 
-            
             await deleteRows(entity, ids);
-            
+
             // Reset selection after successful deletion
             dataTable.resetRowSelection();
-            
         } catch (error) {
             console.error(`[DataTable] Error deleting rows:`, error);
         } finally {
@@ -227,87 +224,89 @@ export default function DataTable<T extends Table, TData>({
         }
     };
 
-    const editColumn: ColumnDef<TData>[] = useMemo(() => [
-        {
-            id: "edit",
-            cell: ({ row }) => {
-                const handleEdit = () => {
-                    try {
-                        const rowId = (row.original as TData)[primaryKey as keyof TData];
-                        // console.log(row.original);
-                        // console.log(primaryKey);
-                        if (rowId === undefined || rowId === null) {
-                            console.error(`[DataTable] Primary key not found in row data`);
-                            return;
+    const editColumn: ColumnDef<TData>[] = useMemo(
+        () => [
+            {
+                id: "edit",
+                cell: ({ row }) => {
+                    const handleEdit = () => {
+                        try {
+                            const rowId = (row.original as TData)[primaryKey as keyof TData];
+                            // console.log(row.original);
+                            // console.log(primaryKey);
+                            if (rowId === undefined || rowId === null) {
+                                console.error(`[DataTable] Primary key not found in row data`);
+                                return;
+                            }
+                            router.push(`${pathname}/${rowId}`);
+                        } catch (error) {
+                            console.error(`[DataTable] Error navigating to edit page:`, error);
                         }
-                        router.push(`${pathname}/${rowId}`);
-                    } catch (error) {
-                        console.error(`[DataTable] Error navigating to edit page:`, error);
-                    }
-                };
+                    };
 
-                const handleDeleteSingle = () => {
-                    try {
-                        handleDelete(row);
-                    } catch (error) {
-                        console.error(`[DataTable] Error deleting single row:`, error);
-                    }
-                };
+                    const handleDeleteSingle = () => {
+                        try {
+                            handleDelete(row);
+                        } catch (error) {
+                            console.error(`[DataTable] Error deleting single row:`, error);
+                        }
+                    };
 
-                return (
-                    <Popover>
-                        <PopoverTrigger 
-                            className={cn(
-                                "items-center rounded-md p-1 cursor-pointer",
-                                "border-1 border-gray-300 hover:border-gray-700",
-                                "focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            )}
-                            aria-label="Row actions"
-                        >
-                            <MoreHorizontal className="w-4 h-4" />
-                        </PopoverTrigger>
-                        <PopoverContent 
-                            className={cn(
-                                "flex flex-col gap-1 justify-begin items-center w-36",
-                                "bg-white border border-gray-300 rounded-md",
-                                "p-1"
-                            )}
-                            align="end"
-                            side="bottom"
-                            sideOffset={5}
-                        >
-                            <button 
+                    return (
+                        <Popover>
+                            <PopoverTrigger
                                 className={cn(
-                                    "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
-                                    "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
-                                    "text-blue-500 hover:text-blue-600",
-                                    "focus:outline-none focus:bg-gray-100"
+                                    "cursor-pointer items-center rounded-md p-1",
+                                    "border-1 border-gray-300 hover:border-gray-700",
+                                    "focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 )}
-                                onClick={handleEdit}
-                                disabled={isDeleting}
+                                aria-label="Row actions"
                             >
-                                <PencilIcon className="w-4 h-4 mr-2" /> Edit
-                            </button>
-                            <button 
+                                <MoreHorizontal className="h-4 w-4" />
+                            </PopoverTrigger>
+                            <PopoverContent
                                 className={cn(
-                                    "flex items-center self-start text-left text-sm hover:bg-gray-100 whitespace-nowrap",
-                                    "rounded-sm w-full p-1 cursor-pointer transition-colors duration-200",
-                                    "text-red-500 hover:text-red-600",
-                                    "focus:outline-none focus:bg-gray-100",
-                                    isDeleting && "opacity-50 cursor-not-allowed"
+                                    "justify-begin flex w-36 flex-col items-center gap-1",
+                                    "rounded-md border border-gray-300 bg-white",
+                                    "p-1"
                                 )}
-                                onClick={handleDeleteSingle}
-                                disabled={isDeleting}
+                                align="end"
+                                side="bottom"
+                                sideOffset={5}
                             >
-                                <TrashIcon className="w-4 h-4 mr-2" /> Delete
-                            </button>
-                        </PopoverContent>
-                    </Popover>
-                );
-            }
-        }
-    ], [pathname, router, isDeleting, primaryKey]);
-
+                                <button
+                                    className={cn(
+                                        "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
+                                        "w-full cursor-pointer rounded-sm p-1 transition-colors duration-200",
+                                        "text-blue-500 hover:text-blue-600",
+                                        "focus:bg-gray-100 focus:outline-none"
+                                    )}
+                                    onClick={handleEdit}
+                                    disabled={isDeleting}
+                                >
+                                    <PencilIcon className="mr-2 h-4 w-4" /> Edit
+                                </button>
+                                <button
+                                    className={cn(
+                                        "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
+                                        "w-full cursor-pointer rounded-sm p-1 transition-colors duration-200",
+                                        "text-red-500 hover:text-red-600",
+                                        "focus:bg-gray-100 focus:outline-none",
+                                        isDeleting && "cursor-not-allowed opacity-50"
+                                    )}
+                                    onClick={handleDeleteSingle}
+                                    disabled={isDeleting}
+                                >
+                                    <TrashIcon className="mr-2 h-4 w-4" /> Delete
+                                </button>
+                            </PopoverContent>
+                        </Popover>
+                    );
+                },
+            },
+        ],
+        [pathname, router, isDeleting, primaryKey]
+    );
 
     const dataTable = useReactTable<TData>({
         data,
@@ -317,10 +316,10 @@ export default function DataTable<T extends Table, TData>({
             rowSelection,
             pagination: {
                 pageIndex: 0, // Always show first page in the UI since actual pagination is server-side
-                pageSize: data.length // Show all data we received for this page
+                pageSize: data.length, // Show all data we received for this page
             },
             sorting: [],
-            columnVisibility
+            columnVisibility,
         },
         enableRowSelection: true,
         onColumnVisibilityChange: setColumnVisibility,
@@ -328,46 +327,50 @@ export default function DataTable<T extends Table, TData>({
         onColumnPinningChange: setColumnPinning,
         getCoreRowModel: getCoreRowModel(),
     });
-    
+
     return (
-        <div className="p-2 flex flex-col gap-2">
+        <div className="flex flex-col gap-2 p-2">
             {Object.keys(rowSelection).length > 0 && (
-                <div className="flex justify-between items-center bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-md text-sm">
+                <div className="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
                     <p>
-                        {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} selected
+                        {Object.keys(rowSelection).length}{" "}
+                        {Object.keys(rowSelection).length === 1 ? "row" : "rows"} selected
                     </p>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <button
                                 className={cn(
-                                    "text-red-500 font-medium cursor-pointer px-2 py-1 rounded",
-                                    "hover:bg-red-50 transition-colors",
-                                    "focus:outline-none focus:ring-2 focus:ring-red-500",
-                                    isDeleting && "opacity-50 cursor-not-allowed"
+                                    "cursor-pointer rounded px-2 py-1 font-medium text-red-500",
+                                    "transition-colors hover:bg-red-50",
+                                    "focus:ring-2 focus:ring-red-500 focus:outline-none",
+                                    isDeleting && "cursor-not-allowed opacity-50"
                                 )}
                                 disabled={isDeleting}
                                 type="button"
                             >
-                                {isDeleting ? 'Deleting...' : 'Delete'}
+                                {isDeleting ? "Deleting..." : "Delete"}
                             </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    Are you absolutely sure?
-                                </AlertDialogTitle>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete {Object.keys(rowSelection).length} {Object.keys(rowSelection).length === 1 ? 'row' : 'rows'} from the {tableName} table.
+                                    This action cannot be undone. This will permanently delete{" "}
+                                    {Object.keys(rowSelection).length}{" "}
+                                    {Object.keys(rowSelection).length === 1 ? "row" : "rows"} from
+                                    the {tableName} table.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className="cursor-pointer">
+                                    Cancel
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                     onClick={() => handleDelete()}
                                     className="cursor-pointer bg-red-600 hover:bg-red-700"
                                     disabled={isDeleting}
                                 >
-                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                    {isDeleting ? "Deleting..." : "Delete"}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -381,8 +384,8 @@ export default function DataTable<T extends Table, TData>({
                 tableName={tableName}
             />
 
-            <div className="overflow-x-auto w-full">
-                <div className="rounded-md overflow-hidden border border-gray-200">
+            <div className="w-full overflow-x-auto">
+                <div className="overflow-hidden rounded-md border border-gray-200">
                     <DTable className="w-full">
                         <DTHeader>
                             {dataTable.getHeaderGroups().map((headerGroup, groupIdx) => (
@@ -396,23 +399,29 @@ export default function DataTable<T extends Table, TData>({
                                     {headerGroup.headers.map((header, colIdx) => {
                                         // For rounded corners on thead
                                         const isFirstHeader = groupIdx === 0 && colIdx === 0;
-                                        const isLastHeader = groupIdx === 0 && colIdx === headerGroup.headers.length - 1;
+                                        const isLastHeader =
+                                            groupIdx === 0 &&
+                                            colIdx === headerGroup.headers.length - 1;
                                         return (
                                             <TableHead
                                                 key={header.id}
                                                 className={cn(
-                                                    "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 bg-gray-50",
+                                                    "border-b border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase",
                                                     header.column.getIsSorted() && "bg-blue-100",
-                                                    header.column.getIsPinned() === 'left' && "sticky left-0 z-10",
-                                                    header.column.getIsPinned() === 'right' && "sticky right-0 z-10",
+                                                    header.column.getIsPinned() === "left" &&
+                                                        "sticky left-0 z-10",
+                                                    header.column.getIsPinned() === "right" &&
+                                                        "sticky right-0 z-10",
                                                     isFirstHeader && "rounded-tl-md",
                                                     isLastHeader && "rounded-tr-md"
                                                 )}
                                             >
                                                 {header.isPlaceholder
                                                     ? null
-                                                    : flexRender(header.column.columnDef.header, header.getContext())
-                                                }
+                                                    : flexRender(
+                                                          header.column.columnDef.header,
+                                                          header.getContext()
+                                                      )}
                                             </TableHead>
                                         );
                                     })}
@@ -422,27 +431,32 @@ export default function DataTable<T extends Table, TData>({
                         <TableBody>
                             {dataTable.getRowModel().rows.length !== 0 ? (
                                 dataTable.getRowModel().rows.map((row, rowIdx) => {
-                                    const isLastRow = rowIdx === dataTable.getRowModel().rows.length - 1;
+                                    const isLastRow =
+                                        rowIdx === dataTable.getRowModel().rows.length - 1;
                                     return (
                                         <TableRow
                                             key={row.id}
                                             className={cn(
-                                                "cursor-pointer hover:bg-blue-50 transition-colors",
-                                                row.getIsSelected() && 'bg-blue-50'
+                                                "cursor-pointer transition-colors hover:bg-blue-50",
+                                                row.getIsSelected() && "bg-blue-50"
                                             )}
                                         >
                                             {row.getVisibleCells().map((cell, cellIdx) => {
                                                 // For rounded corners on last row
                                                 const isFirstCell = cellIdx === 0 && isLastRow;
-                                                const isLastCell = cellIdx === row.getVisibleCells().length - 1 && isLastRow;
+                                                const isLastCell =
+                                                    cellIdx === row.getVisibleCells().length - 1 &&
+                                                    isLastRow;
                                                 return (
                                                     <TableCell
                                                         key={cell.id}
                                                         className={cn(
-                                                            "px-4 py-2 text-sm text-gray-700 align-middle border-b border-gray-100 max-w-[480px]",
-                                                            "truncate whitespace-nowrap overflow-hidden",
-                                                            cell.column.getIsPinned() === 'left' && "sticky left-0 z-10 bg-white",
-                                                            cell.column.getIsPinned() === 'right' && "sticky right-0 z-10 bg-white",
+                                                            "max-w-[480px] border-b border-gray-100 px-4 py-2 align-middle text-sm text-gray-700",
+                                                            "truncate overflow-hidden whitespace-nowrap",
+                                                            cell.column.getIsPinned() === "left" &&
+                                                                "sticky left-0 z-10 bg-white",
+                                                            cell.column.getIsPinned() === "right" &&
+                                                                "sticky right-0 z-10 bg-white",
                                                             cell.column.getIsPinned() && "bg-white",
                                                             isFirstCell && "rounded-bl-md",
                                                             isLastCell && "rounded-br-md"
@@ -450,7 +464,10 @@ export default function DataTable<T extends Table, TData>({
                                                         // style={{ maxWidth: 480 }}
                                                     >
                                                         <span className="block truncate">
-                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                            {flexRender(
+                                                                cell.column.columnDef.cell,
+                                                                cell.getContext()
+                                                            )}
                                                         </span>
                                                     </TableCell>
                                                 );
@@ -462,7 +479,7 @@ export default function DataTable<T extends Table, TData>({
                                 <TableRow>
                                     <TableCell
                                         colSpan={columns.length}
-                                        className="h-24 text-center text-gray-400 text-base rounded-b-md"
+                                        className="h-24 rounded-b-md text-center text-base text-gray-400"
                                     >
                                         No results.
                                     </TableCell>
@@ -473,11 +490,7 @@ export default function DataTable<T extends Table, TData>({
                 </div>
             </div>
 
-            <DataTablePagination
-                table={dataTable}
-                tableType="server"
-                totalCount={totalCount}
-            />
+            <DataTablePagination table={dataTable} tableType="server" totalCount={totalCount} />
         </div>
     );
 }

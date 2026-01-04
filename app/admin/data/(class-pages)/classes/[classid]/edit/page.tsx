@@ -1,16 +1,13 @@
-import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import EditEntity from "@/components/data-view/edit-entity/edit-entity";
-import { FormSections, FormSelectOptions } from "@/lib/data-view/types";
-import getIDRow from "@/lib/data-view/actions/getIDRow";
+import { InferSelectModel } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { classes } from "@/lib/db/schema";
 import { classTypeMap } from "@/lib/utils";
-import { ClassObject } from "@/lib/data-view/entity-configs/(classes)/classes";
+import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
+import { getIDRow } from "@/server/data-view/actions/getIDRow";
+import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 
-export default async function ClassEditPage({
-    params,
-}: {
-    params: Promise<{ classid: string }>
-}) {
+export default async function ClassEditPage({ params }: { params: Promise<{ classid: string }> }) {
     const { classid } = await params;
     const classId = parseInt(classid);
 
@@ -19,7 +16,7 @@ export default async function ClassEditPage({
         return notFound();
     }
 
-    const curClass = response.data as ClassObject;
+    const curClass = response.data as InferSelectModel<typeof classes>;
 
     const regClasses = await db.query.classes.findMany({
         where: (c, { eq }) => eq(c.gradeclassid, c.classid),
@@ -28,7 +25,7 @@ export default async function ClassEditPage({
             classnamecn: true,
             classnameen: true,
             gradeclassid: true,
-        }
+        },
     });
 
     const regClassMap = regClasses.map((c) => ({
@@ -42,17 +39,17 @@ export default async function ClassEditPage({
         {
             val: 0,
             labelen: "Set as registration class (please follow the format)",
-            labelcn: "设置registration class. 请遵循格式"
-        }
+            labelcn: "设置registration class. 请遵循格式",
+        },
     ] satisfies FormSelectOptions[];
 
-
-    const formClassTypeOptions = Object.entries(classTypeMap).map(([val, { typenameen, typenamecn }]) => ({
-        val: val,
-        labelen: typenameen,
-        labelcn: typenamecn,
-    })) satisfies FormSelectOptions[];
-
+    const formClassTypeOptions = Object.entries(classTypeMap).map(
+        ([val, { typenameen, typenamecn }]) => ({
+            val: val,
+            labelen: typenameen,
+            labelcn: typenamecn,
+        })
+    ) satisfies FormSelectOptions[];
 
     const fields: FormSections[] = [
         {
@@ -76,7 +73,7 @@ export default async function ClassEditPage({
                     width: "half",
                     defaultValue: curClass?.classnameen ?? "",
                 },
-            ]
+            ],
         },
         {
             section: "Details",
@@ -90,7 +87,10 @@ export default async function ClassEditPage({
                     max: 100,
                     placeholder: "Enter the Age required",
                     width: "half",
-                    defaultValue: curClass?.ageid !== undefined && curClass?.ageid !== null ? String(curClass.ageid) : "",
+                    defaultValue:
+                        curClass?.ageid !== undefined && curClass?.ageid !== null
+                            ? String(curClass.ageid)
+                            : "",
                 },
                 {
                     name: "typeid",
@@ -100,7 +100,10 @@ export default async function ClassEditPage({
                     required: true,
                     options: formClassTypeOptions,
                     width: "half",
-                    defaultValue: curClass?.typeid !== undefined && curClass?.typeid !== null ? String(curClass.typeid) : "1",
+                    defaultValue:
+                        curClass?.typeid !== undefined && curClass?.typeid !== null
+                            ? String(curClass.typeid)
+                            : "1",
                 },
                 {
                     name: "classno",
@@ -111,7 +114,10 @@ export default async function ClassEditPage({
                     placeholder: "Enter class level",
                     required: true,
                     width: "half",
-                    defaultValue: curClass?.classno !== undefined && curClass?.classno !== null ? String(curClass.classno) : "",
+                    defaultValue:
+                        curClass?.classno !== undefined && curClass?.classno !== null
+                            ? String(curClass.classno)
+                            : "",
                 },
                 {
                     name: "sizelimits",
@@ -120,9 +126,12 @@ export default async function ClassEditPage({
                     placeholder: "Enter the size limits (0 if none)",
                     required: true,
                     width: "half",
-                    defaultValue: curClass?.sizelimits !== undefined && curClass?.sizelimits !== null ? String(curClass.sizelimits) : "",
+                    defaultValue:
+                        curClass?.sizelimits !== undefined && curClass?.sizelimits !== null
+                            ? String(curClass.sizelimits)
+                            : "",
                 },
-            ]
+            ],
         },
         {
             section: "Class Assignment",
@@ -148,7 +157,10 @@ export default async function ClassEditPage({
                     placeholder: "Select the registration or parent class",
                     width: "half",
                     options: gradeClassMap,
-                    defaultValue: curClass?.gradeclassid !== undefined && curClass?.gradeclassid !== null ? String(curClass.gradeclassid) : "",
+                    defaultValue:
+                        curClass?.gradeclassid !== undefined && curClass?.gradeclassid !== null
+                            ? String(curClass.gradeclassid)
+                            : "",
                 },
                 {
                     name: "classupid",
@@ -158,9 +170,12 @@ export default async function ClassEditPage({
                     placeholder: "Select the upgrade class",
                     width: "half",
                     options: regClassMap,
-                    defaultValue: curClass?.classupid !== undefined && curClass?.classupid !== null ? String(curClass.classupid) : "",
+                    defaultValue:
+                        curClass?.classupid !== undefined && curClass?.classupid !== null
+                            ? String(curClass.classupid)
+                            : "",
                 },
-            ]
+            ],
         },
         {
             section: "Notes",
@@ -171,14 +186,14 @@ export default async function ClassEditPage({
                     type: "textarea",
                     placeholder: "Enter the description",
                     defaultValue: curClass?.description ?? "",
-                }
-            ]
-        }
+                },
+            ],
+        },
     ];
 
     const hiddenInputs = {
-        "classid": curClass?.classid,
-    }
+        classid: curClass?.classid,
+    };
     return (
         <EditEntity
             entity="classes"
@@ -186,7 +201,6 @@ export default async function ClassEditPage({
             description="Current values have already been filled in."
             fields={fields}
             hiddenInputs={hiddenInputs}
-        /> 
-    )
+        />
+    );
 }
-

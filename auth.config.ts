@@ -1,11 +1,11 @@
 import { type NextAuthConfig } from "next-auth";
 
-export default { 
+export default {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id; // primary identifier
-                token.role = user.role;  // role
+                token.role = user.role; // role
                 // Only if available
                 token.email = user.email;
                 token.name = user.name;
@@ -29,6 +29,6 @@ export default {
     pages: {
         signIn: "/login",
         signOut: "/logout",
-    }, 
-    providers: []
+    },
+    providers: [],
 } satisfies NextAuthConfig;

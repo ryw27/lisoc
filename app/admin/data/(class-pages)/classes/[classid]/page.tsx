@@ -1,13 +1,14 @@
-import EntityId, { displaySectionGroup } from '@/components/data-view/id-entity-view/entity-id';
-import getIDRow from '@/lib/data-view/actions/getIDRow';
-import { ClassObject } from '@/lib/data-view/entity-configs/(classes)/classes';
-import { classTypeMap } from '@/lib/utils';
-import { notFound } from 'next/navigation';
+import { notFound } from "next/navigation";
+import { InferSelectModel } from "drizzle-orm";
+import { classes } from "@/lib/db/schema";
+import { classTypeMap } from "@/lib/utils";
+import { getIDRow } from "@/server/data-view/actions/getIDRow";
+import EntityId, { displaySectionGroup } from "@/components/data-view/id-entity-view/entity-id";
 
 interface ClassPageProps {
     params: Promise<{
         classid: string;
-    }>
+    }>;
 }
 
 export default async function ClassIDPage({ params }: ClassPageProps) {
@@ -15,12 +16,18 @@ export default async function ClassIDPage({ params }: ClassPageProps) {
 
     const response = await getIDRow("classes", class_id);
     if (!response.ok || !response.data) {
-        return notFound() 
-    } 
+        return notFound();
+    }
 
-    const curClass = response.data as ClassObject;
-    const regClass = curClass.gradeclassid ? (await getIDRow("classes", curClass.gradeclassid)).data as ClassObject : null;
-    const upgradeClass = curClass.classupid ? (await getIDRow("classes", curClass.classupid)).data as ClassObject : null;
+    const curClass = response.data as InferSelectModel<typeof classes>;
+    const regClass = curClass.gradeclassid
+        ? ((await getIDRow("classes", curClass.gradeclassid)).data as InferSelectModel<
+              typeof classes
+          >)
+        : null;
+    const upgradeClass = curClass.classupid
+        ? ((await getIDRow("classes", curClass.classupid)).data as InferSelectModel<typeof classes>)
+        : null;
 
     // Define display sections with type-safe keys using the table schema
     const displaySections: displaySectionGroup[] = [
@@ -29,72 +36,88 @@ export default async function ClassIDPage({ params }: ClassPageProps) {
             display: [
                 {
                     label: "Class ID",
-                    value: String(curClass.classid)
+                    value: String(curClass.classid),
                 },
                 {
                     label: "English Name",
-                    value: curClass.classnameen ?? "No given english class name"
+                    value: curClass.classnameen ?? "No given english class name",
                 },
                 {
                     label: "Registration Class",
-                    value: regClass ? `${regClass.classnamecn} - ${regClass.classnameen}` : "No registration class"
+                    value: regClass
+                        ? `${regClass.classnamecn} - ${regClass.classnameen}`
+                        : "No registration class",
                 },
                 {
                     label: "Upgrade Class",
-                    value: upgradeClass ? `${upgradeClass.classnamecn} - ${upgradeClass.classnameen}` : "No upgrade class"
+                    value: upgradeClass
+                        ? `${upgradeClass.classnamecn} - ${upgradeClass.classnameen}`
+                        : "No upgrade class",
                 },
                 {
                     label: "Class Type",
-                    value: curClass.typeid ? `${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenameen} ${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenamecn}`: "No type available"
+                    value: curClass.typeid
+                        ? `${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenameen} ${classTypeMap[curClass.typeid as keyof typeof classTypeMap].typenamecn}`
+                        : "No type available",
                 },
                 {
                     label: "Class Level",
-                    value: curClass.classno ?? "No given class level"
+                    value: curClass.classno ?? "No given class level",
                 },
                 {
                     label: "Size Limits",
-                    value: curClass.sizelimits ? String(curClass.sizelimits) : "No given size limits"
+                    value: curClass.sizelimits
+                        ? String(curClass.sizelimits)
+                        : "No given size limits",
                 },
                 {
                     label: "Status",
-                    value: curClass.status ?? "No given status"
-                }
-            ]
+                    value: curClass.status ?? "No given status",
+                },
+            ],
         },
         {
             section: "Additional Information",
             display: [
                 {
                     label: "Description",
-                    value: curClass.description ?? "No description available"
+                    value: curClass.description ?? "No description available",
                 },
 
                 {
                     label: "Class Index",
-                    value: curClass.classindex ? String(curClass.classindex) : "No class index available"
+                    value: curClass.classindex
+                        ? String(curClass.classindex)
+                        : "No class index available",
                 },
                 {
                     label: "Last Modified",
-                    value: curClass.lastmodify ? new Date(curClass.lastmodify as string).toLocaleDateString() : "Never modified"
+                    value: curClass.lastmodify
+                        ? new Date(curClass.lastmodify as string).toLocaleDateString()
+                        : "Never modified",
                 },
                 {
                     label: "Created On",
-                    value: curClass.createon ? new Date(curClass.createon as string).toLocaleDateString() : "Never created"
+                    value: curClass.createon
+                        ? new Date(curClass.createon as string).toLocaleDateString()
+                        : "Never created",
                 },
                 {
                     label: "Created By",
-                    value: curClass.createby ?? "No creator"
+                    value: curClass.createby ?? "No creator",
                 },
                 {
                     label: "Updated By",
-                    value: curClass.updateby ?? "No updater"
+                    value: curClass.updateby ?? "No updater",
                 },
                 {
                     label: "Updated On",
-                    value: curClass.updateon ? new Date(curClass.updateon as string).toLocaleDateString() : "Never updated"
-                }
-            ]
-        }
+                    value: curClass.updateon
+                        ? new Date(curClass.updateon as string).toLocaleDateString()
+                        : "Never updated",
+                },
+            ],
+        },
     ];
 
     return (
