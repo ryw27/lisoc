@@ -34,6 +34,9 @@ export const ADMIN_DATAVIEW_LINK = "/admin/data";
 // Constants
 // ----------------------------------------------------------------
 
+export const LOWEST_GRADE = -1;
+export const HIGHEST_GRADE = 12;
+
 export const BREADCRUMB_LABELS: Record<string, string> = {
     // Admin headers all match
     // Admin subheaders
