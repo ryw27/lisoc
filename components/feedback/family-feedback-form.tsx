@@ -29,6 +29,8 @@ function FormField({
     required?: boolean;
     errors?: string[];
 }) {
+    const inputClasses =
+        "bg-card text-foreground border-input rounded-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:border-accent placeholder:text-muted-foreground";
     return (
         <div className="flex flex-col gap-1">
             <label htmlFor={name} className="font-medium">
@@ -42,6 +44,7 @@ function FormField({
                     rows={6}
                     defaultValue={defaultValue}
                     {...register(name)}
+                    className={inputClasses}
                 />
             ) : (
                 <Input
@@ -50,6 +53,7 @@ function FormField({
                     required={required}
                     defaultValue={defaultValue}
                     {...register(name)}
+                    className={inputClasses}
                 />
             )}
             {errors && (
@@ -113,30 +117,41 @@ export default function FamilyFeedbackForm({ defaults, familyid }: familyFeedbac
 
     // console.log(feedbackForm.getValues());
     return (
-        <div>
+        <div className="min-h-screen">
             {!submitted ? (
-                <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-8">
-                    <h1 className="text-2xl font-bold">意见和求助</h1>
-                    <h1 className="text-2xl font-bold">Comment and Questions</h1>
-                    <div className="mb-4 flex flex-col gap-2 text-base text-gray-700">
-                        <p className="leading-relaxed whitespace-pre-line">
+                <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-12">
+                    {/* Header Section */}
+                    <div className="border-border flex flex-col gap-1 border-b pb-4">
+                        <h1 className="text-primary text-3xl font-bold">意见和求助</h1>
+                        {/* Secondary (Brass) used for the sub-header to look like a ledger entry */}
+                        <h1 className="text-secondary text-sm font-bold tracking-widest uppercase">
+                            Comment and Questions
+                        </h1>
+                    </div>
+                    {/* Info Text */}
+                    <div className="text-foreground/90 flex flex-col gap-2 text-base leading-7">
+                        <p className="whitespace-pre-line">
                             欢迎您使用长岛华夏中文学校的在线学生注册系统。目前本系统还在不断改进完善之中，希望能得到您的理解、支持并提出宝贵意见和建议。
                             如您觉得使用系统时有费用计算或其他问题，请与教务处或网站管理员联系，我们会帮您核对费用和更正错漏。
                             您在使用本系统时若碰到困难或问题，也可在这里请求协助，我们会尽快与您联系。
                             您也可在工作日的晚七时后或周末致电{" "}
-                            <span className="font-semibold text-blue-700">516-860-2583</span>{" "}
+                            <span className="text-accent font-bold">516-860-2583</span>{" "}
                             寻求帮助。谢谢您的支持！
                         </p>
-                        <p className="leading-relaxed whitespace-pre-line">
+                        <p className="whitespace-pre-line">
                             Thank you for using Long Island School of Chinese online registration
                             system. If you have any difficulties or questions using the system, or
                             any comments and feedback, please send your message here. We will reply
                             to you as soon as possible. You can also call us at{" "}
-                            <span className="font-semibold text-blue-700">516-860-2583</span> after
-                            7 PM on weekdays or anytime on the weekend. Thank you for your support.
+                            <span className="text-accent font-bold">516-860-2583</span> after 7 PM
+                            on weekdays or anytime on the weekend. Thank you for your support.
                         </p>
                     </div>
-                    <form onSubmit={feedbackForm.handleSubmit(onSubmit)}>
+                    {/* Form Section */}
+                    <form
+                        onSubmit={feedbackForm.handleSubmit(onSubmit)}
+                        className="flex flex-col gap-4 pt-2"
+                    >
                         <FormField
                             label="Your Name"
                             name="name"
@@ -212,33 +227,66 @@ export default function FamilyFeedbackForm({ defaults, familyid }: familyFeedbac
                                     : undefined
                             }
                         />
-                        {formError && <p className="text-sm text-red-600">{formError}</p>}
-                        <div className="mt-4 flex justify-end gap-2">
+
+                        {formError && (
+                            <p className="text-destructive text-sm font-medium">{formError}</p>
+                        )}
+
+                        <div className="mt-6 flex justify-end">
                             <button
                                 type="submit"
                                 disabled={busy}
-                                className={`min-w-10 rounded-md border-2 p-2 font-bold ${
+                                // Primary Navy Background -> Gold Accent Hover
+                                className={`min-w-[120px] rounded-sm px-6 py-2.5 text-sm font-bold tracking-wide transition-all duration-200 ${
                                     busy
-                                        ? "cursor-not-allowed border-gray-200 bg-gray-200 text-gray-500"
-                                        : "cursor-pointer border-blue-600 bg-blue-600 text-white transition-colors hover:border-blue-700 hover:bg-blue-700"
+                                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                        : "bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground shadow-sm"
                                 }`}
                             >
-                                Submit
+                                {busy ? "SUBMITTING..." : "SUBMIT"}
                             </button>
                         </div>
                     </form>
                 </div>
             ) : (
-                <div className="flex min-h-[300px] w-full items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                        <span className="text-center">
-                            Thank you for your feedback! We will get back to you as soon as
-                            possible.
-                            <br />
-                            感谢您的反馈。我们会尽快回复您
-                        </span>
-                        <Link href="/dashboard" className="text-blue-600 underline">
-                            Go home
+                /* Success State */
+                <div className="bg-background flex min-h-[50vh] w-full items-center justify-center">
+                    <div className="flex max-w-md flex-col items-center gap-6 text-center">
+                        {/* Checkmark using Accent color */}
+                        <div className="bg-accent/10 text-accent flex h-12 w-12 items-center justify-center rounded-full">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={2.5}
+                                stroke="currentColor"
+                                className="h-6 w-6"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4.5 12.75l6 6 9-13.5"
+                                />
+                            </svg>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-primary text-xl font-bold">Feedback Received</h3>
+                            <p className="text-muted-foreground">
+                                Thank you for your feedback! We will get back to you as soon as
+                                possible.
+                                <br />
+                                <span className="text-sm opacity-80">
+                                    感谢您的反馈。我们会尽快回复您
+                                </span>
+                            </p>
+                        </div>
+
+                        <Link
+                            href="/dashboard"
+                            className="text-primary decoration-accent hover:bg-muted text-sm font-bold underline decoration-2 underline-offset-4"
+                        >
+                            Return Home
                         </Link>
                     </div>
                 </div>
