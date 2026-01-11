@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
 interface FormInputProps {
@@ -51,15 +52,20 @@ export function FormError({ error }: { error?: string | null }) {
 export function FormSubmit({
     children,
     disabled,
+    className,
 }: {
     children: React.ReactNode;
     disabled?: boolean;
+    className?: string;
 }) {
     return (
         <button
             type="submit"
             disabled={disabled}
-            className="cursor-pointer rounded-sm bg-blue-600 px-4 py-2 text-lg font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+                "cursor-pointer rounded-sm bg-blue-600 px-4 py-2 text-lg font-bold text-white disabled:cursor-not-allowed disabled:opacity-50",
+                className
+            )}
         >
             {children}
         </button>
