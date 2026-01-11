@@ -107,19 +107,11 @@ export default function Header({ user }: { user: DefaultSession["user"] }) {
                     </button>
 
                     {isOpen && (
-                        <div className="border-border bg-popover absolute top-full right-0 z-50 mt-2 w-56 origin-top-right rounded-lg border p-1 shadow-xl ring-1 shadow-black/5 ring-black/5 transition-all">
-                            <div className="border-border mb-1 border-b px-2 py-2 sm:hidden">
-                                <p className="text-primary text-xs font-bold">
-                                    {user?.name ?? "Registrar"}
-                                </p>
-                                <p className="text-muted-foreground text-[10px] tracking-wider uppercase">
-                                    Admin Portal
-                                </p>
-                            </div>
-
+                        <div className="absolute top-full right-0 z-50 mt-2 w-56 origin-top-right rounded-none border shadow-sm">
+                            {/* Logout Button */}
                             <button
                                 onClick={handleLogout}
-                                className="group/logout flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-[var(--destructive)] transition-colors hover:bg-[var(--destructive)]/5"
+                                className="group/logout text-destructive hover:bg-muted hover:text-destructive focus:bg-muted flex w-full cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors focus:outline-none"
                             >
                                 <LogOut
                                     size={16}
