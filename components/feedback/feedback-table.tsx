@@ -211,78 +211,94 @@ export default function FeedbackTable({
     });
 
     return (
-        <div className="w-full overflow-x-auto overflow-y-auto">
-            <h1 className="mb-10 text-2xl font-bold">Feedback</h1>
-            <table className="relative min-w-full table-fixed rounded-lg border border-gray-200 shadow-md">
-                {/* Header */}
-                <thead className="border-b border-gray-200">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="bg-gray-50">
-                            {headerGroup.headers.map((header) => (
-                                <th
-                                    key={header.id}
-                                    className={cn(
-                                        "text-md cursor-pointer px-3 py-3 text-left font-semibold tracking-wider whitespace-nowrap text-gray-700",
-                                        header.id === "select" && "w-12",
-                                        header.column.getIsPinned() === "left" &&
-                                            "sticky left-0 z-10 bg-white",
-                                        header.column.getIsPinned() === "right" &&
-                                            "sticky right-0 z-10 bg-white"
-                                    )}
-                                    onClick={header.column.getToggleSortingHandler()}
-                                    aria-sort={
-                                        header.column.getIsSorted() === "desc"
-                                            ? "descending"
-                                            : header.column.getIsSorted() === "asc"
-                                              ? "ascending"
-                                              : "none"
-                                    }
-                                >
-                                    {header.isPlaceholder
-                                        ? null
-                                        : flexRender(
-                                              header.column.columnDef.header,
-                                              header.getContext()
-                                          )}
-                                    {{
-                                        asc: " ↑",
-                                        desc: " ↓",
-                                    }[header.column.getIsSorted() as string] ?? null}
-                                </th>
+        <div className="w-full">
+            <h1 className="text-primary mb-6 text-xl font-bold tracking-wide uppercase">
+                Feedback Log
+            </h1>
+
+            <div className="border-border rounded-none border bg-white shadow-sm">
+                <div className="w-full overflow-x-auto">
+                    <table className="relative min-w-full table-fixed border-collapse text-sm">
+                        {/* Header */}
+                        <thead className="bg-muted/20">
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <tr key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => (
+                                        <th
+                                            key={header.id}
+                                            className={cn(
+                                                "border-primary/20 text-muted-foreground hover:bg-muted/50 hover:text-primary relative border-b-2 px-4 py-3 text-left text-xs font-bold tracking-wider uppercase transition-colors",
+                                                header.id === "select" && "w-12",
+                                                header.column.getIsPinned() === "left" &&
+                                                    "bg-background sticky left-0 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]",
+                                                header.column.getIsPinned() === "right" &&
+                                                    "bg-background sticky right-0 z-20 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
+                                            )}
+                                            onClick={header.column.getToggleSortingHandler()}
+                                            aria-sort={
+                                                header.column.getIsSorted() === "desc"
+                                                    ? "descending"
+                                                    : header.column.getIsSorted() === "asc"
+                                                      ? "ascending"
+                                                      : "none"
+                                            }
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                          header.column.columnDef.header,
+                                                          header.getContext()
+                                                      )}
+
+                                                {/* Sort Indicator */}
+                                                <span className="text-primary">
+                                                    {{
+                                                        asc: "↑",
+                                                        desc: "↓",
+                                                    }[header.column.getIsSorted() as string] ??
+                                                        null}
+                                                </span>
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
                             ))}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                    {/* Table rows */}
-                    {table.getRowModel().rows.map((row) => (
-                        <tr
-                            key={row.id}
-                            className={cn(
-                                "cursor-pointer transition-colors hover:bg-blue-50",
-                                row.getIsSelected() && "bg-blue-50"
-                            )}
-                        >
-                            {row.getVisibleCells().map((cell) => (
-                                <td
-                                    key={cell.id}
+                        </thead>
+
+                        <tbody className="divide-border divide-y">
+                            {/* Table rows */}
+                            {table.getRowModel().rows.map((row) => (
+                                <tr
+                                    key={row.id}
                                     className={cn(
-                                        "border-r px-3 py-2 text-sm text-gray-600",
-                                        // cell.column.id === 'select' ? 'w-12' : 'whitespace-nowrap',
-                                        cell.column.getIsPinned() === "left" &&
-                                            `sticky left-0 z-10 ${row.getIsSelected() ? "bg-blue-50" : "bg-white"}`,
-                                        cell.column.getIsPinned() === "right" &&
-                                            `sticky right-0 z-10 ${row.getIsSelected() ? "bg-blue-50" : "bg-white"}`
+                                        "group hover:bg-primary/5 data-[state=selected]:bg-primary/10 transition-colors",
+                                        row.getIsSelected() && "bg-primary/10"
                                     )}
-                                    tabIndex={0}
                                 >
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
+                                    {row.getVisibleCells().map((cell) => (
+                                        <td
+                                            key={cell.id}
+                                            className={cn(
+                                                "border-border/40 text-foreground border-r px-4 py-3",
+                                                cell.column.getIsPinned() === "left" &&
+                                                    "bg-background group-hover:bg-primary/5 group-data-[state=selected]:bg-primary/10 sticky left-0 z-10",
+                                                cell.column.getIsPinned() === "right" &&
+                                                    "bg-background group-hover:bg-primary/5 group-data-[state=selected]:bg-primary/10 sticky right-0 z-10"
+                                            )}
+                                        >
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
+                                        </td>
+                                    ))}
+                                </tr>
                             ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

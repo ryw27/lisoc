@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DrizzleError, InferSelectModel } from "drizzle-orm";
-import { BookOpen, CalendarIcon, PlusIcon, Save, Settings2, Trash2 } from "lucide-react";
+import { BookOpen, CalendarIcon, PlusIcon, Save, School, Settings2 } from "lucide-react";
 import {
     FormProvider,
     Path,
@@ -16,7 +16,8 @@ import {
 import { z } from "zod";
 import { seasons } from "@/lib/db/schema";
 import { cn, toESTString } from "@/lib/utils";
-import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
+import { threeSeasons } from "@/types/seasons.types";
+import { IdMaps, selectOptions } from "@/types/shared.types";
 import { createSemester } from "@/server/seasons/actions/createSemester";
 import { startSemFormSchema } from "@/server/seasons/schema";
 // UI Components
@@ -25,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { RegistrationProvider } from "../registration-context";
 import SemesterClassBox from "./form-class-box";
 
 // --- Types ---
@@ -33,7 +35,7 @@ type Season = InferSelectModel<typeof seasons>;
 type FormValues = z.infer<typeof startSemFormSchema>;
 
 interface StartSemesterFormProps {
-    drafts: uiClasses[];
+    // drafts: uiClasses[];
     selectOptions: selectOptions;
     idMaps: IdMaps;
     lastSeason: Season[];
@@ -56,41 +58,41 @@ const getNextYearDateString = (dateStr?: string | null): string | undefined => {
  * Strict Mapper: Converts loose DB types (string | null) to strict Form types (number).
  * This eliminates the need for 'as' casting inside the component.
  */
-const mapDraftsToForm = (drafts: uiClasses[]): FormValues["classes"] => {
-    return drafts.map((d) => ({
-        // IDs
-        seasonid: d.seasonid,
-        classid: d.classid,
-        teacherid: d.teacherid,
-        roomid: d.roomid,
-        timeid: d.timeid,
-        suitableterm: d.suitableterm,
+// const mapDraftsToForm = (drafts: uiClasses[]): FormValues["classes"] => {
+//     return drafts.map((d) => ({
+//         // IDs
+//         seasonid: d.seasonid,
+//         classid: d.classid,
+//         teacherid: d.teacherid,
+//         roomid: d.roomid,
+//         timeid: d.timeid,
+//         suitableterm: d.suitableterm,
 
-        // Coerce Money strings to Numbers (handling nulls)
-        tuitionW: d.tuitionW ? Number(d.tuitionW) : 0,
-        tuitionH: d.tuitionH ? Number(d.tuitionH) : 0,
-        bookfeeW: d.bookfeeW ? Number(d.bookfeeW) : 0,
-        bookfeeH: d.bookfeeH ? Number(d.bookfeeH) : 0,
-        specialfeeW: d.specialfeeW ? Number(d.specialfeeW) : 0,
-        specialfeeH: d.specialfeeH ? Number(d.specialfeeH) : 0,
+//         // Coerce Money strings to Numbers (handling nulls)
+//         tuitionW: d.tuitionW ? Number(d.tuitionW) : 0,
+//         tuitionH: d.tuitionH ? Number(d.tuitionH) : 0,
+//         bookfeeW: d.bookfeeW ? Number(d.bookfeeW) : 0,
+//         bookfeeH: d.bookfeeH ? Number(d.bookfeeH) : 0,
+//         specialfeeW: d.specialfeeW ? Number(d.specialfeeW) : 0,
+//         specialfeeH: d.specialfeeH ? Number(d.specialfeeH) : 0,
 
-        // Coerce Limits (handling nulls)
-        seatlimit: d.seatlimit ?? 0,
-        agelimit: d.agelimit ?? 0,
+//         // Coerce Limits (handling nulls)
+//         seatlimit: d.seatlimit ?? 0,
+//         agelimit: d.agelimit ?? 0,
 
-        // Enum Safety
-        term: d.term === "SPRING" || d.term === "FALL" ? d.term : "FALL",
+//         // Enum Safety
+//         term: d.term === "SPRING" || d.term === "FALL" ? d.term : "FALL",
 
-        // Booleans & Strings
-        waiveregfee: d.waiveregfee,
-        closeregistration: d.closeregistration,
-        isregclass: d.isregclass,
-        notes: d.notes ?? "",
+//         // Booleans & Strings
+//         waiveregfee: d.waiveregfee,
+//         closeregistration: d.closeregistration,
+//         isregclass: d.isregclass,
+//         notes: d.notes ?? "",
 
-        // Ensure arrangeid is handled if it exists in schema, otherwise ignore
-        arrangeid: d.arrangeid,
-    }));
-};
+//         // Ensure arrangeid is handled if it exists in schema, otherwise ignore
+//         arrangeid: d.arrangeid,
+//     }));
+// };
 
 /**
  * Helper to force a date string into the shape TypeScript expects for the Zod schema.
@@ -105,9 +107,9 @@ const asDate = (dateString: string | undefined): Date => {
 // --- Main Component ---
 
 export default function StartSemesterForm({
-    drafts,
-    // selectOptions, // Pass to SemesterClassBox via context or props if needed
-    // idMaps,
+    // drafts,
+    selectOptions,
+    idMaps,
     lastSeason,
 }: StartSemesterFormProps) {
     const router = useRouter();
@@ -120,7 +122,7 @@ export default function StartSemesterForm({
         const lastSpring = lastSeason[1];
 
         return {
-            classes: mapDraftsToForm(drafts),
+            // classes: mapDraftsToForm(drafts),
 
             // Text Defaults
             seasonnamecn: `${now.getFullYear()}-${nextYear} 学年`,
@@ -156,7 +158,7 @@ export default function StartSemesterForm({
                 getNextYearDateString(lastFall?.date4newfamilytoregister)
             ),
         };
-    }, [drafts, lastSeason]);
+    }, [lastSeason]);
 
     const form = useForm({
         // @ts-expect-error - Resolver types are incompatible but runtime is safe
@@ -179,65 +181,67 @@ export default function StartSemesterForm({
     };
 
     return (
-        <FormProvider {...form}>
-            <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="bg-background min-h-screen pb-20"
-            >
-                {/* Sticky Header */}
-                <div className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/60 sticky top-0 z-10 border-b px-6 py-4 shadow-sm backdrop-blur">
-                    <div className="mx-auto flex max-w-5xl items-center justify-between">
-                        <div>
-                            <h1 className="text-primary font-serif text-2xl font-bold">
-                                Initialize New Academic Year
-                            </h1>
-                            <p className="text-muted-foreground text-sm">
-                                Configure dates, settings, and initial class offerings.
-                            </p>
-                        </div>
-                        <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                type="button"
-                                onClick={() => router.push("/admin/semester")}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? (
-                                    "Processing..."
-                                ) : (
-                                    <>
-                                        <Save className="mr-2 h-4 w-4" /> Start Semester
-                                    </>
-                                )}
-                            </Button>
+        <RegistrationProvider value={{ seasons: {} as threeSeasons, selectOptions, idMaps }}>
+            <FormProvider {...form}>
+                <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="bg-background min-h-screen pb-20"
+                >
+                    {/* Sticky Header */}
+                    <div className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/60 sticky top-0 z-10 border-b px-6 py-4 shadow-sm backdrop-blur">
+                        <div className="mx-auto flex max-w-5xl items-center justify-between">
+                            <div>
+                                <h1 className="text-primary font-serif text-2xl font-bold">
+                                    Initialize New Academic Year
+                                </h1>
+                                <p className="text-muted-foreground text-sm">
+                                    Configure dates, settings, and initial class offerings.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    onClick={() => router.push("/admin/management/semester")}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={form.formState.isSubmitting}>
+                                    {form.formState.isSubmitting ? (
+                                        "Processing..."
+                                    ) : (
+                                        <>
+                                            <Save className="mr-2 h-4 w-4" /> Start Semester
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Main Content */}
-                <div className="mx-auto mt-8 max-w-5xl space-y-8 px-6">
-                    {/* Error Alert */}
-                    {form.formState.errors.root && (
-                        <div className="border-destructive/20 bg-destructive/15 text-destructive rounded-md border p-4 text-sm">
-                            {form.formState.errors.root.message}
+                    {/* Main Content */}
+                    <div className="mx-auto mt-8 max-w-5xl space-y-8 px-6">
+                        {/* Error Alert */}
+                        {form.formState.errors.root && (
+                            <div className="border-destructive/20 bg-destructive/15 text-destructive rounded-none border p-4 text-sm">
+                                {form.formState.errors.root.message}
+                            </div>
+                        )}
+
+                        <SeasonInfoSection />
+
+                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                            <DateGroup label="Fall Semester" prefix="fall" />
+                            <DateGroup label="Spring Semester" prefix="spring" />
                         </div>
-                    )}
 
-                    <SeasonInfoSection />
+                        <SettingsSection />
 
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                        <DateGroup label="Fall Semester" prefix="fall" />
-                        <DateGroup label="Spring Semester" prefix="spring" />
+                        <ClassListSection />
                     </div>
-
-                    <SettingsSection />
-
-                    <ClassListSection />
-                </div>
-            </form>
-        </FormProvider>
+                </form>
+            </FormProvider>
+        </RegistrationProvider>
     );
 }
 
@@ -250,7 +254,7 @@ function SeasonInfoSection() {
     } = useFormContext<FormValues>();
 
     return (
-        <Card className="border-l-secondary border-l-4">
+        <Card className="border-l-secondary rounded-none border-l-4">
             <CardHeader>
                 <CardTitle className="text-primary flex items-center gap-2 text-xl">
                     <BookOpen className="text-accent h-5 w-5" />
@@ -293,10 +297,10 @@ function SeasonInfoSection() {
 
 function DateGroup({ label, prefix }: { label: string; prefix: "fall" | "spring" }) {
     return (
-        <Card>
+        <Card className="rounded-none">
             <CardHeader className="pb-3">
                 <CardTitle className="text-primary flex items-center gap-2 text-lg font-medium">
-                    <CalendarIcon className="text-muted-foreground h-4 w-4" />
+                    <CalendarIcon className="text-accent h-5 w-5" />
                     {label} Schedule
                 </CardTitle>
             </CardHeader>
@@ -383,7 +387,7 @@ function SettingsSection() {
     const allowNewFamily = watch("allownewfamilytoregister");
 
     return (
-        <Card>
+        <Card className="rounded-none">
             <CardHeader>
                 <CardTitle className="text-primary flex items-center gap-2 text-xl">
                     <Settings2 className="text-accent h-5 w-5" />
@@ -397,7 +401,7 @@ function SettingsSection() {
                 {/* Fees */}
                 <div className="space-y-4">
                     <h3 className="text-primary font-serif text-lg font-medium">Fees</h3>
-                    <div className="bg-muted/20 space-y-4 rounded-md border p-4">
+                    <div className="bg-muted/20 space-y-4 rounded-none border p-4">
                         <SwitchRow name="haslateregfee" label="Late Fee (General)" />
                         <SwitchRow name="haslateregfee4newfamily" label="Late Fee (New Families)" />
                         <SwitchRow name="hasdutyfee" label="Duty Fee" />
@@ -407,7 +411,7 @@ function SettingsSection() {
                 {/* Visibility */}
                 <div className="space-y-4">
                     <h3 className="text-primary font-serif text-lg font-medium">Visibility</h3>
-                    <div className="bg-muted/20 space-y-4 rounded-md border p-4">
+                    <div className="bg-muted/20 space-y-4 rounded-none border p-4">
                         <SwitchRow name="showadmissionnotice" label="Show Admission Notice" />
                         <SwitchRow name="showteachername" label="Show Teacher Names" />
 
@@ -432,7 +436,7 @@ function SettingsSection() {
                 {/* Registration */}
                 <div className="space-y-4">
                     <h3 className="text-primary font-serif text-lg font-medium">New Families</h3>
-                    <div className="bg-muted/20 space-y-4 rounded-md border p-4">
+                    <div className="bg-muted/20 space-y-4 rounded-none border p-4">
                         <SwitchRow name="allownewfamilytoregister" label="Allow Registration" />
 
                         <div className={cn("transition-opacity", !allowNewFamily && "opacity-50")}>
@@ -440,7 +444,7 @@ function SettingsSection() {
                                 htmlFor="date4newfamilytoregister"
                                 className="text-muted-foreground text-xs font-semibold"
                             >
-                                Start Date
+                                Register Start Date
                             </label>
                             <Input
                                 id="date4newfamilytoregister"
@@ -474,6 +478,7 @@ function SwitchRow({ name, label }: { name: Path<FormValues>; label: string }) {
                 id={name}
                 checked={value}
                 onCheckedChange={(checked) => setValue(name, checked)}
+                className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-primary/20 focus-visible:ring-accent"
             />
         </div>
     );
@@ -487,11 +492,15 @@ function ClassListSection() {
     });
 
     return (
-        <Card className="border-t-primary border-t-4">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="text-primary text-xl">Class Offerings</CardTitle>
-                    <CardDescription>
+        <Card className="border-l-primary rounded-none border-l-4">
+            {/* Header is now white/transparent with just the text colored */}
+            <CardHeader className="border-border/40 bg-background flex flex-row items-center justify-between border-b px-6 py-4">
+                <div className="flex flex-col gap-1">
+                    <CardTitle className="text-primary flex items-center gap-2 text-xl font-bold tracking-wide uppercase">
+                        <School className="text-accent h-5 w-5" />
+                        Class Offerings
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground text-xs tracking-wider uppercase">
                         Define the initial schedule. You can edit these later.
                     </CardDescription>
                 </div>
@@ -499,6 +508,7 @@ function ClassListSection() {
                     type="button"
                     variant="secondary"
                     size="sm"
+                    className="hover:bg-primary hover:text-primary-foreground gap-2 rounded-none shadow-sm transition-colors"
                     onClick={() =>
                         append({
                             classid: 0,
@@ -522,28 +532,22 @@ function ClassListSection() {
                         })
                     }
                 >
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    Add Class
+                    <PlusIcon className="h-4 w-4" />
+                    ADD ENTRY
                 </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-background/50 p-6">
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     {fields.map((field, index) => (
                         <div
                             key={field.id}
-                            className="bg-card relative rounded-lg border p-4 shadow-sm transition-all hover:shadow-md"
+                            className="group border-input bg-background hover:border-primary/60 relative flex flex-col rounded-none border p-1 shadow-none transition-all"
                         >
-                            <div className="absolute top-2 right-2 z-10">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-muted-foreground hover:text-destructive h-8 w-8"
-                                    onClick={() => remove(index)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                            {/* Decorative Index Label */}
+                            <div className="bg-background text-muted-foreground group-hover:text-primary absolute -top-3 left-4 px-2 text-xs font-bold transition-colors">
+                                ITEM #{String(index + 1).padStart(2, "0")}
                             </div>
+
                             <SemesterClassBox
                                 idx={index}
                                 field={field}
@@ -552,11 +556,15 @@ function ClassListSection() {
                         </div>
                     ))}
                 </div>
+
                 {fields.length === 0 && (
-                    <div className="bg-muted/30 text-muted-foreground flex h-32 flex-col items-center justify-center rounded-lg border border-dashed">
-                        <p>No classes added yet.</p>
+                    <div className="border-muted-foreground/20 bg-muted/5 flex h-40 flex-col items-center justify-center rounded-none border-2 border-dashed">
+                        <p className="text-muted-foreground mb-2 text-sm font-medium tracking-wider uppercase">
+                            No Schedule Entries
+                        </p>
                         <Button
                             variant="link"
+                            className="text-primary hover:text-primary/80 decoration-dotted underline-offset-4"
                             onClick={() =>
                                 append({
                                     classid: 0,
@@ -580,7 +588,7 @@ function ClassListSection() {
                                 })
                             }
                         >
-                            Add your first class
+                            Initialize First Class
                         </Button>
                     </div>
                 )}

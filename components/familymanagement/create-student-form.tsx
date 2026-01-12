@@ -120,7 +120,6 @@ const EditCell = ({
                         <button
                             className={cn(
                                 "group relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors outline-none",
-                                // Hover/Focus state: Gold background wash with Navy text (using design system variables)
                                 "hover:bg-accent/80 hover:text-accent-foreground",
                                 "focus:bg-accent/80 focus:text-accent-foreground"
                             )}
@@ -151,15 +150,12 @@ const EditCell = ({
                                 //studentForm.setValue("age", ageof);
                                 studentForm.setValue("dob", new Date(dobFormatted));
                                 setError(null);
-                                // --- LOGIC ENDS HERE ---
                             }}
                         >
-                            {/* Icon turns Navy on hover to match text */}
                             <PencilIcon className="group-hover:text-accent-foreground h-3.5 w-3.5 text-gray-500" />
                             <span>Edit</span>
                         </button>
 
-                        {/* Delete Button */}
                         <>
                             <button
                                 className={cn(
@@ -322,9 +318,7 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
     });
     return (
         <div className="space-y-10">
-            {/* Form Container: Ledger Card Style */}
             <div className="border-primary/20 bg-card mx-auto mt-8 max-w-md rounded-xs border p-8 shadow-lg">
-                {/* Title: Separated by a brass divider */}
                 <h2 className="border-primary/10 text-primary mb-6 border-b-2 pb-4 text-center text-xl font-bold tracking-widest uppercase">
                     {title}
                 </h2>
@@ -334,7 +328,6 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                     className="space-y-6"
                     autoComplete="off"
                 >
-                    {/* Chinese Name */}
                     <div className="space-y-1.5">
                         <label
                             htmlFor="namecn"
@@ -356,7 +349,6 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                         )}
                     </div>
 
-                    {/* English Name Names */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-1.5">
                             <label
@@ -400,7 +392,6 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                         </div>
                     </div>
 
-                    {/* Gender & DOB */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-1.5">
                             <label
@@ -497,16 +488,13 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                 </form>
             </div>
 
-            {/* Table Section: Anchored with a divider line */}
             <div className="mx-auto mt-12 max-w-7xl">
-                {/* Header: Left-aligned with a 'brass' divider line to ground the text */}
                 <div className="border-primary/10 mb-4 flex items-center border-b-2 pb-2">
                     <h3 className="text-primary text-sm font-bold tracking-widest uppercase">
                         Students in Family
                     </h3>
                 </div>
 
-                {/* Table: Renders full width without extra padding/boxing */}
                 <div className="w-full">
                     <ClientTable table={table} />
                 </div>

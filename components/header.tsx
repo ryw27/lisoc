@@ -111,7 +111,7 @@ export default function Header({ user }: { user: DefaultSession["user"] }) {
                             {/* Logout Button */}
                             <button
                                 onClick={handleLogout}
-                                className="group/logout text-destructive hover:bg-muted hover:text-destructive focus:bg-muted flex w-full cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors focus:outline-none"
+                                className="group/logout text-destructive hover:bg-muted focus:bg-muted flex w-full cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-sm font-bold transition-colors hover:text-red-700 focus:outline-none"
                             >
                                 <LogOut
                                     size={16}
