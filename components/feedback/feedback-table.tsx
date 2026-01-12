@@ -216,7 +216,7 @@ export default function FeedbackTable({
                 Feedback Log
             </h1>
 
-            <div className="border-border rounded-none border bg-white shadow-sm">
+            <div className="border-border rounded-none border shadow-sm">
                 <div className="w-full overflow-x-auto">
                     <table className="relative min-w-full table-fixed border-collapse text-sm">
                         {/* Header */}
