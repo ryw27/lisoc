@@ -44,9 +44,11 @@ export default async function SemesterPage() {
                         </p>
                         <Link
                             href="semester/start-semester"
-                            className="flex cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+                            // Theme: Navy Primary -> Gold Hover, Sharp Corners, Uppercase Text
+                            className="bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-none px-4 py-2 text-sm font-bold tracking-wider uppercase shadow-sm transition-colors"
                         >
-                            <PlusIcon className="h-5 w-5" /> Start academic year
+                            <PlusIcon className="h-5 w-5" />
+                            Start academic year
                         </Link>
                     </div>
                 </div>

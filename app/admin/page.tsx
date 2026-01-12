@@ -1,378 +1,345 @@
-"use client";
-
-import React from "react";
+import Link from "next/link";
+import { and, between, count, eq, gt, sum } from "drizzle-orm";
 import {
     Activity,
-    AlertCircle,
-    CheckCircle2,
-    Clock,
+    ArrowRight,
+    CalendarDays,
     CreditCard,
     DollarSign,
     FileText,
     GraduationCap,
-    TrendingUp,
-    UserPlus,
+    Plus,
     Users,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { DefaultSession } from "next-auth";
+import { db } from "@/lib/db";
+import { classes, classregistration, familybalance } from "@/lib/db/schema";
+import { formatCurrency, HIGHEST_GRADE, LOWEST_GRADE, monthAbbrevMap } from "@/lib/utils";
+import { threeSeasons } from "@/types/seasons.types";
+import { requireRole } from "@/server/auth/actions";
+import { selectFamilyName } from "@/server/billing/data";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import Logo from "@/components/logo";
 
-// --- Mock Data ---
-const SYSTEM_STATUS = {
-    semester: "Fall 2025",
-    status: "active", // options: 'active', 'setup', 'closed'
-    daysOpen: 14,
+const formatBillingDate = (date: string) => {
+    const dateObj = new Date(date);
+    const abbrev = monthAbbrevMap[dateObj.getMonth()];
+
+    let day = dateObj.getDate().toString();
+    if (day.length == 1) {
+        day = "0" + day;
+    }
+
+    return [abbrev + " " + day, dateObj.getFullYear()];
 };
 
-const HUD_DATA = {
-    // Left Side: Ops
-    studentsEnrolled: 342,
-    seatsAvailable: 58,
-    // Right Side: Finance
-    revenueCollected: 142500,
-    outstanding: 12400,
-    dailyRevenue: 4200,
-};
+const gradeToDisplay: Record<number, string> = {
+    [-1]: "Pre-K",
+    0: "KG",
+    1: "G1",
+    2: "G2",
+    3: "G3",
+    4: "G4",
+    5: "G5",
+    6: "G6",
+    7: "G7",
+    8: "G8",
+    9: "G9",
+    10: "G10",
+    11: "G11",
+    12: "G12",
+} as const;
 
-const CAPACITY_GRID = [
-    { grade: "KG", enrolled: 48, capacity: 50, status: "critical" },
-    { grade: "G1", enrolled: 45, capacity: 50, status: "warning" },
-    { grade: "G2", enrolled: 42, capacity: 50, status: "healthy" },
-    { grade: "G3", enrolled: 50, capacity: 50, status: "full" },
-    { grade: "G4", enrolled: 38, capacity: 50, status: "healthy" },
-    { grade: "G5", enrolled: 41, capacity: 50, status: "healthy" },
-];
-
-const RECENT_PAYMENTS = [
-    { id: "TX-901", family: "Wang Family", amount: 4800, time: "10m ago", method: "Wire" },
-    { id: "TX-902", family: "Smith Family", amount: 250, time: "45m ago", method: "CC" },
-    { id: "TX-903", family: "Chen Family", amount: 1200, time: "1h ago", method: "Check" },
-    { id: "TX-904", family: "Kumar Family", amount: 250, time: "2h ago", method: "CC" },
-];
-
-const MIXED_TRIAGE = [
-    {
-        id: 1,
-        category: "ops",
-        title: "New Registration",
-        desc: "Lisa M. (G5) pending approval",
-        priority: "high",
-        icon: UserPlus,
-    },
-    {
-        id: 2,
-        category: "finance",
-        title: "Partial Payment",
-        desc: "Wu Family requests approval",
-        priority: "medium",
-        icon: DollarSign,
-    },
-    {
-        id: 3,
-        category: "ops",
-        title: "Waitlist Movement",
-        desc: "2 spots opened in G3",
-        priority: "low",
-        icon: Clock,
-    },
-    {
-        id: 4,
-        category: "finance",
-        title: "Failed Auto-Pay",
-        desc: "3 families (Overnight)",
-        priority: "high",
-        icon: AlertCircle,
-    },
-];
-
-const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
-    }).format(amount);
-
-export default function ExecutiveDigest() {
+function NoSeasonState({ user }: { user: DefaultSession["user"] }) {
     return (
-        <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8 font-serif">
-            <div className="mx-auto max-w-7xl space-y-8">
-                {/* 1. Header & Status Context */}
-                <header className="border-border flex items-start justify-between border-b pb-4">
-                    <div className="space-y-1">
-                        <h1 className="text-foreground text-3xl font-semibold tracking-tight">
-                            Welcome, user
-                        </h1>
-                        <div className="flex items-center gap-3 font-sans text-sm">
-                            <span className="text-muted-foreground font-bold">
-                                {SYSTEM_STATUS.semester}
-                            </span>
-                            <div className="bg-border h-3 w-px"></div>
+        <div className="bg-background relative flex min-h-screen w-full flex-col font-sans">
+            <div className="-mt-20 flex flex-1 flex-col items-center justify-center space-y-6 p-6 text-center">
+                <Logo />
+                <div className="max-w-md space-y-2">
+                    <h2 className="text-2xl text-[var(--brand-navy)]">
+                        Welcome {user?.name?.split(" ")[0] ?? "Admin"}
+                    </h2>
+                    <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+                        There is no active semester currently in session. <br />
+                        Initialize a new term to begin enrollment.
+                    </p>
+                </div>
 
-                            {/* Status Badge */}
-                            <div
-                                className={cn(
-                                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-black tracking-wider uppercase",
-                                    SYSTEM_STATUS.status === "active"
-                                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
-                                        : "border-amber-500/20 bg-amber-500/10 text-amber-600"
-                                )}
-                            >
-                                <div
-                                    className={cn(
-                                        "h-1.5 w-1.5 animate-pulse rounded-full",
-                                        SYSTEM_STATUS.status === "active"
-                                            ? "bg-emerald-500"
-                                            : "bg-amber-500"
-                                    )}
-                                ></div>
-                                {SYSTEM_STATUS.status === "active"
-                                    ? "Registration Open"
-                                    : "System Paused"}
+                {/* Minimal Action */}
+                <button className="group flex items-center gap-2 border-b border-[var(--brand-navy)] pb-0.5 text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase transition-all hover:border-[var(--brand-gold)] hover:text-[var(--brand-gold)]">
+                    <Plus size={14} />
+                    <Link href="/admin/management/semester">Initialize Semester</Link>
+                    <ArrowRight
+                        size={14}
+                        className="-ml-2 opacity-0 transition-all duration-300 group-hover:ml-0 group-hover:opacity-100"
+                    />
+                </button>
+            </div>
+        </div>
+    );
+}
+
+export default async function HomePage() {
+    const user = await requireRole(["ADMIN"]);
+    let lastSeason: threeSeasons | undefined;
+    try {
+        const res = await fetchCurrentSeasons();
+        lastSeason = res;
+    } catch {
+        return <NoSeasonState user={user.user} />;
+    }
+
+    const recentActivity = await db.query.familybalance.findMany({
+        limit: 5,
+        orderBy: (fb, { desc }) => desc(fb.balanceid),
+        where: (fb, { eq }) => eq(fb.seasonid, lastSeason.year.seasonid),
+        with: {
+            family: {
+                columns: {
+                    fatherlasten: true,
+                    fatherfirsten: true,
+                    fathernamecn: true,
+                    motherlasten: true,
+                    motherfirsten: true,
+                    mothernamecn: true,
+                },
+            },
+        },
+    });
+
+    const grades = Array.from(
+        { length: HIGHEST_GRADE - LOWEST_GRADE + 1 },
+        (_, i) => LOWEST_GRADE + i
+    );
+    const results = await db
+        .select({
+            grade: classes.classno,
+            count: count(),
+        })
+        .from(classregistration)
+        .innerJoin(classes, eq(classregistration.classid, classes.classid))
+        .where(
+            and(
+                eq(classregistration.seasonid, lastSeason.year.seasonid),
+                between(classes.classno, LOWEST_GRADE.toString(), HIGHEST_GRADE.toString()) // Should still work
+            )
+        )
+        .groupBy(classes.classno);
+
+    let totalCount = 0;
+    const countsByGrade = new Map(results.map((r) => [Number(r.grade), r.count]));
+    const finalCount = grades.map((grade) => {
+        totalCount += countsByGrade.get(grade) || 0;
+        return {
+            grade,
+            count: countsByGrade.get(grade) || 0,
+        };
+    });
+
+    const isSpring = lastSeason.spring.status === "Active";
+
+    // Collected
+    const result = await db
+        .select({ total: sum(familybalance.totalamount) })
+        .from(familybalance)
+        .where(
+            and(
+                eq(familybalance.seasonid, lastSeason.year.seasonid),
+                gt(familybalance.totalamount, "0")
+            )
+        );
+
+    const collectedRevenue = Number(result[0].total ?? 0);
+
+    return (
+        <div className="min-h-screen w-full p-6 md:p-10">
+            <div className="mx-auto max-w-7xl space-y-10">
+                {/* 1. HEADER: The Letterhead */}
+                <header className="flex flex-col justify-between gap-4 border-b border-[var(--brand-brass)]/20 pb-6 md:flex-row md:items-end">
+                    <div className="space-y-2">
+                        <h1 className="text-4xl font-medium tracking-tight text-[var(--brand-navy)]">
+                            Welcome, {user.user.name?.split(" ")[0] ?? "Administrator"}
+                        </h1>
+                        <div className="flex items-center gap-3 text-sm tracking-wide">
+                            <span className="text-xs font-semibold tracking-widest text-[var(--brand-brass)] uppercase">
+                                {isSpring
+                                    ? lastSeason.spring.seasonnamecn
+                                    : lastSeason.fall.seasonnamecn}
+                            </span>
+                            <span className="text-[var(--border)]">|</span>
+                            <div className="flex items-center gap-2 rounded-full border border-[var(--brand-navy)]/10 bg-[var(--brand-navy)]/5 px-2 py-0.5">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--brand-gold)] opacity-75"></span>
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--brand-gold)]"></span>
+                                </span>
+                                <span className="text-[10px] font-bold text-[var(--brand-navy)] uppercase">
+                                    Session Active
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-muted-foreground mb-1 text-xs font-black tracking-widest uppercase">
-                            Current Period
-                        </p>
-                        <p className="font-sans text-sm font-medium">
-                            Day {SYSTEM_STATUS.daysOpen} of Enrollment
-                        </p>
+
+                    <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-white/50 px-3 py-1.5 text-[var(--muted-foreground)]">
+                        <CalendarDays size={14} />
+                        <span className="text-xs font-medium tracking-wider uppercase">
+                            Day {} of Semester
+                        </span>
                     </div>
                 </header>
 
-                {/* 2. The "Dual-Pulse" HUD - Operations vs Finance */}
-                <section className="bg-card border-border flex flex-col overflow-hidden rounded-xl border shadow-sm md:flex-row">
-                    {/* LEFT: Operations (People) */}
-                    <div className="border-border group relative flex-1 border-b p-6 md:border-r md:border-b-0">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-                            <Users size={80} />
+                {/* 2. HUD: The "Dual-Pulse" Cards */}
+                <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* LEFT: Enrollment (Navy Accent) */}
+                    <div className="group relative overflow-hidden rounded-xl border border-t-4 border-[var(--border)] border-t-[var(--brand-navy)] bg-white p-6 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.05)]">
+                        <div className="mb-4 flex items-start justify-between">
+                            <div className="flex items-center gap-2 text-[var(--brand-navy)]">
+                                <GraduationCap size={18} />
+                                <span className="text-xs font-bold tracking-widest uppercase">
+                                    Total Enrollment
+                                </span>
+                            </div>
+                            <Users
+                                className="text-[var(--brand-navy)] opacity-10 transition-transform duration-500 group-hover:scale-110"
+                                size={48}
+                            />
                         </div>
-                        <div className="text-primary mb-4 flex items-center gap-2">
-                            <GraduationCap size={18} />
-                            <span className="text-xs font-black tracking-widest uppercase">
-                                Enrollment Pulse
+                        <div>
+                            <span className="block text-6xl font-medium tracking-tighter text-[var(--brand-navy)] tabular-nums">
+                                {totalCount}
                             </span>
-                        </div>
-                        <div className="flex items-baseline gap-4">
-                            <span className="text-foreground text-5xl font-bold tracking-tight tabular-nums">
-                                {HUD_DATA.studentsEnrolled}
+                            <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                                Active students registered
                             </span>
-                            <span className="text-muted-foreground font-sans text-sm font-medium">
-                                Students Confirmed
-                            </span>
-                        </div>
-                        <div className="text-muted-foreground mt-4 flex items-center gap-2 font-sans text-sm">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                            {HUD_DATA.seatsAvailable} seats remaining for Fall
                         </div>
                     </div>
 
-                    {/* RIGHT: Finance (Money) */}
-                    <div className="group relative flex-1 p-6">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 transition-opacity group-hover:opacity-10">
-                            <DollarSign size={80} />
+                    {/* RIGHT: Revenue (Gold Accent) */}
+                    <div className="group relative overflow-hidden rounded-xl border border-t-4 border-[var(--border)] border-t-[var(--brand-gold)] bg-white p-6 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.05)]">
+                        <div className="mb-4 flex items-start justify-between">
+                            <div className="flex items-center gap-2 text-[var(--brand-brass)]">
+                                <CreditCard size={18} />
+                                <span className="text-xs font-bold tracking-widest uppercase">
+                                    Revenue Collected
+                                </span>
+                            </div>
+                            <DollarSign
+                                className="text-[var(--brand-gold)] opacity-20 transition-transform duration-500 group-hover:scale-110"
+                                size={48}
+                            />
                         </div>
-                        <div className="text-secondary mb-4 flex items-center gap-2">
-                            <CreditCard size={18} />
-                            <span className="text-xs font-black tracking-widest uppercase">
-                                Revenue Pulse
+                        <div>
+                            <span className="block text-6xl font-medium tracking-tighter text-[var(--brand-navy)] tabular-nums">
+                                {formatCurrency(collectedRevenue).replace(".00", "")}
                             </span>
-                        </div>
-                        <div className="flex items-baseline gap-4">
-                            <span className="text-foreground text-5xl font-bold tracking-tight tabular-nums">
-                                {formatCurrency(HUD_DATA.revenueCollected)}
-                            </span>
-                            <span className="text-muted-foreground font-sans text-sm font-medium">
-                                Collected YTD
-                            </span>
-                        </div>
-                        <div className="mt-4 flex items-center gap-4 font-sans text-sm">
-                            <span className="flex items-center gap-1 font-bold text-emerald-600">
-                                <TrendingUp size={14} /> +{formatCurrency(HUD_DATA.dailyRevenue)}{" "}
-                                Today
-                            </span>
-                            <span className="text-muted-foreground">
-                                {formatCurrency(HUD_DATA.outstanding)} Outstanding
+                            <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                                Net collection year-to-date
                             </span>
                         </div>
                     </div>
                 </section>
 
-                {/* 3. Main Content Grid */}
+                {/* 3. MAIN GRID: Capacity & Ledger */}
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
-                    {/* LEFT COLUMN (2/3 width) */}
-                    <div className="space-y-8 lg:col-span-2">
-                        {/* A. Capacity Heatmap (Ops) */}
-                        <section>
-                            <div className="mb-4 flex items-center justify-between px-1">
-                                <h2 className="text-foreground flex items-center gap-2 text-lg font-bold">
-                                    <Activity size={18} className="text-primary" /> Class Capacity
-                                    Map
+                    {/* A. Capacity Heatmap (2/3 width) */}
+                    <div className="space-y-4 lg:col-span-2">
+                        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
+                            <div>
+                                <Activity size={16} className="text-[var(--brand-navy)]" />
+                                <h2 className="text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase">
+                                    Class Distribution
                                 </h2>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                                {CAPACITY_GRID.map((item, index) => {
-                                    const percentage = Math.round(
-                                        (item.enrolled / item.capacity) * 100
-                                    );
-                                    let colorClass = "bg-primary";
-                                    if (item.status === "critical" || item.status === "full")
-                                        colorClass = "bg-destructive";
-                                    if (item.status === "warning") colorClass = "bg-secondary";
-                                    if (item.status === "healthy") colorClass = "bg-emerald-500";
+                            <div>
+                                <Link
+                                    href="/admin/management/semester"
+                                    className="text-[10px] font-bold tracking-widest text-[var(--brand-brass)] uppercase transition-colors hover:text-[var(--brand-navy)]"
+                                >
+                                    View More
+                                </Link>
+                            </div>
+                        </div>
 
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="bg-card border-border relative overflow-hidden rounded-lg border p-4 shadow-sm transition-all hover:shadow-md"
-                                        >
-                                            <div className="mb-2 flex items-baseline justify-between">
-                                                <span className="text-foreground font-serif text-xl font-bold">
-                                                    {item.grade}
-                                                </span>
-                                                <span
-                                                    className={cn(
-                                                        "rounded px-1.5 py-0.5 text-xs font-black tracking-wider uppercase",
-                                                        item.status === "full"
-                                                            ? "bg-destructive/10 text-destructive"
-                                                            : "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {item.status === "full"
-                                                        ? "Full"
-                                                        : `${percentage}%`}
-                                                </span>
-                                            </div>
-                                            <div className="bg-muted mb-2 h-1.5 w-full overflow-hidden rounded-full">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                            {finalCount.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="group rounded-lg border border-[var(--border)] bg-white p-4 transition-all duration-200 hover:border-[var(--brand-gold)] hover:shadow-sm"
+                                >
+                                    <div className="flex h-full flex-col justify-between">
+                                        <span className="mb-2 text-2xl font-medium text-[var(--brand-navy)] transition-colors group-hover:text-[var(--brand-brass)]">
+                                            {gradeToDisplay[item.grade]}
+                                        </span>
+                                        <div className="space-y-2">
+                                            {/* Subtle visual bar */}
+                                            {/* <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--muted)]">
                                                 <div
-                                                    className={cn(
-                                                        "h-full rounded-full",
-                                                        colorClass
-                                                    )}
-                                                    style={{ width: `${percentage}%` }}
+                                                    className="h-full rounded-full bg-[var(--brand-navy)] opacity-80"
+                                                    style={{ width: "40%" }}
                                                 ></div>
-                                            </div>
-                                            <div className="text-muted-foreground font-sans text-xs">
-                                                <strong className="text-foreground">
-                                                    {item.enrolled}
-                                                </strong>{" "}
-                                                / {item.capacity} Students
-                                            </div>
+                                            </div> */}
+                                            <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                                                {item.count} Students
+                                            </span>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-                        {/* B. Live Ledger Feed (Finance) */}
-                        <section className="bg-muted/20 border-border overflow-hidden rounded-xl border">
-                            <div className="border-border bg-card flex items-center justify-between border-b px-6 py-4">
-                                <h2 className="text-foreground flex items-center gap-2 text-sm font-bold tracking-wide">
-                                    <FileText size={16} className="text-secondary" /> Recent
-                                    Transactions
+                    {/* B. Live Ledger (1/3 width) */}
+                    <div className="space-y-4 lg:col-span-1">
+                        <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+                            <div className="flex items-center gap-2">
+                                <FileText size={16} className="text-[var(--brand-brass)]" />
+                                <h2 className="text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase">
+                                    Ledger
                                 </h2>
-                                <button className="text-muted-foreground hover:text-foreground text-[10px] font-black tracking-widest uppercase">
-                                    View Ledger
-                                </button>
                             </div>
-                            <div className="bg-card divide-border divide-y">
-                                {RECENT_PAYMENTS.map((tx, i) => (
+                            <Link
+                                href="/admin/billing"
+                                className="text-[10px] font-bold tracking-widest text-[var(--brand-brass)] uppercase transition-colors hover:text-[var(--brand-navy)]"
+                            >
+                                View All
+                            </Link>
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm">
+                            <div className="divide-y divide-[var(--border)]">
+                                {recentActivity.map((tx, i) => (
                                     <div
                                         key={i}
-                                        className="hover:bg-muted/30 flex items-center justify-between px-6 py-3 transition-colors"
+                                        className="group flex items-center justify-between p-4 transition-colors hover:bg-[var(--brand-parchment)]"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">
-                                                $
-                                            </div>
-                                            <div>
-                                                <div className="text-foreground text-sm font-bold">
-                                                    {tx.family}
-                                                </div>
-                                                <div className="text-muted-foreground font-sans text-xs">
-                                                    {tx.method} • {tx.id}
-                                                </div>
-                                            </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-[var(--brand-navy)]">
+                                                {selectFamilyName(tx.family)}
+                                            </p>
+                                            <p className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] uppercase">
+                                                REF: {tx.balanceid}
+                                            </p>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-sm font-bold text-emerald-700 tabular-nums">
-                                                +{formatCurrency(tx.amount)}
-                                            </div>
-                                            <div className="text-muted-foreground font-sans text-[10px]">
-                                                {tx.time}
-                                            </div>
+                                            <p className="font-mono text-sm font-medium text-[var(--brand-navy)]">
+                                                +{formatCurrency(Number(tx.totalamount))}
+                                            </p>
+                                            <p className="text-[10px] text-[var(--muted-foreground)]">
+                                                {formatBillingDate(tx.lastmodify).join(" ")}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
+                                {recentActivity.length === 0 && (
+                                    <div className="p-8 text-center text-sm text-[var(--muted-foreground)] italic">
+                                        No recent transactions
+                                    </div>
+                                )}
                             </div>
-                        </section>
-                    </div>
-
-                    {/* RIGHT COLUMN (1/3 width): The "Triage" Sidebar */}
-                    <div className="space-y-6 lg:col-span-1">
-                        <section className="bg-card border-border sticky top-6 overflow-hidden rounded-xl border shadow-sm">
-                            <div className="border-border bg-muted/50 border-b p-5">
-                                <h2 className="text-foreground flex items-center gap-2 text-sm font-bold tracking-wide">
-                                    <CheckCircle2 size={16} className="text-primary" /> Triage
-                                    Required
-                                </h2>
-                                <p className="text-muted-foreground mt-1 font-sans text-xs">
-                                    Items requiring manual review
-                                </p>
+                            <div className="border-t border-[var(--border)] bg-[var(--muted)]/30 p-2 text-center">
+                                <span className="text-[10px] font-medium tracking-widest text-[var(--muted-foreground)] uppercase">
+                                    Real-time Data
+                                </span>
                             </div>
-                            <div className="divide-border divide-y font-sans">
-                                {MIXED_TRIAGE.map((task) => (
-                                    <button
-                                        key={task.id}
-                                        className="hover:bg-muted/40 group w-full p-4 text-left transition-colors"
-                                    >
-                                        <div className="mb-1 flex items-start justify-between">
-                                            <span
-                                                className={cn(
-                                                    "rounded border px-1.5 py-0.5 text-[10px] font-black tracking-wider uppercase",
-                                                    task.category === "finance"
-                                                        ? "bg-secondary/10 text-secondary border-secondary/20"
-                                                        : "bg-primary/10 text-primary border-primary/20"
-                                                )}
-                                            >
-                                                {task.category === "finance" ? "Finance" : "Ops"}
-                                            </span>
-                                            {task.priority === "high" && (
-                                                <span className="bg-destructive h-2 w-2 animate-pulse rounded-full"></span>
-                                            )}
-                                        </div>
-                                        <h3 className="text-foreground group-hover:text-primary mt-2 text-sm font-bold transition-colors">
-                                            {task.title}
-                                        </h3>
-                                        <p className="text-muted-foreground mt-1 text-xs">
-                                            {task.desc}
-                                        </p>
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="bg-muted/20 border-border border-t p-4">
-                                <button className="bg-foreground text-background w-full rounded py-2 text-xs font-bold tracking-wider uppercase transition-opacity hover:opacity-90">
-                                    Process Queue (4)
-                                </button>
-                            </div>
-                        </section>
-
-                        {/* Secondary Actions */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <button className="bg-muted/30 border-border hover:bg-card hover:border-primary/30 group rounded-lg border p-4 text-left transition-all">
-                                <UserPlus
-                                    size={20}
-                                    className="text-muted-foreground group-hover:text-primary mb-2 transition-colors"
-                                />
-                                <div className="text-foreground text-xs font-bold">Add Student</div>
-                            </button>
-                            <button className="bg-muted/30 border-border hover:bg-card hover:border-secondary/30 group rounded-lg border p-4 text-left transition-all">
-                                <DollarSign
-                                    size={20}
-                                    className="text-muted-foreground group-hover:text-secondary mb-2 transition-colors"
-                                />
-                                <div className="text-foreground text-xs font-bold">Record Pay</div>
-                            </button>
                         </div>
                     </div>
                 </div>
