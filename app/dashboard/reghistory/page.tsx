@@ -3,6 +3,7 @@ import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
+import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
 import HistoricRegistrations from "@/components/registration/family/historic_registrations";
 
 export default async function RegistrationHistory() {
@@ -109,25 +110,26 @@ export default async function RegistrationHistory() {
         return niceArrObj;
     };
 
-    const enhancedReg = await Promise.all(
+    const enhancedReg = Promise.all(
         historicRegistrations.map(async (r) => {
             const arrangement = await getNiceArrInfo(r);
             return arrangement;
         })
-    );
+    ).then((results) => {
+        // This runs automatically once the data is ready
+        return results.filter((r) => r.arrinfo !== undefined);
+    });
 
-    const students = await db.query.student.findMany({
+    const students = db.query.student.findMany({
         where: (s, { eq }) => eq(s.familyid, userFamily.familyid),
     });
 
     return (
-        <Suspense
-            fallback={<div className="py-8 text-center">Loading registration history...</div>}
-        >
+        <Suspense fallback={<TableSkeleton />}>
             <HistoricRegistrations
-                registrations={enhancedReg.filter((r) => r.arrinfo !== undefined)}
+                fetchedRegistrations={enhancedReg}
                 // family={userFamily}
-                students={students}
+                fetchedStudents={students}
             />
         </Suspense>
     );
