@@ -5,7 +5,20 @@ import { type threeSeasons } from "@/types/seasons.types";
 import { type dbClient } from "@/types/server.types";
 import { type uiClasses } from "@/types/shared.types";
 
-export default async function getThreeSeasons(client: dbClient = db) {
+// /**
+//  * @error Will first check if the given seasonid corresponds to the old season. Only checks ONE METHOD
+//  * @returns the seasons in the old academic year
+//  */
+// // For the old academic year model
+// export default async function fetchLegacySeason(seasonid: number) {
+
+// }
+
+// // For new academic year model
+// export default async function fetchSeason(seasonid: number) {}
+// export default async function fetchLastSeason();
+
+export default async function fetchCurrentSeasons(client: dbClient = db) {
     return await client.transaction(async (tx) => {
         const year = await tx.query.seasons.findFirst({
             where: (s, { eq }) => eq(s.status, "Active"),
@@ -21,11 +34,11 @@ export default async function getThreeSeasons(client: dbClient = db) {
             orderBy: (s, { asc }) => asc(s.seasonid),
         });
 
-        // if (!fall || !spring) {
-        //     throw new Error(
-        //         "Error occurred in season fetch. Could not find fall or spring semester"
-        //     );
-        // }
+        if (!fall || !spring) {
+            throw new Error(
+                "Error occurred in season fetch. Could not find fall or spring semester"
+            );
+        }
 
         return { year, fall, spring } satisfies threeSeasons;
     });
