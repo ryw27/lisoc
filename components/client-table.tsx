@@ -1,19 +1,19 @@
 "use client";
 
 import { flexRender, type Table } from "@tanstack/react-table";
-import { cn, monthAbbrevMap } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
-const formatDate = (date: string) => {
-    const dateObj = new Date(date);
-    const abbrev = monthAbbrevMap[dateObj.getMonth()];
+// const formatDate = (date: string) => {
+//     const dateObj = new Date(date);
+//     const abbrev = monthAbbrevMap[dateObj.getMonth()];
 
-    let day = dateObj.getDate().toString();
-    if (day.length == 1) {
-        day = "0" + day;
-    }
+//     let day = dateObj.getDate().toString();
+//     if (day.length == 1) {
+//         day = "0" + day;
+//     }
 
-    return [abbrev + " " + day, dateObj.getFullYear()];
-};
+//     return [abbrev + " " + day, dateObj.getFullYear()];
+// };
 
 export function ClientTable<RowShape>({ table }: { table: Table<RowShape> }) {
     return (
