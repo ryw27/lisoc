@@ -1,6 +1,34 @@
 import { db } from "@/lib/db";
 import { billingJoin, BillingRow, BillingSummary, FamilyRow } from "@/types/billing.types";
 
+export function selectFamilyName(names: {
+    fatherlasten: string | null;
+    fatherfirsten: string | null;
+    motherlasten: string | null;
+    motherfirsten: string | null;
+    fathernamecn: string | null;
+    mothernamecn: string | null;
+}) {
+    const cnName = [names.fathernamecn?.trim(), names.mothernamecn?.trim()]
+        .filter(Boolean)
+        .filter(Boolean)
+        .join("-");
+    if (cnName) return cnName;
+
+    // Doesn't join with a space if there is only one element
+    const getFullName = (first: string | null, last: string | null) =>
+        [first?.trim(), last?.trim()].filter(Boolean).join(" ");
+
+    const enName = [
+        getFullName(names.fatherfirsten, names.fatherlasten),
+        getFullName(names.motherfirsten, names.motherlasten),
+    ]
+        .filter(Boolean)
+        .join("-");
+
+    return enName.trim() ?? "Unknown";
+}
+
 export async function getLedgerData(sid: number): Promise<{
     familyRows: FamilyRow[];
     globalRows: BillingRow[];
@@ -40,34 +68,6 @@ export async function getLedgerData(sid: number): Promise<{
             orderBy: (fbrow, { desc }) => desc(fbrow.lastmodify),
         });
 
-        const selectFamilyName = (names: {
-            fatherlasten: string | null;
-            fatherfirsten: string | null;
-            motherlasten: string | null;
-            motherfirsten: string | null;
-            fathernamecn: string | null;
-            mothernamecn: string | null;
-        }) => {
-            const cnName = [names.fathernamecn?.trim(), names.mothernamecn?.trim()]
-                .filter(Boolean)
-                .filter(Boolean)
-                .join("-");
-            if (cnName) return cnName;
-
-            // Doesn't join with a space if there is only one element
-            const getFullName = (first: string | null, last: string | null) =>
-                [first?.trim(), last?.trim()].filter(Boolean).join(" ");
-
-            const enName = [
-                getFullName(names.fatherfirsten, names.fatherlasten),
-                getFullName(names.motherfirsten, names.motherlasten),
-            ]
-                .filter(Boolean)
-                .join("-");
-
-            return enName.trim() ?? "Unknown";
-        };
-
         const calculatePaid = (row: billingJoin) => {
             return -Math.min(Number(row.totalamount), 0);
         };
@@ -88,9 +88,6 @@ export async function getLedgerData(sid: number): Promise<{
         let unknownCount = 0;
         for (let i = 0; i < fbdata.length; i++) {
             const row = fbdata[i];
-            if (row.familyid === 1013) {
-                console.log(row);
-            }
 
             // Calculate money
             const amtPaid = calculatePaid(row);
