@@ -718,7 +718,7 @@ function FamilyTable({
                                                                                     : "text-red-800"
                                                                             )}
                                                                         >
-                                                                            {tx.amount > 0
+                                                                            {tx.amount >= 0
                                                                                 ? "+"
                                                                                 : ""}
                                                                             {formatCurrency(
