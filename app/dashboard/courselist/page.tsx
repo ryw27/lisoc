@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireRole } from "@/server/auth/actions";
-import getThreeSeasons from "@/server/seasons/data";
+import fetchCurrentSeasons from "@/server/seasons/data";
 import InfoBoxClass from "@/components/registration/family/info-box-class";
 
 export default async function CourseListPage() {
     await requireRole(["FAMILY"]);
 
     return await db.transaction(async (tx) => {
-        const seasons = await getThreeSeasons(tx);
+        const seasons = await fetchCurrentSeasons(tx);
 
         const yearArrangements = await db.query.arrangement.findMany({
             where: (arrangement, { and, eq }) =>

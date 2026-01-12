@@ -97,6 +97,8 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
     ) => {
         setValue(`classes.${idx}.${field}`, value, { shouldValidate: true });
     };
+    const inputStyles =
+        "col-span-1 w-full border-input rounded-none focus:ring-accent focus:border-accent shadow-none";
 
     const wholeYearFields = (
         <div className="grid grid-cols-3 gap-4">
@@ -105,7 +107,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="tuitionW"
                 label="Tuition (Year)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
             <LabeledInput
@@ -113,7 +115,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="bookfeeW"
                 label="Book Fee (Year)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
             <LabeledInput
@@ -121,7 +123,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="specialfeeW"
                 label="Special Fee (Year)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
         </div>
@@ -134,7 +136,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="tuitionH"
                 label="Tuition (Half)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
             <LabeledInput
@@ -142,7 +144,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="bookfeeH"
                 label="Book Fee (Half)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
             <LabeledInput
@@ -150,7 +152,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                 name="specialfeeH"
                 label="Special Fee (Half)"
                 type="number"
-                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                inputClassName={inputStyles}
                 required
             />
         </div>
@@ -163,7 +165,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
             render={({ field }) => (
                 <div className="flex flex-col gap-1">
                     <label
-                        className="mb-2 block text-sm font-bold text-gray-400"
+                        className="text-muted-foreground mb-2 block text-sm font-bold"
                         htmlFor={`${idx}-term`}
                     >
                         Semester Term
@@ -172,10 +174,10 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                         value={field.value?.toString() || ""}
                         onValueChange={(val) => setField("term", val)}
                     >
-                        <SelectTrigger className="w-full items-center rounded-md border-gray-300 shadow-sm focus:ring-blue-500">
+                        <SelectTrigger className="border-input focus:ring-accent w-full items-center rounded-none shadow-none">
                             <SelectValue placeholder="Select term" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="border-input rounded-none bg-white">
                             <SelectItem key="SPRING TERM" value="SPRING">
                                 Spring
                             </SelectItem>
@@ -196,7 +198,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
             render={({ field }) => (
                 <div className="flex flex-col gap-1">
                     <label
-                        className="mb-2 block text-sm font-bold text-gray-400"
+                        className="text-muted-foreground mb-2 block text-sm font-bold"
                         htmlFor={`${idx}-timeid`}
                     >
                         Class Time
@@ -205,10 +207,10 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                         value={field.value?.toString() || ""}
                         onValueChange={(val) => setField("timeid", Number(val))}
                     >
-                        <SelectTrigger className="w-full items-center rounded-md border-gray-300 shadow-sm focus:ring-blue-500">
+                        <SelectTrigger className="border-input focus:ring-accent w-full items-center rounded-none shadow-none">
                             <SelectValue placeholder="Select time" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="border-input rounded-none bg-white">
                             {selectOptions.times.map((c) => (
                                 <SelectItem
                                     key={`${idx}-${c.timeid}-${c.period}`}
@@ -236,10 +238,10 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
               Number(classValues.specialfeeH);
 
     return (
-        <div className="flex flex-col">
+        <div className="border-border/50 mb-6 flex flex-col border-b pb-6 last:border-0">
             {/* Editing */}
             {isEditing ? (
-                <div className="flex flex-col gap-4">
+                <div className="bg-background border-input flex flex-col gap-4 border p-4 shadow-sm">
                     {/* Class select */}
                     <div>
                         <Controller
@@ -247,17 +249,17 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                             name={`classes.${idx}.classid`}
                             render={({ field }) => (
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-bold text-gray-600">
+                                    <label className="text-foreground text-sm font-bold">
                                         Class Name
                                     </label>
                                     <Select
                                         value={field.value?.toString() || ""}
                                         onValueChange={(val) => setField("classid", Number(val))}
                                     >
-                                        <SelectTrigger className="w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500">
+                                        <SelectTrigger className="border-input focus:ring-accent w-full rounded-none shadow-none">
                                             <SelectValue placeholder="Select a class" />
                                         </SelectTrigger>
-                                        <SelectContent className="max-h-60 overflow-y-auto">
+                                        <SelectContent className="border-input max-h-60 overflow-y-auto rounded-none bg-white">
                                             {selectOptions.classes.map((c) => (
                                                 <SelectItem
                                                     key={c.classid}
@@ -280,7 +282,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                             name={`classes.${idx}.suitableterm`}
                             render={({ field }) => (
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-gray-600">
+                                    <label className="text-muted-foreground text-sm font-medium">
                                         Suitable Term
                                     </label>
                                     <Select
@@ -289,10 +291,10 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                             setField("suitableterm", Number(val))
                                         }
                                     >
-                                        <SelectTrigger className="w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500">
+                                        <SelectTrigger className="border-input focus:ring-accent w-full rounded-none shadow-none">
                                             <SelectValue placeholder="Select term" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="border-input rounded-none bg-white">
                                             {selectOptions.terms.map((t) => (
                                                 <SelectItem
                                                     key={t.termno}
@@ -324,7 +326,7 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                     name="agelimit"
                                     label="Age Limit"
                                     type="number"
-                                    inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                                    inputClassName={inputStyles}
                                     required
                                 />
                                 {termSelect}
@@ -338,21 +340,14 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                 name="agelimit"
                                 label="Age Limit"
                                 type="number"
-                                inputClassName="col-span-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500"
+                                inputClassName={inputStyles}
                                 required
                             />
                             {timeSelect}
                         </div>
                     )}
 
-                    {/* <LabeledInput
-                        idx={idx}
-                        name="seatlimit"
-                        label="Seat Limit"
-                        type="number"
-                        required
-                    /> */}
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6 pt-2">
                         {/* Waive Registration Fee */}
                         <div className="col-span-1 flex items-center gap-2">
                             <Controller
@@ -364,11 +359,11 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                             type="checkbox"
                                             checked={!!field.value}
                                             onChange={(e) => field.onChange(e.target.checked)}
-                                            className="h-4 w-4 rounded-md border-gray-300 shadow-sm focus:ring-blue-500"
+                                            className="border-input text-primary focus:ring-accent h-4 w-4 rounded-none shadow-none"
                                         />
                                         <label
                                             htmlFor={`${idx}-waiveregfee`}
-                                            className="text-sm font-medium text-gray-600 select-none"
+                                            className="text-foreground text-sm font-medium select-none"
                                         >
                                             Waive Registration Fee
                                         </label>
@@ -387,11 +382,11 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                             type="checkbox"
                                             checked={!!field.value}
                                             onChange={(e) => field.onChange(e.target.checked)}
-                                            className="h-4 w-4"
+                                            className="border-input text-primary focus:ring-accent h-4 w-4 rounded-none shadow-none"
                                         />
                                         <label
                                             htmlFor={`${idx}-closeregistration`}
-                                            className="text-sm font-medium text-gray-600 select-none"
+                                            className="text-foreground text-sm font-medium select-none"
                                         >
                                             Close Registration
                                         </label>
@@ -408,16 +403,16 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                 value={field.value ?? ""}
                                 onChange={(e) => field.onChange(e.target.value)}
                                 placeholder="Enter any notes or remarks for this class"
-                                className="col-span-1 min-h-[60px] w-full resize-y rounded-md border-gray-300 shadow-sm focus:ring-blue-500"
+                                className="border-input focus:ring-accent col-span-1 min-h-[60px] w-full resize-y rounded-none shadow-none"
                             />
                         )}
                     />
 
                     {/* Edit buttons */}
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex justify-end gap-2">
                         <button
                             type="button"
-                            className="flex cursor-pointer items-center rounded-md border-1 border-gray-300 p-2 text-sm font-semibold hover:bg-gray-50"
+                            className="border-input hover:bg-muted flex cursor-pointer items-center rounded-none border px-4 py-2 text-sm font-semibold transition-colors"
                             onClick={() => setIsEditing(false)}
                         >
                             Cancel
@@ -426,12 +421,12 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                             <AlertDialogTrigger asChild>
                                 <button
                                     type="button"
-                                    className="flex cursor-pointer items-center gap-1 rounded-md bg-blue-600 p-2 text-sm font-semibold text-white hover:bg-blue-800"
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90 flex cursor-pointer items-center gap-1 rounded-none px-4 py-2 text-sm font-semibold shadow-sm transition-colors"
                                 >
                                     Save
                                 </button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="border-input rounded-none">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Confirm Changes</AlertDialogTitle>
                                     <AlertDialogDescription>
@@ -439,12 +434,14 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel className="rounded-none">
+                                        Cancel
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
                                         onClick={() => {
                                             setIsEditing(false);
                                         }}
-                                        className="cursor-pointer bg-blue-600 hover:bg-blue-700"
+                                        className="bg-primary hover:bg-primary/90 rounded-none"
                                     >
                                         Confirm
                                     </AlertDialogAction>
@@ -454,44 +451,45 @@ export default function SemesterClassBox({ idx, deleteSemClass }: classBoxProps)
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col">
-                    <div className="flex justify-between">
-                        <span className="font-semibold">
+                <div className="flex flex-col px-2 py-1">
+                    <div className="flex items-baseline justify-between">
+                        <span className="text-primary text-lg font-semibold">
                             {classMap[classValues?.classid]?.classnamecn || "Unnamed Class"}
                         </span>
-                        <span className="font-bold text-gray-600">${totalPrice}</span>
+                        <span className="text-foreground text-lg font-bold">${totalPrice}</span>
                     </div>
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground text-sm tracking-wide uppercase">
                         {termMap[classValues?.suitableterm]?.suitabletermcn || "No term"}
                     </span>
-                    <div className="flex justify-between">
-                        <span className="text-gray-600">
+                    <div className="mt-1 flex justify-between">
+                        <span className="text-foreground">
                             {classValues?.suitableterm === 2 ? classValues.term : "Full Year"}
                         </span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-4">
                             <button
                                 type="button"
-                                className="cursor-pointer text-gray-600 hover:text-blue-700"
+                                className="text-muted-foreground hover:text-accent cursor-pointer transition-colors"
                                 onClick={() => setIsEditing(true)}
                             >
                                 <Edit className="h-4 w-4" />
                             </button>
                             <button
                                 type="button"
-                                className="textgray-600 cursor-pointer hover:text-red-700"
+                                className="text-muted-foreground hover:text-destructive cursor-pointer transition-colors"
                                 onClick={() => deleteSemClass(idx)}
                             >
-                                <Trash className="h-4 w-4 font-bold" />
+                                <Trash className="h-4 w-4" />
                             </button>
                         </div>
                     </div>
-                    <div className="mt-1 flex">
+                    <div className="mt-2 flex">
                         <button
                             type="button"
-                            className="cursor-pointer text-gray-700 hover:text-gray-500"
+                            className="text-muted-foreground hover:text-primary flex cursor-pointer items-center gap-1 text-sm"
                             onClick={() => setIsExpanded(!isExpanded)}
                         >
                             <Info className="h-4 w-4" />
+                            {isExpanded ? "Hide Details" : "Show Details"}
                         </button>
                     </div>
 
@@ -510,66 +508,82 @@ function ExpandedClass({
     timeMap: Record<number, { period: string | null }>;
 }) {
     return (
-        <div className="mt-4 rounded-lg border bg-gray-50 p-3">
-            <h4 className="mb-2 font-semibold text-gray-700">Additional Details</h4>
-            <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="border-input bg-muted/20 mt-4 rounded-none border p-4 shadow-inner">
+            <h4 className="text-primary border-primary/20 mb-3 border-b pb-1 text-xs font-semibold tracking-wider uppercase">
+                Class Details
+            </h4>
+            <div className="grid grid-cols-3 gap-x-4 gap-y-3 text-sm">
                 {classValues.suitableterm !== 2 && (
                     <>
-                        <div>
-                            <span className="text-gray-600">Tuition (Whole Year):</span>
-                            <span className="ml-2 font-medium">${classValues.tuitionW || 0}</span>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Tuition (Year)</span>
+                            <span className="text-foreground font-medium">
+                                ${classValues.tuitionW || 0}
+                            </span>
                         </div>
-                        <div>
-                            <span className="text-gray-600">Book Fee (Whole Year):</span>
-                            <span className="ml-2 font-medium">${classValues.bookfeeW || 0}</span>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Book Fee (Year)</span>
+                            <span className="text-foreground font-medium">
+                                ${classValues.bookfeeW || 0}
+                            </span>
                         </div>
-                        <div>
-                            <span className="text-gray-600">Special Fee (Whole Year):</span>
-                            <span className="ml-2 font-medium">
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">
+                                Special Fee (Year)
+                            </span>
+                            <span className="text-foreground font-medium">
                                 ${classValues.specialfeeW || 0}
                             </span>
                         </div>
                     </>
                 )}
 
-                <div>
-                    <span className="text-gray-600">Tuition (Half Year):</span>
-                    <span className="ml-2 font-medium">${classValues.tuitionH || 0}</span>
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Tuition (Half)</span>
+                    <span className="text-foreground font-medium">
+                        ${classValues.tuitionH || 0}
+                    </span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Book Fee (Half Year):</span>
-                    <span className="ml-2 font-medium">${classValues.bookfeeH || 0}</span>
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Book Fee (Half)</span>
+                    <span className="text-foreground font-medium">
+                        ${classValues.bookfeeH || 0}
+                    </span>
                 </div>
 
-                <div>
-                    <span className="text-gray-600">Special Fee (Half Year):</span>
-                    <span className="ml-2 font-medium">${classValues.specialfeeH || 0}</span>
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Special Fee (Half)</span>
+                    <span className="text-foreground font-medium">
+                        ${classValues.specialfeeH || 0}
+                    </span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Age Limit:</span>
-                    <span className="ml-2 font-medium">{classValues.agelimit || 0}</span>
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Age Limit</span>
+                    <span className="text-foreground font-medium">{classValues.agelimit || 0}</span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Class Time:</span>
-                    <span className="ml-2 font-medium">
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Class Time</span>
+                    <span className="text-foreground font-medium">
                         {timeMap[classValues.timeid]?.period || "No Time"}
                     </span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Waive Registration Fee:</span>
-                    <span className="ml-2 font-medium">
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Waive Reg Fee</span>
+                    <span className="text-foreground font-medium">
                         {classValues.waiveregfee ? "Yes" : "No"}
                     </span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Close Registration:</span>
-                    <span className="ml-2 font-medium">
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Close Registration</span>
+                    <span className="text-foreground font-medium">
                         {classValues.closeregistration ? "Yes" : "No"}
                     </span>
                 </div>
-                <div>
-                    <span className="text-gray-600">Notes:</span>
-                    <span className="ml-2 font-medium">{classValues.notes || "No Notes"}</span>
+                <div className="border-primary/20 col-span-3 mt-2 flex flex-col border-t border-dashed pt-2">
+                    <span className="text-muted-foreground text-xs">Notes</span>
+                    <span className="text-foreground font-medium italic">
+                        {classValues.notes || "No Notes"}
+                    </span>
                 </div>
             </div>
         </div>

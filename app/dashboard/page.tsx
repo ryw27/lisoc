@@ -38,168 +38,217 @@ export default async function Dashboard() {
         balanceTotal = Number(tmp);
     }
 
+    const names = [
+        familyInfo.fatherfirsten?.trim() || familyInfo.fathernamecn?.trim(),
+        familyInfo.motherfirsten?.trim() || familyInfo.mothernamecn?.trim(),
+    ]
+        .filter(Boolean)
+        .join(" and ");
+
     return (
-        <div className="flex w-full flex-col gap-4">
-            <div className="container mx-auto mb-10 max-w-5xl text-3xl font-bold">
-                Welcome to the LISOC online registration system.
-            </div>
-            <div className="container mx-auto max-w-5xl rounded-md border-1 border-gray-300 p-8 shadow-md">
-                <div className="container mx-auto flex w-full flex-col items-center justify-center text-lg font-bold">
-                    家庭信息 Family Information
-                </div>
-                <div className="flex flex-col space-y-3">
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">
-                            Father / Legal Guardian:
-                        </label>
-                        <div>
-                            {`${familyInfo.fatherfirsten} ${familyInfo.fatherlasten} ${familyInfo.fathernamecn}`}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">
-                            Mother / Legal Guardian:
-                        </label>
-                        <div>
-                            {`${familyInfo?.motherfirsten} ${familyInfo.motherlasten} ${familyInfo.mothernamecn}`}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">Mailing Address:</label>
-                        <div>
-                            {`${userInfo.address}, ${userInfo.city}, ${userInfo.state} ${userInfo.zip}`}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">Phone:</label>
-                        <div className="flex flex-col gap-1">
-                            {userInfo.phone && <span>{userInfo.phone}</span>}
-                            {familyInfo.cellphone && (
-                                <span>{`${familyInfo.cellphone} (cell)`}</span>
-                            )}
-                            {familyInfo.officephone && (
-                                <span>{`${familyInfo.officephone} (office)`}</span>
-                            )}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">Email:</label>
-                        <div className="flex flex-col gap-1">
-                            {userInfo.email && <span>{userInfo.email}</span>}
-                            {familyInfo.email2 && <span>{familyInfo.email2}</span>}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">Family ID:</label>
-                        <div>{`${familyInfo.familyid}`}</div>
-                    </div>
-                    <div className="grid grid-cols-[220px_1fr] items-start gap-x-4">
-                        <label className="pr-2 text-right font-bold">
-                            账号金额 Account Balance:
-                        </label>
-                        <div
-                            className={`text-black ${balanceTotal < 0 ? "text-red-500" : "text-green-500"}`}
-                        >
-                            {new Intl.NumberFormat("en-US", {
-                                style: "currency",
-                                currency: "USD",
-                            }).format(balanceTotal)}
-                        </div>
-                    </div>
-                </div>
+        <div className="flex min-h-screen w-full flex-col gap-6 bg-gray-50/50 p-4 md:p-8">
+            {/* Header Section */}
+            <div className="mb-4">
+                <h1 className="text-primary text-3xl font-bold tracking-tight">
+                    Welcome{names ? ", " + names : ""}
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg">
+                    LISOC Online Registration System
+                </p>
             </div>
 
-            <div className="container mx-auto max-w-5xl rounded-md border-1 border-gray-300 p-8 shadow-md">
-                <div className="text-md container mx-auto flex w-full flex-col items-center justify-center font-bold">
-                    学生信息 Student
-                </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                    {/* Family Info Card */}
+                    <div className="border-border overflow-hidden rounded-md border shadow-sm">
+                        <div className="bg-muted/30 border-b px-6 py-4">
+                            <h2 className="text-primary flex items-center gap-2 text-lg font-bold">
+                                <span className="bg-secondary h-4 w-1 rounded-full"></span>
+                                Family Information / 家庭信息
+                            </h2>
+                        </div>
+                        <div className="grid gap-y-4 p-6 md:grid-cols-2 md:gap-x-8">
+                            <div className="space-y-1">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Father / Legal Guardian
+                                </label>
+                                <div className="text-foreground font-medium">
+                                    {`${familyInfo.fatherfirsten} ${familyInfo.fatherlasten} ${familyInfo.fathernamecn}`}
+                                </div>
+                            </div>
 
-                <div className="container mx-auto flex max-w-5xl flex-col space-y-3">
-                    <div className="flex flex-col space-y-2">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        ID
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        Student Name
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        中文名
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        Gender
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        Age
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        Birth Day
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                        Reg Date
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {famStudents.map((student) => (
-                                    <tr key={student.studentid}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.studentid}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.namefirsten} {student.namelasten}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.namecn}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.gender}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.ageof}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {new Date(student.dob).toLocaleDateString("en-US")}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {new Date(student.createddate).toLocaleDateString(
-                                                "en-US"
-                                            )}
-                                        </td>
+                            <div className="space-y-1">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Mother / Legal Guardian
+                                </label>
+                                <div className="text-foreground font-medium">
+                                    {`${familyInfo?.motherfirsten} ${familyInfo.motherlasten} ${familyInfo.mothernamecn}`}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Mailing Address
+                                </label>
+                                <div className="text-foreground font-medium">
+                                    {`${userInfo.address}, ${userInfo.city}, ${userInfo.state} ${userInfo.zip}`}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Phone Contacts
+                                </label>
+                                <div className="flex flex-col text-sm font-medium">
+                                    {userInfo.phone && <span>{userInfo.phone}</span>}
+                                    {familyInfo.cellphone && (
+                                        <span className="text-muted-foreground">{`${familyInfo.cellphone} (cell)`}</span>
+                                    )}
+                                    {familyInfo.officephone && (
+                                        <span className="text-muted-foreground">{`${familyInfo.officephone} (office)`}</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Email Contacts
+                                </label>
+                                <div className="flex flex-col text-sm font-medium">
+                                    {userInfo.email && <span>{userInfo.email}</span>}
+                                    {familyInfo.email2 && (
+                                        <span className="text-muted-foreground">
+                                            {familyInfo.email2}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-muted-foreground text-xs font-semibold uppercase">
+                                    Family ID
+                                </label>
+                                <div className="text-primary font-mono font-bold">{`${familyInfo.familyid}`}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Student Info Card */}
+                    <div className="border-border overflow-hidden rounded-md border shadow-sm">
+                        <div className="bg-muted/30 flex items-center justify-between border-b px-6 py-4">
+                            <h2 className="text-primary flex items-center gap-2 text-lg font-bold">
+                                <span className="bg-secondary h-4 w-1 rounded-full"></span>
+                                Student Information / 学生信息
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="text-muted-foreground bg-gray-50 text-xs font-semibold uppercase">
+                                    <tr>
+                                        <th className="px-6 py-4">ID</th>
+                                        <th className="px-6 py-4">Name</th>
+                                        <th className="px-6 py-4">中文名</th>
+                                        <th className="px-6 py-4">Gender</th>
+                                        <th className="px-6 py-4">Age</th>
+                                        <th className="px-6 py-4">DOB</th>
+                                        <th className="px-6 py-4">Reg Date</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {famStudents.map((student) => (
+                                        <tr
+                                            key={student.studentid}
+                                            className="transition-colors hover:bg-gray-50/80"
+                                        >
+                                            <td className="px-6 py-4 font-mono text-xs">
+                                                {student.studentid}
+                                            </td>
+                                            <td className="text-primary px-6 py-4 font-medium">
+                                                {student.namefirsten} {student.namelasten}
+                                            </td>
+                                            <td className="px-6 py-4">{student.namecn}</td>
+                                            <td className="px-6 py-4">{student.gender}</td>
+                                            <td className="px-6 py-4">{student.ageof}</td>
+                                            <td className="text-muted-foreground px-6 py-4">
+                                                {new Date(student.dob).toLocaleDateString("en-US")}
+                                            </td>
+                                            <td className="text-muted-foreground px-6 py-4">
+                                                {new Date(student.createddate).toLocaleDateString(
+                                                    "en-US"
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="container mx-auto max-w-5xl rounded-md border-1 border-gray-300 p-8 shadow-md">
-                <div className="text-md container mx-auto flex w-full flex-col items-center justify-center font-bold">
-                    家庭信息 Registration info
-                </div>
-                <div className="container mx-auto mt-5 flex max-w-5xl flex-col">
-                    <div className="flex flex-col space-y-2">
-                        <Link href="/dashboard/register" className="text-blue-600">
-                            Register Here
-                        </Link>
-                        <Link href="/dashboard/reghistory" className="text-blue-600">
-                            查看所有注册记录 View All Registration History
-                        </Link>
+                <div className="flex flex-col gap-6">
+                    {/* Balance Card */}
+                    <div className="border-border bg-primary text-primary-foreground relative overflow-hidden rounded-md border shadow-lg">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <div className="h-32 w-32 rounded-full"></div>
+                        </div>
+                        <div className="relative z-10 p-6">
+                            <h3 className="text-background text-sm font-medium opacity-90">
+                                Account Balance / 账号金额
+                            </h3>
+                            <div
+                                className={`mt-2 text-4xl font-bold tracking-tight ${balanceTotal < 0 ? "text-red-300" : "text-green-300"}`}
+                            >
+                                {new Intl.NumberFormat("en-US", {
+                                    style: "currency",
+                                    currency: "USD",
+                                }).format(balanceTotal)}
+                            </div>
+                            <p className="mt-2 text-xs opacity-75">
+                                Please ensure your balance is up to date.
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="container mx-auto max-w-5xl rounded-md border-1 border-gray-300 p-8 shadow-md">
-                <div className="text-md container mx-auto flex w-full flex-col items-center justify-center font-bold">
-                    已付款注册记录及收据 View Processed Registration and Receipts
-                </div>
-                <div className="container mx-auto mt-5 flex max-w-5xl flex-col">
-                    <div className="flex flex-col space-y-2">
-                        <Link href="/dashboard/balhistory" className="text-blue-600">
-                            已付款注册记录及收据 View Processed Registration and Receipts
+                    {/* Quick Actions Grid */}
+                    <div className="grid gap-4">
+                        <h3 className="text-sm font-bold tracking-wider text-gray-500 uppercase">
+                            Actions
+                        </h3>
+
+                        <Link
+                            href="/dashboard/register"
+                            className="group hover:border-primary flex flex-col items-start gap-2 rounded-md border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md"
+                        >
+                            <span className="text-primary font-bold decoration-2 underline-offset-4 group-hover:underline">
+                                Register Here
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                Start a new registration for classes.
+                            </span>
+                        </Link>
+
+                        <Link
+                            href="/dashboard/reghistory"
+                            className="group hover:border-primary flex flex-col items-start gap-2 rounded-md border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md"
+                        >
+                            <span className="text-primary font-bold decoration-2 underline-offset-4 group-hover:underline">
+                                View History / 注册记录
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                See all past registration activities.
+                            </span>
+                        </Link>
+
+                        <Link
+                            href="/dashboard/balhistory"
+                            className="group hover:border-primary flex flex-col items-start gap-2 rounded-md border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md"
+                        >
+                            <span className="text-primary font-bold decoration-2 underline-offset-4 group-hover:underline">
+                                Receipts / 已付款收据
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                View processed payments and receipts.
+                            </span>
                         </Link>
                     </div>
                 </div>

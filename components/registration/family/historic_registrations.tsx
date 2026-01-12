@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import {
     ColumnDef,
@@ -23,16 +23,18 @@ import { regStatusMap } from "@/lib/utils";
 import { ClientTable } from "@/components/client-table";
 
 type regClassFormProps = {
-    registrations: {
-        arrinfo: InferSelectModel<typeof arrangement>;
-        arrSeason: InferSelectModel<typeof seasons>;
-        registration: InferSelectModel<typeof classregistration>;
-        regclass: InferSelectModel<typeof classes>;
-        teacher: Partial<InferSelectModel<typeof teacher>>;
-        price: number;
-    }[];
+    fetchedRegistrations: Promise<
+        {
+            arrinfo: InferSelectModel<typeof arrangement>;
+            arrSeason: InferSelectModel<typeof seasons>;
+            registration: InferSelectModel<typeof classregistration>;
+            regclass: InferSelectModel<typeof classes>;
+            teacher: Partial<InferSelectModel<typeof teacher>>;
+            price: number;
+        }[]
+    >;
     // family: InferSelectModel<typeof family>;
-    students: InferSelectModel<typeof student>[];
+    fetchedStudents: Promise<InferSelectModel<typeof student>[]>;
 };
 
 type historicRegRow = {
@@ -83,7 +85,13 @@ const columns: ColumnDef<historicRegRow>[] = [
     },
 ];
 
-export default function HistoricRegistrations({ registrations, students }: regClassFormProps) {
+export default function HistoricRegistrations({
+    fetchedRegistrations,
+    fetchedStudents,
+}: regClassFormProps) {
+    const registrations = use(fetchedRegistrations);
+    const students = use(fetchedStudents);
+
     const [sorting, setSorting] = useState<SortingState>([]);
 
     // Memoize the processed data to avoid unnecessary recalculations
@@ -129,7 +137,7 @@ export default function HistoricRegistrations({ registrations, students }: regCl
                 <h1 className="text-2xl font-bold">Registration History</h1>
                 <Link
                     href="/dashboard/register"
-                    className="hover: flex items-center gap-2 rounded-md bg-blue-600 bg-blue-700 px-4 py-2 text-white"
+                    className="bg-primary hover:bg-primary/80 flex items-center gap-2 rounded-md px-4 py-2 text-white transition-colors duration-300"
                 >
                     <PlusIcon className="h-4 w-4" />
                     Add Registration

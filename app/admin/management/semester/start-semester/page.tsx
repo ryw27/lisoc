@@ -23,20 +23,20 @@ export default async function StartSemesterPage() {
             </div>
         );
     }
-    const { lastSeasonArrangements, lastSeason } = await getPreviousSeason();
+    const { lastSeason } = await getPreviousSeason();
 
     const { options, idMaps } = await getSelectOptions();
 
-    const allArrangements = [
-        ...lastSeasonArrangements.yearRows,
-        ...lastSeasonArrangements.fallRows,
-        ...lastSeasonArrangements.springRows,
-    ];
+    // const allArrangements = [
+    //     ...lastSeasonArrangements.yearRows,
+    //     ...lastSeasonArrangements.fallRows,
+    //     ...lastSeasonArrangements.springRows,
+    // ];
 
     return (
         <div className="container mx-auto w-3/4">
             <StartSemesterForm
-                drafts={allArrangements}
+                // drafts={allArrangements}
                 selectOptions={options}
                 idMaps={idMaps}
                 lastSeason={lastSeason}

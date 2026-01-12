@@ -2,14 +2,14 @@
 
 //import React from "react"
 import { useState } from "react";
-//import { Input } from "@/components/ui/input"
-//import { Label } from "@/components/ui/label"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
+//import { Input } from "@/components/ui/input"
+//import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils";
 import { emailSchema, ErrorCode, loginSchema, usernameSchema } from "@/server/auth/schema";
 //import { Button } from "@/components/ui/button"
@@ -43,7 +43,7 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
 
     const loginForm = useForm({
         //mode: "onChange",
-        mode: "onBlur",
+        mode: "onChange",
         resolver: zodResolver(loginSchema),
     });
 
@@ -95,197 +95,249 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
     };
 
     return (
-        <div
-            className={cn(
-                "flex gap-8 rounded-xl bg-gradient-to-r from-blue-50 via-white to-blue-100 p-8 shadow-lg",
-                className
-            )}
-            {...props}
-        >
-            {/* First column: 5 icon rows */}
-            <div className="flex w-136 min-w-42 flex-col items-start justify-center gap-8">
-                <div className="flex h-16 items-center gap-2">
-                    <img src="/home.png" alt="Home Icon" className="h-10 w-10" />
+        <div className={cn("flex w-full flex-col gap-8 lg:flex-row", className)} {...props}>
+            {/* ------------------- */}
+            {/* LEFT SIDEBAR (NAVY) */}
+            {/* ------------------- */}
+            <div className="bg-primary text-primary-foreground flex w-full flex-col justify-center gap-8 rounded-xl p-8 shadow-xl lg:w-auto lg:min-w-[320px]">
+                {/* Home Row */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+                        <img src="/home.png" alt="Home Icon" className="h-8 w-8 object-contain" />
+                    </div>
                     <div className="flex flex-col">
                         <Link
                             href="https://home.lisoc.org"
-                            className="text-blue-700 underline hover:text-blue-900"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
                         >
                             Home
                         </Link>
                         <Link
                             href="https://home.lisoc.org"
-                            className="text-blue-700 underline hover:text-blue-900"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
                         >
                             学校首页
                         </Link>
                     </div>
                 </div>
-                <div className="flex h-16 items-center gap-2">
-                    <img src="/login.gif" alt="Login" className="h-10 w-10" />
+
+                {/* Login Row */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+                        <img src="/login.gif" alt="Login" className="h-8 w-8 object-contain" />
+                    </div>
                     <div className="flex flex-col">
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
+                        <Link
+                            href="#"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
+                        >
                             Login
                         </Link>
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
+                        <Link
+                            href="#"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
+                        >
                             点击登录
                         </Link>
                     </div>
                 </div>
-                <div className="flex h-16 items-center gap-2">
-                    <img src="/help2.gif" alt="Help" className="h-10 w-10" />
+
+                {/* Help Row */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+                        <img src="/help2.gif" alt="Help" className="h-8 w-8 object-contain" />
+                    </div>
                     <div className="flex flex-col">
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
-                            Help
+                        <Link
+                            href="#"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
+                        >
+                            Help / 求助电话
                         </Link>
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
-                            求助电话
-                        </Link>
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
+                        <a
+                            href="tel:516-860-2583"
+                            className="text-secondary underline-offset-4 transition-colors hover:text-white hover:underline"
+                        >
                             516-860-2583
-                        </Link>
+                        </a>
                     </div>
                 </div>
-                <div className="flex h-16 items-center gap-2">
-                    <img src="/EmailWrite.gif" alt="Email" className="h-10 w-10" />
+
+                {/* Contact Row */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+                        <img src="/EmailWrite.gif" alt="Email" className="h-8 w-8 object-contain" />
+                    </div>
                     <div className="flex flex-col">
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
+                        <Link
+                            href="#"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
+                        >
                             Contact
                         </Link>
-                        <Link href="#" className="text-blue-700 underline hover:text-blue-900">
+                        <Link
+                            href="#"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
+                        >
                             求助与建议
                         </Link>
                     </div>
                 </div>
-                <div className="flex h-16 items-center gap-2">
-                    <img src="/loginad.gif" alt="Admin Login" className="h-10 w-10" />
+
+                {/* Admin Login Row */}
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+                        <img
+                            src="/loginad.gif"
+                            alt="Admin Login"
+                            className="h-8 w-8 object-contain"
+                        />
+                    </div>
                     <div className="flex flex-col">
                         <Link
                             href="./login/admin"
-                            className="text-blue-700 underline hover:text-blue-900"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
                         >
                             Admin Login
                         </Link>
                         <Link
                             href="./login/admin"
-                            className="text-blue-700 underline hover:text-blue-900"
+                            className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
                         >
                             教师/管理员登录
                         </Link>
                     </div>
                 </div>
             </div>
-            {/* Second column: login form */}
-            <div className="max-w-[900px] min-w-[750px] flex-1">
-                <div className="mb-6">
-                    <h1 className="text-center text-lg font-bold text-blue-800">
+
+            {/* -------------------- */}
+            {/* RIGHT LOGIN FORM     */}
+            {/* -------------------- */}
+            <div className="flex-1">
+                {/* Title Area */}
+                <div className="mb-6 space-y-2 text-center md:pl-6 md:text-left">
+                    <h1 className="text-primary text-xl font-bold tracking-tight">
                         Long Island School of Chinese Online Registration
                     </h1>
-                    <h1 className="text-center text-lg font-bold text-blue-800">
+                    <h1 className="text-primary text-xl font-bold tracking-tight">
                         长岛华夏中文学校网上注册系统
                     </h1>
                 </div>
-                <div className="relative">
-                    <div className="absolute -top-5 left-8 z-10 flex items-center">
-                        <div className="flex items-center rounded bg-white px-2 shadow">
+
+                <div className="relative pt-6 md:pt-8">
+                    {/* Floating Badge */}
+                    <div className="absolute top-0 left-6 z-10 flex items-center shadow-md">
+                        <div className="bg-card border-border flex items-center rounded-lg border px-4 py-2">
                             <img
                                 src="/acctlogin.gif"
-                                alt="Card Border Icon"
-                                className="h-10 w-10"
+                                alt="Icon"
+                                className="h-8 w-8 mix-blend-multiply"
                             />
-                            <span className="ml-2 text-xl font-bold text-blue-700">
-                                Account Login/用户登录
+                            <span className="text-primary ml-3 text-lg font-bold">
+                                Account Login / 用户登录
                             </span>
                         </div>
                     </div>
-                    <Card className="border-4 border-blue-700 bg-white/90">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <label className="ml-4 flex items-center text-sm font-medium text-blue-700">
-                                    <input type="checkbox" className="form-checkbox mr-2" />
+
+                    {/* Main Card */}
+                    <Card className="border-border bg-card mt-4 shadow-xl">
+                        <CardHeader className="flex flex-row items-center justify-end pt-12 pr-8 pb-2">
+                            <div className="flex items-center space-x-2">
+                                <label className="text-muted-foreground hover:text-primary flex cursor-pointer items-center gap-2 text-sm leading-none font-medium transition-colors peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    <input
+                                        type="checkbox"
+                                        className="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300"
+                                    />
                                     English Version
                                 </label>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <form onSubmit={loginForm.handleSubmit(onSubmit)}>
-                                <div className="flex flex-col gap-6">
-                                    <div className="grid gap-3">
-                                        <FormInput
-                                            type="text"
-                                            label={labels.email}
-                                            //disabled={busy}
-                                            //placeholder={labels.emailPlaceholder}
-                                            register={loginForm.register("emailUsername")}
-                                        />
-                                        {loginForm.formState.errors.emailUsername?.message && (
-                                            <FormError
-                                                error={
-                                                    loginForm.formState.errors.emailUsername.message
-                                                }
-                                            />
-                                        )}
 
-                                        {/*errors.email && <span className="text-xs text-red-600">{errors.email}</span>*/}
-                                    </div>
-                                    <div className="grid gap-3">
-                                        <FormInput
-                                            type="password"
-                                            label={labels.password}
-                                            /*onChange={e => setPassword(e.target.value)}*/
-                                            register={loginForm.register("password")}
-                                            //placeholder="********"
-                                            //disabled={busy}
+                        <CardContent className="p-8">
+                            <form
+                                onSubmit={loginForm.handleSubmit(onSubmit)}
+                                className="flex flex-col gap-6"
+                            >
+                                {/* Email Field */}
+                                <div className="space-y-2">
+                                    <FormInput
+                                        type="text"
+                                        label={labels.email}
+                                        register={loginForm.register("emailUsername")}
+                                    />
+                                    {loginForm.formState.errors.emailUsername?.message && (
+                                        <FormError
+                                            error={loginForm.formState.errors.emailUsername.message}
                                         />
-                                        <div className="flex items-center">
-                                            <Link
-                                                href="/forgot-password"
-                                                className="ml-auto inline-block text-sm text-blue-500 underline-offset-4 hover:underline"
-                                            >
-                                                {labels.forgotPassword}
-                                            </Link>
-                                        </div>
-
-                                        {loginForm.formState.errors.password?.message && (
-                                            <FormError
-                                                error={loginForm.formState.errors.password.message}
-                                            />
-                                        )}
-                                    </div>
-                                    <FormSubmit
-                                        disabled={
-                                            busy ||
-                                            !loginForm.formState.isValid ||
-                                            loginForm.formState.isSubmitting
-                                        }
-                                    >
-                                        {busy ? "Loading..." : "Continue"}
-                                    </FormSubmit>
-                                    {error && <FormError error={error} />}
+                                    )}
                                 </div>
-                                <div className="mt-4 text-center text-sm">
+
+                                {/* Password Field */}
+                                <div className="space-y-2">
+                                    <FormInput
+                                        type="password"
+                                        label={labels.password}
+                                        register={loginForm.register("password")}
+                                    />
+
+                                    <div className="flex items-center justify-end pt-1">
+                                        <Link
+                                            href="/forgot-password"
+                                            className="text-primary text-xs font-medium underline-offset-4 hover:underline"
+                                        >
+                                            {labels.forgotPassword}
+                                        </Link>
+                                    </div>
+
+                                    {loginForm.formState.errors.password?.message && (
+                                        <FormError
+                                            error={loginForm.formState.errors.password.message}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Submit Button */}
+                                <FormSubmit
+                                    disabled={
+                                        busy ||
+                                        !loginForm.formState.isValid ||
+                                        loginForm.formState.isSubmitting
+                                    }
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full shadow-sm"
+                                >
+                                    {busy ? "Loading..." : "Continue"}
+                                </FormSubmit>
+
+                                {/* Global Error */}
+                                {error && <FormError error={error} />}
+
+                                {/* Register Link */}
+                                <div className="text-center text-sm">
                                     {labels.dontHaveAccount}{" "}
                                     <Link
                                         href="/register"
-                                        className="text-blue-700 underline underline-offset-4"
+                                        className="text-primary hover:text-secondary font-bold underline-offset-4 hover:underline"
                                     >
                                         {labels.signUp}
                                     </Link>
                                 </div>
+
+                                {/* Disclaimer */}
+                                <div className="bg-muted/50 text-muted-foreground mt-4 rounded-lg p-4 text-xs leading-relaxed">
+                                    <p>
+                                        <strong>Disclaimer:</strong> This is a beta version. Please
+                                        use a desktop for the best experience. Report issues to{" "}
+                                        <a
+                                            href="mailto:tech.lisoc@gmail.com"
+                                            className="text-primary underline"
+                                        >
+                                            tech.lisoc@gmail.com
+                                        </a>
+                                        . Due to system migration, old passwords may not work—please
+                                        use the forgot password feature to reset.
+                                    </p>
+                                </div>
                             </form>
-                            <div className="mt-8 text-center text-xs text-gray-500">
-                                Disclaimer: This is a beta version of the new website. Please use
-                                the desktop version for best experience. Please report any issues to{" "}
-                                <Link
-                                    href="mailto:tech.lisoc@gmail.com"
-                                    className="text-blue-700 underline"
-                                >
-                                    tech.lisoc@gmail.com
-                                </Link>
-                                . Additionally, due to the migration to the new system, any old
-                                passwords will not work. Please use the forgot password feature to
-                                reset your password.
-                            </div>
                         </CardContent>
                     </Card>
                 </div>

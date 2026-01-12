@@ -4,7 +4,7 @@ import { arrangementSchema } from "@/lib/schema";
 import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
-import getThreeSeasons from "../seasons/data";
+import fetchCurrentSeasons from "../seasons/data";
 
 //-----------------------------------------------------------------------------------------
 //  DESC: None of these should be used, except by server actions.
@@ -53,7 +53,7 @@ export function inSession(season: seasonObj): boolean {
 }
 
 export async function isLateReg(tx: Transaction, arrData: uiClasses) {
-    const { year, fall, spring } = await getThreeSeasons(tx);
+    const { year, fall, spring } = await fetchCurrentSeasons(tx);
     const now = new Date(toESTString(new Date()));
     if (year.seasonid === arrData.seasonid)
         return now <= new Date(year.closeregdate) && now >= new Date(year.lateregdate1);
@@ -65,7 +65,7 @@ export async function isLateReg(tx: Transaction, arrData: uiClasses) {
 }
 
 export async function isEarlyReg(tx: Transaction, arrData: uiClasses) {
-    const { year, fall, spring } = await getThreeSeasons(tx);
+    const { year, fall, spring } = await fetchCurrentSeasons(tx);
     const now = new Date(toESTString(new Date()));
     if (year.seasonid === arrData.seasonid)
         return now <= new Date(year.normalregdate) && now >= new Date(year.earlyregdate);
@@ -89,7 +89,7 @@ export async function getTermVariables(
     season: seasonObj,
     tx: Transaction
 ) {
-    const { year, fall, spring } = await getThreeSeasons(tx);
+    const { year, fall, spring } = await fetchCurrentSeasons(tx);
     // const now = new Date(toESTString(new Date()));
     const seasonid = season.seasonid;
 
@@ -125,7 +125,7 @@ export async function getArrSeason(
     tx: Transaction,
     arrData: uiClasses
 ): Promise<"year" | "fall" | "spring"> {
-    const { year, fall, spring } = await getThreeSeasons(tx);
+    const { year, fall, spring } = await fetchCurrentSeasons(tx);
     const seasonid = arrData.seasonid;
     if (seasonid === year.seasonid) return "year";
     if (seasonid === fall.seasonid) return "fall";
