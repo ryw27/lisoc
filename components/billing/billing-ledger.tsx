@@ -169,7 +169,7 @@ export default function BillingLedger({
                         <DropdownMenuTrigger
                             disabled={pending}
                             className={cn(
-                                "bg-primary border-primary flex h-10 items-center gap-2 rounded-sm border px-6 text-sm font-semibold tracking-wide text-white shadow-sm transition-all",
+                                "bg-primary border-primary flex h-10 items-center gap-2 border px-6 text-sm font-semibold tracking-wide text-white shadow-sm transition-all",
                                 pending
                                     ? "cursor-not-allowed opacity-50"
                                     : "hover:bg-primary/90 cursor-pointer"

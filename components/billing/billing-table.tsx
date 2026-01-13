@@ -166,7 +166,7 @@ function GlobalTable({
                                 setSelectMode(!selectMode);
                             }}
                             className={cn(
-                                "flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium transition-all",
+                                "flex h-9 items-center gap-2 border px-4 text-sm font-medium transition-all",
                                 selectMode
                                     ? "bg-secondary/80 text-primary border-primary/20 shadow-sm"
                                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent bg-transparent"
@@ -179,7 +179,7 @@ function GlobalTable({
                         <button
                             onClick={() => setFilterOpen(!filterOpen)}
                             className={cn(
-                                "flex items-center gap-2 rounded border px-4 py-2 text-sm font-bold transition-all",
+                                "flex items-center gap-2 border px-4 py-2 text-sm font-bold transition-all",
                                 filterOpen
                                     ? "bg-primary text-primary-foreground border-primary"
                                     : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
@@ -489,7 +489,7 @@ function FamilyTable({
                                 setSelectMode(!selectMode);
                             }}
                             className={cn(
-                                "flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium transition-all",
+                                "flex h-9 items-center gap-2 rounded border px-4 text-sm font-medium transition-all",
                                 selectMode
                                     ? "bg-secondary/80 text-primary border-primary/20 shadow-sm"
                                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent bg-transparent"
@@ -818,13 +818,13 @@ function PaginationControls<T>({ table }: { table: Table<T> }) {
 export default function BillingTable({ families, globalActivity, rowRef }: BillingTableProps) {
     const [view, setView] = useState<"family" | "activity">("family");
     return (
-        <section className="bg-card border-border relative z-10 flex min-h-[200px] flex-col overflow-visible rounded-xl border shadow-sm">
+        <section className="bg-card border-border relative z-10 flex min-h-[200px] flex-col overflow-visible rounded-none border shadow-sm">
             {/* TABS */}
-            <div className="border-border bg-muted/30 flex rounded-t-xl border-b">
+            <div className="border-border bg-muted/30 flex border-b">
                 <button
                     onClick={() => setView("family")}
                     className={cn(
-                        "relative flex h-14 items-center gap-2 rounded-tl-xl px-8 text-sm font-bold tracking-wide transition-all",
+                        "relative flex h-14 items-center gap-2 px-8 text-sm font-bold tracking-wide transition-all",
                         view === "family"
                             ? "text-foreground bg-card border-secondary border-t border-t-[2px] shadow-[0_-2px_10px_-2px_rgba(0,0,0,0.05)]"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
