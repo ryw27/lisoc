@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
@@ -37,6 +38,7 @@ export default function ForgotPasswordForm() {
         } else {
             setSentLink(true);
         }
+        setBusy(false);
     };
 
     const tryFPAgain = () => {
@@ -46,55 +48,69 @@ export default function ForgotPasswordForm() {
     };
 
     return (
-        <main className="bg-background flex h-screen w-screen flex-col items-center justify-center">
-            <Logo />
+        <main className="bg-background flex min-h-screen w-full flex-col items-center justify-center px-4">
+            <div className="mb-8">
+                <Logo />
+            </div>
 
-            <h1 className="mt-10 mb-10 text-left text-2xl font-bold">
-                Forgot Password Form（找回密码）
-            </h1>
+            <div className="w-full max-w-md bg-white p-8 shadow-md">
+                <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
+                    Forgot Password (找回密码)
+                </h1>
 
-            {!sentLink && (
-                <form
-                    onSubmit={fpForm.handleSubmit(onEmail)}
-                    className="flex w-1/5 flex-col bg-white p-2"
-                >
-                    <FormInput
-                        label="Email or Username（邮箱）"
-                        type="text"
-                        register={fpForm.register("emailUsername")}
-                    />
-                    <FormError error={fpForm.formState.errors.emailUsername?.message} />
-                    <FormSubmit disabled={busy}>Continue（下一步）</FormSubmit>
-                </form>
-            )}
+                {!sentLink && (
+                    <form
+                        onSubmit={fpForm.handleSubmit(onEmail)}
+                        className="flex w-full flex-col space-y-4"
+                    >
+                        <p className="text-center text-sm text-gray-500">
+                            Enter your email or username to receive a reset link.
+                            <br />
+                            (请输入您的邮箱或用户名)
+                        </p>
 
-            {sentLink && (
-                <div className="flex w-1/5 flex-col bg-white p-2">
-                    <p className="font-bold text-gray-700">
-                        {/* A link to reset your password has been sent to your email.
-                        If you did not receive an email, please &thinsp; */}
-                        {t("reset-success-msg")}
-                        <button
-                            onClick={tryFPAgain}
-                            className="cursor-pointer text-blue-600 underline"
-                        >
-                            {t("try-again")}
-                        </button>
-                        &thinsp; or &thinsp;{" "}
-                        <Link href="/register" className="font-bold text-blue-600 underline">
-                            {" "}
-                            Sign up.
-                        </Link>
-                    </p>
-                </div>
-            )}
+                        <div>
+                            <FormInput
+                                label="Email or Username (邮箱/用户名)"
+                                type="text"
+                                register={fpForm.register("emailUsername")}
+                            />
+                            <FormError error={fpForm.formState.errors.emailUsername?.message} />
+                        </div>
 
-            <p className="mt-5 text-center text-sm text-gray-500">
-                Don&apos;t have an account?{" "}
-                <Link href="/register" className="font-bold text-blue-500 underline">
-                    Sign up（没有账号请按这里）
-                </Link>
-            </p>
+                        <FormSubmit className="bg-primary text-white" disabled={busy}>
+                            Send Reset Link (发送链接)
+                        </FormSubmit>
+                    </form>
+                )}
+
+                {sentLink && (
+                    <div className="flex flex-col items-center space-y-4 text-center">
+                        <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                            <Check className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-bold text-gray-900">Link Sent!</h3>
+                            <p className="text-sm text-gray-600">
+                                {t("reset-success-msg")}
+                                <button
+                                    onClick={tryFPAgain}
+                                    className="text-primary font-bold underline hover:text-blue-700"
+                                >
+                                    {t("try-again")}
+                                </button>
+                                &thinsp; or &thinsp;{" "}
+                                <Link
+                                    href="/register"
+                                    className="text-primary font-bold hover:underline"
+                                >
+                                    Sign up (注册)
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </main>
     );
 }

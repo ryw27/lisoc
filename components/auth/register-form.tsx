@@ -4,9 +4,10 @@
 //import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
-// import TeacherForm from "./LEGACY_teacher-form";
+import { cn } from "@/lib/utils";
 import {
     checkRegCode,
     registerDraftFamily,
@@ -14,6 +15,7 @@ import {
     resendCode,
 } from "@/server/auth/familyreg.actions";
 import { codeSchema, emailSchema, userPassSchema } from "@/server/auth/schema";
+// import TeacherForm from "./LEGACY_teacher-form";
 import Logo from "@/components/logo";
 import FamilyForm from "./family-form";
 import { FormError, FormInput, FormSubmit } from "./form-components";
@@ -147,111 +149,203 @@ export default function RegisterForm({
         }
     };
 
+    const steps = [
+        { id: "EMAIL", number: 1, label: "Email" },
+        { id: "CODE", number: 2, label: "Verify" },
+        { id: "CREDENTIALS", number: 3, label: "Setup" },
+        { id: "PROFILE", number: 4, label: "Profile" },
+    ];
+
+    // Calculate progress for the stepper
+    const currentStepIndex = steps.findIndex((s) => s.id === step);
+
     return (
-        <main className="flex h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-300">
-            <Logo />
+        <main className="bg-background flex min-h-screen w-full flex-col items-center justify-center p-4">
+            <div className="mb-8 ml-12">
+                <Logo />
+            </div>
 
-            <h1 className="mt-10 mb-10 text-left text-2xl font-bold">Create account(建立账号)</h1>
-
-            {step === "EMAIL" && (
-                <>
-                    {/*} <Button variant="outline" className="rounded-sm bg-white! text-lg font-medium text-black border-gray-300 w-1/5 py-5">
-                        <FcGoogle className="w-5 h-5 mr-2" />
-                        Continue with Google
-                        <p className="text-[8px]">Not implemented yet</p>
-                    </Button>
-                    <div className="flex w-1/5 items-center gap-4 my-8">
-                        <div className="bg-gray-200 w-1/2 h-px"></div>
-                        <span className="text-sm text-gray-500 flex items-center">OR</span>
-                        <div className="bg-gray-200 w-1/2 h-px"></div>
-                    </div>*/}
-                </>
-            )}
-
-            {step === "EMAIL" && (
-                <form
-                    onSubmit={emailForm.handleSubmit(onEmail)}
-                    className="flex w-1/5 flex-col bg-white p-2"
-                >
-                    <h1 className="mb-4 flex items-center justify-center font-bold">
-                        Step 1/4 - Email（邮箱）
+            {/* Container */}
+            <div
+                className={cn(
+                    "relative flex flex-col bg-white shadow-lg transition-all duration-300",
+                    "border-primary border-t-4", // The "Ledger" Navy Top Border
+                    step === "PROFILE" ? "w-full max-w-2xl" : "w-full max-w-md" // Dynamic width based on step content
+                )}
+            >
+                <div className="border-b border-gray-100 p-8 pb-6">
+                    <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
+                        Create Account (建立账号)
                     </h1>
-                    <FormInput
-                        label="Email（邮箱）"
-                        type="text"
-                        register={emailForm.register("email")}
-                    />
-                    <FormError error={emailForm.formState.errors.email?.message} />
-                    <FormSubmit disabled={busy}>Continue（下一步）</FormSubmit>
-                </form>
-            )}
 
-            {step === "CODE" && (
-                <form
-                    onSubmit={codeForm.handleSubmit(onCode)}
-                    className="flex w-1/5 flex-col bg-white p-2"
-                >
-                    <h1 className="mb-4 flex items-center justify-center font-bold">
-                        Step 2/4 - Verification Code(验证码)
-                    </h1>
-                    <FormInput
-                        label="Code（验证码）"
-                        type="number"
-                        register={codeForm.register("code")}
-                    />
-                    <FormError error={codeForm.formState.errors.code?.message} />
-                    <FormSubmit disabled={busy}>Continue（下一步）</FormSubmit>
+                    <div className="relative flex items-center justify-between">
+                        {/* Background Connecting Line */}
+                        <div className="absolute top-4 left-0 -z-10 h-[2px] w-full -translate-y-1/2 bg-gray-200"></div>
 
-                    <ResendCodeButton
-                        resendCode={resendCode}
-                        // defaultCooldown={30}
-                        email={credentials!.email!}
-                    />
-                </form>
-            )}
+                        {/* Active Progress Line */}
+                        <div
+                            className="bg-primary absolute top-4 left-0 -z-10 h-[2px] -translate-y-1/2 transition-all duration-300"
+                            style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+                        ></div>
 
-            {step === "CREDENTIALS" && (
-                <form
-                    onSubmit={credForm.handleSubmit(onCred)}
-                    className="flex w-1/5 flex-col bg-white p-2"
-                >
-                    <h1 className="mb-4 flex items-center justify-center font-bold">
-                        Step 3/4 - Account Details（设置）
-                    </h1>
-                    <FormInput
-                        label="Username（用户名）"
-                        type="text"
-                        extras={{ value: credentials?.email }}
-                        register={credForm.register("username")}
-                    />
-                    <FormError error={credForm.formState.errors.username?.message} />
-                    <FormInput
-                        label="Password（密码）"
-                        type="password"
-                        register={credForm.register("password")}
-                    />
-                    <FormError error={credForm.formState.errors.password?.message} />
-                    <FormInput
-                        label="Confirm Password（确认密码）"
-                        type="password"
-                        register={credForm.register("confirmPassword")}
-                    />
-                    <FormError error={credForm.formState.errors.confirmPassword?.message} />
+                        {steps.map((s, i) => {
+                            const isActive = i === currentStepIndex;
+                            const isCompleted = i < currentStepIndex;
 
-                    <FormError error={credForm.formState.errors.root?.message} />
-                    <FormSubmit disabled={busy}>Continue（下一步）</FormSubmit>
-                </form>
-            )}
-
-            {step === "PROFILE" && (
-                <div className="flex w-1/3 flex-col space-y-4 bg-white p-2">
-                    <h1 className="mb-4 flex items-center justify-center font-bold">
-                        Step 4/4 - Profile Setup(填写家庭信息)
-                    </h1>
-                    <FamilyForm registerData={credentials!} />
-                    {/* // {isTeacher ? <TeacherForm registerData={credentials!} /> : <FamilyForm registerData={credentials!} />} */}
+                            return (
+                                <div key={s.id} className="flex flex-col items-center">
+                                    <div
+                                        className={cn(
+                                            "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                                            isActive
+                                                ? "border-primary bg-primary text-white"
+                                                : isCompleted
+                                                  ? "border-primary bg-primary text-white"
+                                                  : "border-gray-300 bg-white text-gray-400"
+                                        )}
+                                    >
+                                        {isCompleted ? <Check size={14} /> : s.number}
+                                    </div>
+                                    {/* Step Labels */}
+                                    <span
+                                        className={cn(
+                                            "mt-1 text-xs font-medium tracking-wide uppercase",
+                                            isActive ? "text-primary font-bold" : "text-gray-500"
+                                        )}
+                                    >
+                                        {s.label}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            )}
+
+                {/* Form Content Section */}
+                <div className="p-8 pt-6">
+                    {step === "EMAIL" && (
+                        <form
+                            onSubmit={emailForm.handleSubmit(onEmail)}
+                            className="flex flex-col space-y-5"
+                        >
+                            <div className="space-y-1 text-center">
+                                <h2 className="font-bold text-gray-900">
+                                    Step 1: Email Verification
+                                </h2>
+                            </div>
+
+                            <div className="space-y-4">
+                                <FormInput
+                                    label="Email (邮箱)"
+                                    type="text"
+                                    register={emailForm.register("email")}
+                                />
+                                <FormError error={emailForm.formState.errors.email?.message} />
+                            </div>
+
+                            <FormSubmit
+                                disabled={busy}
+                                className="bg-primary hover:bg-primary/90 w-full rounded-sm py-3 font-bold tracking-wider text-white uppercase"
+                            >
+                                Continue (下一步)
+                            </FormSubmit>
+                        </form>
+                    )}
+
+                    {step === "CODE" && (
+                        <form
+                            onSubmit={codeForm.handleSubmit(onCode)}
+                            className="flex flex-col space-y-5"
+                        >
+                            <div className="space-y-1 text-center">
+                                <h2 className="font-bold text-gray-900">Step 2: Enter Code</h2>
+                                <p className="text-sm text-gray-500">
+                                    Sent to {credentials?.email}
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <FormInput
+                                    label="Verification Code (验证码)"
+                                    type="number"
+                                    register={codeForm.register("code")}
+                                />
+                                <FormError error={codeForm.formState.errors.code?.message} />
+                            </div>
+
+                            <FormSubmit
+                                disabled={busy}
+                                className="bg-primary hover:bg-primary/90 w-full rounded-sm py-3 font-bold tracking-wider text-white uppercase"
+                            >
+                                Continue (下一步)
+                            </FormSubmit>
+
+                            <div className="text-center">
+                                <ResendCodeButton
+                                    resendCode={resendCode}
+                                    email={credentials!.email!}
+                                />
+                            </div>
+                        </form>
+                    )}
+
+                    {step === "CREDENTIALS" && (
+                        <form
+                            onSubmit={credForm.handleSubmit(onCred)}
+                            className="flex flex-col space-y-5"
+                        >
+                            <div className="space-y-1 text-center">
+                                <h2 className="font-bold text-gray-900">Step 3: Account Details</h2>
+                            </div>
+
+                            <div className="space-y-4">
+                                <FormInput
+                                    label="Username (用户名)"
+                                    type="text"
+                                    extras={{ value: credentials?.email }}
+                                    register={credForm.register("username")}
+                                />
+                                <FormError error={credForm.formState.errors.username?.message} />
+
+                                <FormInput
+                                    label="Password (密码)"
+                                    type="password"
+                                    register={credForm.register("password")}
+                                />
+                                <FormError error={credForm.formState.errors.password?.message} />
+
+                                <FormInput
+                                    label="Confirm Password (确认密码)"
+                                    type="password"
+                                    register={credForm.register("confirmPassword")}
+                                />
+                                <FormError
+                                    error={credForm.formState.errors.confirmPassword?.message}
+                                />
+                            </div>
+
+                            <FormError error={credForm.formState.errors.root?.message} />
+
+                            <FormSubmit
+                                disabled={busy}
+                                className="bg-primary hover:bg-primary/90 w-full rounded-sm py-3 font-bold tracking-wider text-white uppercase"
+                            >
+                                Continue (下一步)
+                            </FormSubmit>
+                        </form>
+                    )}
+
+                    {step === "PROFILE" && (
+                        <div className="flex flex-col space-y-5">
+                            <div className="space-y-1 text-center">
+                                <h2 className="font-bold text-gray-900">Step 4: Profile Setup</h2>
+                            </div>
+
+                            <FamilyForm registerData={credentials!} />
+                        </div>
+                    )}
+                </div>
+            </div>
         </main>
     );
 }
