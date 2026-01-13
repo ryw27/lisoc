@@ -3,7 +3,6 @@ import { and, between, count, eq, gt, sum } from "drizzle-orm";
 import {
     Activity,
     ArrowRight,
-    CalendarDays,
     CreditCard,
     DollarSign,
     FileText,
@@ -56,7 +55,7 @@ function NoSeasonState({ user }: { user: DefaultSession["user"] }) {
             <div className="-mt-20 flex flex-1 flex-col items-center justify-center space-y-6 p-6 text-center">
                 <Logo />
                 <div className="max-w-md space-y-2">
-                    <h2 className="text-2xl text-[var(--brand-navy)]">
+                    <h2 className="text-primary text-2xl">
                         Welcome {user?.name?.split(" ")[0] ?? "Admin"}
                     </h2>
                     <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
@@ -152,107 +151,109 @@ export default async function HomePage() {
     const collectedRevenue = Number(result[0].total ?? 0);
 
     return (
-        <div className="min-h-screen w-full p-6 md:p-10">
+        <div className="bg-background text-foreground min-h-screen w-full p-6 md:p-10">
             <div className="mx-auto max-w-7xl space-y-10">
-                {/* 1. HEADER: The Letterhead */}
-                <header className="flex flex-col justify-between gap-4 border-b border-[var(--brand-brass)]/20 pb-6 md:flex-row md:items-end">
+                {/* Header */}
+                <header className="border-border flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-end">
                     <div className="space-y-2">
-                        <h1 className="text-4xl font-medium tracking-tight text-[var(--brand-navy)]">
+                        <h1 className="text-primary text-4xl font-bold tracking-tight">
                             Welcome, {user.user.name?.split(" ")[0] ?? "Administrator"}
                         </h1>
                         <div className="flex items-center gap-3 text-sm tracking-wide">
-                            <span className="text-xs font-semibold tracking-widest text-[var(--brand-brass)] uppercase">
+                            <span className="text-secondary text-xs font-semibold tracking-widest uppercase">
                                 {isSpring
                                     ? lastSeason.spring.seasonnamecn
                                     : lastSeason.fall.seasonnamecn}
                             </span>
-                            <span className="text-[var(--border)]">|</span>
-                            <div className="flex items-center gap-2 rounded-full border border-[var(--brand-navy)]/10 bg-[var(--brand-navy)]/5 px-2 py-0.5">
+
+                            {/* Separator Dot */}
+                            <span className="bg-muted-foreground/40 h-1 w-1 rounded-full"></span>
+
+                            {/* Live Indicator */}
+                            <div className="flex items-center gap-2 rounded-full py-0.5">
                                 <span className="relative flex h-2 w-2">
-                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--brand-gold)] opacity-75"></span>
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--brand-gold)]"></span>
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-600 opacity-75"></span>
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
                                 </span>
-                                <span className="text-[10px] font-bold text-[var(--brand-navy)] uppercase">
+                                <span className="text-[10px] font-bold text-emerald-700 uppercase">
                                     Session Active
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-white/50 px-3 py-1.5 text-[var(--muted-foreground)]">
-                        <CalendarDays size={14} />
-                        <span className="text-xs font-medium tracking-wider uppercase">
-                            Day {} of Semester
+                    <div className="bg-muted/30 flex items-center gap-2 rounded-sm px-3 py-1.5">
+                        <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                            System Version V0.2.0
                         </span>
                     </div>
                 </header>
 
-                {/* 2. HUD: The "Dual-Pulse" Cards */}
+                {/* Cards */}
                 <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {/* LEFT: Enrollment (Navy Accent) */}
-                    <div className="group relative overflow-hidden rounded-xl border border-t-4 border-[var(--border)] border-t-[var(--brand-navy)] bg-white p-6 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.05)]">
+                    {/* Enrollment */}
+                    <div className="group border-border border-t-primary bg-card relative overflow-hidden rounded-none border border-t-4 p-6 shadow-sm transition-shadow hover:shadow-md">
                         <div className="mb-4 flex items-start justify-between">
-                            <div className="flex items-center gap-2 text-[var(--brand-navy)]">
+                            <div className="text-primary flex items-center gap-2">
                                 <GraduationCap size={18} />
                                 <span className="text-xs font-bold tracking-widest uppercase">
                                     Total Enrollment
                                 </span>
                             </div>
                             <Users
-                                className="text-[var(--brand-navy)] opacity-10 transition-transform duration-500 group-hover:scale-110"
+                                className="text-primary opacity-10 transition-transform duration-500 group-hover:scale-110"
                                 size={48}
                             />
                         </div>
                         <div>
-                            <span className="block text-6xl font-medium tracking-tighter text-[var(--brand-navy)] tabular-nums">
+                            <span className="text-primary block text-6xl font-medium tracking-tighter tabular-nums">
                                 {totalCount}
                             </span>
-                            <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                            <span className="text-muted-foreground mt-1 block text-sm">
                                 Active students registered
                             </span>
                         </div>
                     </div>
 
-                    {/* RIGHT: Revenue (Gold Accent) */}
-                    <div className="group relative overflow-hidden rounded-xl border border-t-4 border-[var(--border)] border-t-[var(--brand-gold)] bg-white p-6 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.05)]">
+                    {/* Revenue */}
+                    <div className="group border-border border-t-accent bg-card relative overflow-hidden rounded-none border border-t-4 p-6 shadow-sm transition-shadow hover:shadow-md">
                         <div className="mb-4 flex items-start justify-between">
-                            <div className="flex items-center gap-2 text-[var(--brand-brass)]">
+                            <div className="text-secondary flex items-center gap-2">
                                 <CreditCard size={18} />
                                 <span className="text-xs font-bold tracking-widest uppercase">
                                     Revenue Collected
                                 </span>
                             </div>
                             <DollarSign
-                                className="text-[var(--brand-gold)] opacity-20 transition-transform duration-500 group-hover:scale-110"
+                                className="text-accent opacity-40 transition-transform duration-500 group-hover:scale-110"
                                 size={48}
                             />
                         </div>
                         <div>
-                            <span className="block text-6xl font-medium tracking-tighter text-[var(--brand-navy)] tabular-nums">
+                            <span className="text-primary block text-6xl font-medium tracking-tighter tabular-nums">
                                 {formatCurrency(collectedRevenue).replace(".00", "")}
                             </span>
-                            <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                            <span className="text-muted-foreground mt-1 block text-sm">
                                 Net collection year-to-date
                             </span>
                         </div>
                     </div>
                 </section>
 
-                {/* 3. MAIN GRID: Capacity & Ledger */}
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
-                    {/* A. Capacity Heatmap (2/3 width) */}
+                    {/* Capacity */}
                     <div className="space-y-4 lg:col-span-2">
-                        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
-                            <div>
-                                <Activity size={16} className="text-[var(--brand-navy)]" />
-                                <h2 className="text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase">
+                        <div className="border-border flex items-center justify-between gap-2 border-b pb-2">
+                            <div className="inline-flex items-center gap-2">
+                                <Activity size={16} className="text-primary" />
+                                <h2 className="text-md text-primary font-bold tracking-wider uppercase">
                                     Class Distribution
                                 </h2>
                             </div>
                             <div>
                                 <Link
                                     href="/admin/management/semester"
-                                    className="text-[10px] font-bold tracking-widest text-[var(--brand-brass)] uppercase transition-colors hover:text-[var(--brand-navy)]"
+                                    className="text-secondary hover:text-primary text-[10px] font-bold tracking-widest uppercase underline-offset-4 transition-colors hover:underline"
                                 >
                                     View More
                                 </Link>
@@ -263,21 +264,14 @@ export default async function HomePage() {
                             {finalCount.map((item, index) => (
                                 <div
                                     key={index}
-                                    className="group rounded-lg border border-[var(--border)] bg-white p-4 transition-all duration-200 hover:border-[var(--brand-gold)] hover:shadow-sm"
+                                    className="group border-border bg-card hover:border-accent rounded-none border p-4 transition-all duration-200 hover:shadow-sm"
                                 >
                                     <div className="flex h-full flex-col justify-between">
-                                        <span className="mb-2 text-2xl font-medium text-[var(--brand-navy)] transition-colors group-hover:text-[var(--brand-brass)]">
+                                        <span className="text-primary group-hover:text-secondary mb-2 text-2xl font-medium transition-colors">
                                             {gradeToDisplay[item.grade]}
                                         </span>
                                         <div className="space-y-2">
-                                            {/* Subtle visual bar */}
-                                            {/* <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--muted)]">
-                                                <div
-                                                    className="h-full rounded-full bg-[var(--brand-navy)] opacity-80"
-                                                    style={{ width: "40%" }}
-                                                ></div>
-                                            </div> */}
-                                            <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                                            <span className="text-muted-foreground text-xs font-medium">
                                                 {item.count} Students
                                             </span>
                                         </div>
@@ -287,58 +281,53 @@ export default async function HomePage() {
                         </div>
                     </div>
 
-                    {/* B. Live Ledger (1/3 width) */}
+                    {/* Ledger */}
                     <div className="space-y-4 lg:col-span-1">
-                        <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+                        <div className="border-border flex items-center justify-between border-b pb-2">
                             <div className="flex items-center gap-2">
-                                <FileText size={16} className="text-[var(--brand-brass)]" />
-                                <h2 className="text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase">
+                                <FileText size={16} className="text-primary" />
+                                <h2 className="text-md text-primary font-bold tracking-wider uppercase">
                                     Ledger
                                 </h2>
                             </div>
                             <Link
-                                href="/admin/billing"
-                                className="text-[10px] font-bold tracking-widest text-[var(--brand-brass)] uppercase transition-colors hover:text-[var(--brand-navy)]"
+                                href="/admin/accounting/billing"
+                                className="text-secondary hover:text-primary text-[10px] font-bold tracking-widest uppercase underline-offset-4 transition-colors hover:underline"
                             >
                                 View All
                             </Link>
                         </div>
 
-                        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm">
-                            <div className="divide-y divide-[var(--border)]">
+                        <div className="border-border bg-card overflow-hidden rounded-none border shadow-sm">
+                            <div className="divide-border divide-y">
                                 {recentActivity.map((tx, i) => (
                                     <div
                                         key={i}
-                                        className="group flex items-center justify-between p-4 transition-colors hover:bg-[var(--brand-parchment)]"
+                                        className="group hover:bg-muted/50 flex items-center justify-between p-4 transition-colors"
                                     >
                                         <div className="space-y-1">
-                                            <p className="text-sm font-bold text-[var(--brand-navy)]">
+                                            <p className="text-primary text-sm font-bold">
                                                 {selectFamilyName(tx.family)}
                                             </p>
-                                            <p className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] uppercase">
+                                            <p className="text-muted-foreground group-hover:text-primary/70 font-mono text-[10px] tracking-wider uppercase">
                                                 REF: {tx.balanceid}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-mono text-sm font-medium text-[var(--brand-navy)]">
-                                                +{formatCurrency(Number(tx.totalamount))}
+                                            <p className="text-primary font-mono text-sm font-medium">
+                                                {formatCurrency(Number(tx.totalamount))}
                                             </p>
-                                            <p className="text-[10px] text-[var(--muted-foreground)]">
+                                            <p className="text-muted-foreground text-[10px]">
                                                 {formatBillingDate(tx.lastmodify).join(" ")}
                                             </p>
                                         </div>
                                     </div>
                                 ))}
                                 {recentActivity.length === 0 && (
-                                    <div className="p-8 text-center text-sm text-[var(--muted-foreground)] italic">
+                                    <div className="text-muted-foreground p-8 text-center text-sm italic">
                                         No recent transactions
                                     </div>
                                 )}
-                            </div>
-                            <div className="border-t border-[var(--border)] bg-[var(--muted)]/30 p-2 text-center">
-                                <span className="text-[10px] font-medium tracking-widest text-[var(--muted-foreground)] uppercase">
-                                    Real-time Data
-                                </span>
                             </div>
                         </div>
                     </div>
