@@ -4,6 +4,7 @@ import Link from "next/link";
 interface LogoProps {
     width?: number;
     height?: number;
+    transparent?: boolean;
 }
 
 export default function Logo({ width = 900, height = 500 }: LogoProps) {
@@ -15,6 +16,7 @@ export default function Logo({ width = 900, height = 500 }: LogoProps) {
                 alt="LISOC Logo"
                 width={width}
                 height={height}
+                className="mix-blend-multiply"
                 priority
             />
         </Link>
