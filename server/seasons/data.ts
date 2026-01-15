@@ -34,15 +34,6 @@ export default async function fetchCurrentSeasons(client: dbClient = db) {
             orderBy: (s, { asc }) => asc(s.seasonid),
         });
 
-        console.log(fall, spring);
-
-        const test = await tx.query.seasons.findMany({
-            where: (s, { or, eq }) =>
-                or(eq(s.seasonid, year.relatedseasonid), eq(s.seasonid, year.beginseasonid)),
-            orderBy: (s, { asc }) => asc(s.seasonid),
-        });
-        console.log(test);
-
         if (!fall || !spring) {
             throw new Error(
                 "Error occurred in season fetch. Could not find fall or spring semester"
