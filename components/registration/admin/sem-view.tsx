@@ -399,7 +399,7 @@ export default function SemesterView({
                                 </div>
                                 <SelectValue placeholder="Select view" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white">
                                 <SelectItem value="academic">Academic Year</SelectItem>
                                 <SelectItem value="fall">Fall</SelectItem>
                                 <SelectItem value="spring">Spring</SelectItem>

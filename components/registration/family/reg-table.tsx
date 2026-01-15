@@ -496,7 +496,7 @@ export default function RegTable({
                                         >
                                             <SelectValue placeholder="Select a class..." />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="bg-white">
                                             {[
                                                 ...threeArrs.fall,
                                                 ...threeArrs.year,

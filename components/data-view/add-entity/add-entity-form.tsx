@@ -132,7 +132,7 @@ const renderField = (
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder={field.placeholder || "-- Select --"} />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                        <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                             {field.options.map((opt) => (
                                 <SelectItem value={String(opt.val)} key={String(opt.val)}>
                                     {opt.labelcn}

@@ -374,7 +374,7 @@ export default function SemClassEditor({
                                                     <SelectValue placeholder="Select a class" />
                                                 </SelectTrigger>
                                                 {
-                                                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                         {selectOptions.classes.map((obj) => (
                                                             <SelectItem
                                                                 key={obj.classid}
@@ -426,7 +426,7 @@ export default function SemClassEditor({
                                                     <SelectTrigger className="w-full">
                                                         <SelectValue placeholder="Select a class" />
                                                     </SelectTrigger>
-                                                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                    <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                         {initialData.availablerooms.map(
                                                             (obj: {
                                                                 classid: number;
@@ -466,7 +466,7 @@ export default function SemClassEditor({
                                                         <SelectTrigger className="w-full">
                                                             <SelectValue placeholder="Select a teacher" />
                                                         </SelectTrigger>
-                                                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                        <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                             {selectOptions.teachers.map(
                                                                 (obj: {
                                                                     teacherid: number;
@@ -504,7 +504,7 @@ export default function SemClassEditor({
                                                         <SelectTrigger className="w-full">
                                                             <SelectValue placeholder="Select a classroom" />
                                                         </SelectTrigger>
-                                                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                        <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                             {selectOptions.rooms.map(
                                                                 (obj: {
                                                                     roomid: number;
@@ -667,7 +667,7 @@ export default function SemClassEditor({
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select a time" />
                                                 </SelectTrigger>
-                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                     {selectOptions.times.map(
                                                         (time: {
                                                             timeid: number;
@@ -708,7 +708,7 @@ export default function SemClassEditor({
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select a time" />
                                                 </SelectTrigger>
-                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                     <SelectItem
                                                         key={"true-closeregistration"}
                                                         value={"true"}
@@ -746,7 +746,7 @@ export default function SemClassEditor({
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select a time" />
                                                 </SelectTrigger>
-                                                <SelectContent className="max-h-[200px] overflow-y-auto">
+                                                <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                                     <SelectItem
                                                         key={"true-waiveregfee"}
                                                         value={"true"}
@@ -782,7 +782,7 @@ export default function SemClassEditor({
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Select a time" />
                                         </SelectTrigger>
-                                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                                        <SelectContent className="max-h-[200px] overflow-y-auto bg-white">
                                             {selectOptions.terms.map(
                                                 (term: {
                                                     termno: number;

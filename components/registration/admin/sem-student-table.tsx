@@ -416,7 +416,7 @@ function TransferButton({
                         <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Please Choose Class" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white">
                             {allClasses
                                 .filter((c) => c.classid !== currCid)
                                 .map((cls) => {

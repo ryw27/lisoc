@@ -80,7 +80,7 @@ export default function DataTablePagination<TData>({
                             <SelectTrigger className="h-8 px-2 text-sm" aria-label="Rows per page">
                                 <SelectValue></SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white">
                                 {[10, 20, 30, 40, 50, 100, 150, 200, 250, 400, 500].map(
                                     (option) => (
                                         <SelectItem

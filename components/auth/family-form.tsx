@@ -219,7 +219,7 @@ export default function FamilyForm({
                             <SelectTrigger id="state" className="h-10 w-full rounded-sm">
                                 <SelectValue placeholder="Select" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white">
                                 {[
                                     "AL",
                                     "AK",

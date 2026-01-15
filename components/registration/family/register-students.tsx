@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     CreateOrderActions,
@@ -289,7 +289,7 @@ export default function RegisterStudent({
                                 <SelectTrigger className="w-64">
                                     <SelectValue placeholder="Select a Semester" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-white">
                                     <SelectItem
                                         key={seasons.year.seasonid}
                                         value={String(seasons.year.seasonid)}
@@ -414,7 +414,7 @@ export default function RegisterStudent({
                                 <SelectTrigger className="w-64">
                                     <SelectValue placeholder="Select a Class" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-white">
                                     {getValidClasses(idx).map((c) => (
                                         <SelectItem
                                             key={c.arrangeid}
@@ -445,21 +445,24 @@ export default function RegisterStudent({
         );
     }
 
-    const calculateTotal = (term: "yearPrices" | "fallPrices" | "springPrices") => {
-        // TODO: Fix
-        const total =
-            Number(termPrices[term].childnumRegfee) +
-            Number(termPrices[term].regfee) -
-            Number(termPrices[term].earlyregdiscount) +
-            Number(termPrices[term].lateregfee) +
-            Number(termPrices[term].extrafee4newfamily) +
-            Number(termPrices[term].managementfee) +
-            Number(termPrices[term].dutyfee) +
-            Number(termPrices[term].cleaningfee) +
-            Number(termPrices[term].otherfee) +
-            Number(termPrices[term].tuition);
-        return total;
-    };
+    const calculateTotal = useCallback(
+        (term: "yearPrices" | "fallPrices" | "springPrices") => {
+            // TODO: Fix
+            const total =
+                Number(termPrices[term].childnumRegfee) +
+                Number(termPrices[term].regfee) -
+                Number(termPrices[term].earlyregdiscount) +
+                Number(termPrices[term].lateregfee) +
+                Number(termPrices[term].extrafee4newfamily) +
+                Number(termPrices[term].managementfee) +
+                Number(termPrices[term].dutyfee) +
+                Number(termPrices[term].cleaningfee) +
+                Number(termPrices[term].otherfee) +
+                Number(termPrices[term].tuition);
+            return total;
+        },
+        [termPrices]
+    );
     // keep total as a state hook so it can be used elsewhere (e.g. PayPal button)
     const [totalBalance, setTotalBalance] = useState<number>(() => {
         return (
@@ -592,7 +595,7 @@ export default function RegisterStudent({
                                     <SelectTrigger className="w-64">
                                         <SelectValue placeholder="Select a Student" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white">
                                         <SelectGroup>
                                             <SelectLabel>Students</SelectLabel>
                                             {students.map((stu) => (

@@ -418,7 +418,7 @@ export default function CreateStudentForm({ familyid }: { familyid: number }) {
                                 >
                                     <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
-                                <SelectContent className="border-primary/20 rounded-xs">
+                                <SelectContent className="border-primary/20 rounded-xs bg-white">
                                     <SelectItem value="Male">Male</SelectItem>
                                     <SelectItem value="Female">Female</SelectItem>
                                 </SelectContent>

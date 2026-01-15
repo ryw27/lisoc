@@ -479,7 +479,7 @@ function RegistrationControls({
                     <SelectTrigger id="term-select" className="w-full">
                         <SelectValue placeholder="Select term" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                         <SelectItem value="year">Academic Year</SelectItem>
                         <SelectItem value="fall">Fall</SelectItem>
                         <SelectItem value="spring">Spring</SelectItem>
