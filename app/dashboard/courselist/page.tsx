@@ -8,7 +8,16 @@ export default async function CourseListPage() {
     await requireRole(["FAMILY"]);
 
     return await db.transaction(async (tx) => {
-        const seasons = await fetchCurrentSeasons(tx);
+        let seasons;
+        try {
+            seasons = await fetchCurrentSeasons(tx);
+        } catch {
+            return (
+                <div className="flex flex-col items-center justify-center p-16 text-center opacity-60">
+                    <p className="text-primary text-xl">No classes found.</p>
+                </div>
+            );
+        }
 
         const yearArrangements = await db.query.arrangement.findMany({
             where: (arrangement, { and, eq }) =>
@@ -48,26 +57,34 @@ export default async function CourseListPage() {
             fall: fallArrangements,
             spring: springArrangements,
         };
+
         if (allArrs.year.length + allArrs.fall.length + allArrs.spring.length === 0) {
             return (
-                <div className="flex min-h-screen items-center justify-center text-2xl font-bold">
-                    No classes found
+                <div className="border-input flex flex-col items-center justify-center border-2 border-dashed p-16 text-center opacity-60">
+                    <p className="text-muted-foreground text-xl italic">No classes found.</p>
                 </div>
             );
         }
 
         return (
-            <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-2 px-4 py-8">
-                <h1 className="mb-2 text-2xl font-bold text-black">Class List</h1>
-                <p className="mb-6 text-xl">
-                    In order to register, please visit{" "}
-                    <Link href="/dashboard/register" className="text-blue-600 underline">
-                        the registration link
-                    </Link>
-                </p>
+            <div className="text-foreground mx-auto flex w-full max-w-5xl flex-col items-start gap-6 px-4 py-8">
+                {/* --- Header --- */}
+                <div className="mb-2">
+                    <h1 className="text-primary mb-2 text-3xl font-bold">Class List</h1>
+                    <p className="text-muted-foreground text-lg">
+                        In order to register, please visit{" "}
+                        <Link
+                            href="/dashboard/register"
+                            className="text-primary decoration-accent font-bold underline decoration-2 underline-offset-4 hover:text-blue-800"
+                        >
+                            the registration link
+                        </Link>
+                    </p>
+                </div>
 
-                <section className="w-full rounded-md border-1 p-4 shadow-md">
-                    <h2 className="mb-3 text-lg font-bold">Year Classes</h2>
+                {/* --- Year Classes --- */}
+                <section className="border-input bg-card w-full border p-5 shadow-sm">
+                    <h2 className="text-primary mb-4 pb-2 text-xl font-bold">Year Classes</h2>
                     <div className="flex w-full flex-col gap-4">
                         {allArrs.year.map((classData) => (
                             <InfoBoxClass
@@ -80,8 +97,11 @@ export default async function CourseListPage() {
                     </div>
                 </section>
 
-                <section className="w-full rounded-md border-1 p-4 shadow-md">
-                    <h2 className="mb-3 text-lg font-bold">Fall-only Classes</h2>
+                {/* --- Fall Classes --- */}
+                <section className="border-input bg-card w-full border p-5 shadow-sm">
+                    <h2 className="border-input text-primary mb-4 border-b pb-2 text-xl font-bold">
+                        Fall-only Classes
+                    </h2>
                     <div className="flex w-full flex-col gap-4">
                         {allArrs.fall.map((classData) => (
                             <InfoBoxClass
@@ -94,8 +114,11 @@ export default async function CourseListPage() {
                     </div>
                 </section>
 
-                <section className="w-full rounded-md border-1 p-4 shadow-md">
-                    <h2 className="mb-3 text-lg font-bold">Spring-only Classes</h2>
+                {/* --- Spring Classes --- */}
+                <section className="border-input bg-card w-full border p-5 shadow-sm">
+                    <h2 className="border-input text-primary mb-4 border-b pb-2 text-xl font-bold">
+                        Spring-only Classes
+                    </h2>
                     <div className="flex w-full flex-col gap-4">
                         {allArrs.spring.map((classData) => (
                             <InfoBoxClass
