@@ -29,8 +29,8 @@ export default async function fetchCurrentSeasons(client: dbClient = db) {
         }
 
         const [fall, spring] = await tx.query.seasons.findMany({
-            where: (s, { and, eq }) =>
-                and(eq(s.seasonid, year.relatedseasonid), eq(s.seasonid, year.beginseasonid)),
+            where: (s, { or, eq }) =>
+                or(eq(s.seasonid, year.relatedseasonid), eq(s.seasonid, year.beginseasonid)),
             orderBy: (s, { asc }) => asc(s.seasonid),
         });
 
