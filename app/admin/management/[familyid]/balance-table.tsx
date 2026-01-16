@@ -13,7 +13,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { download, generateCsv, mkConfig } from "export-to-csv";
-import { XIcon } from "lucide-react";
+import { Download, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { removeBalance } from "@/server/payments/actions";
 import { ClientTable } from "@/components/client-table";
@@ -220,28 +220,45 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
             return total + (typeof value === "number" ? value : Number(value) || 0);
         }, 0);
     }, [rows]); // Recalculate if table state (like filtering) changes
-
     return (
         <>
-            <div>
-                <div className="flex items-center justify-between">
-                    <div>
+            <div className="mb-2">
+                <div className="border-input flex items-end justify-between border-b pb-3">
+                    {/* Left: Section Identity */}
+                    <h2 className="text-primary text-lg font-bold">Registration Ledger</h2>
+
+                    {/* Right: Financial Summary & Tools */}
+                    <div className="flex items-center gap-6">
+                        {/* Balance Display */}
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+                                Balance:
+                            </span>
+                            <span
+                                className={`font-serif text-xl font-bold ${
+                                    totalBalance < 0 ? "text-red-600" : "text-emerald-700"
+                                }`}
+                            >
+                                {totalBalance.toLocaleString("en-US", {
+                                    style: "currency",
+                                    currency: "USD",
+                                })}
+                            </span>
+                        </div>
+
+                        {/* Vertical Divider for separation */}
+                        <div className="h-6 w-px bg-gray-200"></div>
+
+                        {/* Export Action: Tinted Button with Icon */}
                         <button
-                            className="rounded-md bg-blue-600 p-2 font-bold text-white"
+                            type="button"
                             onClick={() => exportExcel(table.getFilteredRowModel().rows)}
+                            className="bg-primary hover:bg-primary/80 flex cursor-pointer items-center gap-2 rounded-sm px-4 py-1.5 text-xs font-bold tracking-wide text-white uppercase transition-colors"
                         >
-                            Export To Excel
+                            <Download size={16} />
+                            Export Excel
                         </button>
                     </div>
-                    <h2 className="text-lg font-semibold">Registrations </h2>
-
-                    <span style={totalBalance < 0 ? { color: "red" } : { color: "green" }}>
-                        <strong style={{ color: "black" }}>TotalBalance : </strong>{" "}
-                        {totalBalance.toLocaleString("en-US", {
-                            style: "currency",
-                            currency: "USD",
-                        })}
-                    </span>
                 </div>
             </div>
             <ClientTable table={table} />

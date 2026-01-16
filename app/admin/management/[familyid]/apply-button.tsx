@@ -37,48 +37,57 @@ export default function ApplyButton({ family }: { family: familyObj }) {
         <form
             ref={formRef}
             onSubmit={checkForm.handleSubmit(onSubmit)}
-            className="container mx-auto flex items-center justify-center gap-2"
+            className="container mx-auto flex items-end justify-center gap-3 py-4"
         >
-            <label className="text-sm" htmlFor="balanceid">
-                Apply to
+            {/* Label styled as metadata */}
+            <label
+                className="text-muted-foreground mb-2 text-xs font-bold tracking-wide uppercase"
+                htmlFor="balanceid"
+            >
+                Apply to:
             </label>
+
             <Input
                 id="balanceid"
                 placeholder="Balance ID"
                 type="number"
-                className="w-28 rounded-md border border-gray-300 p-2"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-28 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("balanceid", { required: true })}
             />
+
             <Input
                 placeholder="Amount"
                 type="number"
-                className="w-40 rounded-md border border-gray-300 p-2"
                 step="0.01"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-40 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("amount", { required: true, valueAsNumber: true })}
             />
+
             <Input
                 placeholder="Check No"
                 type="text"
-                className="w-40 rounded-md border border-gray-300 p-2"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-40 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("checkNo")}
             />
+
             <Input
                 placeholder="Paid Date"
                 type="date"
                 defaultValue={today}
-                className="w-40 rounded-md border border-gray-300 p-2"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-40 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("paidDate")}
             />
+
             <Input
-                placeholder="Note"
+                placeholder="Memo / Note"
                 type="text"
-                className="w-60 rounded-md border border-gray-300 p-2"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-60 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("note")}
             />
 
             <button
                 type="submit"
-                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm px-6 py-2 text-xs font-bold tracking-widest uppercase shadow-sm transition-colors"
             >
                 Apply
             </button>
