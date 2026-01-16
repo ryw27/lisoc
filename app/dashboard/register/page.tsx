@@ -21,8 +21,14 @@ export default async function RegisterPage() {
         where: (season, { eq }) => eq(season.status, "Active"),
         orderBy: (season, { asc }) => [asc(season.seasonid)],
     });
+
     if (!activeYear) {
-        return <div>No active semesters. If you think this is a mistake, please contact ...</div>;
+        return (
+            <div className="flex items-center justify-center text-lg">
+                No active semesters. If you think this is a mistake, please contact
+                tech.lisoc@gmail.com
+            </div>
+        );
     }
 
     // 3. Get fall and spring
