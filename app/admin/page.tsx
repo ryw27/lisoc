@@ -184,7 +184,7 @@ export default async function HomePage() {
 
                     <div className="bg-muted/30 flex items-center gap-2 rounded-sm px-3 py-1.5">
                         <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                            System Version V0.2.0
+                            System Version {process.env.NEXT_PUBLIC_APP_VERSION}
                         </span>
                     </div>
                 </header>
