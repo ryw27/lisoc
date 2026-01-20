@@ -1,4 +1,6 @@
-import React from "react";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
+import { requireRole } from "@/server/auth/actions";
 import {
     Book,
     Calendar,
@@ -11,10 +13,8 @@ import {
     Search,
     Users,
 } from "lucide-react";
+import React from "react";
 import { FaChalkboardTeacher } from "react-icons/fa";
-import { requireRole } from "@/server/auth/actions";
-import Header from "@/components/header";
-import SideNav from "@/components/sidenav";
 
 const beginlink = "/admin";
 const navItems = [
@@ -25,16 +25,19 @@ const navItems = [
                 label: "Home",
                 href: [beginlink],
                 icon: <Home className="h-4 w-4" />,
+                tip: "首页",
             },
             {
                 label: "Semester Management",
                 href: [`${beginlink}/management/semester`],
                 icon: <Calendar className="h-4 w-4" />,
+                tip: "学期管理",
             },
             {
                 label: "Feedback",
                 href: [`${beginlink}/management/feedback`],
                 icon: <MessageCircle className="h-4 w-4" />,
+                tip: "反馈",
             },
         ],
     },
@@ -45,6 +48,7 @@ const navItems = [
                 label: "Billing", // Collect Money and payments, payment for this semester, processing refunds, family balance
                 href: [`${beginlink}/accounting/billing`],
                 icon: <CreditCard className="h-4 w-4" />,
+                tip: "会计",
             },
             // {
             //     label: "Payments", // Invoices for this semester, creating fees owed to the school
@@ -55,6 +59,7 @@ const navItems = [
                 label: "Transaction Reports", // Comprehensive financial transactions, including analysis, payments, refunds, family balnaces, and school balances
                 href: [`${beginlink}/accounting/transaction-reports`],
                 icon: <Receipt className="h-4 w-4" />,
+                tip: "报告",
             },
         ],
     },
@@ -65,6 +70,7 @@ const navItems = [
                 label: "Class View",
                 href: [`${beginlink}/data/classes`, `${beginlink}/data/classrooms`],
                 icon: <School className="h-4 w-4" />,
+                tip: "课程",
             },
             {
                 label: "People View",
@@ -75,6 +81,7 @@ const navItems = [
                     `${beginlink}/data/adminuser`,
                 ],
                 icon: <Users className="h-4 w-4" />,
+                tip: "人员",
             },
             {
                 label: "Semester View",
@@ -86,6 +93,7 @@ const navItems = [
                     `${beginlink}/data/regchangerequest`,
                 ],
                 icon: <FaChalkboardTeacher className="h-4 w-4" />,
+                tip: "学期",
             },
         ],
     },
@@ -101,16 +109,19 @@ const navItems = [
                 label: "Family Search",
                 href: [`${beginlink}/other/find-family`],
                 icon: <Search className="h-4 w-4" />,
+                tip: "家庭搜索",
             },
             {
                 label: "Site Guide",
                 href: [`${beginlink}/other/site-guide`],
                 icon: <Book className="h-4 w-4" />,
+                tip: "网站指南",
             },
             {
                 label: "Logout",
                 href: [`${beginlink}/logout`],
                 icon: <LogOut className="h-4 w-4" />,
+                tip: "退出登录",
             },
         ],
     },

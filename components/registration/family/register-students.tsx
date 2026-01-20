@@ -1,22 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-    CreateOrderActions,
-    CreateOrderData,
-    OnApproveActions,
-    OnApproveData,
-} from "@paypal/paypal-js";
-import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { InferSelectModel } from "drizzle-orm";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
 import {
     Select,
     SelectContent,
@@ -26,7 +9,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    CreateOrderActions,
+    CreateOrderData,
+    OnApproveActions,
+    OnApproveData,
+} from "@paypal/paypal-js";
+import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { InferSelectModel } from "drizzle-orm";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import RegTable from "./reg-table";
+
+import DisclaimerPage from "./disclaimer";
+ 
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
@@ -562,6 +565,31 @@ export default function RegisterStudent({
         //setPaypalError('An error occurred with PayPal. Please try again.');
     };
 
+    const [disclaimerChecked, setDisclaimerChecked] = useState<boolean | null>(null);
+    useEffect(() => {
+        const agreed = localStorage.getItem('lisoc_disclaimer_agreed');
+        setDisclaimerChecked(agreed === 'true');
+    }, []);
+
+    const handleDisclaimerChange = (checked: boolean) => {
+        setDisclaimerChecked(checked);
+        localStorage.setItem('lisoc_disclaimer_agreed', checked ? 'true' : 'false');
+    };
+
+    if (disclaimerChecked === null) {
+        return <div>Loading...</div>;
+    }
+
+    if (disclaimerChecked === false) {
+        return (
+            <DisclaimerPage
+                disclaimerChecked={disclaimerChecked}
+                setDisclaimerChecked={setDisclaimerChecked}
+                handleDisclaimerChange={handleDisclaimerChange}
+            />
+        )
+    }
+    
     return (
         <div className="flex flex-col">
             <form onSubmit={regForm.handleSubmit(onSubmit)} className="border-1 border-black p-4">
@@ -576,6 +604,13 @@ export default function RegisterStudent({
                     semester to register the class. Click here for school registration policy Click
                     here to view the complete list of opened classes. If you have any questions or
                     comment please click here
+                   <br/>
+                    <br/>
+                    请先选择要注册的学生，然后选择学期、课程类型，最后选择要注册的课程。选择好课程后，如果想取消其中一门课程，
+                    只需勾选“取消”。如果在提交注册后想取消某门课程，请点击取消该课程。完成所有注册后，请点击“打印注册记录”按钮。
+                    有些课程可能只在当前学期开设，在这种情况下，您应该选择相应的学期来注册该课程。点击此处查看学校注册政策 
+                    点击此处查看已开设课程的完整列表。
+
                 </p>
                 <div className="mt-10 space-y-2">
                     <div className="flex items-center gap-2">
@@ -685,7 +720,7 @@ export default function RegisterStudent({
                         Family Balance IDs:{" "}
                         {Array.from(familyBalanceIdSet).length > 0
                             ? Array.from(familyBalanceIdSet).join(", ")
-                            : "None"}
+                            : ""}
                     </p>
                 </div>
 

@@ -186,10 +186,10 @@ export const REGSTATUS_DROPOUT = 4;
 export const REGSTATUS_DROPOUT_SPRING = 5;
 export const regStatusMap = {
     [REGSTATUS_SUBMITTED]: "Submitted",
-    [REGSTATUS_REGISTERED]: "Submitted",
-    [REGSTATUS_TRANSFERRED]: "Submitted",
-    [REGSTATUS_DROPOUT]: "Submitted",
-    [REGSTATUS_DROPOUT_SPRING]: "Submitted",
+    [REGSTATUS_REGISTERED]: "Registered",
+    [REGSTATUS_TRANSFERRED]: "Transferred",
+    [REGSTATUS_DROPOUT]: "Dropped Out",
+    [REGSTATUS_DROPOUT_SPRING]: "Dropped Out (Spring)",
 } satisfies Record<number, string>;
 
 // Request status

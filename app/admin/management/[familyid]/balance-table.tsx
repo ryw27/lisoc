@@ -1,6 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { ClientTable } from "@/components/client-table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { removeBalance } from "@/server/payments/actions";
 import {
     Column,
     ColumnDef,
@@ -14,19 +26,7 @@ import {
 } from "@tanstack/react-table";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 import { Download, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { removeBalance } from "@/server/payments/actions";
-import { ClientTable } from "@/components/client-table";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useMemo, useState } from "react";
 
 const csvConfig = mkConfig({
     fieldSeparator: ",",
@@ -34,6 +34,8 @@ const csvConfig = mkConfig({
     decimalSeparator: ".",
     useKeysAsHeaders: true,
 });
+
+import { balanceTypes } from "@/types/shared.types";
 
 function SelectColumnFilter({ column }: { column: Column<balanceTypes> }) {
     const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
@@ -53,15 +55,6 @@ function SelectColumnFilter({ column }: { column: Column<balanceTypes> }) {
     );
 }
 
-type balanceTypes = {
-    balanceid: number;
-    regdate: string;
-    semester: string;
-    amount: number;
-    check_no: string;
-    paiddate: string;
-    note: string;
-};
 
 // export function
 // Note: change _ in Row<_>[] with your Typescript type.

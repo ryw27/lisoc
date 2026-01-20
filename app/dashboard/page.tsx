@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { eq, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { familybalance } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
+import { eq, sum } from "drizzle-orm";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
     // Check if allowed here.
@@ -53,7 +53,7 @@ export default async function Dashboard() {
                     Welcome{names ? ", " + names : ""}
                 </h1>
                 <p className="text-muted-foreground mt-2 text-lg">
-                    LISOC Online Registration System
+                    LISOC Online Registration System(长岛中文学校在线注册系统)
                 </p>
             </div>
 
@@ -70,7 +70,7 @@ export default async function Dashboard() {
                         <div className="grid gap-y-4 p-6 md:grid-cols-2 md:gap-x-8">
                             <div className="space-y-1">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Father / Legal Guardian
+                                    Father / Legal Guardian(父亲/监护人)
                                 </label>
                                 <div className="text-foreground font-medium">
                                     {`${familyInfo.fatherfirsten} ${familyInfo.fatherlasten} ${familyInfo.fathernamecn}`}
@@ -79,7 +79,7 @@ export default async function Dashboard() {
 
                             <div className="space-y-1">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Mother / Legal Guardian
+                                    Mother / Legal Guardian（母亲/监护人)
                                 </label>
                                 <div className="text-foreground font-medium">
                                     {`${familyInfo?.motherfirsten} ${familyInfo.motherlasten} ${familyInfo.mothernamecn}`}
@@ -88,7 +88,7 @@ export default async function Dashboard() {
 
                             <div className="space-y-1 md:col-span-2">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Mailing Address
+                                    Mailing Address（邮寄地址)
                                 </label>
                                 <div className="text-foreground font-medium">
                                     {`${userInfo.address}, ${userInfo.city}, ${userInfo.state} ${userInfo.zip}`}
@@ -97,7 +97,7 @@ export default async function Dashboard() {
 
                             <div className="space-y-1">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Phone Contacts
+                                    Phone Contacts（联系电话)
                                 </label>
                                 <div className="flex flex-col text-sm font-medium">
                                     {userInfo.phone && <span>{userInfo.phone}</span>}
@@ -112,7 +112,7 @@ export default async function Dashboard() {
 
                             <div className="space-y-1">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Email Contacts
+                                    Email Contacts(电子邮件)
                                 </label>
                                 <div className="flex flex-col text-sm font-medium">
                                     {userInfo.email && <span>{userInfo.email}</span>}
@@ -126,7 +126,7 @@ export default async function Dashboard() {
 
                             <div className="space-y-1">
                                 <label className="text-muted-foreground text-xs font-semibold uppercase">
-                                    Family ID
+                                    Family ID（家庭编号)
                                 </label>
                                 <div className="text-primary font-mono font-bold">{`${familyInfo.familyid}`}</div>
                             </div>
@@ -145,13 +145,13 @@ export default async function Dashboard() {
                             <table className="w-full text-left text-sm">
                                 <thead className="text-muted-foreground bg-gray-50 text-xs font-semibold uppercase">
                                     <tr>
-                                        <th className="px-6 py-4">ID</th>
-                                        <th className="px-6 py-4">Name</th>
-                                        <th className="px-6 py-4">中文名</th>
-                                        <th className="px-6 py-4">Gender</th>
-                                        <th className="px-6 py-4">Age</th>
-                                        <th className="px-6 py-4">DOB</th>
-                                        <th className="px-6 py-4">Reg Date</th>
+                                        <th className="px-6 py-4">ID<br/>编号</th>
+                                        <th className="px-6 py-4">Name<br/>姓名</th>
+                                        <th className="px-6 py-4">chinese Name<br/>中文名</th>
+                                        <th className="px-6 py-4">Gender<br/>性别</th>
+                                        <th className="px-6 py-4">Age<br/>年龄</th>
+                                        <th className="px-6 py-4">DOB<br/>生日</th>
+                                        <th className="px-6 py-4">Reg Date<br/>注册日期</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">

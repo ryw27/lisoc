@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { BREADCRUMB_LABELS, cn } from "@/lib/utils";
 import { ChevronRight, LogOut, UserCircle } from "lucide-react";
 import { type DefaultSession } from "next-auth";
 import { signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 import { validate as isUUID } from "uuid";
-import { BREADCRUMB_LABELS, cn } from "@/lib/utils";
 import LanguageToggle from "./language-toggle";
 
 export function useBreadCrumbs(): string[] {
@@ -86,7 +86,7 @@ export default function Header({ user }: { user: DefaultSession["user"] }) {
                     >
                         <div className="hidden text-right sm:block">
                             <p className="text-primary mb-0.5 text-[11px] leading-tight font-black tracking-tight">
-                                ADMIN PORTAL
+                                User
                             </p>
                             <p className="text-secondary text-[10px] leading-tight font-bold uppercase italic">
                                 {user?.name ?? "Registrar"}

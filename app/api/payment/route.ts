@@ -20,7 +20,9 @@ async function getPayPalAccessToken() {
             `${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
         ).toString("base64");
 
-        const response = await fetch("https://api-m.sandbox.paypal.com/v1/oauth2/token", {
+ //       const response = await fetch("https://api-m.sandbox.paypal.com/v1/oauth2/token", {
+       const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
+  
             method: "POST",
             headers: {
                 Authorization: `Basic ${auth}`,
@@ -97,6 +99,7 @@ export async function POST(request: Request) {
             amount: amount,
             checkNo: `${data.orderID}`,
             paidDate: paidDate,
+            note: `PayPal Capture ID: ${captureData.id}`,
         };
 
         try {

@@ -1,5 +1,5 @@
-import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, family, familybalance, seasons } from "@/lib/db/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 // TODO: Shared types
 
@@ -110,3 +110,14 @@ export type IdMaps = {
     timeMap: Record<number, timeJoin[][number]>;
     termMap: Record<number, termJoin[][number]>;
 };
+
+export type balanceTypes = {
+    balanceid: number;
+    regdate: string;
+    semester: string;
+    amount: number;
+    check_no: string;
+    paiddate: string;
+    note: string;
+};
+

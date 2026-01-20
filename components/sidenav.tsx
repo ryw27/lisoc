@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
-import { signOut } from "next-auth/react";
-import { cn } from "@/lib/utils";
+import React, { useState } from "react";
 
 interface SideNavProps {
     items: {
@@ -15,6 +15,7 @@ interface SideNavProps {
             label: string;
             href: string[];
             icon: React.ReactNode;
+            tip: string|undefined;
         }[];
     }[];
 }
@@ -33,7 +34,7 @@ export default function SideNav({ items }: SideNavProps) {
         <aside
             className={cn(
                 "bg-brand-navy relative z-50 flex h-full flex-col shadow-2xl transition-all duration-500 ease-in-out",
-                navCollapsed ? "w-20" : "w-64"
+                navCollapsed ? "w-20" : "w-72"
             )}
         >
             {/* Heritage Border */}
@@ -95,7 +96,7 @@ export default function SideNav({ items }: SideNavProps) {
                             <div className="space-y-1">
                                 {group.items.map((item, itemIdx: number) => {
                                     const isActive = item.href.includes(pathname);
-                                    const isLogout = item.label === "Logout";
+                                    const isLogout = item.label.startsWith("Logout");
 
                                     // Shared Tailwind classes for both Link and Button
                                     const itemClasses = cn(
@@ -145,6 +146,7 @@ export default function SideNav({ items }: SideNavProps) {
                                             key={itemIdx}
                                             href={item.href[0]}
                                             className={itemClasses}
+                                            title={item.tip}
                                         >
                                             {itemContent}
                                         </Link>
