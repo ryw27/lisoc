@@ -1,8 +1,8 @@
-import BalanceHistoryTable from "@/components/familymanagement/historic_balances";
-import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
+import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireRole } from "@/server/auth/actions";
-import { Suspense } from "react";
+import BalanceHistoryTable from "@/components/familymanagement/historic_balances";
+import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
 
 export default async function BalanceHistoryPage() {
     const user = await requireRole(["FAMILY"]);
@@ -17,32 +17,29 @@ export default async function BalanceHistoryPage() {
 
     const history = await db.query.familybalance.findMany({
         where: (familybalance, { eq }) => eq(familybalance.familyid, familyRow?.familyid as number),
-        orderBy: (familybalance, { desc }) => desc(familybalance.balanceid)        
+        orderBy: (familybalance, { desc }) => desc(familybalance.balanceid),
     });
 
     if (!history?.length) {
-        return (
-        <div className="text-gray-500 text-center py-8">
-            No balance history found.
-        </div>
-        );
+        return <div className="py-8 text-center text-gray-500">No balance history found.</div>;
     }
 
-    const balanceData = await Promise.all(history.map(async balance => {
-        const season = await db.query.seasons.findFirst({
-            where: (s, { eq }) => eq(s.seasonid, balance.seasonid),
-        }); 
-        return {
-            balanceid: balance.balanceid,
-            regdate: balance.registerdate,
-            semester: season?.seasonnamecn || "N/A",
-            amount: Number(balance.totalamount),
-            check_no: balance.checkno || "N/A",
-            paiddate: balance.paiddate,
-            note: balance.notes || "",
-        }
-    }));
-
+    const balanceData = await Promise.all(
+        history.map(async (balance) => {
+            const season = await db.query.seasons.findFirst({
+                where: (s, { eq }) => eq(s.seasonid, balance.seasonid),
+            });
+            return {
+                balanceid: balance.balanceid,
+                regdate: balance.registerdate,
+                semester: season?.seasonnamecn || "N/A",
+                amount: Number(balance.totalamount),
+                check_no: balance.checkno || "N/A",
+                paiddate: balance.paiddate,
+                note: balance.notes || "",
+            };
+        })
+    );
 
     return (
         <main className="mx-auto px-4 py-8">

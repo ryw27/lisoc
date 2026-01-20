@@ -1,6 +1,4 @@
-import Header from "@/components/header";
-import SideNav from "@/components/sidenav";
-import { requireRole } from "@/server/auth/actions";
+import React from "react";
 import {
     BookOpenIcon,
     DollarSign,
@@ -10,15 +8,17 @@ import {
     Mail,
     UserIcon,
 } from "lucide-react";
-import React from "react";
 import { FaChalkboardTeacher } from "react-icons/fa";
+import { requireRole } from "@/server/auth/actions";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
 
 const DASHBOARD = "/dashboard";
 interface NavItem {
     label: string;
     href: string[];
     icon: React.ReactNode;
-    tip: string|undefined;
+    tip: string | undefined;
 }
 
 interface NavSection {
@@ -54,14 +54,14 @@ const navItems: NavSection[] = [
                 icon: <UserIcon className="h-4 w-4" />,
                 tip: "更新家庭",
             },
-            
+
             {
                 label: "Reset Password/重置密码",
                 href: [`${DASHBOARD}/updatepassword`],
-                icon: <UserIcon className="w-4 h-4" />,
-                tip: "重置密码"
+                icon: <UserIcon className="h-4 w-4" />,
+                tip: "重置密码",
             },
-            
+
             {
                 label: "Parent Duty（家长值班）",
                 href: [`${DASHBOARD}/parentduty`],
@@ -77,18 +77,19 @@ const navItems: NavSection[] = [
                 label: "Course List（课程列表）",
                 href: [`${DASHBOARD}/courselist`],
                 icon: <BookOpenIcon className="h-4 w-4" />,
-                 tip: "课程列表"
+                tip: "课程列表",
             },
             {
                 label: "Registration History（注册记录）",
                 href: [`${DASHBOARD}/reghistory`],
                 icon: <FileTextIcon className="h-4 w-4" />,
-                 tip: "注册记录"},
+                tip: "注册记录",
+            },
             {
                 label: "Balance History（缴费记录）",
                 href: [`${DASHBOARD}/balhistory`],
                 icon: <DollarSign className="h-4 w-4" />,
-                tip: "缴费记录"
+                tip: "缴费记录",
             },
         ],
     },
@@ -99,13 +100,13 @@ const navItems: NavSection[] = [
                 label: "Contact us（联系我们）",
                 href: [`${DASHBOARD}/contact`],
                 icon: <Mail className="h-4 w-4" />,
-                tip: "联系我们"
+                tip: "联系我们",
             },
             {
                 label: "Logout（退出）",
                 href: [`${DASHBOARD}/logout`],
                 icon: <LogOut className="h-4 w-4" />,
-                tip: "退出"
+                tip: "退出",
             },
         ],
     },

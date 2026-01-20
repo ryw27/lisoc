@@ -1,9 +1,9 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { eq, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { familybalance } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
-import { eq, sum } from "drizzle-orm";
-import Link from "next/link";
-import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
     // Check if allowed here.
@@ -145,13 +145,41 @@ export default async function Dashboard() {
                             <table className="w-full text-left text-sm">
                                 <thead className="text-muted-foreground bg-gray-50 text-xs font-semibold uppercase">
                                     <tr>
-                                        <th className="px-6 py-4">ID<br/>编号</th>
-                                        <th className="px-6 py-4">Name<br/>姓名</th>
-                                        <th className="px-6 py-4">chinese Name<br/>中文名</th>
-                                        <th className="px-6 py-4">Gender<br/>性别</th>
-                                        <th className="px-6 py-4">Age<br/>年龄</th>
-                                        <th className="px-6 py-4">DOB<br/>生日</th>
-                                        <th className="px-6 py-4">Reg Date<br/>注册日期</th>
+                                        <th className="px-6 py-4">
+                                            ID
+                                            <br />
+                                            编号
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            Name
+                                            <br />
+                                            姓名
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            chinese Name
+                                            <br />
+                                            中文名
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            Gender
+                                            <br />
+                                            性别
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            Age
+                                            <br />
+                                            年龄
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            DOB
+                                            <br />
+                                            生日
+                                        </th>
+                                        <th className="px-6 py-4">
+                                            Reg Date
+                                            <br />
+                                            注册日期
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">

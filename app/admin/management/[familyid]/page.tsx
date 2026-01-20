@@ -1,7 +1,7 @@
+import { Suspense, type FC } from "react";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { selectFamilyName } from "@/server/billing/data";
-import { notFound } from "next/navigation";
-import { Suspense, type FC } from "react";
 import ApplyButton from "./apply-button";
 import BalanceTable from "./balance-table";
 
@@ -68,7 +68,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
     return (
         <div className="mx-auto max-w-7xl p-6">
             <h1 className="mb-4 text-2xl font-bold">Family: {selectFamilyName(fam)}</h1>
-            <h2 className="mb-4 text-1xl font-bold">FamilyID: {fam.familyid}</h2>
+            <h2 className="text-1xl mb-4 font-bold">FamilyID: {fam.familyid}</h2>
 
             <div className="mb-6">
                 <h2 className="text-lg font-semibold">Contact</h2>

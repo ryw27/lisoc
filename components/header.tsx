@@ -1,12 +1,12 @@
 "use client";
 
-import { BREADCRUMB_LABELS, cn } from "@/lib/utils";
+import React, { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronRight, LogOut, UserCircle } from "lucide-react";
 import { type DefaultSession } from "next-auth";
 import { signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
 import { validate as isUUID } from "uuid";
+import { BREADCRUMB_LABELS, cn } from "@/lib/utils";
 import LanguageToggle from "./language-toggle";
 
 export function useBreadCrumbs(): string[] {

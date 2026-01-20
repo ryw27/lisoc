@@ -1,10 +1,10 @@
-import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
-import HistoricRegistrations from "@/components/registration/family/historic_registrations";
+import { Suspense } from "react";
+import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
-import { InferSelectModel } from "drizzle-orm";
-import { Suspense } from "react";
+import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
+import HistoricRegistrations from "@/components/registration/family/historic_registrations";
 
 export default async function RegistrationHistory() {
     const user = await requireRole(["FAMILY"]);
@@ -115,10 +115,10 @@ export default async function RegistrationHistory() {
             const arrangement = await getNiceArrInfo(r);
             return arrangement;
         })
-    )/*.then((results) => {
+    ); /*.then((results) => {
         // This runs automatically once the data is ready
         return results.filter((r) => r.arrinfo !== undefined);
-    })*/;
+    })*/
 
     const students = await db.query.student.findMany({
         where: (s, { eq }) => eq(s.familyid, userFamily.familyid),
@@ -127,7 +127,7 @@ export default async function RegistrationHistory() {
     return (
         <Suspense fallback={<TableSkeleton />}>
             <HistoricRegistrations
-                registrations={enhancedReg.filter(r => r.arrinfo !== undefined)}
+                registrations={enhancedReg.filter((r) => r.arrinfo !== undefined)}
                 // family={userFamily}
                 students={students}
             />

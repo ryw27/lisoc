@@ -1,5 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod/v4";
+import { fullRegisterFamily } from "@/server/auth/familyreg.actions";
+import { familySchema, nameEmailSchema } from "@/server/auth/schema";
 import {
     Select,
     SelectContent,
@@ -7,13 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { fullRegisterFamily } from "@/server/auth/familyreg.actions";
-import { familySchema, nameEmailSchema } from "@/server/auth/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod/v4";
 import { FormError, FormInput, FormSubmit } from "./form-components";
 
 export default function FamilyForm({

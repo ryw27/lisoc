@@ -1,6 +1,4 @@
-import Header from "@/components/header";
-import SideNav from "@/components/sidenav";
-import { requireRole } from "@/server/auth/actions";
+import React from "react";
 import {
     Book,
     Calendar,
@@ -13,8 +11,10 @@ import {
     Search,
     Users,
 } from "lucide-react";
-import React from "react";
 import { FaChalkboardTeacher } from "react-icons/fa";
+import { requireRole } from "@/server/auth/actions";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
 
 const beginlink = "/admin";
 const navItems = [
