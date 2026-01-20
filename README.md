@@ -4,7 +4,7 @@ A management system for Long Island School of Chinese (长岛中文学校)
 
 #### Built With
 
-**Next.js 14**, **TypeScript**, **Tailwind CSS**, **Drizzle ORM (PostgreSQL)**
+**Next.js 15**, **TypeScript**, **Tailwind CSS**, **Drizzle ORM (PostgreSQL)**
 
 _Libraries:_ Next-Auth, React Hook Form, Zod, PayPal SDK
 
