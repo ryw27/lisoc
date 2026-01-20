@@ -1,5 +1,5 @@
 "use client";
-import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getSortedRowModel, SortingState, useReactTable } from "@tanstack/react-table";
+import { Column, flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getSortedRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import { useMemo } from "react";
 //import { familybalance } from "@/lib/db/schema";
 //import { InferSelectModel } from "drizzle-orm";
@@ -16,7 +16,7 @@ import { useState } from "react";
     totalamount: number;
 };
 */
-function SelectColumnFilter({ column }: { column: any }) {
+function SelectColumnFilter({ column }: { column: Column<balanceTypes> }): React.ReactNode {
   const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
 
   return (

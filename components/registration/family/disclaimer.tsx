@@ -36,7 +36,7 @@ Please read the school policy carefully. You need to agree with all terms and ru
                         onChange={(e) => setChecked(e.target.checked)} 
                         style={{ marginRight: '0.5rem', color: 'red' }}
                     />
-                     我已经阅读并同意学校的注册规定。I've read and agreed with all terms and rules of the school policy
+                     我已经阅读并同意学校的注册规定。I have read and agreed with all terms and rules of the school policy
                 </label>
             </div>
             <button 

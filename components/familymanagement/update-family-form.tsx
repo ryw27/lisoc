@@ -60,7 +60,7 @@ export default function UpdateFamilyForm({ infamily }: { infamily: InferSelectMo
             <form onSubmit={familyForm.handleSubmit(onSubmit)} className="flex flex-col space-y-4 bg-white p-8 rounded-xl shadow-md w-full max-w-2xl">
             <h2 className="text-2xl font-bold">Update Family Information (更新家庭信息)</h2>
             <h1 className="text-1xl">Family ID: {infamily.familyid}</h1>
-            <p className="text-sm text-black-400">请在下表填上准确资料，然后按“更新” Please fill out the appropriate information below, then press the "Update" button.</p>
+            <p className="text-sm text-black-400">请在下表填上准确资料，然后按 “更新”  Please fill out the appropriate information below, then press the “Update” button.</p>
             <FormInput
                 label="Mother's Chinese Name（母亲中文名）"
                 type="text"

@@ -1,12 +1,12 @@
 "use client";
-import { InferSelectModel } from "drizzle-orm";
-import { arrangement, classes, classregistration, seasons, student, teacher } from "@/lib/db/schema";
 import { ClientTable } from "@/components/client-table";
-import { ColumnDef, getCoreRowModel, getSortedRowModel, SortingState, useReactTable,getFilteredRowModel,  getFacetedUniqueValues, } from "@tanstack/react-table";
-import { REGSTATUS_DROPOUT,REGSTATUS_DROPOUT_SPRING,REGSTATUS_REGISTERED,REGSTATUS_TRANSFERRED,REGSTATUS_SUBMITTED } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { arrangement, classes, classregistration, seasons, student, teacher } from "@/lib/db/schema";
+import { REGSTATUS_DROPOUT, REGSTATUS_DROPOUT_SPRING, REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, REGSTATUS_TRANSFERRED } from "@/lib/utils";
+import { Column, ColumnDef, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getSortedRowModel, SortingState, useReactTable, } from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 
 type regClassFormProps = {
@@ -32,7 +32,7 @@ type historicRegRow = {
     statusid: string;
 }
 
-function SelectColumnFilter({ column }: { column: any }) {
+function SelectColumnFilter({ column }: { column: Column<historicRegRow> }): React.ReactNode {
   const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
 
   return (
