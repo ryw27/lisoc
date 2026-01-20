@@ -583,8 +583,6 @@ export default function RegisterStudent({
     if (disclaimerChecked === false) {
         return (
             <DisclaimerPage
-                disclaimerChecked={disclaimerChecked}
-                setDisclaimerChecked={setDisclaimerChecked}
                 handleDisclaimerChange={handleDisclaimerChange}
             />
         )

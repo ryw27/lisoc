@@ -1,13 +1,9 @@
 'use client';
-import React, { useState } from "react";
+import { useState } from "react";
 
 export default function DisclaimerPage({ 
-    disclaimerChecked, 
-    setDisclaimerChecked, 
     handleDisclaimerChange,
 } : { 
-    disclaimerChecked: boolean | null,
-    setDisclaimerChecked: React.Dispatch<React.SetStateAction<boolean | null>>,
     handleDisclaimerChange: (agreed: boolean) => void 
 }) {
 

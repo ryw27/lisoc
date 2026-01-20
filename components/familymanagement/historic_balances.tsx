@@ -21,7 +21,7 @@ function SelectColumnFilter({ column }: { column: Column<balanceTypes> }): React
 
   return (
     <select
-      value={(column.getFilterValue() ?? '')}
+      value={(column.getFilterValue() as string) ?? ''}
       onChange={(e) => column.setFilterValue(e.target.value)}
     >
       <option value="">All</option>
