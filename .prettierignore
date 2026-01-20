@@ -11,7 +11,7 @@ dist
 /coverage
 
 
-# Package Managers (Don't fight npm/pnpm)
+# Package Managers 
 package-lock.json
 
 # System Files
