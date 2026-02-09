@@ -1,5 +1,12 @@
-import Link from "next/link";
-import { and, between, count, eq, gt, sum } from "drizzle-orm";
+import Logo from "@/components/logo";
+import { db } from "@/lib/db";
+import { classes, classregistration, familybalance } from "@/lib/db/schema";
+import { formatCurrency, HIGHEST_GRADE, LOWEST_GRADE, monthAbbrevMap } from "@/lib/utils";
+import { requireRole } from "@/server/auth/actions";
+import { selectFamilyName } from "@/server/billing/data";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import { threeSeasons } from "@/types/seasons.types";
+import { and, asc, between, countDistinct, desc, eq, gt, ne, sum } from "drizzle-orm";
 import {
     Activity,
     ArrowRight,
@@ -11,14 +18,13 @@ import {
     Users,
 } from "lucide-react";
 import { DefaultSession } from "next-auth";
-import { db } from "@/lib/db";
-import { classes, classregistration, familybalance } from "@/lib/db/schema";
-import { formatCurrency, HIGHEST_GRADE, LOWEST_GRADE, monthAbbrevMap } from "@/lib/utils";
-import { threeSeasons } from "@/types/seasons.types";
-import { requireRole } from "@/server/auth/actions";
-import { selectFamilyName } from "@/server/billing/data";
-import fetchCurrentSeasons from "@/server/seasons/data";
-import Logo from "@/components/logo";
+import Link from "next/link";
+
+import {
+    REGSTATUS_DROPOUT,
+    REGSTATUS_DROPOUT_SPRING,
+} from "@/lib/utils";
+
 
 const formatBillingDate = (date: string) => {
     const dateObj = new Date(date);
@@ -81,9 +87,13 @@ function NoSeasonState({ user }: { user: DefaultSession["user"] }) {
 export default async function HomePage() {
     const user = await requireRole(["ADMIN"]);
     let lastSeason: threeSeasons | undefined;
+    let active_season: threeSeasons["fall"] | threeSeasons["spring"] | undefined;
     try {
         const res = await fetchCurrentSeasons();
         lastSeason = res;
+        active_season = res.fall.status === "Active" ? res.fall : res.spring;
+
+
     } catch {
         return <NoSeasonState user={user.user} />;
     }
@@ -91,7 +101,7 @@ export default async function HomePage() {
     const recentActivity = await db.query.familybalance.findMany({
         limit: 5,
         orderBy: (fb, { desc }) => desc(fb.balanceid),
-        where: (fb, { eq }) => eq(fb.seasonid, lastSeason.year.seasonid),
+        where: (fb, { eq }) => eq(fb.seasonid, active_season.seasonid),
         with: {
             family: {
                 columns: {
@@ -110,16 +120,30 @@ export default async function HomePage() {
         { length: HIGHEST_GRADE - LOWEST_GRADE + 1 },
         (_, i) => LOWEST_GRADE + i
     );
+
+    const subQuery = await db.selectDistinctOn([classregistration.studentid],{
+        regid: classregistration.regid,
+        studentid: classregistration.studentid,
+        statusid: classregistration.statusid,
+        classid: classregistration.classid,
+        seasonid: classregistration.seasonid,
+    }).from(classregistration)
+    .where(eq(classregistration.seasonid, active_season.seasonid))
+    .orderBy(asc(classregistration.studentid), desc(classregistration.regid))
+    .as('subQuery');
+
     const results = await db
         .select({
             grade: classes.classno,
-            count: count(),
+            count: countDistinct(subQuery.studentid),
         })
-        .from(classregistration)
-        .innerJoin(classes, eq(classregistration.classid, classes.classid))
+        .from(subQuery)
+        .innerJoin(classes, eq(subQuery.classid, classes.classid))
         .where(
             and(
-                eq(classregistration.seasonid, lastSeason.year.seasonid),
+                ne(subQuery.statusid, REGSTATUS_DROPOUT),
+                ne(subQuery.statusid, REGSTATUS_DROPOUT_SPRING),
+                eq(subQuery.seasonid, active_season.seasonid),
                 between(classes.classno, LOWEST_GRADE.toString(), HIGHEST_GRADE.toString()) // Should still work
             )
         )
@@ -143,7 +167,7 @@ export default async function HomePage() {
         .from(familybalance)
         .where(
             and(
-                eq(familybalance.seasonid, lastSeason.year.seasonid),
+                eq(familybalance.seasonid, active_season.seasonid),
                 gt(familybalance.totalamount, "0")
             )
         );

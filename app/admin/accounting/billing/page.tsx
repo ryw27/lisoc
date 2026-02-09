@@ -1,15 +1,17 @@
-import { InferSelectModel } from "drizzle-orm";
+import BillingLedger from "@/components/billing/billing-ledger";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { getLedgerData } from "@/server/billing/data";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import BillingLedger from "@/components/billing/billing-ledger";
+import { InferSelectModel } from "drizzle-orm";
 
 // TODO: Should we have a record page?
 export default async function BillingPage() {
     let lastSeason: InferSelectModel<typeof seasons> | undefined;
     try {
-        lastSeason = (await fetchCurrentSeasons()).year;
+        const seasons = await fetchCurrentSeasons();
+
+        lastSeason = seasons.fall.status === "Active" ? seasons.fall : seasons.spring;
     } catch {
         lastSeason = await db.query.seasons.findFirst({
             orderBy: (s, { desc }) => desc(s.seasonid),

@@ -145,15 +145,39 @@ export default function RegisterStudent({
 
     const getValidClasses = (idx: 0 | 1 | 2) => {
         if (selectedSemester[idx] === 0) {
-            return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
+            const filtered  = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
                 (c) => c.isregclass
             );
+
+            if (filtered.length === 0) {
+                // no reg classes found, return all classes
+                return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
+            }
+            return filtered;
+
         } else if (selectedSemester[idx] === seasons.year.seasonid) {
-            return threeArrs.year.filter((c) => c.isregclass);
+            const filtered  = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
+                (c) => c.isregclass
+            );
+
+            if (filtered.length === 0) {
+                // no reg classes found, return all classes
+                return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
+            }
+            return filtered;
+
         } else if (selectedSemester[idx] === seasons.fall.seasonid) {
-            return threeArrs.fall.filter((c) => c.isregclass);
+            const filtered = threeArrs.fall.filter((c) => c.isregclass);
+            if (filtered.length === 0) {
+                return threeArrs.fall;
+            }
+            return filtered;
         } else if (selectedSemester[idx] === seasons.spring.seasonid) {
-            return threeArrs.spring.filter((c) => c.isregclass);
+            const filtered = threeArrs.spring.filter((c) => c.isregclass);
+            if (filtered.length === 0) {
+                return threeArrs.spring;
+            }
+            return filtered;
         }
         return [];
     };

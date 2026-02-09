@@ -1,20 +1,26 @@
 // import { requireRole } from "@/lib/auth/requireRole"
-import { db } from "@/lib/db";
 import RegChangeTable from "@/components/registration/regchanges/RegChangeTable";
+import { db } from "@/lib/db";
+import fetchCurrentSeasons from "@/server/seasons/data";
 
 export default async function RegChangeRequestPage() {
     // const user = await requireRole(["ADMIN"]);
 
     // Get active seasons directly - simpler approach
-    const year = await db.query.seasons.findFirst({
+    const seasons = await fetchCurrentSeasons();
+
+
+    /*const year = await db.query.seasons.findFirst({
         where: (s, { eq }) => eq(s.status, "Active"),
         orderBy: (s, { asc }) => asc(s.seasonid),
-    });
+    });*/
+
+    const year = seasons.year;
     if (!year) {
         return <div className="">No active academic year</div>;
     }
 
-    const terms = await db.query.seasons.findMany({
+    /*const terms = await db.query.seasons.findMany({
         where: (s, { or, eq }) =>
             or(eq(s.seasonid, year.beginseasonid), eq(s.seasonid, year.relatedseasonid)),
         orderBy: (s, { asc }) => asc(s.seasonid),
@@ -23,8 +29,8 @@ export default async function RegChangeRequestPage() {
     if (terms.length !== 2) {
         return <div className="">Error occurred. Please contact support.</div>;
     }
-
-    const [fall, spring] = terms;
+    */
+    const [fall, spring] = [seasons.fall, seasons.spring];
 
     const regchangerequests = await db.query.regchangerequest.findMany({
         where: (rcr, { or, eq }) =>
