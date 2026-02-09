@@ -1,10 +1,11 @@
-import { redirect } from "next/navigation";
+import RegisterStudent from "@/components/registration/family/register-students";
 import { db } from "@/lib/db";
-import { type threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
 import { calculateBalance } from "@/server/familymanagement/actions";
 import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
-import RegisterStudent from "@/components/registration/family/register-students";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import { type threeSeasons } from "@/types/seasons.types";
+import { redirect } from "next/navigation";
 
 export default async function RegisterPage() {
     // 1. Get User
@@ -16,35 +17,9 @@ export default async function RegisterPage() {
         redirect("/login");
     }
 
-    // 2. Get active school year
-    const activeYear = await db.query.seasons.findFirst({
-        where: (season, { eq }) => eq(season.status, "Active"),
-        orderBy: (season, { asc }) => [asc(season.seasonid)],
-    });
 
-    if (!activeYear) {
-        return (
-            <div className="flex items-center justify-center text-lg">
-                No active semesters. If you think this is a mistake, please contact
-                tech.lisoc@gmail.com
-            </div>
-        );
-    }
-
-    // 3. Get fall and spring
-    const terms = await db.query.seasons.findMany({
-        where: (s, { or, eq }) =>
-            or(
-                eq(s.seasonid, activeYear.beginseasonid),
-                eq(s.seasonid, activeYear.relatedseasonid)
-            ),
-        orderBy: (s, { asc }) => asc(s.seasonid),
-    });
-    if (terms.length !== 2) {
-        return <div>Error occured. Please report.</div>;
-    }
-
-    const seasons = { year: activeYear, fall: terms[0], spring: terms[1] } satisfies threeSeasons;
+    const res = await fetchCurrentSeasons();
+    const seasons = { year: res.year, fall: res.fall, spring: res.spring } satisfies threeSeasons;
 
     // 4. Get arrangements for each separate term
     const yearArrangements = await db.query.arrangement.findMany({
