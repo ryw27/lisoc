@@ -1,9 +1,9 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { type threeSeasons } from "@/types/seasons.types";
 import { type dbClient } from "@/types/server.types";
 import { type uiClasses } from "@/types/shared.types";
-import { and, eq } from "drizzle-orm";
 
 // /**
 //  * @error Will first check if the given seasonid corresponds to the old season. Only checks ONE METHOD
@@ -20,7 +20,6 @@ import { and, eq } from "drizzle-orm";
 
 export default async function fetchCurrentSeasons(client: dbClient = db) {
     return await client.transaction(async (tx) => {
-
         /* there can only be one active season, either spring or fall
         relationship is 
 
@@ -41,7 +40,11 @@ export default async function fetchCurrentSeasons(client: dbClient = db) {
         }
 
         const year = await tx.query.seasons.findFirst({
-            where: (s, { eq }) => and (eq(s.relatedseasonid, active_season.beginseasonid), eq(s.beginseasonid, active_season.beginseasonid)),
+            where: (s, { eq }) =>
+                and(
+                    eq(s.relatedseasonid, active_season.beginseasonid),
+                    eq(s.beginseasonid, active_season.beginseasonid)
+                ),
             orderBy: (s, { asc }) => asc(s.seasonid),
         });
 
@@ -49,16 +52,28 @@ export default async function fetchCurrentSeasons(client: dbClient = db) {
             throw new Error("No active season found");
         }
 
-        const fall = active_season.isspring ? await tx.query.seasons.findFirst({
-            where: (s, { eq }) => and (eq(s.relatedseasonid, 0), eq(s.beginseasonid, active_season.beginseasonid)),
-            orderBy: (s, { asc }) => asc(s.seasonid),
-        }) : active_season;
-      
-        const spring = active_season.isspring ? active_season : await tx.query.seasons.findFirst({
-            where: (s, { eq }) => and (eq(s.relatedseasonid, 0), eq(s.beginseasonid, active_season.beginseasonid), eq(s.isspring, true)),
-            orderBy: (s, { asc }) => asc(s.seasonid),
-        });
+        const fall = active_season.isspring
+            ? await tx.query.seasons.findFirst({
+                  where: (s, { eq }) =>
+                      and(
+                          eq(s.relatedseasonid, 0),
+                          eq(s.beginseasonid, active_season.beginseasonid)
+                      ),
+                  orderBy: (s, { asc }) => asc(s.seasonid),
+              })
+            : active_season;
 
+        const spring = active_season.isspring
+            ? active_season
+            : await tx.query.seasons.findFirst({
+                  where: (s, { eq }) =>
+                      and(
+                          eq(s.relatedseasonid, 0),
+                          eq(s.beginseasonid, active_season.beginseasonid),
+                          eq(s.isspring, true)
+                      ),
+                  orderBy: (s, { asc }) => asc(s.seasonid),
+              });
 
         if (!fall || !spring) {
             throw new Error(

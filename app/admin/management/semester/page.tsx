@@ -1,5 +1,6 @@
-import Logo from "@/components/logo";
-import SemesterView from "@/components/registration/admin/sem-view";
+import Link from "next/link";
+import { asc, eq, getTableColumns, InferSelectModel, or, sql } from "drizzle-orm";
+import { PlusIcon } from "lucide-react";
 import { db } from "@/lib/db";
 import { arrangement, classes, classregistration, student } from "@/lib/db/schema";
 import {
@@ -8,8 +9,6 @@ import {
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
 } from "@/lib/utils";
-import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
-import fetchCurrentSeasons from "@/server/seasons/data";
 import {
     type adminStudentView,
     type fullClassStudents,
@@ -18,16 +17,16 @@ import {
 } from "@/types/registration.types";
 import { type Transaction } from "@/types/server.types";
 import { type arrangeClasses, type uiClassKey } from "@/types/shared.types";
-import { asc, eq, getTableColumns, InferSelectModel, or, sql } from "drizzle-orm";
-import { PlusIcon } from "lucide-react";
-import Link from "next/link";
+import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import Logo from "@/components/logo";
+import SemesterView from "@/components/registration/admin/sem-view";
 
 export default async function SemesterPage() {
     // TODO: MAke sure this finds the academic year, not the semesters
     const seasons = await fetchCurrentSeasons();
 
-
-/*    const activeYear = await db.query.seasons.findFirst({
+    /*    const activeYear = await db.query.seasons.findFirst({
         where: (seasons, { eq }) => eq(seasons.status, "Active"),
         orderBy: (seasons, { asc }) => asc(seasons.seasonid),
     });
@@ -62,7 +61,7 @@ export default async function SemesterPage() {
         );
     }
 
-/*    const terms = await db.query.seasons.findMany({
+    /*    const terms = await db.query.seasons.findMany({
         where: (s, { and, eq }) =>
             and(
                 eq(s.beginseasonid, activeYear.beginseasonid),

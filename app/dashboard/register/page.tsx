@@ -1,11 +1,11 @@
-import RegisterStudent from "@/components/registration/family/register-students";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { type threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
 import { calculateBalance } from "@/server/familymanagement/actions";
 import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import { type threeSeasons } from "@/types/seasons.types";
-import { redirect } from "next/navigation";
+import RegisterStudent from "@/components/registration/family/register-students";
 
 export default async function RegisterPage() {
     // 1. Get User
@@ -16,7 +16,6 @@ export default async function RegisterPage() {
     if (!userRow) {
         redirect("/login");
     }
-
 
     const res = await fetchCurrentSeasons();
     const seasons = { year: res.year, fall: res.fall, spring: res.spring } satisfies threeSeasons;

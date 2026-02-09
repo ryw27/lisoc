@@ -143,7 +143,7 @@ export default function RegisterStudent({
 
     const getValidClasses = (idx: 0 | 1 | 2) => {
         if (selectedSemester[idx] === 0) {
-            const filtered  = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
+            const filtered = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
                 (c) => c.isregclass
             );
 
@@ -152,9 +152,8 @@ export default function RegisterStudent({
                 return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
             }
             return filtered;
-
         } else if (selectedSemester[idx] === seasons.year.seasonid) {
-            const filtered  = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
+            const filtered = [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].filter(
                 (c) => c.isregclass
             );
 
@@ -163,7 +162,6 @@ export default function RegisterStudent({
                 return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
             }
             return filtered;
-
         } else if (selectedSemester[idx] === seasons.fall.seasonid) {
             const filtered = threeArrs.fall.filter((c) => c.isregclass);
             if (filtered.length === 0) {

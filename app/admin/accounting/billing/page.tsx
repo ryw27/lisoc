@@ -1,9 +1,9 @@
-import BillingLedger from "@/components/billing/billing-ledger";
+import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { getLedgerData } from "@/server/billing/data";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import { InferSelectModel } from "drizzle-orm";
+import BillingLedger from "@/components/billing/billing-ledger";
 
 // TODO: Should we have a record page?
 export default async function BillingPage() {

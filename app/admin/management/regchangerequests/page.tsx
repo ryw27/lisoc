@@ -1,14 +1,13 @@
 // import { requireRole } from "@/lib/auth/requireRole"
-import RegChangeTable from "@/components/registration/regchanges/RegChangeTable";
 import { db } from "@/lib/db";
 import fetchCurrentSeasons from "@/server/seasons/data";
+import RegChangeTable from "@/components/registration/regchanges/RegChangeTable";
 
 export default async function RegChangeRequestPage() {
     // const user = await requireRole(["ADMIN"]);
 
     // Get active seasons directly - simpler approach
     const seasons = await fetchCurrentSeasons();
-
 
     /*const year = await db.query.seasons.findFirst({
         where: (s, { eq }) => eq(s.status, "Active"),

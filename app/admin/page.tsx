@@ -1,11 +1,4 @@
-import Logo from "@/components/logo";
-import { db } from "@/lib/db";
-import { classes, classregistration, familybalance } from "@/lib/db/schema";
-import { formatCurrency, HIGHEST_GRADE, LOWEST_GRADE, monthAbbrevMap } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
-import { selectFamilyName } from "@/server/billing/data";
-import fetchCurrentSeasons from "@/server/seasons/data";
-import { threeSeasons } from "@/types/seasons.types";
+import Link from "next/link";
 import { and, asc, between, countDistinct, desc, eq, gt, ne, sum } from "drizzle-orm";
 import {
     Activity,
@@ -18,13 +11,21 @@ import {
     Users,
 } from "lucide-react";
 import { DefaultSession } from "next-auth";
-import Link from "next/link";
-
+import { db } from "@/lib/db";
+import { classes, classregistration, familybalance } from "@/lib/db/schema";
 import {
+    formatCurrency,
+    HIGHEST_GRADE,
+    LOWEST_GRADE,
+    monthAbbrevMap,
     REGSTATUS_DROPOUT,
     REGSTATUS_DROPOUT_SPRING,
 } from "@/lib/utils";
-
+import { threeSeasons } from "@/types/seasons.types";
+import { requireRole } from "@/server/auth/actions";
+import { selectFamilyName } from "@/server/billing/data";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import Logo from "@/components/logo";
 
 const formatBillingDate = (date: string) => {
     const dateObj = new Date(date);
@@ -92,8 +93,6 @@ export default async function HomePage() {
         const res = await fetchCurrentSeasons();
         lastSeason = res;
         active_season = res.fall.status === "Active" ? res.fall : res.spring;
-
-
     } catch {
         return <NoSeasonState user={user.user} />;
     }
@@ -121,16 +120,18 @@ export default async function HomePage() {
         (_, i) => LOWEST_GRADE + i
     );
 
-    const subQuery = await db.selectDistinctOn([classregistration.studentid],{
-        regid: classregistration.regid,
-        studentid: classregistration.studentid,
-        statusid: classregistration.statusid,
-        classid: classregistration.classid,
-        seasonid: classregistration.seasonid,
-    }).from(classregistration)
-    .where(eq(classregistration.seasonid, active_season.seasonid))
-    .orderBy(asc(classregistration.studentid), desc(classregistration.regid))
-    .as('subQuery');
+    const subQuery = await db
+        .selectDistinctOn([classregistration.studentid], {
+            regid: classregistration.regid,
+            studentid: classregistration.studentid,
+            statusid: classregistration.statusid,
+            classid: classregistration.classid,
+            seasonid: classregistration.seasonid,
+        })
+        .from(classregistration)
+        .where(eq(classregistration.seasonid, active_season.seasonid))
+        .orderBy(asc(classregistration.studentid), desc(classregistration.regid))
+        .as("subQuery");
 
     const results = await db
         .select({
