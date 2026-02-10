@@ -1,10 +1,10 @@
-import { Suspense } from "react";
-import { InferSelectModel } from "drizzle-orm";
+import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
+import HistoricRegistrations from "@/components/registration/family/historic_registrations";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
-import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
-import HistoricRegistrations from "@/components/registration/family/historic_registrations";
+import { InferSelectModel } from "drizzle-orm";
+import { Suspense } from "react";
 
 export default async function RegistrationHistory() {
     const user = await requireRole(["FAMILY"]);
@@ -39,7 +39,7 @@ export default async function RegistrationHistory() {
             with: {
                 class: {
                     columns: {
-                        gradeclassid: true,
+                        classid: true,
                     },
                 },
                 teacher: {
@@ -64,7 +64,7 @@ export default async function RegistrationHistory() {
         }
 
         const regClass = await db.query.classes.findFirst({
-            where: (c, { eq }) => eq(c.classid, arr.class.gradeclassid as number),
+            where: (c, { eq }) => eq(c.classid, arr.class.classid as number),
         });
         if (!regClass) {
             throw new Error("Could not find reg class ");
@@ -77,13 +77,14 @@ export default async function RegistrationHistory() {
             throw new Error("Could not find season");
         }
 
-        let halfsem = false;
-        if (
+        const halfsem = false; // hard code this for now
+        /*if (
             arrSeason.seasonid < arrSeason.beginseasonid &&
             arrSeason.seasonid < arrSeason.relatedseasonid
         ) {
             halfsem = true;
         }
+            */
 
         let totalPrice = 0;
         if (halfsem) {
