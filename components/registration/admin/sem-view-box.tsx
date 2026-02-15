@@ -1,12 +1,5 @@
 "use client";
 
-import React, { useState } from "react";
-import { Edit, Info, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { type arrangeClasses, type IdMaps } from "@/types/shared.types";
-import { adminDistribute } from "@/server/registration/actions/adminDistribute";
-import { adminRollback } from "@/server/registration/actions/adminRollback";
-import { deleteArrangement } from "@/server/seasons/actions/deleteArrangement";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import {
     AlertDialog,
@@ -18,6 +11,13 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { adminDistribute } from "@/server/registration/actions/adminDistribute";
+import { adminRollback } from "@/server/registration/actions/adminRollback";
+import { deleteArrangement } from "@/server/seasons/actions/deleteArrangement";
+import { type arrangeClasses, type IdMaps } from "@/types/shared.types";
+import { Edit, Info, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import SemClassEditor from "./sem-class-editor";
 import StudentTable from "./sem-student-table";
 import { type Action, type fullRegID, type fullSemDataID } from "./sem-view";
@@ -46,6 +46,11 @@ function distributeEvenly(data: fullRegID) {
     }
 
     const moved = [];
+
+    const totalAvailable = availableSeats.reduce((sum, c) => sum + c.available, 0);
+    if (totalAvailable < newData.students.length) {
+        throw new Error("Not enough available seats for all students");
+    }
 
     let classIndex = 0;
     while (newData.students.length > 0) {
@@ -304,7 +309,7 @@ export default function SemesterViewBox({
                                 setClassShown(-1);
                             }}
                         >
-                            Registrations {/* idMaps.classMap[regClassInfo.classid].classnamecn */}
+                             { idMaps.classMap[regClassInfo.classid].classnamecn || "Registrations"}
                         </div>
                         {/* Classrooms */}
                         {allClassrooms.map((c, idx) => (

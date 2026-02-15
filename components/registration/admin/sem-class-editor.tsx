@@ -1,15 +1,5 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangementArraySchema } from "@/lib/schema";
-import { cn } from "@/lib/utils";
-import { type classJoin, type uiClasses } from "@/types/shared.types";
-import { createArrangement } from "@/server/seasons/actions/createArrangement";
-import { editArrangement } from "@/server/seasons/actions/editArrangement";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +9,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangementArraySchema } from "@/lib/schema";
+import { cn } from "@/lib/utils";
+import { createArrangement } from "@/server/seasons/actions/createArrangement";
+import { editArrangement } from "@/server/seasons/actions/editArrangement";
+import { type classJoin, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import { type Action, type fullRegID } from "./sem-view";
 
 type semClassEditorProps = {
@@ -341,7 +341,7 @@ export default function SemClassEditor({
                                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 )}
                             >
-                                {idx === 0 ? "Reg Class" : `${idx}:`} (
+                                {`${idx}:`} (
                                 {classMap[field.classid as number]?.classnamecn ??
                                     `Class ${field.classid}`}
                                 )
