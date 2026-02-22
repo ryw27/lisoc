@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -18,6 +16,8 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import {
     canTransferOutandIn,
     getArrSeason,
@@ -297,6 +297,7 @@ export async function adminTransferStudent2(
                 .update(classregistration)
                 .set({
                     statusid: REGSTATUS_TRANSFERRED,
+                    previousstatusid: oldReg.statusid,
                 })
                 .where(
                     and(
@@ -324,6 +325,7 @@ export async function adminTransferStudent2(
                 classid: newArrange.classid,
                 registerdate: now,
                 familyid: familyid,
+                statusid: oldReg.statusid,
                 byadmin: true,
                 notes: `Admin transfer student to ${newArrange.arrangeid} from ${oldReg.arrangeid}`,
             })

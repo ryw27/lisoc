@@ -12,13 +12,12 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { adminDistribute } from "@/server/registration/actions/adminDistribute";
-import { adminRollback } from "@/server/registration/actions/adminRollback";
 import { deleteArrangement } from "@/server/seasons/actions/deleteArrangement";
 import { type arrangeClasses, type IdMaps } from "@/types/shared.types";
 import { Edit, Info, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import SemClassEditor from "./sem-class-editor";
+import BulkTransfer from "./sem-distribute";
 import StudentTable from "./sem-student-table";
 import { type Action, type fullRegID, type fullSemDataID } from "./sem-view";
 
@@ -33,53 +32,6 @@ type semViewBoxProps = {
 };
 
 // TODO: Create new classes if out of capacity?
-function distributeEvenly(data: fullRegID) {
-    // Create deep copy to avoid mutating original
-    const newData = structuredClone(data);
-    const availableSeats = newData.classrooms
-        .map((c) => ({
-            available: (c.arrinfo.seatlimit || 0) - c.students.length,
-        }))
-        .filter((c) => c.available > 0);
-    if (availableSeats.length === 0) {
-        throw new Error("No available seats");
-    }
-
-    const moved = [];
-
-    const totalAvailable = availableSeats.reduce((sum, c) => sum + c.available, 0);
-    if (totalAvailable < newData.students.length) {
-        throw new Error("Not enough available seats for all students");
-    }
-
-    let classIndex = 0;
-    while (newData.students.length > 0) {
-        const cur = newData.students.shift()!; // Remove first student
-        while (availableSeats[classIndex].available === 0) {
-            classIndex = (classIndex + 1) % availableSeats.length;
-        }
-        newData.classrooms[classIndex].students.push(cur);
-        availableSeats[classIndex].available -= 1;
-
-        moved.push({
-            studentid: cur.studentid,
-            toarrangeid: newData.classrooms[classIndex].arrinfo.arrangeid as number,
-            toclassid: newData.classrooms[classIndex].arrinfo.classid,
-        });
-        classIndex = (classIndex + 1) % availableSeats.length;
-    }
-
-    return { moved, newData };
-}
-
-function rollbackReg(data: fullRegID) {
-    const newData = structuredClone(data);
-    const allStudents = data.classrooms.flatMap((c) => c.students);
-
-    newData.students = [...newData.students, ...allStudents];
-    newData.classrooms.map((c) => (c.students = []));
-    return newData;
-}
 
 export default function SemesterViewBox({
     uuid,
@@ -95,6 +47,8 @@ export default function SemesterViewBox({
     const [error, setError] = useState<string | null>(null);
     const [classShown, setClassShown] = useState<number>(-1); // Index, -1 is the reg class
     //  const router = useRouter();
+    const [showBulkTransferBox, setShowBulkTransferBox] = useState(false);
+
 
     const handleDelete = async () => {
         const snapshot = dataWithStudents;
@@ -129,37 +83,13 @@ export default function SemesterViewBox({
         }
     };
 
-    const distribute = async () => {
-        const snapshot = dataWithStudents;
-        try {
-            const { moved, newData } = distributeEvenly(dataWithStudents);
-            dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
-            // Remove the id property before passing to distributeStudents
-            const { id: _id, ...distributedDataWithoutId } = newData;
-            void _id; // Suppress unused variable warning
-            await adminDistribute(distributedDataWithoutId, moved);
-            setError(null);
-        } catch (err) {
-            dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
-            setError("Failed to distribute students, please check the seat limit");
-            console.error(err);
-        }
-    };
+    const onBulkUpdate = (newData: fullRegID) => {
+        dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
+    }
 
-    const rollback = async () => {
-        const snapshot = dataWithStudents;
-        try {
-            const newData = rollbackReg(dataWithStudents);
-            dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
-            const { id: _id, ...dataWithoutID } = dataWithStudents;
-            void _id; // Suppress unused variable warning
-            await adminRollback(dataWithoutID);
-            setError(null);
-        } catch (err) {
-            dispatch({ type: "reg/distribute", id: uuid, newDistr: snapshot });
-            setError("Failed to rollback distribution");
-            console.error(err);
-        }
+
+    const bulktransfer = async () => {
+        setShowBulkTransferBox(true);
     };
 
     const regClassInfo = dataWithStudents.arrinfo;
@@ -204,30 +134,16 @@ export default function SemesterViewBox({
                     <button
                         type="button"
                         className="cursor-pointer rounded-md bg-red-50 px-3 py-1 font-semibold text-red-700 transition-colors hover:bg-red-100 focus:ring-2 focus:ring-red-400 focus:outline-none"
-                        title="Rollback distribution"
+                        title="Bulk Transfer students"
                         tabIndex={0}
                         aria-label="Disperse students"
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            rollback();
+                            bulktransfer();
                         }}
                     >
-                        Rollback
-                    </button>
-                    <button
-                        type="button"
-                        className="cursor-pointer rounded-md bg-blue-50 px-3 py-1 font-semibold text-blue-700 transition-colors hover:bg-blue-100 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                        title="Disperse students into classrooms"
-                        tabIndex={0}
-                        aria-label="Disperse students"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            distribute();
-                        }}
-                    >
-                        Distribute
+                        Bulk Transfer
                     </button>
                     <h1 className="text-md font-bold">${totalPrice}</h1>
                 </div>
@@ -388,6 +304,18 @@ export default function SemesterViewBox({
                     endEdit={() => setEditing(false)}
                 />
             )}
+            {/* Bulk Transfer Modal */}
+            {showBulkTransferBox && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div
+                        className="absolute inset-0 bg-black/40"
+                        onClick={() => setShowBulkTransferBox(false)}
+                    />
+                    <div className="relative w-[min(95%,1000px)] bg-white rounded-lg shadow-lg p-4">
+                        <BulkTransfer dataWithStudents = {dataWithStudents}  idmaps={idMaps}  onClose={() => setShowBulkTransferBox(false)}  onUpdate={onBulkUpdate} />
+                    </div>
+                </div>
+                )}
         </div>
     );
 }
