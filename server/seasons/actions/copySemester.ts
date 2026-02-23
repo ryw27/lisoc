@@ -6,16 +6,27 @@ import { arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
 import { eq, or } from "drizzle-orm";
-import { z } from "zod/v4";
-import { startSemFormSchema } from "../schema";
 
 
-export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
-    // Check incoming data
-    const semData = startSemFormSchema.parse(data);
+export async function copySemester() {
 
     // Check user and redirect if not authorized
     const user = await requireRole(["ADMIN"], { redirect: true });
+
+    try 
+    {
+
+    }
+    catch{
+
+    }
+    finally 
+    {
+
+    }
+
+    except 
+
     return await db.transaction(async (tx) => {
         // Check if any seasons are active and disable them
         await tx.update(seasons).set({ status: "Inactive" }).where(eq(seasons.status, "Active"));

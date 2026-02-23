@@ -1,4 +1,18 @@
-import Link from "next/link";
+import Logo from "@/components/logo";
+import { db } from "@/lib/db";
+import { classes, classregistration, familybalance } from "@/lib/db/schema";
+import {
+    formatCurrency,
+    HIGHEST_GRADE,
+    LOWEST_GRADE,
+    monthAbbrevMap,
+    REGSTATUS_DROPOUT,
+    REGSTATUS_DROPOUT_SPRING,
+} from "@/lib/utils";
+import { requireRole } from "@/server/auth/actions";
+import { selectFamilyName } from "@/server/billing/data";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import { threeSeasons } from "@/types/seasons.types";
 import { and, asc, between, countDistinct, desc, eq, gt, ne, sum } from "drizzle-orm";
 import {
     Activity,
@@ -11,21 +25,7 @@ import {
     Users,
 } from "lucide-react";
 import { DefaultSession } from "next-auth";
-import { db } from "@/lib/db";
-import { classes, classregistration, familybalance } from "@/lib/db/schema";
-import {
-    formatCurrency,
-    HIGHEST_GRADE,
-    LOWEST_GRADE,
-    monthAbbrevMap,
-    REGSTATUS_DROPOUT,
-    REGSTATUS_DROPOUT_SPRING,
-} from "@/lib/utils";
-import { threeSeasons } from "@/types/seasons.types";
-import { requireRole } from "@/server/auth/actions";
-import { selectFamilyName } from "@/server/billing/data";
-import fetchCurrentSeasons from "@/server/seasons/data";
-import Logo from "@/components/logo";
+import Link from "next/link";
 
 const formatBillingDate = (date: string) => {
     const dateObj = new Date(date);
@@ -74,7 +74,7 @@ function NoSeasonState({ user }: { user: DefaultSession["user"] }) {
                 {/* Minimal Action */}
                 <button className="group flex items-center gap-2 border-b border-[var(--brand-navy)] pb-0.5 text-sm font-bold tracking-wider text-[var(--brand-navy)] uppercase transition-all hover:border-[var(--brand-gold)] hover:text-[var(--brand-gold)]">
                     <Plus size={14} />
-                    <Link href="/admin/management/semester">Initialize Semester</Link>
+                    <Link href="/admin/management/semester/start-semester">Initialize Semester</Link>
                     <ArrowRight
                         size={14}
                         className="-ml-2 opacity-0 transition-all duration-300 group-hover:ml-0 group-hover:opacity-100"

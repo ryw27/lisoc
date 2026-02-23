@@ -1,10 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { seasons } from "@/lib/db/schema";
+import { cn, toESTString } from "@/lib/utils";
+import { createSemester } from "@/server/seasons/actions/createSemester";
+import { startSemFormSchema } from "@/server/seasons/schema";
+import { threeSeasons } from "@/types/seasons.types";
+import { IdMaps, selectOptions } from "@/types/shared.types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DrizzleError, InferSelectModel } from "drizzle-orm";
 import { BookOpen, CalendarIcon, PlusIcon, Save, School, Settings2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import {
     FormProvider,
     Path,
@@ -14,18 +20,13 @@ import {
     useFormContext,
 } from "react-hook-form";
 import { z } from "zod";
-import { seasons } from "@/lib/db/schema";
-import { cn, toESTString } from "@/lib/utils";
-import { threeSeasons } from "@/types/seasons.types";
-import { IdMaps, selectOptions } from "@/types/shared.types";
-import { createSemester } from "@/server/seasons/actions/createSemester";
-import { startSemFormSchema } from "@/server/seasons/schema";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { uiClasses } from "@/types/shared.types";
 import { RegistrationProvider } from "../registration-context";
 import SemesterClassBox from "./form-class-box";
 
@@ -33,12 +34,14 @@ import SemesterClassBox from "./form-class-box";
 
 type Season = InferSelectModel<typeof seasons>;
 type FormValues = z.infer<typeof startSemFormSchema>;
+type LastArrangement = {year: uiClasses[],fall: uiClasses[] ,spring: uiClasses[]};
 
 interface StartSemesterFormProps {
     // drafts: uiClasses[];
     selectOptions: selectOptions;
     idMaps: IdMaps;
-    lastSeason: Season[];
+    lastSeasonArrangement: LastArrangement
+    lastSeason: {year: Season|null,fall: Season|null ,spring: Season|null};
 }
 
 // --- Helper Functions ---
@@ -50,7 +53,17 @@ interface StartSemesterFormProps {
 const getNextYearDateString = (dateStr?: string | null): string | undefined => {
     if (!dateStr) return undefined;
     const date = new Date(dateStr);
+    // need day of week are same 
+    const dow =  date.getDay() 
     date.setFullYear(date.getFullYear() + 1);
+    while( date.getDay() != dow)
+    {
+        // go back 
+        date.setDate(date.getDate() -1 ) 
+
+    }
+
+
     return toESTString(date).slice(0, 10);
 };
 
@@ -110,6 +123,7 @@ export default function StartSemesterForm({
     // drafts,
     selectOptions,
     idMaps,
+    lastSeasonArrangement,
     lastSeason,
 }: StartSemesterFormProps) {
     const router = useRouter();
@@ -118,8 +132,8 @@ export default function StartSemesterForm({
     const defaultValues = useMemo<Partial<FormValues>>(() => {
         const now = new Date();
         const nextYear = now.getFullYear() + 1;
-        const lastFall = lastSeason[0];
-        const lastSpring = lastSeason[1];
+        const lastFall = lastSeason.fall;
+        const lastSpring = lastSeason.spring;
 
         return {
             // classes: mapDraftsToForm(drafts),
@@ -170,7 +184,7 @@ export default function StartSemesterForm({
     const onSubmit: SubmitHandler<FormValues> = async (data) => {
         try {
             await createSemester(data);
-            router.push("/admin/semester");
+            router.push("/admin/management/semester");
         } catch (err) {
             const message =
                 err instanceof DrizzleError
@@ -237,7 +251,7 @@ export default function StartSemesterForm({
 
                         <SettingsSection />
 
-                        <ClassListSection />
+                        <ClassListSection  lastSeasonArrangement = {lastSeasonArrangement}/>
                     </div>
                 </form>
             </FormProvider>
@@ -484,12 +498,45 @@ function SwitchRow({ name, label }: { name: Path<FormValues>; label: string }) {
     );
 }
 
-function ClassListSection() {
+function ClassListSection({ lastSeasonArrangement }: { lastSeasonArrangement: LastArrangement }) {
     const { control } = useFormContext<FormValues>();
     const { fields, append, remove } = useFieldArray({
         control,
         name: "classes",
     });
+
+    const handleCopy = () => { 
+            
+            for ( const [ term, arr] of Object.entries(lastSeasonArrangement)) 
+            {   
+                console.log(term)
+                
+                    for(let i= 0; i < arr.length; i++) {
+                        append({
+                            classid: arr[i].classid,
+                            teacherid: 7,  // TBD
+                            roomid: 59,     //TBD
+                            timeid: arr[i].timeid,
+                            suitableterm: arr[i].suitableterm,
+                            term: "FALL" ,
+                            tuitionH: parseFloat(arr[i].tuitionH?? "0.0"), 
+                            tuitionW: parseFloat(arr[i].tuitionW?? "0.0"),
+                            bookfeeH: parseFloat(arr[i].bookfeeH?? "0.0"), 
+                            bookfeeW: parseFloat(arr[i].bookfeeW?? "0.0"),
+                            specialfeeH: parseFloat(arr[i].specialfeeH?? "0.0"),
+                            specialfeeW: parseFloat(arr[i].specialfeeW?? "0.0"),
+                            seatlimit: arr[i].seatlimit,
+                            agelimit: arr[i].agelimit,
+                            waiveregfee: arr[i].waiveregfee,
+                            closeregistration: false,
+                            isregclass: false,
+                            notes: "",
+                        })
+                    }
+
+            }
+        
+    }
 
     return (
         <Card className="border-l-primary rounded-none border-l-4">
@@ -534,6 +581,15 @@ function ClassListSection() {
                 >
                     <PlusIcon className="h-4 w-4" />
                     ADD ENTRY
+                </Button>
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="hover:bg-primary hover:text-primary-foreground gap-2 rounded-none shadow-sm transition-colors"
+                    onClick={handleCopy}
+                >
+                    Copy From Last Term
                 </Button>
             </CardHeader>
             <CardContent className="bg-background/50 p-6">

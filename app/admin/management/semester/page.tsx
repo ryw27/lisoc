@@ -16,6 +16,7 @@ import {
     type fullRegClass,
     type fullSemClassesData,
 } from "@/types/registration.types";
+import { threeSeasons } from "@/types/seasons.types";
 import { type Transaction } from "@/types/server.types";
 import { type arrangeClasses, type uiClassKey } from "@/types/shared.types";
 import { asc, eq, getTableColumns, InferSelectModel, or, sql } from "drizzle-orm";
@@ -24,11 +25,24 @@ import Link from "next/link";
 
 export default async function SemesterPage() {
     // TODO: MAke sure this finds the academic year, not the semesters
-    const seasons = await fetchCurrentSeasons();
+    let activeYear: threeSeasons["year"] |undefined ;
+    let fall_season:        threeSeasons["fall"] |undefined ;
+    let spring_season :    threeSeasons["year"] |undefined ;
 
-    const activeYear = seasons.year;
+    let seasons : threeSeasons ;
+    try {
+        const res = await fetchCurrentSeasons();
+        seasons = res ;
+        activeYear = seasons.year;
+        fall_season = seasons.fall;
+        spring_season = seasons.spring
+    } catch {
+        activeYear = undefined
+    }
 
-    if (!activeYear) {
+//    const seasons = await fetchCurrentSeasons();
+  
+    if (!activeYear || !fall_season || !spring_season ) {
         return (
             <div className="flex flex-col">
                 <h1 className="mb-6 text-3xl font-bold">Current academic year</h1>
@@ -56,7 +70,7 @@ export default async function SemesterPage() {
         );
     }
 
-    const { year, fall, spring } = { year: activeYear, fall: seasons.fall, spring: seasons.spring };
+    const { year, fall, spring } = { year: activeYear, fall: fall_season, spring: spring_season };
 
 
     // same grade class and type will be grouped together to become classkey
