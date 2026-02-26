@@ -1,9 +1,9 @@
-import { InferSelectModel } from "drizzle-orm";
-import { DefaultSession } from "next-auth";
-import { z } from "zod/v4";
 import { classes } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
 import { type EntityConfig, type Extras } from "@/types/dataview.types";
+import { InferSelectModel } from "drizzle-orm";
+import { DefaultSession } from "next-auth";
+import { z } from "zod/v4";
 
 // 1. Types
 export type ClassTable = typeof classes;
@@ -26,7 +26,7 @@ export const classFormSchema = z.object({
     classno: z.coerce
         .number({ message: "Grade Level must be a number" })
         .int()
-        .min(0, { message: "Grade level must be positive" }),
+        .min(-1, { message: "Grade level must be positive or -1 (for no grade)" }),
     classnamecn: z
         .string()
         .min(1, { message: "Class Name (CN) is required" })
@@ -38,7 +38,7 @@ export const classFormSchema = z.object({
     classupid: z.coerce
         .number({ message: "Upgrade Class ID must be a number" })
         .int()
-        .min(1, { message: "Upgrade Class ID must be positive" }),
+        .min(0, { message: "Upgrade Class ID must be positive" }),
     sizelimits: z.coerce
         .number({ message: "Size Limits must be a number" })
         .int()

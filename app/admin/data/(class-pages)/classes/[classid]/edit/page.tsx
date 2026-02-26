@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
-import { InferSelectModel } from "drizzle-orm";
+import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 import { db } from "@/lib/db";
 import { classes } from "@/lib/db/schema";
 import { classTypeMap } from "@/lib/utils";
-import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
 import { getIDRow } from "@/server/data-view/actions/getIDRow";
-import EditEntity from "@/components/data-view/edit-entity/edit-entity";
+import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
+import { InferSelectModel } from "drizzle-orm";
+import { notFound } from "next/navigation";
 
 export default async function ClassEditPage({ params }: { params: Promise<{ classid: string }> }) {
     const { classid } = await params;
@@ -90,7 +90,7 @@ export default async function ClassEditPage({ params }: { params: Promise<{ clas
                     defaultValue:
                         curClass?.ageid !== undefined && curClass?.ageid !== null
                             ? String(curClass.ageid)
-                            : "",
+                            : "1",
                 },
                 {
                     name: "typeid",
@@ -109,7 +109,7 @@ export default async function ClassEditPage({ params }: { params: Promise<{ clas
                     name: "classno",
                     label: "Class Level",
                     type: "number",
-                    min: 1,
+                    min: -1,
                     max: 100,
                     placeholder: "Enter class level",
                     required: true,
@@ -117,7 +117,7 @@ export default async function ClassEditPage({ params }: { params: Promise<{ clas
                     defaultValue:
                         curClass?.classno !== undefined && curClass?.classno !== null
                             ? String(curClass.classno)
-                            : "",
+                            : "0",
                 },
                 {
                     name: "sizelimits",
@@ -129,7 +129,7 @@ export default async function ClassEditPage({ params }: { params: Promise<{ clas
                     defaultValue:
                         curClass?.sizelimits !== undefined && curClass?.sizelimits !== null
                             ? String(curClass.sizelimits)
-                            : "",
+                            : "100",
                 },
             ],
         },
@@ -166,7 +166,7 @@ export default async function ClassEditPage({ params }: { params: Promise<{ clas
                     name: "classupid",
                     label: "Upgrade Class",
                     type: "select",
-                    required: true,
+                    required: false,
                     placeholder: "Select the upgrade class",
                     width: "half",
                     options: regClassMap,

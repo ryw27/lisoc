@@ -3,6 +3,7 @@
 import { seasons } from "@/lib/db/schema";
 import { cn, toESTString } from "@/lib/utils";
 import { createSemester } from "@/server/seasons/actions/createSemester";
+import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
 import { startSemFormSchema } from "@/server/seasons/schema";
 import { threeSeasons } from "@/types/seasons.types";
 import { IdMaps, selectOptions } from "@/types/shared.types";
@@ -27,8 +28,10 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { uiClasses } from "@/types/shared.types";
+import { useState } from "react";
 import { RegistrationProvider } from "../registration-context";
 import SemesterClassBox from "./form-class-box";
+
 
 // --- Types ---
 
@@ -251,7 +254,7 @@ export default function StartSemesterForm({
 
                         <SettingsSection />
 
-                        <ClassListSection  lastSeasonArrangement = {lastSeasonArrangement}/>
+                        <ClassListSection  lastSeasonArrangement = {lastSeasonArrangement} selectOptions={ selectOptions}/>
                     </div>
                 </form>
             </FormProvider>
@@ -498,41 +501,97 @@ function SwitchRow({ name, label }: { name: Path<FormValues>; label: string }) {
     );
 }
 
-function ClassListSection({ lastSeasonArrangement }: { lastSeasonArrangement: LastArrangement }) {
+function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonArrangement: LastArrangement , selectOptions : selectOptions }) {
     const { control } = useFormContext<FormValues>();
     const { fields, append, remove } = useFieldArray({
         control,
         name: "classes",
     });
 
+    const [tuitionW, setTuitionW] = useState<number>(740.0); // standdar chinese whole
+    const [tuitionH, setTuitionH] = useState<number>(400.0);  // staandard chines half
+    const [books, setBooks] = useState<number>(30.0);  // stand book fee
+    const [bookm, setBookm] = useState<number>(40.0);  // Ma book fee 
+
+
     const handleCopy = () => { 
-            
+
+            // cache class type 
+
+            const classTypeMap = new Map();
+            selectOptions.classes.forEach(obj => classTypeMap.set(obj.classid,obj.typeid));
+
             for ( const [ term, arr] of Object.entries(lastSeasonArrangement)) 
             {   
-                console.log(term)
-                
-                    for(let i= 0; i < arr.length; i++) {
-                        append({
-                            classid: arr[i].classid,
-                            teacherid: 7,  // TBD
-                            roomid: 59,     //TBD
-                            timeid: arr[i].timeid,
-                            suitableterm: arr[i].suitableterm,
-                            term: "FALL" ,
-                            tuitionH: parseFloat(arr[i].tuitionH?? "0.0"), 
-                            tuitionW: parseFloat(arr[i].tuitionW?? "0.0"),
-                            bookfeeH: parseFloat(arr[i].bookfeeH?? "0.0"), 
-                            bookfeeW: parseFloat(arr[i].bookfeeW?? "0.0"),
-                            specialfeeH: parseFloat(arr[i].specialfeeH?? "0.0"),
-                            specialfeeW: parseFloat(arr[i].specialfeeW?? "0.0"),
-                            seatlimit: arr[i].seatlimit,
-                            agelimit: arr[i].agelimit,
-                            waiveregfee: arr[i].waiveregfee,
-                            closeregistration: false,
-                            isregclass: false,
-                            notes: "",
-                        })
+                for(let i= 0; i < arr.length; i++) {
+                    const typeid = classTypeMap.get(arr[i].classid) ?? 1 ; 
+                    let book = books ; 
+                    if (typeid ==2 ) {
+                        book = bookm ; 
                     }
+                    console.log(typeid)
+                    append({
+                        classid: arr[i].classid,
+                        teacherid: 7,  // TBD
+                        roomid: 59,     //TBD
+                        timeid: arr[i].timeid,
+                        suitableterm: arr[i].suitableterm,
+                        term: term.toUpperCase() ,
+                        tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"), 
+                        tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
+                        bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"), 
+                        bookfeeW: book, //parseFloat(arr[i].bookfeeW?? "0.0"),
+                        specialfeeH: parseFloat(arr[i].specialfeeH?? "0.0"),
+                        specialfeeW: parseFloat(arr[i].specialfeeW?? "0.0"),
+                        seatlimit: arr[i].seatlimit,
+                        agelimit: arr[i].agelimit,
+                        waiveregfee: arr[i].waiveregfee,
+                        closeregistration: false,
+                        isregclass: false,
+                        notes: "",
+                    })
+                }
+
+            }
+        
+    }
+
+        const handleRegistration = async () => { 
+
+            // cache class type 
+
+            const classTypeMap = new Map();
+            selectOptions.classes.forEach(obj => classTypeMap.set(obj.classid,obj.typeid));
+            const allRegistration = await selectRegistrationClass()
+
+            for ( const cls of allRegistration) 
+            {   
+                const typeid = classTypeMap.get(cls.classid) ?? 1 ; 
+                let book = books ; 
+                if (typeid ==2 ) {
+                    book = bookm ; 
+                }
+                console.log(typeid)
+                append({
+                    classid: cls.classid,
+                    teacherid: 7,  // TBD
+                    roomid: 59,     //TBD
+                    timeid: 2,
+                    suitableterm: 3,
+                    term: "FALL",
+                    tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"), 
+                    tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
+                    bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"), 
+                    bookfeeW: book, //parseFloat(arr[i].bookfeeW?? "0.0"),
+                    specialfeeH: 0.0 ,
+                    specialfeeW: 0.0,
+                    seatlimit: 300,
+                    agelimit: 4,
+                    waiveregfee: true, 
+                    closeregistration: false,
+                    isregclass: false,
+                    notes: "",
+                })
 
             }
         
@@ -564,10 +623,10 @@ function ClassListSection({ lastSeasonArrangement }: { lastSeasonArrangement: La
                             timeid: 3,
                             suitableterm: 1,
                             term: "FALL",
-                            tuitionH: 0,
-                            tuitionW: 0,
-                            bookfeeH: 0,
-                            bookfeeW: 0,
+                            tuitionH: tuitionH,
+                            tuitionW: tuitionW,
+                            bookfeeH: books,
+                            bookfeeW: books,
                             specialfeeH: 0,
                             specialfeeW: 0,
                             seatlimit: 20,
@@ -587,12 +646,70 @@ function ClassListSection({ lastSeasonArrangement }: { lastSeasonArrangement: La
                     variant="secondary"
                     size="sm"
                     className="hover:bg-primary hover:text-primary-foreground gap-2 rounded-none shadow-sm transition-colors"
+                    onClick={handleRegistration}
+                >
+                    Create Registration
+                </Button>
+
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="hover:bg-primary hover:text-primary-foreground gap-2 rounded-none shadow-sm transition-colors"
                     onClick={handleCopy}
                 >
-                    Copy From Last Term
+                    Copy Last Term
                 </Button>
             </CardHeader>
             <CardContent className="bg-background/50 p-6">
+                <div className="mb-4">
+                    <div className="grid grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-muted-foreground text-xs font-semibold">Full Tuition Fee (学费)</label>
+                            <Input
+                                type="number"
+                                step="any"
+                                value={tuitionW}
+                                onChange={(e) => setTuitionW(parseFloat(e.target.value || "0"))}
+                                placeholder="0.0"
+                                className="h-9"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-muted-foreground text-xs font-semibold">Half Tuition Fee (半年学费)</label>
+                            <Input
+                                type="number"
+                                step="any"
+                                value={tuitionH}
+                                onChange={(e) => setTuitionH(parseFloat(e.target.value || "0"))}
+                                placeholder="0.0"
+                                className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-muted-foreground text-xs font-semibold">MaliPing Book Fee(马力平 教材料)</label>
+                            <Input
+                                type="number"
+                                step="any"
+                                value={bookm}
+                                onChange={(e) => setBookm(parseFloat(e.target.value || "0"))}
+                                placeholder="0.0"
+                                className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-muted-foreground text-xs font-semibold">Standard Book Fee(标准中文教材)</label>
+                            <Input
+                                type="number"
+                                step="any"
+                                value={books}
+                                onChange={(e) => setBooks(parseFloat(e.target.value || "0"))}
+                                placeholder="0.0"
+                                className="h-9"
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     {fields.map((field, index) => (
                         <div
@@ -629,10 +746,10 @@ function ClassListSection({ lastSeasonArrangement }: { lastSeasonArrangement: La
                                     timeid: 3,
                                     suitableterm: 1,
                                     term: "FALL",
-                                    tuitionH: 0,
-                                    tuitionW: 0,
-                                    bookfeeH: 0,
-                                    bookfeeW: 0,
+                                    tuitionH: tuitionH,
+                                    tuitionW: tuitionW,
+                                    bookfeeH: books,
+                                    bookfeeW: books,
                                     specialfeeH: 0,
                                     specialfeeW: 0,
                                     seatlimit: 0,
