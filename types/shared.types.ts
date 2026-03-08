@@ -1,5 +1,5 @@
-import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, family, familybalance, seasons } from "@/lib/db/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 // TODO: Shared types
 
@@ -120,3 +120,17 @@ export type balanceTypes = {
     paiddate: string;
     note: string;
 };
+
+export type teacherClassStudentView ={
+    student: string,
+    gender: string,
+    age: number,
+    familyid: number,
+    father: string,
+    mother: string,
+    email: string
+    phone: string,
+    status: string
+
+};
+

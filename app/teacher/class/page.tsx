@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireRole } from "@/server/auth/actions";
+import { redirect } from "next/navigation";
 
 export default async function ClassPage() {
     const user = await requireRole(["TEACHER"]);

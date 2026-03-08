@@ -1,9 +1,9 @@
-import React from "react";
-import { Calendar, Home } from "lucide-react";
-import { FaChalkboardTeacher } from "react-icons/fa";
-import { requireRole } from "@/server/auth/actions";
 import Header from "@/components/header";
 import SideNav from "@/components/sidenav";
+import { requireRole } from "@/server/auth/actions";
+import { Home } from "lucide-react";
+import React from "react";
+import { FaChalkboardTeacher } from "react-icons/fa";
 
 const navItems = [
     {
@@ -21,12 +21,12 @@ const navItems = [
                 icon: <FaChalkboardTeacher className="h-4 w-4" />,
                 tip: "课程管理",
             },
-            {
+/*            {
                 label: "Previous Classes",
                 href: ["/teacher/previous-classes"],
                 icon: <Calendar className="h-4 w-4" />,
                 tip: "历史课程",
-            },
+            },*/
         ],
     },
 ];
