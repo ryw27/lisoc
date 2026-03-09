@@ -78,6 +78,7 @@ export default function SemesterViewBox({
             setClassShown(-1);
         } catch (error) {
             console.error("Failed to delete class:", error);
+            setError("Failed to delete class. Please try again.");
             dispatch({ type: "reg/add", regDraft: snapshot });
         }
     };

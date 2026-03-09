@@ -26,7 +26,7 @@ export default async function updateTeacher() {
         redirect("/login");
     }
 
-    let teacher: z.infer<typeof teacherUpdateSchema> = {
+    const teacher: z.infer<typeof teacherUpdateSchema> = {
         namelasten: teacherOfUser.namelasten ?? "",
         namefirsten: teacherOfUser.namefirsten ?? "",
         namecn: teacherOfUser.namecn ?? "",

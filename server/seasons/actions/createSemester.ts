@@ -87,7 +87,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
             })
             .returning();
 
-        const [springSem] = await tx
+        /*const [springSem] = */ await tx
             .insert(seasons)
             .values({
                 seasonnamecn: `${semData.seasonnamecn} 春季`,

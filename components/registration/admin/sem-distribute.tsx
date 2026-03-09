@@ -8,6 +8,9 @@ import { type fullRegID } from "./sem-view";
 interface Item {
     id: string;
     label: string;
+    source: number;
+    familyid: number;
+    regid: number;
 }
 
 export default function BulkTransfer({
@@ -193,10 +196,6 @@ export default function BulkTransfer({
         setDestCounts(Array(numOfDestClasses).fill(0));
     };
 
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
     const performDbUpdate = async () => {
         // Here you would typically send the updated data to your backend API to update the database. For example:
         try {
@@ -220,7 +219,7 @@ export default function BulkTransfer({
             let changed = false; // Flag to track if any changes were made
             if (extraInSource.length > 0) {
                 changed = true; // Set changed to true if there are any extra items in the source
-                for (let item of extraInSource) {
+                for (const item of extraInSource) {
                     const theStudent = studentsMap.get(item.id.toString());
                     if (!theStudent) {
                         console.error(`Student with ID ${item.id} not found in studentsMap.`);
@@ -275,7 +274,7 @@ export default function BulkTransfer({
 
                 if (extraInDest.length > 0) {
                     changed = true; // Set changed to true if there are any extra items in the destination
-                    for (let item of extraInDest) {
+                    for (const item of extraInDest) {
                         const theStudent = studentsMap.get(item.id.toString());
                         if (!theStudent) {
                             console.error(`Student with ID ${item.id} not found in studentsMap.`);
@@ -346,7 +345,7 @@ export default function BulkTransfer({
             onClose(); // Close the bulk transfer modal after update
         }
     };
-
+    /*
     const generateMoved = () => {
         // This function generates the moved data structure based on the current state of sourceItems and destinationBoxes.
         // compared to old data
@@ -363,9 +362,9 @@ export default function BulkTransfer({
 
         const extraInSource = sourceItems.filter((item) => !oldSourceIds.has(item.id.toString()));
 
-        let moved = [];
+        const moved = [];
         if (extraInSource.length > 0) {
-            for (let item of extraInSource) {
+            for (const item of extraInSource) {
                 const newArrangeObj: uiClasses & { classkey: number } = {
                     arrangeid: dataWithStudents.arrinfo.arrangeid,
                     seasonid: dataWithStudents.arrinfo.seasonid,
@@ -409,7 +408,7 @@ export default function BulkTransfer({
             );
 
             if (extraInDest.length > 0) {
-                for (let item of extraInDest) {
+                for (const item of extraInDest) {
                     const newArrangeObj: uiClasses & { classkey: number } = {
                         arrangeid: classrooms[i].arrinfo.arrangeid,
                         seasonid: classrooms[i].arrinfo.seasonid,
@@ -447,7 +446,7 @@ export default function BulkTransfer({
         //console.log("Modified Data for DB Update:", modifiedData);
 
         return [moved, studentsMap];
-    };
+    };*/
 
     return (
         <div className="p-8">
@@ -462,7 +461,7 @@ export default function BulkTransfer({
                 </h2>
                 <div
                     onDragOver={handleDragOver}
-                    onDrop={(e) => {
+                    onDrop={() => {
                         handleDropToSource();
                     }}
                     className="h-[200px] overflow-y-auto rounded-lg border-2 border-blue-300 bg-blue-50 p-4"
@@ -575,7 +574,7 @@ export default function BulkTransfer({
                                             key={item.id}
                                             draggable
                                             onDragStart={() => handleDragStart(item)}
-                                            onDragEnd={() => handleDropToSource(boxIndex)}
+                                            onDragEnd={() => handleDropToSource()}
                                             className={`${itemBgClass} cursor-move rounded p-1 text-xs text-white transition hover:opacity-80`}
                                         >
                                             {item.label}

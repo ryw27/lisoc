@@ -165,7 +165,7 @@ export default async function TeacherPage() {
                 return (
                     <ClassCardWithPrint
                         key={c.arrangeid}
-                        arrangeid={c.arrangeid}
+                        arrangeid={String(c.arrangeid)}
                         classnamecn={c.class.classnamecn}
                         roomno={c.classroom.roomno}
                         period={c.classtime.period}

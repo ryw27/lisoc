@@ -523,6 +523,15 @@ function ClassListSection({
         selectOptions.classes.forEach((obj) => classTypeMap.set(obj.classid, obj.typeid));
 
         for (const [term, arr] of Object.entries(lastSeasonArrangement)) {
+            // normalize the term string to the union expected by the schema
+            const upper = term.toUpperCase();
+            const termEnum: "SPRING" | "FALL" | undefined =
+                upper === "SPRING" ? "SPRING" : upper === "FALL" ? "FALL" : undefined;
+            if (!termEnum) {
+                // skip any entries like "year" that aren't a valid enum value
+                continue;
+            }
+
             for (let i = 0; i < arr.length; i++) {
                 const typeid = classTypeMap.get(arr[i].classid) ?? 1;
                 let book = books;
@@ -536,7 +545,7 @@ function ClassListSection({
                     roomid: 59, //TBD
                     timeid: arr[i].timeid,
                     suitableterm: arr[i].suitableterm,
-                    term: term.toUpperCase(),
+                    term: termEnum,
                     tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"),
                     tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
                     bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"),

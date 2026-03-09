@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { updateTeacher } from "@/app/teacher/updateTeacher/actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,7 +26,7 @@ export default function UpdateTeacherForm({
         email: inteacher.email ?? "",
     };
 
-    const initialDataRef = useRef(initialData);
+    //const initialDataRef = useRef(initialData);
 
     const teacherForm = useForm<z.infer<typeof teacherUpdateSchema>>({
         resolver: zodResolver(teacherUpdateSchema),
@@ -37,13 +37,13 @@ export default function UpdateTeacherForm({
     const onSubmit = async (data: z.infer<typeof teacherUpdateSchema>) => {
         try {
             const teacherData = teacherUpdateSchema.parse(data);
-            const hasChanged =
-                teacherData.address != initialDataRef.current.address ||
+            const hasChanged = true;
+            /*                teacherData.address != initialDataRef.current.address ||
                 teacherData.namecn != initialDataRef.current.namecn ||
                 teacherData.namefirsten != initialDataRef.current.namefirsten ||
                 teacherData.namelasten != initialDataRef.current.namelasten ||
                 teacherData.phone != initialDataRef.current.phone ||
-                teacherData.email != initialDataRef.current.email;
+                teacherData.email != initialDataRef.current.email; */
             //
 
             if (hasChanged) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -20,14 +20,14 @@ interface ConfirmActiveSemesterProps {
 
 export default function ConfirmActiveSemester({ hasActive, children }: ConfirmActiveSemesterProps) {
     const router = useRouter();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(hasActive);
 
-    useEffect(() => {
+    /* useEffect(() => {
         if (hasActive) {
             setOpen(true);
         }
     }, [hasActive]);
-
+*/
     const handleConfirm = () => {
         setOpen(false);
     };
