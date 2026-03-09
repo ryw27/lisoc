@@ -218,6 +218,31 @@ export const teacherSchema = z.object({
     emailalt: emailSchema.shape.email,
 });
 
+export const teacherUpdateSchema = z.object({
+    namecn: z
+        .string()
+        .min(0, { message: "Name has to be filled" })
+        .max(24, { message: "First name is too long" }),
+    namelasten: z
+        .string()
+        .min(1, { message: "Last name has to be filled" })
+        .max(36, { message: "Last name is too long" }),
+    namefirsten: z
+        .string()
+        .min(1, { message: "Last name has to be filled" })
+        .max(36, { message: "Last name is too long" }),
+    address: z
+        .string()
+        .min(0, { message: "City has to be filled" })
+        .max(128, { message: "City is too long" }),
+    phone: z
+        .string()
+        .min(1, { message: "Phone number has to be filled" })
+        .max(15, { message: "Phone number is too long" }),
+    email: emailSchema.shape.email,
+});
+
+
 // ------------------------------------------------------------------------------------------------
 // Forgot Password Schemas
 // ------------------------------------------------------------------------------------------------

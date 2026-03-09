@@ -1,13 +1,13 @@
 import Header from "@/components/header";
 import SideNav from "@/components/sidenav";
 import { requireRole } from "@/server/auth/actions";
-import { Home } from "lucide-react";
+import { Home, UserIcon } from "lucide-react";
 import React from "react";
 import { FaChalkboardTeacher } from "react-icons/fa";
 
 const navItems = [
     {
-        header: "Content",
+        header: "Content(Teacher)",
         items: [
             {
                 label: "Home",
@@ -16,17 +16,17 @@ const navItems = [
                 tip: "首页",
             },
             {
-                label: "Class Management",
-                href: ["/teacher/class"],
+                label: "Teacher Management",
+                href: ["/teacher/updateTeacher"],
                 icon: <FaChalkboardTeacher className="h-4 w-4" />,
-                tip: "课程管理",
+                tip: "更新教师",
             },
-/*            {
-                label: "Previous Classes",
-                href: ["/teacher/previous-classes"],
-                icon: <Calendar className="h-4 w-4" />,
-                tip: "历史课程",
-            },*/
+            {
+                label: "UpDate Password",
+                href: ["/teacher/updatePassword"],
+                icon: <UserIcon className="h-4 w-4" />,
+                tip: "重置密码",
+            },
         ],
     },
 ];
