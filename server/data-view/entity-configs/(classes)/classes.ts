@@ -1,9 +1,9 @@
-import { classes } from "@/lib/db/schema";
-import { toESTString } from "@/lib/utils";
-import { type EntityConfig, type Extras } from "@/types/dataview.types";
 import { InferSelectModel } from "drizzle-orm";
 import { DefaultSession } from "next-auth";
 import { z } from "zod/v4";
+import { classes } from "@/lib/db/schema";
+import { toESTString } from "@/lib/utils";
+import { type EntityConfig, type Extras } from "@/types/dataview.types";
 
 // 1. Types
 export type ClassTable = typeof classes;

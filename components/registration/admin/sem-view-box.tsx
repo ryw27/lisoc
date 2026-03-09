@@ -1,5 +1,10 @@
 "use client";
 
+import React, { useState } from "react";
+import { Edit, Info, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { type arrangeClasses, type IdMaps } from "@/types/shared.types";
+import { deleteArrangement } from "@/server/seasons/actions/deleteArrangement";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import {
     AlertDialog,
@@ -11,11 +16,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
-import { deleteArrangement } from "@/server/seasons/actions/deleteArrangement";
-import { type arrangeClasses, type IdMaps } from "@/types/shared.types";
-import { Edit, Info, Trash2 } from "lucide-react";
-import React, { useState } from "react";
 import SemClassEditor from "./sem-class-editor";
 import BulkTransfer from "./sem-distribute";
 import StudentTable from "./sem-student-table";
@@ -48,7 +48,6 @@ export default function SemesterViewBox({
     const [classShown, setClassShown] = useState<number>(-1); // Index, -1 is the reg class
     //  const router = useRouter();
     const [showBulkTransferBox, setShowBulkTransferBox] = useState(false);
-
 
     const handleDelete = async () => {
         const snapshot = dataWithStudents;
@@ -85,8 +84,7 @@ export default function SemesterViewBox({
 
     const onBulkUpdate = (newData: fullRegID) => {
         dispatch({ type: "reg/distribute", id: uuid, newDistr: newData });
-    }
-
+    };
 
     const bulktransfer = async () => {
         setShowBulkTransferBox(true);
@@ -225,7 +223,7 @@ export default function SemesterViewBox({
                                 setClassShown(-1);
                             }}
                         >
-                             { idMaps.classMap[regClassInfo.classid].classnamecn || "Registrations"}
+                            {idMaps.classMap[regClassInfo.classid].classnamecn || "Registrations"}
                         </div>
                         {/* Classrooms */}
                         {allClassrooms.map((c, idx) => (
@@ -311,11 +309,16 @@ export default function SemesterViewBox({
                         className="absolute inset-0 bg-black/40"
                         onClick={() => setShowBulkTransferBox(false)}
                     />
-                    <div className="relative w-[min(95%,1000px)] bg-white rounded-lg shadow-lg p-4">
-                        <BulkTransfer dataWithStudents = {dataWithStudents}  idmaps={idMaps}  onClose={() => setShowBulkTransferBox(false)}  onUpdate={onBulkUpdate} />
+                    <div className="relative w-[min(95%,1000px)] rounded-lg bg-white p-4 shadow-lg">
+                        <BulkTransfer
+                            dataWithStudents={dataWithStudents}
+                            idmaps={idMaps}
+                            onClose={() => setShowBulkTransferBox(false)}
+                            onUpdate={onBulkUpdate}
+                        />
                     </div>
                 </div>
-                )}
+            )}
         </div>
     );
 }

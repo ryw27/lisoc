@@ -1,11 +1,11 @@
-import EditEntity from "@/components/data-view/edit-entity/edit-entity";
+import { notFound } from "next/navigation";
+import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classes } from "@/lib/db/schema";
 import { classTypeMap } from "@/lib/utils";
-import { getIDRow } from "@/server/data-view/actions/getIDRow";
 import { type FormSections, type FormSelectOptions } from "@/types/dataview.types";
-import { InferSelectModel } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { getIDRow } from "@/server/data-view/actions/getIDRow";
+import EditEntity from "@/components/data-view/edit-entity/edit-entity";
 
 export default async function ClassEditPage({ params }: { params: Promise<{ classid: string }> }) {
     const { classid } = await params;

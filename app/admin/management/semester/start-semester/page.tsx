@@ -1,8 +1,8 @@
-import ConfirmActiveSemester from "@/components/registration/admin/confirm-active-semester";
-import StartSemesterForm from "@/components/registration/admin/form-semester-start";
 import { db } from "@/lib/db";
 import { getPreviousSeason } from "@/server/seasons/actions/getPreviousSeason";
 import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
+import ConfirmActiveSemester from "@/components/registration/admin/confirm-active-semester";
+import StartSemesterForm from "@/components/registration/admin/form-semester-start";
 
 // import { requireRole } from "@/lib/auth";
 // import { redirect } from "next/navigation";
@@ -17,7 +17,7 @@ export default async function StartSemesterPage() {
         where: (seasons, { eq }) => eq(seasons.status, "Active"),
     });
 
-    const  {lastSeasonArrangements,lastSeason}  = await getPreviousSeason();
+    const { lastSeasonArrangements, lastSeason } = await getPreviousSeason();
 
     const { options, idMaps } = await getSelectOptions();
 
@@ -28,7 +28,7 @@ export default async function StartSemesterPage() {
                     // drafts={allArrangements}
                     selectOptions={options}
                     idMaps={idMaps}
-                    lastSeasonArrangement = {lastSeasonArrangements}
+                    lastSeasonArrangement={lastSeasonArrangements}
                     lastSeason={lastSeason}
                 />
             </div>

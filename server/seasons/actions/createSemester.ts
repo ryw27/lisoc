@@ -1,14 +1,13 @@
 "use server";
 
+import { eq, or } from "drizzle-orm";
+import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement, seasons } from "@/lib/db/schema";
 import { arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
-import { eq, or } from "drizzle-orm";
-import { z } from "zod/v4";
 import { startSemFormSchema } from "../schema";
-
 
 export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
     // Check incoming data
@@ -49,7 +48,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin"
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             })
             .returning();
 
@@ -84,10 +83,9 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                     : toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: user.user.name ?? user.user.email ?? "Unknown admin"
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             })
             .returning();
-
 
         const [springSem] = await tx
             .insert(seasons)
@@ -175,7 +173,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 notes: classData?.notes || "",
                 lastmodify: toESTString(new Date()),
                 updateby: user.user.name ?? user.user.email ?? "Unknown",
-                isregclass:false, // Should be reg class. Show only reg classes in class select
+                isregclass: false, // Should be reg class. Show only reg classes in class select
             });
         }
         return academicYear;

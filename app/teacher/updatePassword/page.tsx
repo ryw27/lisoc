@@ -1,9 +1,9 @@
 "use client";
 
+import React, { useState } from "react";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/server/auth/actions";
 import { resetPassword } from "@/server/auth/resetPassword";
-import { redirect } from "next/navigation";
-import React, { useState } from "react";
 
 export default function UpdatePasswordPage() {
     const [oldPassword, setOldPassword] = useState("");
@@ -41,7 +41,7 @@ export default function UpdatePasswordPage() {
                 redirect("/forbidden");
             }
             const data = {
-                role:"TEACHER",
+                role: "TEACHER",
                 email: String(auth.user.name),
                 oldpassword: oldPassword,
                 newpassword: newPassword,

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -9,20 +12,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
 
 interface ConfirmActiveSemesterProps {
     hasActive: boolean;
     children: React.ReactNode;
 }
 
-export default function ConfirmActiveSemester({
-    hasActive,
-    children,
-}: ConfirmActiveSemesterProps) {
+export default function ConfirmActiveSemester({ hasActive, children }: ConfirmActiveSemesterProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
 
@@ -46,20 +42,17 @@ export default function ConfirmActiveSemester({
             <AlertDialog open={open} onOpenChange={setOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center justify-center gap-2 font-bold ">
+                        <AlertDialogTitle className="flex items-center justify-center gap-2 font-bold">
                             Active Semester Exists
-                            </AlertDialogTitle>
-                        <AlertDialogDescription className="flex items-center justify-center gap-2 font-bold text-lg text-red-600">
-                            There is an active semester. Are you sure you want to continue? <AlertTriangle className="h-18 w-18" />
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="flex items-center justify-center gap-2 text-lg font-bold text-red-600">
+                            There is an active semester. Are you sure you want to continue?{" "}
+                            <AlertTriangle className="h-18 w-18" />
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="flex gap-2 justify-end">
-                        <AlertDialogCancel onClick={handleCancel}>
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirm}>
-                            Continue
-                        </AlertDialogAction>
+                    <div className="flex justify-end gap-2">
+                        <AlertDialogCancel onClick={handleCancel}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirm}>Continue</AlertDialogAction>
                     </div>
                 </AlertDialogContent>
             </AlertDialog>

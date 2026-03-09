@@ -1,11 +1,10 @@
 "use server";
 
+import { desc, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { uiClasses } from "@/types/shared.types";
-import { desc, eq, InferSelectModel } from "drizzle-orm";
 import { getSeasonDrafts } from "../data";
-
 
 // export async function getPreviousSeason() {
 //     return await db.transaction(async (tx) => {
@@ -39,62 +38,47 @@ export async function getPreviousSeason() {
             .orderBy(desc(seasons.seasonid))
             .limit(1);
 
-        if (maxSeasonRow.length == 0) 
-        {
-            //TODO let's fake it 
-
-
+        if (maxSeasonRow.length == 0) {
+            //TODO let's fake it
         }
 
         const fallseasonid = maxSeasonRow[0].beginseasonid;
 
         const threeSeasons = await tx
-                            .select()
-                            .from(seasons)
-                            .where(eq(seasons.beginseasonid, fallseasonid))
+            .select()
+            .from(seasons)
+            .where(eq(seasons.beginseasonid, fallseasonid));
 
+        // there is no guarteen three season will be back
+        let yearRows: uiClasses[] = [];
+        let fallRows: uiClasses[] = [];
+        let springRows: uiClasses[] = [];
 
-        // there is no guarteen three season will be back 
-        let yearRows : uiClasses[] = [];
-        let fallRows : uiClasses[] = [];
-        let springRows : uiClasses[] = [] ;
+        let yearSeason: InferSelectModel<typeof seasons> | null = null;
+        let fallSeason: InferSelectModel<typeof seasons> | null = null;
+        let springSeason: InferSelectModel<typeof seasons> | null = null;
 
-        let yearSeason: InferSelectModel<typeof seasons>|null  = null;
-        let fallSeason: InferSelectModel<typeof seasons> |null  = null ;
-        let springSeason: InferSelectModel<typeof seasons> | null =null ;
+        for (const oneSeason of threeSeasons) {
+            const oneArrangement = await getSeasonDrafts(oneSeason.seasonid, tx);
 
-
-        for (const oneSeason of threeSeasons)
-        {
-            const oneArrangement= await getSeasonDrafts(oneSeason.seasonid, tx);
-
-            if (oneSeason.isspring)
-            {
-                springRows = oneArrangement ;
-                springSeason = oneSeason  ;
-            }
-            else if (oneSeason.relatedseasonid == oneSeason.beginseasonid)
-            {
-                // this is year 
-                yearRows = oneArrangement
-                yearSeason = oneSeason ;
-
-            }
-            else {
+            if (oneSeason.isspring) {
+                springRows = oneArrangement;
+                springSeason = oneSeason;
+            } else if (oneSeason.relatedseasonid == oneSeason.beginseasonid) {
+                // this is year
+                yearRows = oneArrangement;
+                yearSeason = oneSeason;
+            } else {
                 //this is fall
-                fallRows = oneArrangement 
-                fallSeason = oneSeason 
-
+                fallRows = oneArrangement;
+                fallSeason = oneSeason;
             }
-
         }
 
         return {
             lastSeasonArrangements: { year: yearRows, fall: fallRows, spring: springRows },
-//            lastSeason: {seasons:[...threeSeasons],yearCourses: yearRows, fallCourses: fallRows, springCourses: springRows                }
-            lastSeason: {year:yearSeason, fall:fallSeason,spring:springSeason }
-
-        }
-
+            //            lastSeason: {seasons:[...threeSeasons],yearCourses: yearRows, fallCourses: fallRows, springCourses: springRows                }
+            lastSeason: { year: yearSeason, fall: fallSeason, spring: springSeason },
+        };
     });
 }

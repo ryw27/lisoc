@@ -1,5 +1,6 @@
 "use server";
 
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { arrangement, classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -7,10 +8,9 @@ import {
     FAMILYBALANCE_TYPE_OTHER,
     REGISTRATION_FEE,
 } from "@/lib/utils";
-import { getTotalPrice } from "@/server/registration/data";
 import { type Transaction } from "@/types/server.types";
 import { type classRegObj, type famBalanceInsert, type uiClasses } from "@/types/shared.types";
-import { and, eq } from "drizzle-orm";
+import { getTotalPrice } from "@/server/registration/data";
 
 async function deleteAllRegistrations(
     tx: Transaction,
@@ -53,8 +53,12 @@ export async function deleteArrangement(classData: uiClasses, override: boolean)
 
         // Check for existing registrations
         const registrations = await tx.query.classregistration.findMany({
-            where: (cr, { and, eq,or }) =>
-                and(eq(cr.classid, classData.classid), eq(cr.seasonid, classData.seasonid), or(eq(cr.statusid, 1), eq(cr.statusid, 2))) // Only consider Submitted, Registered,
+            where: (cr, { and, eq, or }) =>
+                and(
+                    eq(cr.classid, classData.classid),
+                    eq(cr.seasonid, classData.seasonid),
+                    or(eq(cr.statusid, 1), eq(cr.statusid, 2))
+                ), // Only consider Submitted, Registered,
         });
 
         if (registrations.length !== 0) {

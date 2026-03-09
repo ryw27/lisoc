@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import TeacherWithClassStudent from '@/components/teacher/teacherClassView';
-import { teacherClassStudentView } from '@/types/shared.types';
-import { useRef } from 'react';
+import { useRef } from "react";
+import { teacherClassStudentView } from "@/types/shared.types";
+import TeacherWithClassStudent from "@/components/teacher/teacherClassView";
 
 interface ClassCardWithPrintProps {
     arrangeid: string;
@@ -31,8 +31,8 @@ export default function ClassCardWithPrint({
     const handlePrint = () => {
         if (printContainerRef.current && printRef.current) {
             // Get the student table
-            const studentTable = printRef.current.querySelector('[data-student-table]');
-            
+            const studentTable = printRef.current.querySelector("[data-student-table]");
+
             // Create print content with only data
             const printContent = `
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -45,15 +45,15 @@ export default function ClassCardWithPrint({
                         <p style="margin: 5px 0;"><strong>Total Students:</strong> ${studentCount}</p>
                     </div>
                     <div style="margin-top: 20px;">
-                        ${studentTable ? studentTable.innerHTML : ''}
+                        ${studentTable ? studentTable.innerHTML : ""}
                     </div>
                 </div>
             `;
-            
+
             printContainerRef.current.innerHTML = printContent;
-            
+
             // Print the container
-            const printWindow = window.open('', '', 'height=600,width=800');
+            const printWindow = window.open("", "", "height=600,width=800");
             if (printWindow) {
                 printWindow.document.write(`
                     <!DOCTYPE html>
@@ -73,7 +73,7 @@ export default function ClassCardWithPrint({
                     </html>
                 `);
                 printWindow.document.close();
-                
+
                 // Wait for content to load before printing
                 setTimeout(() => {
                     printWindow.print();
@@ -86,12 +86,12 @@ export default function ClassCardWithPrint({
     return (
         <div key={arrangeid} className="flex flex-col gap-2" ref={printRef}>
             <div className="border-gray flex cursor-pointer flex-col border-2 p-4 transition-colors duration-200">
-                <div className="flex justify-between items-start mb-3">
+                <div className="mb-3 flex items-start justify-between">
                     <h1 className="font-bold">Class {classnamecn}</h1>
                     <button
                         data-print-button
                         onClick={handlePrint}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
                     >
                         Print
                     </button>
@@ -110,7 +110,7 @@ export default function ClassCardWithPrint({
                 </div>
             </div>
             {/* Hidden container for print content */}
-            <div ref={printContainerRef} style={{ display: 'none' }} />
+            <div ref={printContainerRef} style={{ display: "none" }} />
         </div>
     );
 }

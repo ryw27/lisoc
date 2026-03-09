@@ -1,17 +1,10 @@
 "use client";
 
-import { seasons } from "@/lib/db/schema";
-import { cn, toESTString } from "@/lib/utils";
-import { createSemester } from "@/server/seasons/actions/createSemester";
-import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
-import { startSemFormSchema } from "@/server/seasons/schema";
-import { threeSeasons } from "@/types/seasons.types";
-import { IdMaps, selectOptions } from "@/types/shared.types";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DrizzleError, InferSelectModel } from "drizzle-orm";
 import { BookOpen, CalendarIcon, PlusIcon, Save, School, Settings2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo } from "react";
 import {
     FormProvider,
     Path,
@@ -21,30 +14,34 @@ import {
     useFormContext,
 } from "react-hook-form";
 import { z } from "zod";
+import { seasons } from "@/lib/db/schema";
+import { cn, toESTString } from "@/lib/utils";
+import { threeSeasons } from "@/types/seasons.types";
+import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
+import { createSemester } from "@/server/seasons/actions/createSemester";
+import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
+import { startSemFormSchema } from "@/server/seasons/schema";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { uiClasses } from "@/types/shared.types";
-import { useState } from "react";
 import { RegistrationProvider } from "../registration-context";
 import SemesterClassBox from "./form-class-box";
-
 
 // --- Types ---
 
 type Season = InferSelectModel<typeof seasons>;
 type FormValues = z.infer<typeof startSemFormSchema>;
-type LastArrangement = {year: uiClasses[],fall: uiClasses[] ,spring: uiClasses[]};
+type LastArrangement = { year: uiClasses[]; fall: uiClasses[]; spring: uiClasses[] };
 
 interface StartSemesterFormProps {
     // drafts: uiClasses[];
     selectOptions: selectOptions;
     idMaps: IdMaps;
-    lastSeasonArrangement: LastArrangement
-    lastSeason: {year: Season|null,fall: Season|null ,spring: Season|null};
+    lastSeasonArrangement: LastArrangement;
+    lastSeason: { year: Season | null; fall: Season | null; spring: Season | null };
 }
 
 // --- Helper Functions ---
@@ -56,16 +53,13 @@ interface StartSemesterFormProps {
 const getNextYearDateString = (dateStr?: string | null): string | undefined => {
     if (!dateStr) return undefined;
     const date = new Date(dateStr);
-    // need day of week are same 
-    const dow =  date.getDay() 
+    // need day of week are same
+    const dow = date.getDay();
     date.setFullYear(date.getFullYear() + 1);
-    while( date.getDay() != dow)
-    {
-        // go back 
-        date.setDate(date.getDate() -1 ) 
-
+    while (date.getDay() != dow) {
+        // go back
+        date.setDate(date.getDate() - 1);
     }
-
 
     return toESTString(date).slice(0, 10);
 };
@@ -254,7 +248,10 @@ export default function StartSemesterForm({
 
                         <SettingsSection />
 
-                        <ClassListSection  lastSeasonArrangement = {lastSeasonArrangement} selectOptions={ selectOptions}/>
+                        <ClassListSection
+                            lastSeasonArrangement={lastSeasonArrangement}
+                            selectOptions={selectOptions}
+                        />
                     </div>
                 </form>
             </FormProvider>
@@ -501,7 +498,13 @@ function SwitchRow({ name, label }: { name: Path<FormValues>; label: string }) {
     );
 }
 
-function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonArrangement: LastArrangement , selectOptions : selectOptions }) {
+function ClassListSection({
+    lastSeasonArrangement,
+    selectOptions,
+}: {
+    lastSeasonArrangement: LastArrangement;
+    selectOptions: selectOptions;
+}) {
     const { control } = useFormContext<FormValues>();
     const { fields, append, remove } = useFieldArray({
         control,
@@ -509,93 +512,84 @@ function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonA
     });
 
     const [tuitionW, setTuitionW] = useState<number>(740.0); // standdar chinese whole
-    const [tuitionH, setTuitionH] = useState<number>(400.0);  // staandard chines half
-    const [books, setBooks] = useState<number>(30.0);  // stand book fee
-    const [bookm, setBookm] = useState<number>(40.0);  // Ma book fee 
+    const [tuitionH, setTuitionH] = useState<number>(400.0); // staandard chines half
+    const [books, setBooks] = useState<number>(30.0); // stand book fee
+    const [bookm, setBookm] = useState<number>(40.0); // Ma book fee
 
+    const handleCopy = () => {
+        // cache class type
 
-    const handleCopy = () => { 
+        const classTypeMap = new Map();
+        selectOptions.classes.forEach((obj) => classTypeMap.set(obj.classid, obj.typeid));
 
-            // cache class type 
-
-            const classTypeMap = new Map();
-            selectOptions.classes.forEach(obj => classTypeMap.set(obj.classid,obj.typeid));
-
-            for ( const [ term, arr] of Object.entries(lastSeasonArrangement)) 
-            {   
-                for(let i= 0; i < arr.length; i++) {
-                    const typeid = classTypeMap.get(arr[i].classid) ?? 1 ; 
-                    let book = books ; 
-                    if (typeid ==2 ) {
-                        book = bookm ; 
-                    }
-                    console.log(typeid)
-                    append({
-                        classid: arr[i].classid,
-                        teacherid: 7,  // TBD
-                        roomid: 59,     //TBD
-                        timeid: arr[i].timeid,
-                        suitableterm: arr[i].suitableterm,
-                        term: term.toUpperCase() ,
-                        tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"), 
-                        tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
-                        bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"), 
-                        bookfeeW: book, //parseFloat(arr[i].bookfeeW?? "0.0"),
-                        specialfeeH: parseFloat(arr[i].specialfeeH?? "0.0"),
-                        specialfeeW: parseFloat(arr[i].specialfeeW?? "0.0"),
-                        seatlimit: arr[i].seatlimit,
-                        agelimit: arr[i].agelimit,
-                        waiveregfee: arr[i].waiveregfee,
-                        closeregistration: false,
-                        isregclass: false,
-                        notes: "",
-                    })
+        for (const [term, arr] of Object.entries(lastSeasonArrangement)) {
+            for (let i = 0; i < arr.length; i++) {
+                const typeid = classTypeMap.get(arr[i].classid) ?? 1;
+                let book = books;
+                if (typeid == 2) {
+                    book = bookm;
                 }
-
-            }
-        
-    }
-
-        const handleRegistration = async () => { 
-
-            // cache class type 
-
-            const classTypeMap = new Map();
-            selectOptions.classes.forEach(obj => classTypeMap.set(obj.classid,obj.typeid));
-            const allRegistration = await selectRegistrationClass()
-
-            for ( const cls of allRegistration) 
-            {   
-                const typeid = classTypeMap.get(cls.classid) ?? 1 ; 
-                let book = books ; 
-                if (typeid ==2 ) {
-                    book = bookm ; 
-                }
-                console.log(typeid)
+                console.log(typeid);
                 append({
-                    classid: cls.classid,
-                    teacherid: 7,  // TBD
-                    roomid: 59,     //TBD
-                    timeid: 2,
-                    suitableterm: 3,
-                    term: "FALL",
-                    tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"), 
+                    classid: arr[i].classid,
+                    teacherid: 7, // TBD
+                    roomid: 59, //TBD
+                    timeid: arr[i].timeid,
+                    suitableterm: arr[i].suitableterm,
+                    term: term.toUpperCase(),
+                    tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"),
                     tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
-                    bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"), 
+                    bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"),
                     bookfeeW: book, //parseFloat(arr[i].bookfeeW?? "0.0"),
-                    specialfeeH: 0.0 ,
-                    specialfeeW: 0.0,
-                    seatlimit: 300,
-                    agelimit: 4,
-                    waiveregfee: true, 
+                    specialfeeH: parseFloat(arr[i].specialfeeH ?? "0.0"),
+                    specialfeeW: parseFloat(arr[i].specialfeeW ?? "0.0"),
+                    seatlimit: arr[i].seatlimit,
+                    agelimit: arr[i].agelimit,
+                    waiveregfee: arr[i].waiveregfee,
                     closeregistration: false,
                     isregclass: false,
                     notes: "",
-                })
-
+                });
             }
-        
-    }
+        }
+    };
+
+    const handleRegistration = async () => {
+        // cache class type
+
+        const classTypeMap = new Map();
+        selectOptions.classes.forEach((obj) => classTypeMap.set(obj.classid, obj.typeid));
+        const allRegistration = await selectRegistrationClass();
+
+        for (const cls of allRegistration) {
+            const typeid = classTypeMap.get(cls.classid) ?? 1;
+            let book = books;
+            if (typeid == 2) {
+                book = bookm;
+            }
+            console.log(typeid);
+            append({
+                classid: cls.classid,
+                teacherid: 7, // TBD
+                roomid: 59, //TBD
+                timeid: 2,
+                suitableterm: 3,
+                term: "FALL",
+                tuitionH: tuitionH, //parseFloat(arr[i].tuitionH?? "0.0"),
+                tuitionW: tuitionW, //parseFloat(arr[i].tuitionW?? "0.0"),
+                bookfeeH: book, //parseFloat(arr[i].bookfeeH?? "0.0"),
+                bookfeeW: book, //parseFloat(arr[i].bookfeeW?? "0.0"),
+                specialfeeH: 0.0,
+                specialfeeW: 0.0,
+                seatlimit: 300,
+                agelimit: 4,
+                waiveregfee: true,
+                closeregistration: false,
+                isregclass: false,
+                notes: "",
+            });
+        }
+    };
 
     return (
         <Card className="border-l-primary rounded-none border-l-4">
@@ -665,7 +659,9 @@ function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonA
                 <div className="mb-4">
                     <div className="grid grid-cols-4 gap-4">
                         <div className="space-y-1">
-                            <label className="text-muted-foreground text-xs font-semibold">Full Tuition Fee (学费)</label>
+                            <label className="text-muted-foreground text-xs font-semibold">
+                                Full Tuition Fee (学费)
+                            </label>
                             <Input
                                 type="number"
                                 step="any"
@@ -676,7 +672,9 @@ function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonA
                             />
                         </div>
                         <div>
-                            <label className="text-muted-foreground text-xs font-semibold">Half Tuition Fee (半年学费)</label>
+                            <label className="text-muted-foreground text-xs font-semibold">
+                                Half Tuition Fee (半年学费)
+                            </label>
                             <Input
                                 type="number"
                                 step="any"
@@ -687,7 +685,9 @@ function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonA
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-muted-foreground text-xs font-semibold">MaliPing Book Fee(马力平 教材料)</label>
+                            <label className="text-muted-foreground text-xs font-semibold">
+                                MaliPing Book Fee(马力平 教材料)
+                            </label>
                             <Input
                                 type="number"
                                 step="any"
@@ -698,7 +698,9 @@ function ClassListSection({ lastSeasonArrangement,selectOptions }: { lastSeasonA
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-muted-foreground text-xs font-semibold">Standard Book Fee(标准中文教材)</label>
+                            <label className="text-muted-foreground text-xs font-semibold">
+                                Standard Book Fee(标准中文教材)
+                            </label>
                             <Input
                                 type="number"
                                 step="any"

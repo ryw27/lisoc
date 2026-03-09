@@ -1,28 +1,30 @@
 "use client";
 
-import { updateTeacher } from "@/app/teacher/updateTeacher/actions";
-import { teacherUpdateSchema } from "@/server/auth/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
+import { updateTeacher } from "@/app/teacher/updateTeacher/actions";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { teacherUpdateSchema } from "@/server/auth/schema";
 import { FormError, FormInput, FormSubmit } from "../auth/form-components";
 
 export default function UpdateTeacherForm({
-    inteacher,userid
+    inteacher,
+    userid,
 }: {
-    inteacher: z.infer<typeof teacherUpdateSchema>, userid: string
+    inteacher: z.infer<typeof teacherUpdateSchema>;
+    userid: string;
 }) {
     const [error, setError] = useState<string | null>(null);
 
     const initialData = {
-            namelasten: inteacher.namelasten ?? "", 
-            namefirsten: inteacher.namefirsten ?? "",
-            namecn: inteacher.namecn ?? "",
-            address: inteacher.address?? "",
-            phone: inteacher.phone ?? "",
-            email: inteacher.email ?? "",
-        };
+        namelasten: inteacher.namelasten ?? "",
+        namefirsten: inteacher.namefirsten ?? "",
+        namecn: inteacher.namecn ?? "",
+        address: inteacher.address ?? "",
+        phone: inteacher.phone ?? "",
+        email: inteacher.email ?? "",
+    };
 
     const initialDataRef = useRef(initialData);
 
@@ -35,33 +37,32 @@ export default function UpdateTeacherForm({
     const onSubmit = async (data: z.infer<typeof teacherUpdateSchema>) => {
         try {
             const teacherData = teacherUpdateSchema.parse(data);
-            const hasChanged = (teacherData.address != initialDataRef.current.address || 
+            const hasChanged =
+                teacherData.address != initialDataRef.current.address ||
                 teacherData.namecn != initialDataRef.current.namecn ||
                 teacherData.namefirsten != initialDataRef.current.namefirsten ||
                 teacherData.namelasten != initialDataRef.current.namelasten ||
                 teacherData.phone != initialDataRef.current.phone ||
-                teacherData.email != initialDataRef.current.email
-            );
-//  
+                teacherData.email != initialDataRef.current.email;
+            //
 
-            if (hasChanged)
-            {
-                console.log("Form Submitting with Changes")
-               await updateTeacher(teacherData, userid);
+            if (hasChanged) {
+                console.log("Form Submitting with Changes");
+                await updateTeacher(teacherData, userid);
                 window.location.reload();
-
-            }
-            else
-            {
-                console.log("nothing changed")
+            } else {
+                console.log("nothing changed");
             }
             // Redirect or show success message
         } catch (error) {
             if (error instanceof z.ZodError) {
                 error.issues.map((e) => {
-                    teacherForm.setError(e.path as unknown as keyof z.infer<typeof teacherUpdateSchema>, {
-                        message: e.message,
-                    });
+                    teacherForm.setError(
+                        e.path as unknown as keyof z.infer<typeof teacherUpdateSchema>,
+                        {
+                            message: e.message,
+                        }
+                    );
                 });
             } else if (typeof error === "string") {
                 setError(error);
@@ -83,7 +84,7 @@ export default function UpdateTeacherForm({
                     required={true}
                     register={teacherForm.register("email")}
                 />
-                <div>Your email account is set as  your login  你的电邮是你的登录账号</div>
+                <div>Your email account is set as your login 你的电邮是你的登录账号</div>
                 <div></div>
                 {teacherForm.formState.errors.email?.message && (
                     <FormError error={teacherForm.formState.errors.email.message} />
@@ -114,9 +115,8 @@ export default function UpdateTeacherForm({
                     {teacherForm.formState.errors.namecn?.message && (
                         <FormError error={teacherForm.formState.errors.namecn.message} />
                     )}
-
                 </div>
- 
+
                 <FormInput
                     label="Address（地址）"
                     required={false}
@@ -138,7 +138,7 @@ export default function UpdateTeacherForm({
                             <FormError error={teacherForm.formState.errors.phone.message} />
                         )}
                     </div>
-                </div>        
+                </div>
                 <FormError error={error} />
                 <FormSubmit
                     disabled={teacherForm.formState.isSubmitting || !teacherForm.formState.isValid}

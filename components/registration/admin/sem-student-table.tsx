@@ -1,5 +1,22 @@
 "use client";
 
+import React, { useState } from "react";
+import {
+    ColumnDef,
+    getCoreRowModel,
+    getSortedRowModel,
+    SortingState,
+    useReactTable,
+} from "@tanstack/react-table";
+import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { type adminStudentView } from "@/types/registration.types";
+import { type arrangeClasses, type uiClasses } from "@/types/shared.types";
+import { adminDropRegistration } from "@/server/registration/regchanges/actions/adminDropRegistration";
+import {
+    adminTransferStudent,
+    adminTransferStudent2,
+} from "@/server/registration/regchanges/actions/adminTransferStudent";
 import { ClientTable } from "@/components/client-table";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import {
@@ -20,35 +37,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { adminDropRegistration } from "@/server/registration/regchanges/actions/adminDropRegistration";
-import {
-    adminTransferStudent,
-    adminTransferStudent2,
-} from "@/server/registration/regchanges/actions/adminTransferStudent";
-import { type adminStudentView } from "@/types/registration.types";
-import { type arrangeClasses, type uiClasses } from "@/types/shared.types";
-import {
-    ColumnDef,
-    getCoreRowModel,
-    getSortedRowModel,
-    SortingState,
-    useReactTable,
-} from "@tanstack/react-table";
-import { MoreHorizontal, PencilIcon, TrashIcon } from "lucide-react";
-import React, { useState } from "react";
 import { Action, fullRegID, fullSemDataID } from "./sem-view";
 
 const columns: ColumnDef<adminStudentView>[] = [
-    
     {
-    id: 'rowNumber', // Unique ID for the column
-    header: () => 'index', // Header text
-    cell: ({ row, table }) =>
-      table.getSortedRowModel().rows.findIndex(r => r.id === row.id) + 1,
-    },    
-    
-  {
+        id: "rowNumber", // Unique ID for the column
+        header: () => "index", // Header text
+        cell: ({ row, table }) =>
+            table.getSortedRowModel().rows.findIndex((r) => r.id === row.id) + 1,
+    },
+
+    {
         accessorKey: "regid",
         header: "RegID",
         sortingFn: "alphanumeric",

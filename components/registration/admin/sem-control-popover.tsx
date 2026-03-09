@@ -1,5 +1,15 @@
 "use client";
 
+import React, { useState } from "react";
+import { useRouter } from "next/navigation"; // Import from 'next/navigation'
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Calendar, Cog, Power, Settings } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
+import { type threeSeasons } from "@/types/seasons.types";
+import { updateDates } from "@/server/seasons/actions/updateDates";
+import { updateRegControls } from "@/server/seasons/actions/updateRegControls";
+import { seasonDatesSchema, seasonRegSettingsSchema } from "@/server/seasons/schema";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,16 +21,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { updateDates } from "@/server/seasons/actions/updateDates";
-import { updateRegControls } from "@/server/seasons/actions/updateRegControls";
-import { seasonDatesSchema, seasonRegSettingsSchema } from "@/server/seasons/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Calendar, Cog, Power, Settings } from "lucide-react";
-import { useRouter } from 'next/navigation'; // Import from 'next/navigation'
-import React, { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
 
 type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS";
 export default function SemesterControlsPopover() {
@@ -699,20 +699,20 @@ function Controls({
 }: {
     setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
 }) {
-
     const router = useRouter();
 
     const handleCLick = () => {
-        console.log('Navigating to start a new semester page...');
-        router.push('/admin/management/semester/start-semester'); // Route to start semester page 
-  };
+        console.log("Navigating to start a new semester page...");
+        router.push("/admin/management/semester/start-semester"); // Route to start semester page
+    };
 
     return (
         <>
             <h3 className="border-b pb-2 font-semibold text-gray-800">Change Semester Status</h3>
 
-            <p className="flex items-center justify-center gap-2 font-bold text-lg text-red-600">
-                Be Careful, This will Change active semester, proceed with cautions! <AlertTriangle className="h-18 w-18" />
+            <p className="flex items-center justify-center gap-2 text-lg font-bold text-red-600">
+                Be Careful, This will Change active semester, proceed with cautions!{" "}
+                <AlertTriangle className="h-18 w-18" />
             </p>
 
             <div className="mt-4 flex gap-2">

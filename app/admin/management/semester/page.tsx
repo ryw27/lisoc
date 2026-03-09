@@ -1,5 +1,6 @@
-import Logo from "@/components/logo";
-import SemesterView from "@/components/registration/admin/sem-view";
+import Link from "next/link";
+import { asc, eq, getTableColumns, InferSelectModel, or, sql } from "drizzle-orm";
+import { PlusIcon } from "lucide-react";
 import { db } from "@/lib/db";
 import { arrangement, classes, classregistration, student } from "@/lib/db/schema";
 import {
@@ -8,8 +9,6 @@ import {
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
 } from "@/lib/utils";
-import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
-import fetchCurrentSeasons from "@/server/seasons/data";
 import {
     type adminStudentView,
     type fullClassStudents,
@@ -19,30 +18,31 @@ import {
 import { threeSeasons } from "@/types/seasons.types";
 import { type Transaction } from "@/types/server.types";
 import { type arrangeClasses, type uiClassKey } from "@/types/shared.types";
-import { asc, eq, getTableColumns, InferSelectModel, or, sql } from "drizzle-orm";
-import { PlusIcon } from "lucide-react";
-import Link from "next/link";
+import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
+import fetchCurrentSeasons from "@/server/seasons/data";
+import Logo from "@/components/logo";
+import SemesterView from "@/components/registration/admin/sem-view";
 
 export default async function SemesterPage() {
     // TODO: MAke sure this finds the academic year, not the semesters
-    let activeYear: threeSeasons["year"] |undefined ;
-    let fall_season:        threeSeasons["fall"] |undefined ;
-    let spring_season :    threeSeasons["year"] |undefined ;
+    let activeYear: threeSeasons["year"] | undefined;
+    let fall_season: threeSeasons["fall"] | undefined;
+    let spring_season: threeSeasons["year"] | undefined;
 
-    let seasons : threeSeasons ;
+    let seasons: threeSeasons;
     try {
         const res = await fetchCurrentSeasons();
-        seasons = res ;
+        seasons = res;
         activeYear = seasons.year;
         fall_season = seasons.fall;
-        spring_season = seasons.spring
+        spring_season = seasons.spring;
     } catch {
-        activeYear = undefined
+        activeYear = undefined;
     }
 
-//    const seasons = await fetchCurrentSeasons();
-  
-    if (!activeYear || !fall_season || !spring_season ) {
+    //    const seasons = await fetchCurrentSeasons();
+
+    if (!activeYear || !fall_season || !spring_season) {
         return (
             <div className="flex flex-col">
                 <h1 className="mb-6 text-3xl font-bold">Current academic year</h1>
@@ -71,7 +71,6 @@ export default async function SemesterPage() {
     }
 
     const { year, fall, spring } = { year: activeYear, fall: fall_season, spring: spring_season };
-
 
     // same grade class and type will be grouped together to become classkey
     const allClassData = await db

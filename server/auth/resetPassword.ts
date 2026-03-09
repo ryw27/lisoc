@@ -1,17 +1,17 @@
 "use server";
 
 //import { resetPassSchema } from "@/server/auth/schema";
-import { db } from "@/lib/db";
-import { userRoles } from "@/lib/db/db-types";
-import { users } from "@/lib/db/schema";
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "@/lib/db";
+import { userRoles } from "@/lib/db/db-types";
+import { users } from "@/lib/db/schema";
 
 //import { safeAction } from "@/lib/safeAction";
 
 export const resetPassword = async (data: {
-    role:  string;
+    role: string;
     email: string;
     oldpassword: string;
     newpassword: string;
@@ -22,7 +22,7 @@ export const resetPassword = async (data: {
 
         const roleSchema = z.enum(userRoles.enumValues);
 
-        let validatedRole: typeof userRoles.enumValues[number];
+        let validatedRole: (typeof userRoles.enumValues)[number];
         try {
             validatedRole = roleSchema.parse(role);
         } catch {
@@ -34,10 +34,9 @@ export const resetPassword = async (data: {
         });
 
         if (!userInfo || !userInfo.emailVerified || !userInfo.roles.includes(validatedRole)) {
-                throw new Error("Invalid credentials");
+            throw new Error("Invalid credentials");
         }
 
-        
         const encrypedOldPassword = userInfo.password;
 
         const valid = await bcrypt.compare(oldpassword, encrypedOldPassword);

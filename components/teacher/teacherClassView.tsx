@@ -1,22 +1,15 @@
 "use client";
 
-import { ClientTable } from "@/components/client-table";
-import {
-    ColumnDef,
-    getCoreRowModel,
-    useReactTable,
-} from "@tanstack/react-table";
-
+import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { teacherClassStudentView } from "@/types/shared.types";
+import { ClientTable } from "@/components/client-table";
 
 const columns: ColumnDef<teacherClassStudentView>[] = [
-
     {
         accessorKey: "student",
         header: "Student",
         sortingFn: "alphanumeric",
     },
-    
 
     {
         accessorKey: "gender",
@@ -29,7 +22,6 @@ const columns: ColumnDef<teacherClassStudentView>[] = [
         sortingFn: "alphanumeric",
     },
 
-    
     {
         accessorKey: "status",
         header: "Status",
@@ -40,7 +32,6 @@ const columns: ColumnDef<teacherClassStudentView>[] = [
         header: "FamilyId",
         sortingFn: "alphanumeric",
     },
-
 
     {
         accessorKey: "father",
@@ -64,10 +55,11 @@ const columns: ColumnDef<teacherClassStudentView>[] = [
     },
 ];
 
-
-export default function TeacherWithClassStudent({allClassStudent}: {allClassStudent: teacherClassStudentView[]}) {
-
-
+export default function TeacherWithClassStudent({
+    allClassStudent,
+}: {
+    allClassStudent: teacherClassStudentView[];
+}) {
     const table = useReactTable<teacherClassStudentView>({
         data: allClassStudent,
         columns: [...columns],
@@ -76,11 +68,9 @@ export default function TeacherWithClassStudent({allClassStudent}: {allClassStud
         enableSorting: true,
     });
 
-        return(
-            <div className="p-4">
-                <ClientTable table={table} />
-            </div>
-        )
-
-
+    return (
+        <div className="p-4">
+            <ClientTable table={table} />
+        </div>
+    );
 }
