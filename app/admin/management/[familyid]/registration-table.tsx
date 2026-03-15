@@ -2,17 +2,6 @@
 
 import { ClientTable } from "@/components/client-table";
 import {
-    arrangement,
-    classes,
-    classregistration,
-    seasons,
-    student,
-    teacher,
-} from "@/lib/db/schema";
-import {
-    regStatusMap
-} from "@/lib/utils";
-import {
     Column,
     ColumnDef,
     getCoreRowModel,
@@ -22,30 +11,16 @@ import {
     SortingState,
     useReactTable,
 } from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-type regClassFormProps = {
-    registrations: {
-        arrinfo: InferSelectModel<typeof arrangement>;
-        arrSeason: InferSelectModel<typeof seasons>;
-        registration: InferSelectModel<typeof classregistration>;
-        regclass: InferSelectModel<typeof classes>;
-        teacher: Partial<InferSelectModel<typeof teacher>>;
-        price: number;
-    }[];
-    // family: InferSelectModel<typeof family>;
-    students: InferSelectModel<typeof student>[];
-};
 
-type historicRegRow = {
+export type adminFamilyRegView = {
     regid: number;
     nameen: string;
     namecn: string;
     regdate: string;
     classid: string;
+    seasonid: string;
     teacherid: string;
     statusid: string;
 };
@@ -68,7 +43,7 @@ function SelectColumnFilter({ column }: { column: Column<historicRegRow> }): Rea
     );
 }
 
-const columns: ColumnDef<historicRegRow>[] = [
+const columns: ColumnDef<adminFamilyRegView>[] = [
     {
         accessorKey: "regid",
         header: "Reg ID",
@@ -116,36 +91,13 @@ const columns: ColumnDef<historicRegRow>[] = [
     },
 ];
 
-export default function HistoricRegistrations({ registrations, students }: regClassFormProps) {
+
+export default function FamilyRegistrationTable({ registrations }: {registrations: adminFamilyRegView[]}) {
     const [sorting, setSorting] = useState<SortingState>([]);
 
-    // Memoize the processed data to avoid unnecessary recalculations
-    const tableData = useMemo(() => {
-        // Build a map for fast student lookup
-        const studentMap = students.reduce<Record<number, (typeof students)[number]>>((acc, s) => {
-            acc[s.studentid] = s;
-            return acc;
-        }, {});
 
-        return registrations.map((r) => {
-            const regStudent = studentMap[r.registration.studentid];
-            return {
-                regid: r.registration.regid,
-                nameen: `${regStudent?.namefirsten ?? ""} ${regStudent?.namelasten ?? ""}`.trim(),
-                namecn: regStudent?.namecn ?? "",
-                regdate: new Date(r.registration.registerdate).toISOString().split("T")[0],
-                classid: r.regclass.classnamecn,
-                seasonid: r.arrSeason.seasonnamecn,
-                teacherid:
-                    r.teacher.namecn ??
-                    `${r.teacher.namefirsten ?? ""} ${r.teacher.namelasten ?? ""}`.trim(),
-                statusid: regStatusMap[r.registration.statusid as keyof typeof regStatusMap] ?? "Unknown/未知",
-            };
-        });
-    }, [registrations, students]);
-
-    const table = useReactTable<historicRegRow>({
-        data: tableData,
+    const table = useReactTable<adminFamilyRegView>({
+        data: registrations,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -163,14 +115,7 @@ export default function HistoricRegistrations({ registrations, students }: regCl
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Registration History/注册历史</h1>
-                <Link
-                    href="/dashboard/register"
-                    className="hover: flex items-center gap-2 rounded-md bg-blue-600 bg-blue-700 px-4 py-2 text-white"
-                >
-                    <PlusIcon className="h-4 w-4" />
-                    Add Registration
-                </Link>
+                <h1 className="text-2xl font-bold">Family Registration /注册记录</h1>
             </div>
             <ClientTable table={table} />
         </div>

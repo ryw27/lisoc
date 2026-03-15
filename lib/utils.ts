@@ -185,12 +185,13 @@ export const REGSTATUS_TRANSFERRED = 3;
 export const REGSTATUS_DROPOUT = 4;
 export const REGSTATUS_DROPOUT_SPRING = 5;
 export const regStatusMap = {
-    [REGSTATUS_SUBMITTED]: "Submitted",
-    [REGSTATUS_REGISTERED]: "Registered",
-    [REGSTATUS_TRANSFERRED]: "Transferred",
-    [REGSTATUS_DROPOUT]: "Dropped Out",
-    [REGSTATUS_DROPOUT_SPRING]: "Dropped Out (Spring)",
+    [REGSTATUS_SUBMITTED]: "S/提交",
+    [REGSTATUS_REGISTERED]: "R/注册",
+    [REGSTATUS_TRANSFERRED]: "T/转课",
+    [REGSTATUS_DROPOUT]: "D/退课",
+    [REGSTATUS_DROPOUT_SPRING]: "DS/春季退课",
 } satisfies Record<number, string>;
+
 
 // Request status
 export const REQUEST_STATUS_PENDING = 1;

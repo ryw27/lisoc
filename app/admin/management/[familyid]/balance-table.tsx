@@ -1,6 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { ClientTable } from "@/components/client-table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { removeBalance } from "@/server/payments/actions";
+import { balanceTypes } from "@/types/shared.types";
 import {
     Column,
     ColumnDef,
@@ -14,20 +27,7 @@ import {
 } from "@tanstack/react-table";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 import { Download, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { balanceTypes } from "@/types/shared.types";
-import { removeBalance } from "@/server/payments/actions";
-import { ClientTable } from "@/components/client-table";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useMemo, useState } from "react";
 
 const csvConfig = mkConfig({
     fieldSeparator: ",",
@@ -184,6 +184,7 @@ const deleteColumn: ColumnDef<balanceTypes>[] = [
     },
 ];
 
+//const [sorting, setSorting] = useState<SortingState>([]);
 export default function BalanceTable({ balanceData }: balanceTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const table = useReactTable<balanceTypes>({
@@ -199,6 +200,7 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
         getFilteredRowModel: getFilteredRowModel(),
         state: { sorting },
     });
+
 
     // Calculate the sum of the 'amount' column
     const rows = table.getCoreRowModel().rows;
