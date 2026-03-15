@@ -197,7 +197,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
                     </ul>
                 )}
             </div>
-            <BalanceTabs balanceData={balanceData} hasRegistrations={registrationData.length > 0} family={fam} registrations={registrationData} students = {studentsInFamily} />
+            <BalanceTabs balanceData={balanceData} hasRegistrations={registrationData.length > 0} family={fam} registrations={registrationData} />
 
             {/*<ApplyButton family={fam} />*/}
         </div>

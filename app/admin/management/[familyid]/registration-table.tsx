@@ -25,7 +25,7 @@ export type adminFamilyRegView = {
     statusid: string;
 };
 
-function SelectColumnFilter({ column }: { column: Column<historicRegRow> }): React.ReactNode {
+function SelectColumnFilter({ column }: { column: Column<adminFamilyRegView> }): React.ReactNode {
     const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
 
     return (
