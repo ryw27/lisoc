@@ -1,17 +1,7 @@
 "use client";
 
-import { ClientTable } from "@/components/client-table";
-import {
-    arrangement,
-    classes,
-    classregistration,
-    seasons,
-    student,
-    teacher,
-} from "@/lib/db/schema";
-import {
-    regStatusMap
-} from "@/lib/utils";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
     Column,
     ColumnDef,
@@ -24,8 +14,16 @@ import {
 } from "@tanstack/react-table";
 import { InferSelectModel } from "drizzle-orm";
 import { PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import {
+    arrangement,
+    classes,
+    classregistration,
+    seasons,
+    student,
+    teacher,
+} from "@/lib/db/schema";
+import { regStatusMap } from "@/lib/utils";
+import { ClientTable } from "@/components/client-table";
 
 type regClassFormProps = {
     registrations: {
@@ -139,7 +137,9 @@ export default function HistoricRegistrations({ registrations, students }: regCl
                 teacherid:
                     r.teacher.namecn ??
                     `${r.teacher.namefirsten ?? ""} ${r.teacher.namelasten ?? ""}`.trim(),
-                statusid: regStatusMap[r.registration.statusid as keyof typeof regStatusMap] ?? "Unknown/未知",
+                statusid:
+                    regStatusMap[r.registration.statusid as keyof typeof regStatusMap] ??
+                    "Unknown/未知",
             };
         });
     }, [registrations, students]);

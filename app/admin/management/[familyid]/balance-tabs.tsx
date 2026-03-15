@@ -1,9 +1,9 @@
 "use client";
 
 import ApplyButton from "@/app/admin/management/[familyid]/apply-button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { familyObj } from "@/types/shared.types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BalanceTable from "./balance-table";
 import FamilyRegistrationTable, { adminFamilyRegView } from "./registration-table";
 
@@ -20,18 +20,35 @@ interface BalanceTabsProps {
     hasRegistrations: boolean;
     family: familyObj;
 
-    registrations:adminFamilyRegView[];
-
+    registrations: adminFamilyRegView[];
 }
 
-export default function BalanceTabs({ balanceData, hasRegistrations,family, registrations}: BalanceTabsProps) {
+export default function BalanceTabs({
+    balanceData,
+    hasRegistrations,
+    family,
+    registrations,
+}: BalanceTabsProps) {
     return (
         <Tabs defaultValue="balances" className="w-full">
             <TabsList>
-                <TabsTrigger value="balances"  className="text-lg text-blue-100 data-[state=active]:text-green-600">Balances/缴款</TabsTrigger>
-                <TabsTrigger value="registrations" className="text-lg text-blue-100 data-[state=active]:text-green-600">Registration/注册</TabsTrigger>
+                <TabsTrigger
+                    value="balances"
+                    className="text-lg text-blue-100 data-[state=active]:text-green-600"
+                >
+                    Balances/缴款
+                </TabsTrigger>
+                <TabsTrigger
+                    value="registrations"
+                    className="text-lg text-blue-100 data-[state=active]:text-green-600"
+                >
+                    Registration/注册
+                </TabsTrigger>
             </TabsList>
-            <TabsContent value="balances" className={cn("mt-4 rounded-md border-4 border-green-500 p-4")}>
+            <TabsContent
+                value="balances"
+                className={cn("mt-4 rounded-md border-4 border-green-500 p-4")}
+            >
                 {hasRegistrations ? (
                     <BalanceTable balanceData={balanceData} />
                 ) : (
@@ -39,8 +56,11 @@ export default function BalanceTabs({ balanceData, hasRegistrations,family, regi
                 )}
                 <ApplyButton family={family} />
             </TabsContent>
-            <TabsContent value="registrations" className={cn("mt-4 rounded-md border-4 border-green-500 p-4")}>
-            <FamilyRegistrationTable   registrations={registrations} />
+            <TabsContent
+                value="registrations"
+                className={cn("mt-4 rounded-md border-4 border-green-500 p-4")}
+            >
+                <FamilyRegistrationTable registrations={registrations} />
             </TabsContent>
         </Tabs>
     );

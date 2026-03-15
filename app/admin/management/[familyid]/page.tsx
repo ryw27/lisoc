@@ -1,10 +1,10 @@
+import { Suspense, type FC } from "react";
+import { format } from "date-fns";
+import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, student } from "@/lib/db/schema";
 import { regStatusMap } from "@/lib/utils";
 import { selectFamilyName } from "@/server/billing/data";
-import { format } from "date-fns";
-import { InferSelectModel } from "drizzle-orm";
-import { Suspense, type FC } from "react";
 import BalanceTabs from "./balance-tabs";
 import { adminFamilyRegView } from "./registration-table";
 
@@ -45,9 +45,10 @@ const fetchFamilyData = async (familyid: number) => {
     return { fam, studentsInFamily, balances };
 };
 
-
-const fetchRegistration = async (familyid: number,students: InferSelectModel<typeof student>[]) => {
-
+const fetchRegistration = async (
+    familyid: number,
+    students: InferSelectModel<typeof student>[]
+) => {
     const studentMap = students.reduce<Record<number, (typeof students)[number]>>((acc, s) => {
         acc[s.studentid] = s;
         return acc;
@@ -58,7 +59,6 @@ const fetchRegistration = async (familyid: number,students: InferSelectModel<typ
         where: (reg, { eq }) => eq(reg.familyid, familyid),
         orderBy: (reg, { desc }) => desc(reg.registerdate),
     });
-
 
     const getfullInfo = async (reg: InferSelectModel<typeof classregistration>) => {
         const arr = await db.query.arrangement.findFirst({
@@ -99,7 +99,6 @@ const fetchRegistration = async (familyid: number,students: InferSelectModel<typ
             where: (c, { eq }) => eq(c.classid, arr.class.classid as number),
         });
 
-
         const arrSeason = await db.query.seasons.findFirst({
             where: (s, { eq }) => eq(s.seasonid, arr.seasonid),
         });
@@ -110,12 +109,13 @@ const fetchRegistration = async (familyid: number,students: InferSelectModel<typ
             regid: reg.regid,
             nameen: `${regStudent?.namefirsten ?? ""} ${regStudent?.namelasten ?? ""}`.trim(),
             namecn: regStudent?.namecn ?? "",
-            regdate: new Date(reg.registerdate).toISOString().split("T")[0] ,
-            classid: regClass? regClass.classnamecn : "unknown",
+            regdate: new Date(reg.registerdate).toISOString().split("T")[0],
+            classid: regClass ? regClass.classnamecn : "unknown",
             seasonid: arrSeason ? arrSeason.seasonnamecn : "unknown",
-            teacherid: arr.teacher.namecn ??  `${arr.teacher.namefirsten ?? ""} ${arr.teacher.namelasten ?? ""}`.trim(), 
+            teacherid:
+                arr.teacher.namecn ??
+                `${arr.teacher.namefirsten ?? ""} ${arr.teacher.namelasten ?? ""}`.trim(),
             statusid: regStatusMap[reg.statusid as keyof typeof regStatusMap] ?? "Unknown/未知",
-
         };
 
         return detailArrObj;
@@ -127,20 +127,18 @@ const fetchRegistration = async (familyid: number,students: InferSelectModel<typ
             return arrangement;
         })
     );
-    
-    const result = allReg.filter((r) => r.regid !== undefined);
-    return result ;
 
-}
+    const result = allReg.filter((r) => r.regid !== undefined);
+    return result;
+};
 
 const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
     const data = await fetchFamilyData(familyid);
-    if (!data) 
-    {
-        return ( 
+    if (!data) {
+        return (
             <div>
-                <div className="text-5xl text-red-500 text-center">Family not found</div>
-            </div>    
+                <div className="text-center text-5xl text-red-500">Family not found</div>
+            </div>
         );
     }
 
@@ -163,7 +161,10 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
         })
     );
 
-    const registrationData: adminFamilyRegView[] = await fetchRegistration(familyid, studentsInFamily);
+    const registrationData: adminFamilyRegView[] = await fetchRegistration(
+        familyid,
+        studentsInFamily
+    );
 
     return (
         <div className="mx-auto max-w-7xl p-6">
@@ -197,7 +198,12 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
                     </ul>
                 )}
             </div>
-            <BalanceTabs balanceData={balanceData} hasRegistrations={registrationData.length > 0} family={fam} registrations={registrationData} />
+            <BalanceTabs
+                balanceData={balanceData}
+                hasRegistrations={registrationData.length > 0}
+                family={fam}
+                registrations={registrationData}
+            />
 
             {/*<ApplyButton family={fam} />*/}
         </div>
@@ -207,7 +213,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
 export default async function Page({ params }: FamilyIDPageProps) {
     const { familyid } = await params;
     if (!familyid) {
-        return <div>Family ID not provided</div>
+        return <div>Family ID not provided</div>;
     }
     return (
         <Suspense

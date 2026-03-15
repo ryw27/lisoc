@@ -192,7 +192,6 @@ export const regStatusMap = {
     [REGSTATUS_DROPOUT_SPRING]: "DS/春季退课",
 } satisfies Record<number, string>;
 
-
 // Request status
 export const REQUEST_STATUS_PENDING = 1;
 export const REQUEST_STATUS_APPROVED = 2;

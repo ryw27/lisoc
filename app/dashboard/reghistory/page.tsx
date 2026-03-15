@@ -1,10 +1,10 @@
-import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
-import HistoricRegistrations from "@/components/registration/family/historic_registrations";
+import { Suspense } from "react";
+import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
-import { InferSelectModel } from "drizzle-orm";
-import { Suspense } from "react";
+import { TableSkeleton } from "@/components/familymanagement/table-skeleton";
+import HistoricRegistrations from "@/components/registration/family/historic_registrations";
 
 export default async function RegistrationHistory() {
     const user = await requireRole(["FAMILY"]);

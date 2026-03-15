@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientTable } from "@/components/client-table";
+import { useState } from "react";
 import {
     Column,
     ColumnDef,
@@ -11,8 +11,7 @@ import {
     SortingState,
     useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
-
+import { ClientTable } from "@/components/client-table";
 
 export type adminFamilyRegView = {
     regid: number;
@@ -91,10 +90,12 @@ const columns: ColumnDef<adminFamilyRegView>[] = [
     },
 ];
 
-
-export default function FamilyRegistrationTable({ registrations }: {registrations: adminFamilyRegView[]}) {
+export default function FamilyRegistrationTable({
+    registrations,
+}: {
+    registrations: adminFamilyRegView[];
+}) {
     const [sorting, setSorting] = useState<SortingState>([]);
-
 
     const table = useReactTable<adminFamilyRegView>({
         data: registrations,
