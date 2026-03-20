@@ -1,9 +1,9 @@
+import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangementSchema } from "@/lib/schema";
 import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
-import { z } from "zod/v4";
 import fetchCurrentSeasons from "../seasons/data";
 
 //-----------------------------------------------------------------------------------------
@@ -133,7 +133,6 @@ export async function getArrSeason(
     // default to year
     return "year";
 }
-
 
 export async function getTotalPrice(
     tx: Transaction,

@@ -1,8 +1,8 @@
-import InfoBoxClass from "@/components/registration/family/info-box-class";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireRole } from "@/server/auth/actions";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import Link from "next/link";
+import InfoBoxClass from "@/components/registration/family/info-box-class";
 
 export default async function CourseListPage() {
     await requireRole(["FAMILY"]);
@@ -21,9 +21,7 @@ export default async function CourseListPage() {
 
         const yearArrangements = await db.query.arrangement.findMany({
             where: (arrangement, { and, eq }) =>
-                and(
-                    eq(arrangement.seasonid, seasons.year.seasonid),
-                ),
+                and(eq(arrangement.seasonid, seasons.year.seasonid)),
             with: {
                 class: {},
             },
@@ -31,20 +29,15 @@ export default async function CourseListPage() {
 
         const fallArrangements = await db.query.arrangement.findMany({
             where: (arrangement, { and, eq }) =>
-                and(
-                    eq(arrangement.seasonid, seasons.fall.seasonid),
-                ),
+                and(eq(arrangement.seasonid, seasons.fall.seasonid)),
             with: {
                 class: {},
-            
             },
         });
 
         const springArrangements = await db.query.arrangement.findMany({
             where: (arrangement, { and, eq }) =>
-                and(
-                    eq(arrangement.seasonid, seasons.spring.seasonid),
-                ),
+                and(eq(arrangement.seasonid, seasons.spring.seasonid)),
             with: {
                 class: {},
             },

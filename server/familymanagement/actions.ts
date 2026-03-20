@@ -1,14 +1,14 @@
 "use server";
 
+import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { family, familybalance, feedback, student } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
-import { familySchema } from "@/server/auth/schema";
 import { type threeSeasons } from "@/types/seasons.types";
 import { type balanceFees, type familyObj } from "@/types/shared.types";
-import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { z } from "zod/v4";
+import { requireRole } from "@/server/auth/actions";
+import { familySchema } from "@/server/auth/schema";
 import { feedbackSchema, studentSchema } from "./validation";
 
 function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): balanceFees {
@@ -44,8 +44,7 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         //totals.totalamount += Number(bal.totalamount ?? 0);
         if (bal.appliedid != 0) {
             totals.discrteionamouont += Number(bal.totalamount ?? 0);
-        }
-        else {
+        } else {
             totals.totalamount += Number(bal.totalamount ?? 0);
         }
     }

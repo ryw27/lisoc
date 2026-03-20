@@ -1,19 +1,6 @@
 "use client";
 
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { useCallback, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     CreateOrderActions,
@@ -23,9 +10,22 @@ import {
 } from "@paypal/paypal-js";
 import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { InferSelectModel } from "drizzle-orm";
-import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -57,14 +57,14 @@ const periodMap = {
     3: "3:30 - 4:30",
 };
 
-type billDetail={
-        tutionfee: number;
-        managementfee: number;
-        earlyDiscountManagementfee: number;
-        dutyfee: number;
-        regfee: number;
-        otherfee: number;
-        discretionaryfee: number;
+type billDetail = {
+    tutionfee: number;
+    managementfee: number;
+    earlyDiscountManagementfee: number;
+    dutyfee: number;
+    regfee: number;
+    otherfee: number;
+    discretionaryfee: number;
 };
 
 const hasConflict = (current: { first: number; second: number }, period: number) => {
@@ -295,8 +295,7 @@ export default function RegisterStudent({
             }
         } catch (err) {
             console.error("Registration submission error: ", err);
-        }
-        finally {
+        } finally {
             resetAll();
         }
     };
@@ -494,7 +493,7 @@ export default function RegisterStudent({
                 Number(termPrices[term].dutyfee) +
                 Number(termPrices[term].cleaningfee) +
                 Number(termPrices[term].otherfee) +
-                Number(termPrices[term].tuition)+
+                Number(termPrices[term].tuition) +
                 Number(termPrices[term].discrteionamouont);
             return total;
         },
@@ -509,31 +508,52 @@ export default function RegisterStudent({
         );
     });
 
-
-    const calculateDetail : () => billDetail = useCallback(
-        () => {
-            return {
-                tutionfee: Number(termPrices["yearPrices"].tuition) + Number(termPrices["fallPrices"].tuition) + Number(termPrices["springPrices"].tuition),
-                managementfee: Number(termPrices["yearPrices"].managementfee) + Number(termPrices["fallPrices"].managementfee) + Number(termPrices["springPrices"].managementfee),
-                earlyDiscountManagementfee: Number(termPrices["yearPrices"].earlyregdiscount) + Number(termPrices["fallPrices"].earlyregdiscount) + Number(termPrices["springPrices"].earlyregdiscount),
-                dutyfee: Number(termPrices["yearPrices"].dutyfee) + Number(termPrices["fallPrices"].dutyfee) + Number(termPrices["springPrices"].dutyfee),
-                regfee: Number(termPrices["yearPrices"].regfee) + Number(termPrices["fallPrices"].regfee) + Number(termPrices["springPrices"].regfee),
-                otherfee: ((Number(termPrices["yearPrices"].otherfee) + Number(termPrices["fallPrices"].otherfee) + Number(termPrices["springPrices"].otherfee))+
-                  (Number(termPrices["yearPrices"].childnumRegfee) + Number(termPrices["fallPrices"].otherfee) + Number(termPrices["springPrices"].otherfee))+
-                  (Number(termPrices["yearPrices"].lateregfee) + Number(termPrices["fallPrices"].lateregfee) + Number(termPrices["springPrices"].lateregfee))+
-                  (Number(termPrices["yearPrices"].extrafee4newfamily) + Number(termPrices["fallPrices"].extrafee4newfamily) + Number(termPrices["springPrices"].extrafee4newfamily))+
-                  (Number(termPrices["yearPrices"].cleaningfee) + Number(termPrices["fallPrices"].cleaningfee) + Number(termPrices["springPrices"].cleaningfee))),
-                discretionaryfee:(Number(termPrices["yearPrices"].discrteionamouont) + Number(termPrices["fallPrices"].discrteionamouont) + Number(termPrices["springPrices"].discrteionamouont)),
-
-            };
-        },
-        [termPrices]
-    );
-
-
+    const calculateDetail: () => billDetail = useCallback(() => {
+        return {
+            tutionfee:
+                Number(termPrices["yearPrices"].tuition) +
+                Number(termPrices["fallPrices"].tuition) +
+                Number(termPrices["springPrices"].tuition),
+            managementfee:
+                Number(termPrices["yearPrices"].managementfee) +
+                Number(termPrices["fallPrices"].managementfee) +
+                Number(termPrices["springPrices"].managementfee),
+            earlyDiscountManagementfee:
+                Number(termPrices["yearPrices"].earlyregdiscount) +
+                Number(termPrices["fallPrices"].earlyregdiscount) +
+                Number(termPrices["springPrices"].earlyregdiscount),
+            dutyfee:
+                Number(termPrices["yearPrices"].dutyfee) +
+                Number(termPrices["fallPrices"].dutyfee) +
+                Number(termPrices["springPrices"].dutyfee),
+            regfee:
+                Number(termPrices["yearPrices"].regfee) +
+                Number(termPrices["fallPrices"].regfee) +
+                Number(termPrices["springPrices"].regfee),
+            otherfee:
+                Number(termPrices["yearPrices"].otherfee) +
+                Number(termPrices["fallPrices"].otherfee) +
+                Number(termPrices["springPrices"].otherfee) +
+                (Number(termPrices["yearPrices"].childnumRegfee) +
+                    Number(termPrices["fallPrices"].otherfee) +
+                    Number(termPrices["springPrices"].otherfee)) +
+                (Number(termPrices["yearPrices"].lateregfee) +
+                    Number(termPrices["fallPrices"].lateregfee) +
+                    Number(termPrices["springPrices"].lateregfee)) +
+                (Number(termPrices["yearPrices"].extrafee4newfamily) +
+                    Number(termPrices["fallPrices"].extrafee4newfamily) +
+                    Number(termPrices["springPrices"].extrafee4newfamily)) +
+                (Number(termPrices["yearPrices"].cleaningfee) +
+                    Number(termPrices["fallPrices"].cleaningfee) +
+                    Number(termPrices["springPrices"].cleaningfee)),
+            discretionaryfee:
+                Number(termPrices["yearPrices"].discrteionamouont) +
+                Number(termPrices["fallPrices"].discrteionamouont) +
+                Number(termPrices["springPrices"].discrteionamouont),
+        };
+    }, [termPrices]);
 
     const [billdetail, setBilldetail] = useState<billDetail>(calculateDetail());
-
 
     // Recompute total when termPrices change
     useEffect(() => {
@@ -545,9 +565,8 @@ export default function RegisterStudent({
     }, [termPrices, calculateTotal]);
 
     useEffect(() => {
-        setBilldetail(calculateDetail())
+        setBilldetail(calculateDetail());
     }, [termPrices, calculateDetail, setBilldetail]);
-
 
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
@@ -651,7 +670,10 @@ export default function RegisterStudent({
 
     return (
         <div className="flex flex-col">
-            <form onSubmit={regForm.handleSubmit(onSubmit)} className="border-1 border-black p-4 print:hidden">
+            <form
+                onSubmit={regForm.handleSubmit(onSubmit)}
+                className="border-1 border-black p-4 print:hidden"
+            >
                 <h1 className="flex-col gap-1 text-lg font-bold">注册课程 Register Classes</h1>
                 <p className="mt-2">
                     Please choose which student to register first, then choose semester, type of
@@ -774,37 +796,52 @@ export default function RegisterStudent({
             <div className="mt-5 flex items-center gap-4 self-end">
                 <div className="flex flex-col items-end">
                     {billdetail.tutionfee != 0 && (
-                        <p className={`font-bold ${billdetail.tutionfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.tutionfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Tuition(学费): {billdetail.tutionfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.managementfee != 0 && (
-                        <p className={`font-bold ${billdetail.managementfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.managementfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Management Fee(管理费): {billdetail.managementfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.earlyDiscountManagementfee != 0 && (
-                        <p className={`font-bold ${billdetail.earlyDiscountManagementfee < 0 ? "text-red-500" : "text-blue-500"}`}>
-                            Early Registration Discount: -{billdetail.earlyDiscountManagementfee.toFixed(2)}
+                        <p
+                            className={`font-bold ${billdetail.earlyDiscountManagementfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
+                            Early Registration Discount: -
+                            {billdetail.earlyDiscountManagementfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.dutyfee != 0 && (
-                        <p className={`font-bold ${billdetail.dutyfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.dutyfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Duty Fee(值班押金): {billdetail.dutyfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.regfee != 0 && (
-                        <p className={`font-bold ${billdetail.regfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.regfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Registration Fee(注册费): {billdetail.regfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.otherfee != 0 && (
-                        <p className={`font-bold ${billdetail.otherfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.otherfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Other Fees(学杂费): {billdetail.otherfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.discretionaryfee != 0 && (
-                        <p className={`font-bold ${billdetail.discretionaryfee < 0 ? "text-red-500" : "text-blue-500"}`}>
+                        <p
+                            className={`font-bold ${billdetail.discretionaryfee < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
                             Discretionary Fee(其他费用): {billdetail.discretionaryfee.toFixed(2)}
                         </p>
                     )}
@@ -816,39 +853,39 @@ export default function RegisterStudent({
                             : ""}
                     </p>
                 </div>
-                <div className="flex flex-col items-end">                
-                <PayPalScriptProvider
-                    options={{
-                        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
-                        currency: "USD",
-                        intent: "capture",
-                    }}
-                >
-                    {totalBalance > 0 ? (
-                        <PayPalButtons
-                            createOrder={createOrder}
-                            onApprove={onApprove}
-                            onError={onError}
-                            style={{
-                                layout: "vertical",
-                                shape: "pill",
-                                color: "gold",
-                                label: "pay",
-                                tagline: false,
-                            }}
-                            fundingSource={FUNDING.PAYPAL}
-                        />
-                    ) : (
-                        <div></div>
-                    )}
-                </PayPalScriptProvider>
-                <button
-                    type="button" 
-                    onClick={() => window.print()}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full print:hidden"
-                >
-                    Print (打印)
-                </button>
+                <div className="flex flex-col items-end">
+                    <PayPalScriptProvider
+                        options={{
+                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+                            currency: "USD",
+                            intent: "capture",
+                        }}
+                    >
+                        {totalBalance > 0 ? (
+                            <PayPalButtons
+                                createOrder={createOrder}
+                                onApprove={onApprove}
+                                onError={onError}
+                                style={{
+                                    layout: "vertical",
+                                    shape: "pill",
+                                    color: "gold",
+                                    label: "pay",
+                                    tagline: false,
+                                }}
+                                fundingSource={FUNDING.PAYPAL}
+                            />
+                        ) : (
+                            <div></div>
+                        )}
+                    </PayPalScriptProvider>
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="rounded-full bg-blue-500 px-4 py-2 font-semibold text-white hover:bg-blue-600 print:hidden"
+                    >
+                        Print (打印)
+                    </button>
                 </div>
             </div>
         </div>
