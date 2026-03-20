@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
+import { and, eq, ne } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 import {
     EARLY_REG_DISCOUNT,
@@ -12,6 +12,7 @@ import {
     FAMILYBALANCE_TYPE_TUITION,
     LATE_REG_FEE_1,
     LATE_REG_FEE_2,
+    MANAGEMENT_FEE,
     REGISTRATION_FEE,
     REGSTATUS_SUBMITTED,
     toESTString,
@@ -126,6 +127,7 @@ export async function familyRegister(
                 yearclass4child: 1,
                 regfee: arrData.waiveregfee ? "0" : REGISTRATION_FEE.toString(), // Numeric requires string
                 earlyregdiscount: (checkReg === "early" ? EARLY_REG_DISCOUNT : 0).toString(),
+                managementfee:  MANAGEMENT_FEE.toString(),
                 lateregfee: (checkReg === "late1"
                     ? LATE_REG_FEE_1
                     : checkReg === "late2"
@@ -138,7 +140,7 @@ export async function familyRegister(
                 statusid: FAMILYBALANCE_STATUS_PENDING, // Pending
                 notes: "",
                 tuition: classPrice.toString(),
-                totalamount: classPrice.toString(),
+                totalamount: (classPrice + MANAGEMENT_FEE).toString(),
             };
 
             const [newBal] = await tx.insert(familybalance).values(familyBalanceData).returning();

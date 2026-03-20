@@ -1,5 +1,5 @@
-import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { arrangement, classregistration, family, familybalance, seasons } from "@/lib/db/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 // TODO: Shared types
 
@@ -18,6 +18,7 @@ export type balanceFees = {
     groupdiscount: number;
     processfee: number;
     totalamount: number;
+    discrteionamouont: number; // this is for applied 
 };
 
 // Season

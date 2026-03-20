@@ -1,9 +1,9 @@
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangementSchema } from "@/lib/schema";
 import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
+import { z } from "zod/v4";
 import fetchCurrentSeasons from "../seasons/data";
 
 //-----------------------------------------------------------------------------------------
@@ -130,8 +130,10 @@ export async function getArrSeason(
     if (seasonid === year.seasonid) return "year";
     if (seasonid === fall.seasonid) return "fall";
     if (seasonid === spring.seasonid) return "spring";
-    throw new Error("No valid season found");
+    // default to year
+    return "year";
 }
+
 
 export async function getTotalPrice(
     tx: Transaction,
@@ -141,7 +143,7 @@ export async function getTotalPrice(
     // in practice these should never be null
     if (season) {
         const totalPrice =
-            season === "year"
+            season === "year" || season === "fall"
                 ? Number(arrData.tuitionW) + Number(arrData.bookfeeW) + Number(arrData.specialfeeW)
                 : Number(arrData.tuitionH) + Number(arrData.bookfeeH) + Number(arrData.specialfeeH);
         return totalPrice;

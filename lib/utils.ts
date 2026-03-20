@@ -134,7 +134,7 @@ export const REGISTRATION_FEE = 0;
 export const LATE_REG_FEE_1 = 0;
 export const LATE_REG_FEE_2 = 0;
 export const EARLY_REG_DISCOUNT = 50;
-
+export const MANAGEMENT_FEE = 50;
 // Family balance types
 export const familybalancetypes = [
     "Old_Balance",

@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FcGoogle } from "react-icons/fc";
 import { z } from "zod/v4";
 // import { FcGoogle } from "react-icons/fc";
+import Logo from "@/components/logo";
 import { emailSchema, ErrorCode, loginSchema, usernameSchema } from "@/server/auth/schema";
 import { setPasswordAfterLogin } from "@/server/auth/teachadminreg.actions";
-import Logo from "@/components/logo";
 import { FormError, FormInput, FormSubmit } from "./form-components";
 
 type LoginFormProps = {
@@ -149,7 +148,7 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
                         </form>
                     ) : passwordForm === "NewPasswordSet" || passwordForm === "None" ? (
                         <>
-                            <button
+                          {/*}  <button
                                 title="Not implemented yet"
                                 className="flex w-full items-center justify-center rounded-sm border-2 border-gray-200 px-1 py-1 text-lg font-medium text-black"
                                 type="button"
@@ -163,7 +162,7 @@ export default function LoginForm({ isAdminForm, isTeacherForm }: LoginFormProps
                                 <div className="h-px w-1/2 bg-gray-200"></div>
                                 <span className="flex items-center text-sm text-gray-500">OR</span>
                                 <div className="h-px w-1/2 bg-gray-200"></div>
-                            </div>
+                            </div>*/}
                             <form
                                 onSubmit={loginForm.handleSubmit(onSubmit)}
                                 className="flex flex-col bg-white p-2"

@@ -1,14 +1,14 @@
 "use server";
 
-import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { family, familybalance, feedback, student } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type familyObj } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { familySchema } from "@/server/auth/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type familyObj } from "@/types/shared.types";
+import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { z } from "zod/v4";
 import { feedbackSchema, studentSchema } from "./validation";
 
 function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): balanceFees {
@@ -26,6 +26,7 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         groupdiscount: 0,
         processfee: 0,
         totalamount: 0,
+        discrteionamouont: 0,
     };
     for (const bal of balances) {
         totals.childnumRegfee += Number(bal.childnumRegfee ?? 0);
@@ -40,7 +41,13 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         totals.tuition += Number(bal.tuition ?? 0);
         totals.groupdiscount += Number(bal.groupdiscount ?? 0);
         totals.processfee += Number(bal.processfee ?? 0);
-        totals.totalamount += Number(bal.totalamount ?? 0);
+        //totals.totalamount += Number(bal.totalamount ?? 0);
+        if (bal.appliedid != 0) {
+            totals.discrteionamouont += Number(bal.totalamount ?? 0);
+        }
+        else {
+            totals.totalamount += Number(bal.totalamount ?? 0);
+        }
     }
 
     return totals;

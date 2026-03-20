@@ -1,8 +1,8 @@
-import Link from "next/link";
+import InfoBoxClass from "@/components/registration/family/info-box-class";
 import { db } from "@/lib/db";
 import { requireRole } from "@/server/auth/actions";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import InfoBoxClass from "@/components/registration/family/info-box-class";
+import Link from "next/link";
 
 export default async function CourseListPage() {
     await requireRole(["FAMILY"]);
@@ -23,7 +23,6 @@ export default async function CourseListPage() {
             where: (arrangement, { and, eq }) =>
                 and(
                     eq(arrangement.seasonid, seasons.year.seasonid),
-                    eq(arrangement.isregclass, true)
                 ),
             with: {
                 class: {},
@@ -34,10 +33,10 @@ export default async function CourseListPage() {
             where: (arrangement, { and, eq }) =>
                 and(
                     eq(arrangement.seasonid, seasons.fall.seasonid),
-                    eq(arrangement.isregclass, true)
                 ),
             with: {
                 class: {},
+            
             },
         });
 
@@ -45,7 +44,6 @@ export default async function CourseListPage() {
             where: (arrangement, { and, eq }) =>
                 and(
                     eq(arrangement.seasonid, seasons.spring.seasonid),
-                    eq(arrangement.isregclass, true)
                 ),
             with: {
                 class: {},
