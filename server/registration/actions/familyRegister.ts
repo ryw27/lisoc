@@ -1,21 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
+import { and, eq, ne } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 import {
-    EARLY_REG_DISCOUNT,
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_TUITION,
-    LATE_REG_FEE_1,
-    LATE_REG_FEE_2,
-    MANAGEMENT_FEE,
-    REGISTRATION_FEE,
     REGSTATUS_SUBMITTED,
-    toESTString,
+    toESTString
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
@@ -65,6 +60,23 @@ export async function familyRegister(
         }
 
         const arrSeason = await getArrSeason(tx, arrData);
+
+        const feeSchedule = await tx.query.feelist.findMany({
+            columns: {
+                feeid: true,
+                feeamount: true,
+            },
+        });
+        const managementFee = feeSchedule.find((fee) => fee.feeid  === 5)?.feeamount || "50";
+        const registrationFee = feeSchedule.find((fee) => fee.feeid  === 1)?.feeamount || "0";
+        const lateRegFee1 = feeSchedule.find((fee) => fee.feeid  === 2)?.feeamount || "0";
+        const lateRegFee2 = feeSchedule.find((fee) => fee.feeid  === 3)?.feeamount || "0";
+        const earlyRegDiscount = feeSchedule.find((fee) => fee.feeid  === 7)?.feeamount || "50";    
+        const dutyFeeDeposit = feeSchedule.find((fee) => fee.feeid  === 6)?.feeamount || "0";    
+
+
+        console.log("Fees: ", { managementFee, registrationFee, lateRegFee1, lateRegFee2, earlyRegDiscount, dutyFeeDeposit });
+
 
         // 7. Calculate full price
         const classPrice = await getTotalPrice(tx, arrData, arrSeason);
@@ -125,22 +137,24 @@ export async function familyRegister(
                 childnum: 1,
                 yearclass: 1,
                 yearclass4child: 1,
-                regfee: arrData.waiveregfee ? "0" : REGISTRATION_FEE.toString(), // Numeric requires string
-                earlyregdiscount: (checkReg === "early" ? EARLY_REG_DISCOUNT : 0).toString(),
-                managementfee: MANAGEMENT_FEE.toString(),
+                regfee: arrData.waiveregfee ? "0" : registrationFee, // Numeric requires string
+                earlyregdiscount: (checkReg === "early" ? earlyRegDiscount : "0"),
+                managementfee: managementFee,
                 lateregfee: (checkReg === "late1"
-                    ? LATE_REG_FEE_1
+                    ? lateRegFee1
                     : checkReg === "late2"
-                      ? LATE_REG_FEE_2
+                      ? lateRegFee2
                       : 0
                 ).toString(),
+                dutyfee: dutyFeeDeposit,
                 registerdate: toESTString(new Date()),
                 lastmodify: toESTString(new Date()),
                 typeid: FAMILYBALANCE_TYPE_TUITION,
                 statusid: FAMILYBALANCE_STATUS_PENDING, // Pending
                 notes: "",
                 tuition: classPrice.toString(),
-                totalamount: (classPrice + MANAGEMENT_FEE).toString(),
+                totalamount: (classPrice + Number(managementFee) + Number(registrationFee) + Number(lateRegFee1)
+                    + Number(lateRegFee2)+ Number(dutyFeeDeposit)+Number(earlyRegDiscount)).toString(),
             };
 
             const [newBal] = await tx.insert(familybalance).values(familyBalanceData).returning();

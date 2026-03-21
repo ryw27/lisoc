@@ -1,14 +1,14 @@
 "use server";
 
-import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { family, familybalance, feedback, student } from "@/lib/db/schema";
-import { toESTString } from "@/lib/utils";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type familyObj } from "@/types/shared.types";
+import { FAMILYBALANCE_TYPE_CREDIT, FAMILYBALANCE_TYPE_CREDIT_DUTY, FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE, FAMILYBALANCE_TYPE_OLDBALANCE, FAMILYBALANCE_TYPE_PAYMENT, FAMILYBALANCE_TYPE_SCHOOL_CHECK, toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
 import { familySchema } from "@/server/auth/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type familyObj } from "@/types/shared.types";
+import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { z } from "zod/v4";
 import { feedbackSchema, studentSchema } from "./validation";
 
 function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): balanceFees {
@@ -27,7 +27,10 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         processfee: 0,
         totalamount: 0,
         discrteionamouont: 0,
+        payment: 0,
+        paymentdetails: [],
     };
+
     for (const bal of balances) {
         totals.childnumRegfee += Number(bal.childnumRegfee ?? 0);
         totals.regfee += Number(bal.regfee ?? 0);
@@ -42,11 +45,22 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         totals.groupdiscount += Number(bal.groupdiscount ?? 0);
         totals.processfee += Number(bal.processfee ?? 0);
         //totals.totalamount += Number(bal.totalamount ?? 0);
-        if (bal.appliedid != 0) {
+        if (bal.typeid == FAMILYBALANCE_TYPE_PAYMENT) {
+            totals.payment += Number(bal.totalamount ?? 0);
+            totals.paymentdetails.push(bal.checkno?? "");
+        }
+        else if (bal.typeid == FAMILYBALANCE_TYPE_OLDBALANCE ||
+            bal.typeid == FAMILYBALANCE_TYPE_CREDIT ||
+            bal.typeid == FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE||
+            bal.typeid == FAMILYBALANCE_TYPE_CREDIT_DUTY ||
+            bal.typeid == FAMILYBALANCE_TYPE_SCHOOL_CHECK
+        ){
             totals.discrteionamouont += Number(bal.totalamount ?? 0);
-        } else {
+        }
+        else {
             totals.totalamount += Number(bal.totalamount ?? 0);
         }
+         
     }
 
     return totals;

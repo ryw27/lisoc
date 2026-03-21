@@ -1,22 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-    CreateOrderActions,
-    CreateOrderData,
-    OnApproveActions,
-    OnApproveData,
-} from "@paypal/paypal-js";
-import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { InferSelectModel } from "drizzle-orm";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
 import {
     Select,
     SelectContent,
@@ -26,6 +9,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    CreateOrderActions,
+    CreateOrderData,
+    OnApproveActions,
+    OnApproveData,
+} from "@paypal/paypal-js";
+import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { InferSelectModel } from "drizzle-orm";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -65,6 +65,7 @@ type billDetail = {
     regfee: number;
     otherfee: number;
     discretionaryfee: number;
+    payment: number;
 };
 
 const hasConflict = (current: { first: number; second: number }, period: number) => {
@@ -494,7 +495,8 @@ export default function RegisterStudent({
                 Number(termPrices[term].cleaningfee) +
                 Number(termPrices[term].otherfee) +
                 Number(termPrices[term].tuition) +
-                Number(termPrices[term].discrteionamouont);
+                Number(termPrices[term].discrteionamouont)+
+                Number(termPrices[term].payment);
             return total;
         },
         [termPrices]
@@ -550,6 +552,10 @@ export default function RegisterStudent({
                 Number(termPrices["yearPrices"].discrteionamouont) +
                 Number(termPrices["fallPrices"].discrteionamouont) +
                 Number(termPrices["springPrices"].discrteionamouont),
+            payment:
+                Number(termPrices["yearPrices"].payment) +
+                Number(termPrices["fallPrices"].payment) +
+                Number(termPrices["springPrices"].payment),
         };
     }, [termPrices]);
 
@@ -567,6 +573,27 @@ export default function RegisterStudent({
     useEffect(() => {
         setBilldetail(calculateDetail());
     }, [termPrices, calculateDetail, setBilldetail]);
+
+
+    const gropuPaymentDetail = useCallback(
+        () => {
+
+            const groups = termPrices['yearPrices'].paymentdetails.concat(termPrices['fallPrices'].paymentdetails, termPrices['springPrices'].paymentdetails);
+            if (groups.length === 0) {
+                return "";
+            }
+
+            return groups.join(",");
+        },
+        [termPrices]
+    );
+
+   const [checkno, setCheckNo] = useState<string>(gropuPaymentDetail());
+
+    useEffect(() => {
+        setCheckNo(gropuPaymentDetail());
+    }, [termPrices, gropuPaymentDetail]);
+
 
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
@@ -845,6 +872,19 @@ export default function RegisterStudent({
                             Discretionary Fee(其他费用): {billdetail.discretionaryfee.toFixed(2)}
                         </p>
                     )}
+                    {billdetail.payment != 0 && (
+                        <p
+                            className={`font-bold ${billdetail.payment < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
+                            <div className="flex justify-end">
+                            Payment(支付): {billdetail.payment.toFixed(2)}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                            {checkno && ` (Check No: ${checkno})`}
+                            </div>
+                        </p>
+                    )}
+
                     <p className="font-bold text-black">Total Balance: {totalBalance.toFixed(2)}</p>
                     <p className="text-sm text-gray-600">
                         Family Balance IDs:{" "}
