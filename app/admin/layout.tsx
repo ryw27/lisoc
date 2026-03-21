@@ -11,7 +11,7 @@ import {
     Search,
     Users,
 } from "lucide-react";
-import { FaChalkboardTeacher } from "react-icons/fa";
+import { FaChalkboardTeacher, FaMoneyCheck } from "react-icons/fa";
 import { requireRole } from "@/server/auth/actions";
 import Header from "@/components/header";
 import SideNav from "@/components/sidenav";
@@ -94,6 +94,12 @@ const navItems = [
                 ],
                 icon: <FaChalkboardTeacher className="h-4 w-4" />,
                 tip: "学期",
+            },
+            {
+                label: "Fee Management",
+                href: [`${beginlink}/data/fee-management`],
+                icon: <FaMoneyCheck className="h-4 w-4" />,
+                tip: "费用管理",
             },
         ],
     },
