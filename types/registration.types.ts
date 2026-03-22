@@ -72,16 +72,16 @@ export type regChangeRow = {
     requestid: number;
     classid: number;
     seasonid: number | null;
-    relatedseasonid: number | null;
+//    relatedseasonid: number | null;
     appliedid: number;
     // newclass: number
-    familyid: string;
-    father: string;
+    familyid: number | null;
+/*    father: string;
     mother: string;
     phone: string;
-    email: string;
+    email: string;*/
     NumOfReq: number;
-    parentNote: string;
+//    parentNote: string;
     action: string;
     reqStatus: number;
     firstReq: string;

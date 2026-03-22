@@ -2,12 +2,11 @@
 
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 import {
     FAMILYBALANCE_STATUS_PENDING,
-    FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_TUITION,
     REGSTATUS_SUBMITTED,
     toESTString
@@ -67,8 +66,8 @@ export async function familyRegister(
                 feeamount: true,
             },
         });
-        const managementFee = feeSchedule.find((fee) => fee.feeid  === 5)?.feeamount || "50";
-        const registrationFee = feeSchedule.find((fee) => fee.feeid  === 1)?.feeamount || "0";
+        let  managementFee = feeSchedule.find((fee) => fee.feeid  === 5)?.feeamount || "50";
+        let  registrationFee = feeSchedule.find((fee) => fee.feeid  === 1)?.feeamount || "0";
         const lateRegFee1 = feeSchedule.find((fee) => fee.feeid  === 2)?.feeamount || "0";
         const lateRegFee2 = feeSchedule.find((fee) => fee.feeid  === 3)?.feeamount || "0";
         const earlyRegDiscount = feeSchedule.find((fee) => fee.feeid  === 7)?.feeamount || "50";    
@@ -91,29 +90,48 @@ export async function familyRegister(
                 and(
                     eq(familybalance.familyid, family.familyid),
                     eq(familybalance.seasonid, season.seasonid),
-                    eq(familybalance.appliedid, 0),
-                    ne(familybalance.statusid, FAMILYBALANCE_STATUS_PROCESSED) // Not cancelled
+//                    eq(familybalance.appliedid, 0),
+//                    ne(familybalance.statusid, FAMILYBALANCE_STATUS_PROCESSED) // Not cancelled
                 )
             )
             .limit(1)
             .for("update");
 
+
+        // get all balances for this family and seasons management fee and registration fee are per family per season ,needs to check if one of the balance already has the fee applied, if not apply to this registration, if yes then skip
+        // we also need find the one of  existing that is not processed if it exists 
+        let theExistingBal = null;
+
+
+        for (const bal of existingBal ? [existingBal] : []) {
+            if (bal.managementfee && bal.managementfee !== "0") {
+                managementFee = "0";
+            }
+            if (bal.regfee && bal.regfee !== "0") {
+                registrationFee = "0";
+            }
+
+            if (bal.statusid == FAMILYBALANCE_STATUS_PENDING)
+                theExistingBal = bal ;
+        }
+
+
         let balanceObj = null;
 
-        if (existingBal) {
+        if (theExistingBal) {
             // Update existing balance
             //set yearclass+1 yearclass4child +1 childnum +1 student +1   tuition + new tuition totalamount + new totalamount
-            const newyearclass = existingBal.yearclass ? existingBal.yearclass + 1 : 1;
-            const newyearclass4child = existingBal.yearclass4child
-                ? existingBal.yearclass4child + 1
+            const newyearclass = theExistingBal.yearclass ? theExistingBal.yearclass + 1 : 1;
+            const newyearclass4child = theExistingBal.yearclass4child
+                ? theExistingBal.yearclass4child + 1
                 : 1;
 
-            const newChildNum = existingBal.childnum ? existingBal.childnum + 1 : 1;
-            const newTuition = existingBal.tuition
-                ? Number(existingBal.tuition) + classPrice
+            const newChildNum = theExistingBal.childnum ? theExistingBal.childnum + 1 : 1;
+            const newTuition = theExistingBal.tuition
+                ? Number(theExistingBal.tuition) + classPrice
                 : classPrice;
-            const newTotal = existingBal.totalamount
-                ? Number(existingBal.totalamount) + classPrice
+            const newTotal = theExistingBal.totalamount
+                ? Number(theExistingBal.totalamount) + classPrice
                 : classPrice;
             await tx
                 .update(familybalance)
@@ -124,9 +142,9 @@ export async function familyRegister(
                     tuition: newTuition.toString(),
                     totalamount: newTotal.toString(),
                 })
-                .where(eq(familybalance.balanceid, existingBal.balanceid));
+                .where(eq(familybalance.balanceid, theExistingBal.balanceid));
 
-            balanceObj = existingBal;
+            balanceObj = theExistingBal;
         } else {
             // New balance
             // 8. Create family balance data

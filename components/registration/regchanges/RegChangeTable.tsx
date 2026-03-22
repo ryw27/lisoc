@@ -1,13 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { PencilIcon, Repeat2Icon, UserXIcon } from "lucide-react";
+import { ClientTable } from "@/components/client-table";
 import { family, regchangerequest, student, users } from "@/lib/db/schema";
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { type regChangeRow } from "@/types/registration.types";
-import { ClientTable } from "@/components/client-table";
+import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
+import { PencilIcon, Repeat2Icon, UserXIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type regChangeTableProps = {
     requests: (InferSelectModel<typeof regchangerequest> & {
@@ -25,7 +25,7 @@ const reqStatusMap = {
 };
 
 const columns: ColumnDef<regChangeRow>[] = [
-    {
+/*    {
         accessorKey: "classid",
         header: "",
         cell: (info) => <span className="hidden">{String(info.getValue() as number)}</span>,
@@ -45,7 +45,7 @@ const columns: ColumnDef<regChangeRow>[] = [
         header: "",
         cell: (info) => <span className="hidden">{String(info.getValue() as number)}</span>,
     },
-
+*/
     {
         accessorKey: "requestid",
         header: "Request ID",
@@ -62,6 +62,38 @@ const columns: ColumnDef<regChangeRow>[] = [
         header: "Family ID",
         cell: (info) => info.getValue(),
     },
+
+    {
+        accessorKey: "action",
+        header: "Action",
+        cell: ({ getValue }) => {
+            const act = getValue() as string | undefined;
+            if (!act) return null;
+            if (act === "D") {
+                return <UserXIcon className="h-5 w-5 text-red-600" aria-label="Dropout" />;
+            }
+            if (act === "T") {
+                return <Repeat2Icon className="h-5 w-5 text-green-600" aria-label="Transfer" />;
+            }
+            return <span className="text-sm">{act}</span>;
+        },
+    },
+    {
+        accessorKey: "reqStatus",
+        header: "Status",
+        cell: ({ getValue }) => {
+            const reqstatusid = getValue() as 1 | 2 | 3;
+            const reqstatusTxt = reqStatusMap[reqstatusid];
+            if (reqstatusid === 2) {
+                return <span className="text-green-600">{reqstatusTxt}</span>;
+            }
+            if (reqstatusid === 3) {
+                return <span className="text-red-600">{reqstatusTxt}</span>;
+            }
+            return <span className="text-blue-600">{reqstatusTxt}</span>;
+        },
+    },
+    /*
     {
         accessorKey: "father",
         header: "Father",
@@ -82,41 +114,20 @@ const columns: ColumnDef<regChangeRow>[] = [
         header: "Email",
         cell: (info) => info.getValue(),
     },
+    */
+
     {
         accessorKey: "NumOfReq",
         header: "Requests",
         cell: (info) => info.getValue(),
     },
-    {
-        accessorKey: "action",
-        header: "Action",
-        cell: ({ getValue }) => {
-            const act = getValue() as string | undefined;
-            if (!act) return null;
-            if (act === "D") {
-                return <UserXIcon className="h-5 w-5 text-red-600" aria-label="Dropout" />;
-            }
-            if (act === "T") {
-                return <Repeat2Icon className="h-5 w-5 text-green-600" aria-label="Transfer" />;
-            }
-            return <span className="text-sm">{act}</span>;
-        },
-    },
-
+/*
     {
         accessorKey: "parentNote",
         header: "",
         cell: (info) => <span className="hidden">{String(info.getValue() ?? "")}</span>,
     },
-
-    {
-        accessorKey: "reqStatus",
-        header: "Status",
-        cell: ({ getValue }) => {
-            const reqstatusid = getValue() as 1 | 2 | 3;
-            return reqStatusMap[reqstatusid];
-        },
-    },
+*/
     {
         accessorKey: "firstReq",
         header: "First Request",
@@ -141,7 +152,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
         header: "",
         cell: ({ row }) => {
             const requestid = row.original.requestid;
-            const regid = row.original.regid;
+            /*const regid = row.original.regid;
             const familyid = row.original.familyid;
             const appliedid = row.original.appliedid;
             const classid = row.original.classid;
@@ -150,7 +161,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const parentNote = row.original.parentNote;
             const requestDate = row.original.firstReq;
             const requestStatus = row.original.reqStatus;
-
+            */
             return (
                 <button
                     className={cn(
@@ -164,7 +175,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                     onClick={(e) => {
                         e.stopPropagation();
                         router.push(
-                            `/admin/management/regchangerequests/processregchange?requestid=${requestid}&regid=${regid}&classid=${classid}&seasonid=${seasonid ?? ""}&relatedseasonid=${relatedseasonid ?? ""}&parentNote=${parentNote}&appliedid=${appliedid}&requestDate=${requestDate}&status=${requestStatus}&familyid=${encodeURIComponent(familyid)}`
+                            `/admin/management/regchangerequests/processregchange?requestid=${requestid}`
                         );
                     }}
                 >
@@ -179,7 +190,7 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
             const numOfRequests = requests.filter((req) => req.familyid === r.familyid).length;
 
             // Defensive null checks for family and user
-            const family = r.family;
+            /*const family = r.family;
             const user = family?.user;
 
             const father = family
@@ -193,8 +204,8 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                       .join(" ")
                 : "N/A";
             const phone = user?.phone ?? "N/A";
-            const email = user?.email ?? "N/A";
-            const familyid = family?.familyid?.toString() ?? "N/A";
+            const email = user?.email ?? "N/A";*/
+            const familyid = r.familyid; //family?.familyid?.toString() ?? "N/A";
             const reqStatus = r.reqstatusid ?? REQUEST_STATUS_PENDING;
             const firstReq =
                 requests
@@ -212,22 +223,22 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
 
             const action = r.appliedid == 0 ? "D" : "T";
 
-            const parentNote = r.notes || "";
+            //const parentNote = r.notes || "";
 
             return {
                 regid: r.regid,
                 requestid: r.requestid,
                 classid: r.classid ?? 0,
                 seasonid: r.seasonid ?? null,
-                relatedseasonid: r.relatedseasonid ?? null,
+               // relatedseasonid: r.relatedseasonid ?? null,
                 appliedid: r.appliedid ?? 0,
                 familyid,
-                father,
+              /*  father,
                 mother,
                 phone,
-                email,
+                email,*/
                 NumOfReq: numOfRequests,
-                parentNote,
+//                parentNote,
                 action,
                 reqStatus,
                 firstReq,

@@ -873,16 +873,16 @@ export default function RegisterStudent({
                         </p>
                     )}
                     {billdetail.payment != 0 && (
-                        <p
+                        <div
                             className={`font-bold ${billdetail.payment < 0 ? "text-red-500" : "text-blue-500"}`}
                         >
-                            <div className="flex justify-end">
+                            <p className="flex justify-end">
                             Payment(支付): {billdetail.payment.toFixed(2)}
-                            </div>
-                            <div className="text-sm text-gray-400">
+                            </p>
+                            <p className="text-sm text-gray-400">
                             {checkno && ` (Check No: ${checkno})`}
-                            </div>
-                        </p>
+                            </p>
+                        </div>
                     )}
 
                     <p className="font-bold text-black">Total Balance: {totalBalance.toFixed(2)}</p>

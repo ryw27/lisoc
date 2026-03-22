@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { db } from "@/lib/db";
 import ProcessRegChange from "@/components/registration/regchanges/processRegChange";
+import { db } from "@/lib/db";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 //import { classes, familybalancetype } from "@/lib/db/schema";
 
@@ -19,16 +19,16 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
     // Await the searchParams promise to get the actual object
     const params = searchParams ? await searchParams : {};
 
-    const familyIdRaw = params.familyid;
+/*    const familyIdRaw = params.familyid;
     const familyIdStr = Array.isArray(familyIdRaw) ? familyIdRaw[0] : (familyIdRaw ?? "0");
-    const familyId = parseInt(familyIdStr) || 0;
-    const requestidRaw = params.requestid;
+    const familyId = parseInt(familyIdStr) || 0;*/
+    const requestidRaw = params.requestid; 
     const requestid = Array.isArray(requestidRaw)
         ? parseInt(requestidRaw[0])
         : requestidRaw
           ? parseInt(requestidRaw)
           : 0;
-    const regidRaw = params.regid;
+/*    const regidRaw = params.regid;
     const regid = Array.isArray(regidRaw)
         ? parseInt(regidRaw[0])
         : regidRaw
@@ -71,7 +71,56 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
     console.log(seasonid, relatedseasonid);
 
     const reqStatus = reqStatusMap[status as 1 | 2 | 3];
+    */
     // 2. Get active school year
+
+    const changereq = await db.query.regchangerequest.findFirst({
+        where: (rcr, { eq }) =>
+                eq(rcr.requestid, requestid),
+        with: {
+            family: {
+                with: { user: {} },
+            },
+            student: {},
+        },
+    });
+
+    if (!changereq) {
+        return <div className="">Reg change request not found</div>;
+    }
+
+    const familyId = changereq.familyid? changereq.familyid : null;
+
+    if(!familyId){
+        return <div className="">Family ID not found for this request. Please contact support.</div>;
+    }
+
+    const regid = changereq.regid;
+    const classid = changereq.classid;
+    const seasonid = changereq.seasonid;
+    const relatedseasonid =  changereq.relatedseasonid;
+    const appliedRegId = changereq.appliedid? changereq.appliedid : 0;
+    const status = changereq.reqstatusid;
+    const requestDate = changereq.submitdate?.toLocaleString();
+    const parentNote = changereq.notes?? "";
+    const reqStatus = reqStatusMap[status as 1 | 2 | 3];    
+    console.log(seasonid, relatedseasonid);
+
+    const family = changereq.family;
+    const father = family
+                ? [family.fatherfirsten, family.fatherlasten, family.fathernamecn]
+                      .filter(Boolean)
+                      .join(" ")
+                : "N/A";
+    const mother = family
+                ? [family.motherfirsten, family.motherlasten, family.mothernamecn]
+                      .filter(Boolean)
+                      .join(" ")
+                : "N/A";
+    const phone = family? family.user?.phone ?? "N/A" : "N/A";
+    const email = family? family.user?.email ?? "N/A" : "N/A";
+
+
     const activeYear = await db.query.seasons.findFirst({
         where: (season, { eq }) => eq(season.status, "Active"),
         orderBy: (season, { asc }) => [asc(season.seasonid)],
@@ -141,6 +190,19 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
                     <p className="mb-4">
                         Request Date: <strong>{requestDate}</strong>{" "}
                     </p>
+                    <p className="mb-4">
+                        Father: <strong>{father}</strong>{" "}
+                    </p>
+                    <p className="mb-4">
+                        Mother: <strong>{mother}</strong>{" "}
+                    </p>
+                    <p className="mb-4">
+                        email: <strong>{email}</strong>{" "}
+                    </p>
+                    <p className="mb-4">
+                        Phone: <strong>{phone}</strong>{" "}
+                    </p>
+
                     <p className="mb-4">Parent Comment : {parentNote} </p>
                     <p className="mb-4">Status : {reqStatus} </p>
                 </div>

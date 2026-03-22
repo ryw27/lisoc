@@ -1,29 +1,3 @@
-import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-    ColumnDef,
-    getCoreRowModel,
-    getSortedRowModel,
-    SortingState,
-    useReactTable,
-} from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { MoreHorizontal, PencilIcon, XIcon } from "lucide-react";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import {
-    cn,
-    REGSTATUS_DROPOUT,
-    REGSTATUS_DROPOUT_SPRING,
-    REGSTATUS_REGISTERED,
-    REGSTATUS_SUBMITTED,
-    REGSTATUS_TRANSFERRED,
-    REQUEST_STATUS_PENDING,
-} from "@/lib/utils";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type IdMaps } from "@/types/shared.types";
-import { familyRequestDrop } from "@/server/registration/regchanges/actions/familyRequestDrop";
-import { familyRequestTransfer } from "@/server/registration/regchanges/actions/familyRequestTransfer";
-import { familyRequestUndo } from "@/server/registration/regchanges/actions/familyRequestUndo";
 import { ClientTable } from "@/components/client-table";
 import {
     AlertDialog,
@@ -44,6 +18,32 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import {
+    cn,
+    REGSTATUS_DROPOUT,
+    REGSTATUS_DROPOUT_SPRING,
+    REGSTATUS_REGISTERED,
+    REGSTATUS_SUBMITTED,
+    REGSTATUS_TRANSFERRED,
+    REQUEST_STATUS_PENDING,
+} from "@/lib/utils";
+import { familyRequestDrop } from "@/server/registration/regchanges/actions/familyRequestDrop";
+import { familyRequestTransfer } from "@/server/registration/regchanges/actions/familyRequestTransfer";
+import { familyRequestUndo } from "@/server/registration/regchanges/actions/familyRequestUndo";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type IdMaps } from "@/types/shared.types";
+import {
+    ColumnDef,
+    getCoreRowModel,
+    getSortedRowModel,
+    SortingState,
+    useReactTable,
+} from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
+import { MoreHorizontal, PencilIcon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 
 type regTableProps = {
     students: InferSelectModel<typeof student>[];
@@ -76,11 +76,11 @@ type regRow = {
 };
 
 const regStatusMap = {
-    1: "Submitted",
-    2: "Registered",
-    3: "Transferred",
-    4: "Dropout",
-    5: "Dropout Spring",
+    1: "S/提交",
+    2: "R/注册",
+    3: "T/转课",
+    4: "D/退课",
+    5: "D/退课(春)",
 };
 
 const reqStatusMap = {
@@ -106,7 +106,7 @@ export default function RegTable({
         },
         {
             accessorKey: "registerdate",
-            header: "Register Date",
+            header: "Reg Date",
             cell: ({ getValue }) => {
                 const date = getValue() as string;
                 return new Date(date).toLocaleDateString();
@@ -124,7 +124,7 @@ export default function RegTable({
         },
         {
             accessorKey: "studentid",
-            header: "Student Name",
+            header: "Student",
             cell: ({ getValue }) => {
                 const studentid = getValue() as number;
                 return students.find((s) => s.studentid === studentid)!.namecn;
@@ -133,7 +133,7 @@ export default function RegTable({
         },
         {
             accessorKey: "teacherid",
-            header: "Teacher Name",
+            header: "Teacher",
             cell: ({ getValue }) => {
                 const teacherid = getValue() as number;
                 return idMaps.teacherMap[teacherid] ? idMaps.teacherMap[teacherid].namecn : "N/A";
@@ -142,7 +142,7 @@ export default function RegTable({
         },
         {
             accessorKey: "roomid",
-            header: "Classroom",
+            header: "Room",
             cell: ({ getValue }) => {
                 const roomid = getValue() as number;
                 return idMaps.roomMap[roomid] ? idMaps.roomMap[roomid].roomno : "N/A";
@@ -189,13 +189,13 @@ export default function RegTable({
         },
         {
             accessorKey: "reqstatus",
-            header: "Req Status",
+            header: "Request",
             cell: ({ getValue }) => {
                 const reqstatusid = getValue() as 0 | 1 | 2 | 3;
                 if (reqstatusid === 0) {
-                    return "N/A";
+                    return <span className="text-red-500"></span>;
                 }
-                return `${reqStatusMap[reqstatusid].reqstatus} request`;
+                return <span className="text-red-500">{`${reqStatusMap[reqstatusid].reqstatuscn}`}</span>;
             },
         },
     ];
@@ -244,7 +244,7 @@ export default function RegTable({
                         disabled={!deleteEnabled}
                         aria-disabled={!deleteEnabled}
                     >
-                        <XIcon className="h-4 w-4" />
+                        <XIcon className="h-3 w-3" />
                     </button>
                 );
             },

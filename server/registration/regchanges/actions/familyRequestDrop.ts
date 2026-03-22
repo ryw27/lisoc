@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { and, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import {
@@ -14,6 +12,8 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
+import { and, eq, InferSelectModel } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { canDrop, getTotalPrice, Transaction } from "../../data";
 
 async function createRemoveFamBalanceVals(
@@ -87,10 +87,6 @@ export async function familyRequestDrop(
             // TODO: Possibly delete the family balance altogether to prevent bloat?
             await tx.delete(classregistration).where(eq(classregistration.regid, regid));
             const removeFamBalValues = await createRemoveFamBalanceVals(tx, oldReg, oldArr);
-            /*
-            await tx
-                .insert(familybalance)
-                .values(removeFamBalValues)*/
 
             // update the balance to remove the tuition
             // start transaction here to ensure no
@@ -111,23 +107,31 @@ export async function familyRequestDrop(
             if (existingBal) {
                 // Update existing balance
                 //set yearclass+1 yearclass4child -1 childnum +1 student -1   tuition - new tuition totalamount - new totalamount
-                const newyearclass = existingBal.yearclass - 1;
-                const newyearclass4child = existingBal.yearclass4child - 1;
-
                 const newChildNum = existingBal.childnum - 1;
-                const newTuition = Number(existingBal.tuition) + Number(removeFamBalValues.tuition);
-                const newTotal =
-                    Number(existingBal.totalamount) + Number(removeFamBalValues.totalamount);
-                await tx
-                    .update(familybalance)
-                    .set({
-                        yearclass: newyearclass,
-                        yearclass4child: newyearclass4child,
-                        childnum: newChildNum,
-                        tuition: newTuition.toString(),
-                        totalamount: newTotal.toString(),
-                    })
-                    .where(eq(familybalance.balanceid, existingBal.balanceid));
+
+                if (newChildNum <=0 ){
+                    // all dropped, just drop entire balance 
+                    await tx.delete(familybalance).where(eq(familybalance.balanceid, existingBal.balanceid));
+                }
+                else 
+                {
+                    const newyearclass = existingBal.yearclass - 1;
+                    const newyearclass4child = existingBal.yearclass4child - 1;
+
+                    const newTuition = Number(existingBal.tuition) + Number(removeFamBalValues.tuition);
+                    const newTotal =
+                        Number(existingBal.totalamount) + Number(removeFamBalValues.tuition);
+                    await tx
+                        .update(familybalance)
+                        .set({
+                            yearclass: newyearclass,
+                            yearclass4child: newyearclass4child,
+                            childnum: newChildNum,
+                            tuition: newTuition.toString(),
+                            totalamount: newTotal.toString(),
+                        })
+                        .where(eq(familybalance.balanceid, existingBal.balanceid));
+                }
             } else {
                 console.warn(
                     "Could not find existing balance to update after drop. This should never happen"
