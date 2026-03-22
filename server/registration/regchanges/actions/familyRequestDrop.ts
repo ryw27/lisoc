@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { and, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import {
@@ -12,8 +14,6 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
-import { and, eq, InferSelectModel } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { canDrop, getTotalPrice, Transaction } from "../../data";
 
 async function createRemoveFamBalanceVals(
@@ -109,16 +109,17 @@ export async function familyRequestDrop(
                 //set yearclass+1 yearclass4child -1 childnum +1 student -1   tuition - new tuition totalamount - new totalamount
                 const newChildNum = existingBal.childnum - 1;
 
-                if (newChildNum <=0 ){
-                    // all dropped, just drop entire balance 
-                    await tx.delete(familybalance).where(eq(familybalance.balanceid, existingBal.balanceid));
-                }
-                else 
-                {
+                if (newChildNum <= 0) {
+                    // all dropped, just drop entire balance
+                    await tx
+                        .delete(familybalance)
+                        .where(eq(familybalance.balanceid, existingBal.balanceid));
+                } else {
                     const newyearclass = existingBal.yearclass - 1;
                     const newyearclass4child = existingBal.yearclass4child - 1;
 
-                    const newTuition = Number(existingBal.tuition) + Number(removeFamBalValues.tuition);
+                    const newTuition =
+                        Number(existingBal.tuition) + Number(removeFamBalValues.tuition);
                     const newTotal =
                         Number(existingBal.totalamount) + Number(removeFamBalValues.tuition);
                     await tx

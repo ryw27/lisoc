@@ -1,21 +1,16 @@
 "use client";
 
-import { ClientTable } from "@/components/client-table";
-import { family, regchangerequest, student, users } from "@/lib/db/schema";
-import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
-import { type regChangeRow } from "@/types/registration.types";
+import { useRouter } from "next/navigation";
 import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { InferSelectModel } from "drizzle-orm";
 import { PencilIcon, Repeat2Icon, UserXIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { regchangerequest } from "@/lib/db/schema";
+import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
+import { type regChangeRow } from "@/types/registration.types";
+import { ClientTable } from "@/components/client-table";
 
 type regChangeTableProps = {
-    requests: (InferSelectModel<typeof regchangerequest> & {
-        student: InferSelectModel<typeof student>;
-        family:
-            | (InferSelectModel<typeof family> & { user: InferSelectModel<typeof users> | null })
-            | null;
-    })[];
+    requests: InferSelectModel<typeof regchangerequest>[];
     adminMap: Record<number, string>;
 };
 const reqStatusMap = {
@@ -25,7 +20,7 @@ const reqStatusMap = {
 };
 
 const columns: ColumnDef<regChangeRow>[] = [
-/*    {
+    /*    {
         accessorKey: "classid",
         header: "",
         cell: (info) => <span className="hidden">{String(info.getValue() as number)}</span>,
@@ -121,7 +116,7 @@ const columns: ColumnDef<regChangeRow>[] = [
         header: "Requests",
         cell: (info) => info.getValue(),
     },
-/*
+    /*
     {
         accessorKey: "parentNote",
         header: "",
@@ -230,15 +225,15 @@ export default function RegChangeTable({ requests, adminMap }: regChangeTablePro
                 requestid: r.requestid,
                 classid: r.classid ?? 0,
                 seasonid: r.seasonid ?? null,
-               // relatedseasonid: r.relatedseasonid ?? null,
+                // relatedseasonid: r.relatedseasonid ?? null,
                 appliedid: r.appliedid ?? 0,
                 familyid,
-              /*  father,
+                /*  father,
                 mother,
                 phone,
                 email,*/
                 NumOfReq: numOfRequests,
-//                parentNote,
+                //                parentNote,
                 action,
                 reqStatus,
                 firstReq,

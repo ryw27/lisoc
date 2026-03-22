@@ -1,21 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, InferSelectModel } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
+import { threeSeasons } from "@/types/seasons.types";
 import { seasonDatesSchema } from "../schema";
 
 // TODO: Add better validation for dates
-export async function updateDates(
-    data: z.infer<typeof seasonDatesSchema>,
-    inSeason: InferSelectModel<typeof seasons>
-) {
+export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSeason: threeSeasons) {
     const parsed = seasonDatesSchema.parse(data);
     await db.transaction(async (tx) => {
-        const [updatedYear] = await tx
+        /*        const [updatedYear] = await tx
             .update(seasons)
             .set({
                 startdate: toESTString(parsed.fallstart),
@@ -33,11 +31,11 @@ export async function updateDates(
         if (!updatedYear) {
             throw new Error("Unknown DB error occured with season update");
         }
-
+        
         if (inSeason.seasonid + 1 !== inSeason.beginseasonid) {
             throw new Error("Fall Semester ID does not match expected value in academic year row");
         }
-
+*/
         const [updatedFall] = await tx
             .update(seasons)
             .set({
@@ -50,19 +48,19 @@ export async function updateDates(
                 closeregdate: toESTString(parsed.fallclosereg),
                 canceldeadline: toESTString(parsed.fallcanceldeadline),
             })
-            .where(eq(seasons.seasonid, inSeason.seasonid + 1))
+            .where(eq(seasons.seasonid, inSeason.fall.seasonid))
             .returning();
 
         if (!updatedFall) {
             throw new Error("Unknown DB error occured with fall semester update");
         }
 
-        if (inSeason.seasonid + 2 !== inSeason.relatedseasonid) {
+        /*        if (inSeason.seasonid + 2 !== inSeason.relatedseasonid) {
             throw new Error(
                 "Spring Semester ID does not match expected value in academic year row"
             );
         }
-
+*/
         const [updatedSpring] = await tx
             .update(seasons)
             .set({
@@ -75,7 +73,7 @@ export async function updateDates(
                 closeregdate: toESTString(parsed.springclosereg),
                 canceldeadline: toESTString(parsed.springcanceldeadline),
             })
-            .where(eq(seasons.seasonid, inSeason.seasonid + 2))
+            .where(eq(seasons.seasonid, inSeason.spring.seasonid))
             .returning();
 
         if (!updatedSpring) {

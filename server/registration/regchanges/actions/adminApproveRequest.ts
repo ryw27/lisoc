@@ -2,7 +2,7 @@
 
 import { request } from "http";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, or, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import {
@@ -22,9 +22,8 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { type famBalanceInsert } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
 import { getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../data";
-
-// import { requireRole } from "@/lib/auth/actions/requireRole";
 
 export async function adminApproveRequest(
     requestid: number,
@@ -35,7 +34,7 @@ export async function adminApproveRequest(
 ) {
     // TODO: Parse
     // 1. Auth check
-    // const user = await requireRole(["ADMIN"]);
+    const user = await requireRole(["ADMIN"]);
 
     try {
         // because of foregin key order needs to be regchangerequest balance class registration
@@ -107,58 +106,13 @@ export async function adminApproveRequest(
                     processdate: toESTString(new Date()),
                     lastmodify: toESTString(new Date()),
                     adminmemo: adminMemo,
+                    adminuserid: user.user.name,
                 })
                 .where(eq(regchangerequest.requestid, requestid));
 
             // Officially transfer or drop. Same procedure found in admin transfer/drop
             // 7. Create a new family balance taking away the old tuition
             const oldTotalPrice = await getTotalPrice(tx, oldArr);
-            /*
-            const removeFamBalValues = {
-                appliedregid: oldReg.regid,
-                appliedid: oldReg.familybalanceid || 0, // TODO: Not postgres enforced. 
-                paiddate: toESTString(new Date()),
-                seasonid: oldArr.seasonid,
-                familyid: oldReg.familyid,
-                regfee: (oldArr.waiveregfee ? 0 : -REGISTRATION_FEE).toString(),
-                tuition: (-oldTotalPrice).toString(),
-                totalamount: ((oldArr.waiveregfee ? 0 : -REGISTRATION_FEE) - oldTotalPrice).toString(),
-                typeid: FAMILYBALANCE_TYPE_TRANSFER,
-                statusid: FAMILYBALANCE_STATUS_PENDING,
-                notes: "Admin transfer student out, subtract old class fees"
-            } satisfies famBalanceInsert;
-
-            const [removeOldPrice] = await tx
-                .insert(familybalance)
-                .values(removeFamBalValues)
-                .returning();
-
-            // 7. Pay the family back since we just removed the old balance
-            // Old reg was queried before all updates
-            if (oldReg.statusid === REGSTATUS_REGISTERED) {
-                // Should always be true
-                // TODO: Insert paypal/official transaction here
-                const payFamValues = {
-                    appliedregid: oldReg.regid,
-                    appliedid: removeOldPrice.balanceid,
-                    paiddate: toESTString(new Date()),
-                    seasonid: oldArr.seasonid,
-                    familyid: oldReg.familyid,
-                    regfee: (oldArr.waiveregfee ? REGISTRATION_FEE : 0).toString(),
-                    // earlyregdiscount: probably want to take this back, but how?
-                    // lateregfee: same with this value
-                    tuition: oldTotalPrice.toString(),
-                    totalamount: ((oldArr.waiveregfee ? 0 : REGISTRATION_FEE) + oldTotalPrice).toString(),
-                    typeid: FAMILYBALANCE_TYPE_PAYMENT, // TODO: Check this
-                    statusid: FAMILYBALANCE_STATUS_PENDING,
-                    notes: "Approve transfer request, refund family"
-                } satisfies famBalanceInsert;
-
-                await tx
-                    .insert(familybalance)
-                    .values(payFamValues);
-            } 
-            */
 
             // 11. Update old reg
             await tx
@@ -250,6 +204,7 @@ export async function adminApproveRequest(
                         .set({
                             newbalanceid: newRegBal.balanceid,
                             regid: newReg.regid,
+                            adminuserid: user.user.name,
                         })
                         .where(eq(regchangerequest.requestid, orgReq.requestid));
                 } else {
@@ -263,7 +218,42 @@ export async function adminApproveRequest(
                 }
             } else {
                 //drop out only need to update balance
-                const credit = -1.0 * oldTotalPrice;
+                let credit = -1.0 * oldTotalPrice;
+
+                // check if we need to credit management fee back
+
+                const [otherReg] = await tx
+                    .select()
+                    .from(classregistration)
+                    .where(
+                        and(
+                            eq(classregistration.seasonid, oldArr.seasonid),
+                            eq(classregistration.familyid, oldReg.familyid),
+                            or(
+                                eq(classregistration.statusid, REGSTATUS_REGISTERED),
+                                eq(classregistration.statusid, REGSTATUS_TRANSFERRED)
+                            ),
+                            ne(classregistration.regid, oldReg.regid)
+                        )
+                    );
+
+                if (!otherReg) {
+                    // no other registered class for the family in the season, credit back management fee
+                    const result = await tx
+                        .select({
+                            managementfee: sum(familybalance.managementfee).mapWith(Number), // Map to correct type
+                        })
+                        .from(familybalance)
+                        .where(
+                            and(
+                                eq(familybalance.familyid, oldReg.familyid),
+                                eq(familybalance.seasonid, oldArr.seasonid)
+                            )
+                        );
+
+                    const managementfee = result[0]?.managementfee || 0;
+                    credit -= managementfee;
+                }
 
                 const dropBalVals = {
                     appliedid: oldReg.familybalanceid || 0,

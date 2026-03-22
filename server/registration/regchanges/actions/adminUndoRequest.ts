@@ -20,13 +20,12 @@ import {
     REQUEST_STATUS_REJECTED,
     toESTString,
 } from "@/lib/utils";
-
-// import { requireRole } from "@/lib/auth/actions/requireRole";
+import { requireRole } from "@/server/auth/actions";
 
 export async function adminUndoRequest(requestid: number, familyid: number, status: number) {
     // TODO: Parse
     // 1. Auth check
-    // const user = await requireRole(["ADMIN"]);
+    const user = await requireRole(["ADMIN"]);
 
     try {
         await db.transaction(async (tx) => {
@@ -63,6 +62,7 @@ export async function adminUndoRequest(requestid: number, familyid: number, stat
                         processdate: toESTString(new Date()),
                         lastmodify: toESTString(new Date()),
                         adminmemo: "undo",
+                        adminuserid: user.user.name,
                     })
                     .where(
                         and(
@@ -163,6 +163,7 @@ export async function adminUndoRequest(requestid: number, familyid: number, stat
                             processdate: toESTString(new Date()),
                             lastmodify: toESTString(new Date()),
                             adminmemo: "undo",
+                            adminuserid: user.user.name,
                         })
                         .where(
                             and(
@@ -231,6 +232,7 @@ export async function adminUndoRequest(requestid: number, familyid: number, stat
                             processdate: toESTString(new Date()),
                             lastmodify: toESTString(new Date()),
                             adminmemo: "undo",
+                            adminuserid: user.user.name,
                         })
                         .where(
                             and(

@@ -1,3 +1,29 @@
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+    ColumnDef,
+    getCoreRowModel,
+    getSortedRowModel,
+    SortingState,
+    useReactTable,
+} from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
+import { MoreHorizontal, PencilIcon, XIcon } from "lucide-react";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import {
+    cn,
+    REGSTATUS_DROPOUT,
+    REGSTATUS_DROPOUT_SPRING,
+    REGSTATUS_REGISTERED,
+    REGSTATUS_SUBMITTED,
+    REGSTATUS_TRANSFERRED,
+    REQUEST_STATUS_PENDING,
+} from "@/lib/utils";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type IdMaps } from "@/types/shared.types";
+import { familyRequestDrop } from "@/server/registration/regchanges/actions/familyRequestDrop";
+import { familyRequestTransfer } from "@/server/registration/regchanges/actions/familyRequestTransfer";
+import { familyRequestUndo } from "@/server/registration/regchanges/actions/familyRequestUndo";
 import { ClientTable } from "@/components/client-table";
 import {
     AlertDialog,
@@ -18,32 +44,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import {
-    cn,
-    REGSTATUS_DROPOUT,
-    REGSTATUS_DROPOUT_SPRING,
-    REGSTATUS_REGISTERED,
-    REGSTATUS_SUBMITTED,
-    REGSTATUS_TRANSFERRED,
-    REQUEST_STATUS_PENDING,
-} from "@/lib/utils";
-import { familyRequestDrop } from "@/server/registration/regchanges/actions/familyRequestDrop";
-import { familyRequestTransfer } from "@/server/registration/regchanges/actions/familyRequestTransfer";
-import { familyRequestUndo } from "@/server/registration/regchanges/actions/familyRequestUndo";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type IdMaps } from "@/types/shared.types";
-import {
-    ColumnDef,
-    getCoreRowModel,
-    getSortedRowModel,
-    SortingState,
-    useReactTable,
-} from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { MoreHorizontal, PencilIcon, XIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
 
 type regTableProps = {
     students: InferSelectModel<typeof student>[];
@@ -195,7 +195,9 @@ export default function RegTable({
                 if (reqstatusid === 0) {
                     return <span className="text-red-500"></span>;
                 }
-                return <span className="text-red-500">{`${reqStatusMap[reqstatusid].reqstatuscn}`}</span>;
+                return (
+                    <span className="text-red-500">{`${reqStatusMap[reqstatusid].reqstatuscn}`}</span>
+                );
             },
         },
     ];
@@ -473,7 +475,9 @@ export default function RegTable({
                         <AlertDialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Transfer Student: </AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                        Transfer Student: {clickedRow?.studentid}{" "}
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Select a class to transfer the student to.
                                     </AlertDialogDescription>
@@ -502,7 +506,7 @@ export default function RegTable({
                                                 ...threeArrs.year,
                                                 ...threeArrs.spring,
                                             ]
-                                                .filter((cls) => cls.isregclass)
+                                                .filter((cls) => cls.classid != clickedRow?.classid)
                                                 .map((cls) => (
                                                     <SelectItem
                                                         key={cls.arrangeid}

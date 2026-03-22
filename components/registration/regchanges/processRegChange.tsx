@@ -90,6 +90,9 @@ const columns: ColumnDef<processRegChangeRow>[] = [
     {
         accessorKey: "transClassId",
         header: "Transfer To",
+        meta: {
+            className: "text-red-500",
+        },
         cell: (info) => info.getValue(),
     },
     /*    {
@@ -205,7 +208,10 @@ export default function ProcessRegChange({
         id: "edit",
         header: "",
         cell: ({ row }) => {
-            if (row.original.regId !== regId) {
+            if (
+                (appliedRegId !== 0 && row.original.regId !== appliedRegId) ||
+                (appliedRegId === 0 && row.original.regId !== regId)
+            ) {
                 return <div> </div>;
             }
             return (
@@ -417,7 +423,11 @@ export default function ProcessRegChange({
                 : "N/A";
             const classOut = r.classid && r.classid in classMap ? classMap[r.classid] : "N/A";
             const classIn =
-                appliedRegId === r.regid && classId in classMap ? classMap[classId] : "N/A";
+                appliedRegId === r.regid && classId in classMap
+                    ? classMap[classId]
+                    : appliedRegId == 0 && r.regid === regId
+                      ? "Drop(退课）"
+                      : "";
             //            const parentComment = r.regid == regId ? parentNote : "";
 
             return {

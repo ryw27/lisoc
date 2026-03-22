@@ -131,7 +131,7 @@ function DateControls({
                 ])
             ) as z.infer<typeof seasonDatesSchema>;
 
-            await updateDates(dateData, seasons.year);
+            await updateDates(dateData, seasons);
             setSettings("HOME");
         } catch (error) {
             dateForm.setError("root", {
@@ -142,7 +142,7 @@ function DateControls({
         }
     };
     return (
-        <>
+        <div className="rounded-lg bg-white p-10 opacity-100 shadow-xl">
             <h3 className="border-b pb-2 font-semibold text-gray-800">Change dates</h3>
             <form onSubmit={dateForm.handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -396,7 +396,7 @@ function DateControls({
                     </button>
                 </div>
             </form>
-        </>
+        </div>
     );
 }
 
@@ -461,7 +461,7 @@ function RegistrationControls({
     };
 
     return (
-        <>
+        <div className="rounded-lg bg-white p-10 opacity-100 shadow-xl">
             <h3 className="border-b pb-2 font-semibold text-gray-800">Registration Settings</h3>
             <div className="mb-4">
                 <label
@@ -503,6 +503,7 @@ function RegistrationControls({
                             render={({ field }) => (
                                 <Switch
                                     id="isspring"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                 />
@@ -522,6 +523,7 @@ function RegistrationControls({
                             render={({ field }) => (
                                 <Switch
                                     id="haslateregfee"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                 />
@@ -541,6 +543,7 @@ function RegistrationControls({
                             render={({ field }) => (
                                 <Switch
                                     id="haslateregfee4newfamily"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                 />
@@ -557,6 +560,7 @@ function RegistrationControls({
                             render={({ field }) => (
                                 <Switch
                                     id="hasdutyfee"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                 />
@@ -576,6 +580,7 @@ function RegistrationControls({
                             render={({ field }) => (
                                 <Switch
                                     id="showadmissionnotice"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                 />
@@ -597,6 +602,7 @@ function RegistrationControls({
                                     id="showteachername"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                 />
                             )}
                         />
@@ -635,6 +641,7 @@ function RegistrationControls({
                                     id="allownewfamilytoregister"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                 />
                             )}
                         />
@@ -690,7 +697,7 @@ function RegistrationControls({
                     </button>
                 </div>
             </form>
-        </>
+        </div>
     );
 }
 

@@ -1,19 +1,6 @@
 "use client";
 
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { useCallback, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     CreateOrderActions,
@@ -23,9 +10,22 @@ import {
 } from "@paypal/paypal-js";
 import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { InferSelectModel } from "drizzle-orm";
-import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -66,6 +66,8 @@ type billDetail = {
     otherfee: number;
     discretionaryfee: number;
     payment: number;
+    dropoutamount: number;
+    transferamount: number;
 };
 
 const hasConflict = (current: { first: number; second: number }, period: number) => {
@@ -495,8 +497,10 @@ export default function RegisterStudent({
                 Number(termPrices[term].cleaningfee) +
                 Number(termPrices[term].otherfee) +
                 Number(termPrices[term].tuition) +
-                Number(termPrices[term].discrteionamouont)+
-                Number(termPrices[term].payment);
+                Number(termPrices[term].discrteionamouont) +
+                Number(termPrices[term].payment) +
+                Number(termPrices[term].dropoutamount) +
+                Number(termPrices[term].transferamount);
             return total;
         },
         [termPrices]
@@ -556,6 +560,14 @@ export default function RegisterStudent({
                 Number(termPrices["yearPrices"].payment) +
                 Number(termPrices["fallPrices"].payment) +
                 Number(termPrices["springPrices"].payment),
+            dropoutamount:
+                Number(termPrices["yearPrices"].dropoutamount) +
+                Number(termPrices["fallPrices"].dropoutamount) +
+                Number(termPrices["springPrices"].dropoutamount),
+            transferamount:
+                Number(termPrices["yearPrices"].transferamount) +
+                Number(termPrices["fallPrices"].transferamount) +
+                Number(termPrices["springPrices"].transferamount),
         };
     }, [termPrices]);
 
@@ -574,26 +586,23 @@ export default function RegisterStudent({
         setBilldetail(calculateDetail());
     }, [termPrices, calculateDetail, setBilldetail]);
 
+    const gropuPaymentDetail = useCallback(() => {
+        const groups = termPrices["yearPrices"].paymentdetails.concat(
+            termPrices["fallPrices"].paymentdetails,
+            termPrices["springPrices"].paymentdetails
+        );
+        if (groups.length === 0) {
+            return "";
+        }
 
-    const gropuPaymentDetail = useCallback(
-        () => {
+        return groups.join(",");
+    }, [termPrices]);
 
-            const groups = termPrices['yearPrices'].paymentdetails.concat(termPrices['fallPrices'].paymentdetails, termPrices['springPrices'].paymentdetails);
-            if (groups.length === 0) {
-                return "";
-            }
-
-            return groups.join(",");
-        },
-        [termPrices]
-    );
-
-   const [checkno, setCheckNo] = useState<string>(gropuPaymentDetail());
+    const [checkno, setCheckNo] = useState<string>(gropuPaymentDetail());
 
     useEffect(() => {
         setCheckNo(gropuPaymentDetail());
     }, [termPrices, gropuPaymentDetail]);
-
 
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
@@ -872,15 +881,33 @@ export default function RegisterStudent({
                             Discretionary Fee(其他费用): {billdetail.discretionaryfee.toFixed(2)}
                         </p>
                     )}
+                    {billdetail.transferamount != 0 && (
+                        <p
+                            className={`font-bold ${billdetail.transferamount < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
+                            Transfer Amount(转学): {billdetail.transferamount.toFixed(2)}
+                        </p>
+                    )}
+
+                    {billdetail.dropoutamount != 0 && (
+                        <div
+                            className={`font-bold ${billdetail.dropoutamount < 0 ? "text-red-500" : "text-blue-500"}`}
+                        >
+                            <p className="flex justify-end">
+                                Dropout Amount(退学退款): {billdetail.dropoutamount.toFixed(2)}
+                            </p>
+                        </div>
+                    )}
+
                     {billdetail.payment != 0 && (
                         <div
                             className={`font-bold ${billdetail.payment < 0 ? "text-red-500" : "text-blue-500"}`}
                         >
                             <p className="flex justify-end">
-                            Payment(支付): {billdetail.payment.toFixed(2)}
+                                Payment(支付): {billdetail.payment.toFixed(2)}
                             </p>
                             <p className="text-sm text-gray-400">
-                            {checkno && ` (Check No: ${checkno})`}
+                                {checkno && ` (Check No: ${checkno})`}
                             </p>
                         </div>
                     )}

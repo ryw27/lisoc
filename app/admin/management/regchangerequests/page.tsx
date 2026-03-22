@@ -1,7 +1,7 @@
 // import { requireRole } from "@/lib/auth/requireRole"
-import RegChangeTable from "@/components/registration/regchanges/RegChangeTable";
 import { db } from "@/lib/db";
 import fetchCurrentSeasons from "@/server/seasons/data";
+import RegChangeTable from "@/components/registration/regchanges/RegChangeTable";
 
 export default async function RegChangeRequestPage() {
     // const user = await requireRole(["ADMIN"]);
@@ -38,12 +38,12 @@ export default async function RegChangeRequestPage() {
                 eq(rcr.seasonid, fall.seasonid),
                 eq(rcr.seasonid, spring.seasonid)
             ),
-        with: {
+        /*        with: {
             family: {
                 with: { user: {} },
             },
             student: {},
-        },
+        },*/
         orderBy: (rcr, { desc }) => desc(rcr.requestid),
     });
 

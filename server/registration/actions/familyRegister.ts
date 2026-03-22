@@ -1,15 +1,15 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 // import { requireRole } from "@/lib/auth/actions/requireRole";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_TUITION,
     REGSTATUS_SUBMITTED,
-    toESTString
+    toESTString,
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
@@ -66,16 +66,26 @@ export async function familyRegister(
                 feeamount: true,
             },
         });
-        let  managementFee = feeSchedule.find((fee) => fee.feeid  === 5)?.feeamount || "50";
-        let  registrationFee = feeSchedule.find((fee) => fee.feeid  === 1)?.feeamount || "0";
-        const lateRegFee1 = feeSchedule.find((fee) => fee.feeid  === 2)?.feeamount || "0";
-        const lateRegFee2 = feeSchedule.find((fee) => fee.feeid  === 3)?.feeamount || "0";
-        const earlyRegDiscount = feeSchedule.find((fee) => fee.feeid  === 7)?.feeamount || "50";    
-        const dutyFeeDeposit = feeSchedule.find((fee) => fee.feeid  === 6)?.feeamount || "0";    
+        let managementFee = feeSchedule.find((fee) => fee.feeid === 5)?.feeamount || "50";
+        let registrationFee = feeSchedule.find((fee) => fee.feeid === 1)?.feeamount || "0";
+        let lateRegFee1 = feeSchedule.find((fee) => fee.feeid === 2)?.feeamount || "0";
+        let lateRegFee2 = feeSchedule.find((fee) => fee.feeid === 3)?.feeamount || "0";
+        let earlyRegDiscount = feeSchedule.find((fee) => fee.feeid === 7)?.feeamount || "50";
+        const dutyFeeDeposit = feeSchedule.find((fee) => fee.feeid === 6)?.feeamount || "0";
 
+        registrationFee = arrData.waiveregfee ? "0" : registrationFee;
+        earlyRegDiscount = checkReg === "early" ? earlyRegDiscount : "0";
+        const lateregfee =
+            checkReg === "late1" ? lateRegFee1 : checkReg === "late2" ? lateRegFee2 : "0";
 
-        console.log("Fees: ", { managementFee, registrationFee, lateRegFee1, lateRegFee2, earlyRegDiscount, dutyFeeDeposit });
-
+        console.log("Fees: ", {
+            managementFee,
+            registrationFee,
+            lateRegFee1,
+            lateRegFee2,
+            earlyRegDiscount,
+            dutyFeeDeposit,
+        });
 
         // 7. Calculate full price
         const classPrice = await getTotalPrice(tx, arrData, arrSeason);
@@ -89,19 +99,17 @@ export async function familyRegister(
             .where(
                 and(
                     eq(familybalance.familyid, family.familyid),
-                    eq(familybalance.seasonid, season.seasonid),
-//                    eq(familybalance.appliedid, 0),
-//                    ne(familybalance.statusid, FAMILYBALANCE_STATUS_PROCESSED) // Not cancelled
+                    eq(familybalance.seasonid, season.seasonid)
+                    //                    eq(familybalance.appliedid, 0),
+                    //                    ne(familybalance.statusid, FAMILYBALANCE_STATUS_PROCESSED) // Not cancelled
                 )
             )
             .limit(1)
             .for("update");
 
-
         // get all balances for this family and seasons management fee and registration fee are per family per season ,needs to check if one of the balance already has the fee applied, if not apply to this registration, if yes then skip
-        // we also need find the one of  existing that is not processed if it exists 
+        // we also need find the one of  existing that is not processed if it exists
         let theExistingBal = null;
-
 
         for (const bal of existingBal ? [existingBal] : []) {
             if (bal.managementfee && bal.managementfee !== "0") {
@@ -111,10 +119,8 @@ export async function familyRegister(
                 registrationFee = "0";
             }
 
-            if (bal.statusid == FAMILYBALANCE_STATUS_PENDING)
-                theExistingBal = bal ;
+            if (bal.statusid == FAMILYBALANCE_STATUS_PENDING) theExistingBal = bal;
         }
-
 
         let balanceObj = null;
 
@@ -155,15 +161,10 @@ export async function familyRegister(
                 childnum: 1,
                 yearclass: 1,
                 yearclass4child: 1,
-                regfee: arrData.waiveregfee ? "0" : registrationFee, // Numeric requires string
-                earlyregdiscount: (checkReg === "early" ? earlyRegDiscount : "0"),
+                regfee: registrationFee, // Numeric requires string
+                earlyregdiscount: earlyRegDiscount,
                 managementfee: managementFee,
-                lateregfee: (checkReg === "late1"
-                    ? lateRegFee1
-                    : checkReg === "late2"
-                      ? lateRegFee2
-                      : 0
-                ).toString(),
+                lateregfee: lateregfee,
                 dutyfee: dutyFeeDeposit,
                 registerdate: toESTString(new Date()),
                 lastmodify: toESTString(new Date()),
@@ -171,8 +172,14 @@ export async function familyRegister(
                 statusid: FAMILYBALANCE_STATUS_PENDING, // Pending
                 notes: "",
                 tuition: classPrice.toString(),
-                totalamount: (classPrice + Number(managementFee) + Number(registrationFee) + Number(lateRegFee1)
-                    + Number(lateRegFee2)+ Number(dutyFeeDeposit)+Number(earlyRegDiscount)).toString(),
+                totalamount: (
+                    classPrice +
+                    Number(managementFee) +
+                    Number(registrationFee) +
+                    Number(lateregfee) +
+                    Number(dutyFeeDeposit) +
+                    Number(earlyRegDiscount)
+                ).toString(),
             };
 
             const [newBal] = await tx.insert(familybalance).values(familyBalanceData).returning();

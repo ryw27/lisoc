@@ -1,5 +1,5 @@
-import { arrangement, classregistration, family, familybalance, seasons } from "@/lib/db/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { arrangement, classregistration, family, familybalance, seasons } from "@/lib/db/schema";
 
 // TODO: Shared types
 
@@ -21,6 +21,8 @@ export type balanceFees = {
     discrteionamouont: number; // this is for applied by school
     payment: number;
     paymentdetails: string[]; // this is details of payment
+    dropoutamount: number; // this is for dropout refund amount, if applicable
+    transferamount: number; // this is for transfer balance, if applicable
 };
 
 // Season

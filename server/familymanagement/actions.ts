@@ -1,14 +1,24 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { family, familybalance, feedback, student } from "@/lib/db/schema";
-import { FAMILYBALANCE_TYPE_CREDIT, FAMILYBALANCE_TYPE_CREDIT_DUTY, FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE, FAMILYBALANCE_TYPE_OLDBALANCE, FAMILYBALANCE_TYPE_PAYMENT, FAMILYBALANCE_TYPE_SCHOOL_CHECK, toESTString } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
-import { familySchema } from "@/server/auth/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type familyObj } from "@/types/shared.types";
 import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { z } from "zod/v4";
+import { db } from "@/lib/db";
+import { family, familybalance, feedback, student } from "@/lib/db/schema";
+import {
+    FAMILYBALANCE_TYPE_CREDIT,
+    FAMILYBALANCE_TYPE_CREDIT_DUTY,
+    FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE,
+    FAMILYBALANCE_TYPE_DROPOUT,
+    FAMILYBALANCE_TYPE_OLDBALANCE,
+    FAMILYBALANCE_TYPE_PAYMENT,
+    FAMILYBALANCE_TYPE_SCHOOL_CHECK,
+    FAMILYBALANCE_TYPE_TRANSFER,
+    toESTString,
+} from "@/lib/utils";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type familyObj } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
+import { familySchema } from "@/server/auth/schema";
 import { feedbackSchema, studentSchema } from "./validation";
 
 function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): balanceFees {
@@ -29,6 +39,8 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         discrteionamouont: 0,
         payment: 0,
         paymentdetails: [],
+        dropoutamount: 0,
+        transferamount: 0,
     };
 
     for (const bal of balances) {
@@ -47,20 +59,22 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         //totals.totalamount += Number(bal.totalamount ?? 0);
         if (bal.typeid == FAMILYBALANCE_TYPE_PAYMENT) {
             totals.payment += Number(bal.totalamount ?? 0);
-            totals.paymentdetails.push(bal.checkno?? "");
-        }
-        else if (bal.typeid == FAMILYBALANCE_TYPE_OLDBALANCE ||
+            totals.paymentdetails.push(bal.checkno ?? "");
+        } else if (bal.typeid == FAMILYBALANCE_TYPE_DROPOUT) {
+            totals.dropoutamount += Number(bal.totalamount ?? 0);
+        } else if (bal.typeid == FAMILYBALANCE_TYPE_TRANSFER) {
+            totals.transferamount += Number(bal.totalamount ?? 0);
+        } else if (
+            bal.typeid == FAMILYBALANCE_TYPE_OLDBALANCE ||
             bal.typeid == FAMILYBALANCE_TYPE_CREDIT ||
-            bal.typeid == FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE||
+            bal.typeid == FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE ||
             bal.typeid == FAMILYBALANCE_TYPE_CREDIT_DUTY ||
             bal.typeid == FAMILYBALANCE_TYPE_SCHOOL_CHECK
-        ){
+        ) {
             totals.discrteionamouont += Number(bal.totalamount ?? 0);
-        }
-        else {
+        } else {
             totals.totalamount += Number(bal.totalamount ?? 0);
         }
-         
     }
 
     return totals;
