@@ -1,15 +1,15 @@
-import RegisterStudent from "@/components/registration/family/register-students";
+import { redirect } from "next/navigation";
+//import { asc } from "drizzle-orm/sql/expressions/select";
+import { asc, eq } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm/utils";
 import { db } from "@/lib/db";
 import { arrangement, classes } from "@/lib/db/schema";
+import { type threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
 import { calculateBalance } from "@/server/familymanagement/actions";
 import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import { type threeSeasons } from "@/types/seasons.types";
-//import { asc } from "drizzle-orm/sql/expressions/select";
-import { asc, eq } from "drizzle-orm";
-import { getTableColumns } from "drizzle-orm/utils";
-import { redirect } from "next/navigation";
+import RegisterStudent from "@/components/registration/family/register-students";
 
 export default async function RegisterPage() {
     // 1. Get User
@@ -24,7 +24,6 @@ export default async function RegisterPage() {
     const res = await fetchCurrentSeasons();
     const seasons = { year: res.year, fall: res.fall, spring: res.spring } satisfies threeSeasons;
 
-
     const getArrangementsForSeason = async (seasonid: number) => {
         const sortedArr = await db
             .select({
@@ -33,26 +32,28 @@ export default async function RegisterPage() {
             .from(arrangement)
             .leftJoin(classes, eq(arrangement.classid, classes.classid))
             .where(eq(arrangement.seasonid, seasonid))
-            .orderBy(asc(classes.typeid),asc(classes.classno)); // Sort by class type and class graade
+            .orderBy(asc(classes.typeid), asc(classes.classno)); // Sort by class type and class graade
         return sortedArr;
-    }
+    };
     // 4. Get arrangements for each separate term
-    const allArrs = { year: await getArrangementsForSeason(seasons.year.seasonid), 
-                      fall: await getArrangementsForSeason(seasons.fall.seasonid), 
-                      spring: await getArrangementsForSeason(seasons.spring.seasonid) };
+    const allArrs = {
+        year: await getArrangementsForSeason(seasons.year.seasonid),
+        fall: await getArrangementsForSeason(seasons.fall.seasonid),
+        spring: await getArrangementsForSeason(seasons.spring.seasonid),
+    };
 
     // 5. Get family and students
     const userFamily = await db.query.family.findFirst({
         where: (family, { eq }) => eq(family.userid, user.user.id),
         with: {
             user: {
-                columns:{ 
-                    email: true, 
+                columns: {
+                    email: true,
                     name: true,
-                    phone: true, 
-                }
-            }
-        }
+                    phone: true,
+                },
+            },
+        },
     });
     if (!userFamily) {
         throw new Error("No family found on register page");

@@ -1,19 +1,7 @@
 "use client";
 
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/dist/client/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     CreateOrderActions,
@@ -23,16 +11,30 @@ import {
 } from "@paypal/paypal-js";
 import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { InferSelectModel } from "drizzle-orm";
-import Link from "next/dist/client/link";
-import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
-    family: InferSelectModel<typeof family>  & { user: { email: string|null; name: string|null ; phone: string|null }|null };
+    family: InferSelectModel<typeof family> & {
+        user: { email: string | null; name: string | null; phone: string | null } | null;
+    };
     students: InferSelectModel<typeof student>[];
     // registerSpring: boolean
     seasons: threeSeasons;
@@ -58,6 +60,13 @@ const regStatusMap = {
     3: "T/转课",
     4: "D/退课",
     5: "D/退课(春)",
+};
+
+// For reference
+const periodMap = {
+    1: "1:30 - 3:30",
+    2: "1:30 - 4:30",
+    3: "3:30 - 4:30",
 };
 
 type billDetail = {
@@ -794,7 +803,6 @@ export default function RegisterStudent({
                             );
                         })}
 
-
                     <div className="flex justify-end">
                         <div className="flex gap-2">
                             <button
@@ -821,17 +829,32 @@ export default function RegisterStudent({
                         </div>
                     </div>
                     <div className="mt-4 rounded-md p-4 text-sm font-bold">
-                        <div>你已阅读并且同意遵守长岛中文学校(LISOC)的注册规则. 如需要进一步了解注册规则请<Link href="/SchoolPolicy.htm" className="text-blue-500 hover:underline">点击这里</Link> </div>
+                        <div>
+                            你已阅读并且同意遵守长岛中文学校(LISOC)的注册规则.
+                            如需要进一步了解注册规则请
+                            <Link
+                                href="/SchoolPolicy.htm"
+                                className="text-blue-500 hover:underline"
+                            >
+                                点击这里
+                            </Link>{" "}
+                        </div>
 
-                        <div>you have read and agreed to comply with the registration rules of Long Island Chinese School. Please <Link href="/SchoolPolicy.htm" className="text-blue-500 hover:underline">
-                            click here
-                        </Link> for more details of the registration rules.</div>
-                    </div>    
-
-
+                        <div>
+                            you have read and agreed to comply with the registration rules of Long
+                            Island Chinese School. Please{" "}
+                            <Link
+                                href="/SchoolPolicy.htm"
+                                className="text-blue-500 hover:underline"
+                            >
+                                click here
+                            </Link>{" "}
+                            for more details of the registration rules.
+                        </div>
+                    </div>
                 </div>
             </form>
-            <div className="mt-5 reg-table-container">
+            <div className="reg-table-container mt-5">
                 <RegTable
                     registrations={registrations}
                     idMaps={idMaps}
@@ -843,7 +866,7 @@ export default function RegisterStudent({
                     regchangerequests={regchangerequests}
                 />
             </div>
-            <div className="mt-5 flex items-center gap-4 self-end billing-details">
+            <div className="billing-details mt-5 flex items-center gap-4 self-end">
                 <div className="flex flex-col items-end">
                     {billdetail.tutionfee != 0 && (
                         <p
@@ -926,7 +949,11 @@ export default function RegisterStudent({
                         </div>
                     )}
 
-                    <p className={`font-bold ${totalBalance < 0 ? "text-red-500" : "text-black-500"}`}>Total Balance: {totalBalance.toFixed(2)}</p>
+                    <p
+                        className={`font-bold ${totalBalance < 0 ? "text-red-500" : "text-black-500"}`}
+                    >
+                        Total Balance: {totalBalance.toFixed(2)}
+                    </p>
                     <p className="text-sm text-gray-600">
                         Family Balance IDs:{" "}
                         {Array.from(familyBalanceIdSet).length > 0
@@ -936,7 +963,6 @@ export default function RegisterStudent({
                 </div>
                 <div className="flex flex-col items-end">
                     <PayPalScriptProvider
-                        className="print:hidden"
                         options={{
                             clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
                             currency: "USD",
@@ -964,7 +990,11 @@ export default function RegisterStudent({
                     <button
                         type="button"
                         onClick={() => {
-                            const arrangementMap = new Map([...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].map((arr) => [arr.arrangeid, arr]));
+                            const arrangementMap = new Map(
+                                [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].map(
+                                    (arr) => [arr.arrangeid, arr]
+                                )
+                            );
                             const tableData = registrations.map((reg) => {
                                 const arrangement = arrangementMap.get(reg.arrangeid);
                                 return {
@@ -976,7 +1006,10 @@ export default function RegisterStudent({
                                     roomid: arrangement?.roomid || 0,
                                     period: arrangement?.timeid || 0,
                                     seasonid: arrangement?.seasonid || 0,
-                                    tuition: Number(arrangement?.tuitionW || 0) + Number(arrangement?.bookfeeW || 0) + Number(arrangement?.specialfeeW || 0),
+                                    tuition:
+                                        Number(arrangement?.tuitionW || 0) +
+                                        Number(arrangement?.bookfeeW || 0) +
+                                        Number(arrangement?.specialfeeW || 0),
                                     status: reg.statusid,
                                 };
                             });
@@ -997,12 +1030,14 @@ export default function RegisterStudent({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${tableData.map(row => `
+                                        ${tableData
+                                            .map(
+                                                (row) => `
                                             <tr>
                                                 <td style="border: 1px solid black; padding: 2px;">${row.regno}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${new Date(row.registerdate).toLocaleDateString()}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${idMaps.classMap[row.classid] ? idMaps.classMap[row.classid].classnamecn : "N/A"}</td>
-                                                <td style="border: 1px solid black; padding: 2px;">${students.find(s => s.studentid === row.studentid)!.namecn}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${students.find((s) => s.studentid === row.studentid)!.namecn}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${idMaps.teacherMap[row.teacherid] ? idMaps.teacherMap[row.teacherid].namecn : "N/A"}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${idMaps.roomMap[row.roomid] ? idMaps.roomMap[row.roomid].roomno : "N/A"}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${idMaps.timeMap[row.period] ? idMaps.timeMap[row.period].period : "N/A"}</td>
@@ -1010,7 +1045,9 @@ export default function RegisterStudent({
                                                 <td style="border: 1px solid black; padding: 2px;">${row.tuition}</td>
                                                 <td style="border: 1px solid black; padding: 2px;">${regStatusMap[row.status as keyof typeof regStatusMap]}</td>
                                             </tr>
-                                        `).join('')}
+                                        `
+                                            )
+                                            .join("")}
                                     </tbody>
                                 </table>
                             `;
@@ -1019,11 +1056,11 @@ export default function RegisterStudent({
                                 <p><strong>Family Id(家庭ID):</strong> ${family.familyid}</p>
 
                                 <p><strong>Parent(父母):</strong> ${family.fatherfirsten} ${family.fatherlasten} ${family.fathernamecn} ${family.mothernamecn} ${family.motherfirsten} ${family.motherlasten}</p>
-                                <p><strong>Email(电子邮件):</strong> ${family.user.email}</p>
-                                <p><strong>Phone(电话号码):</strong> ${family.user.phone}</p>
-                            `;                
+                                <p><strong>Email(电子邮件):</strong> ${family.user?.email}</p>
+                                <p><strong>Phone(电话号码):</strong> ${family.user?.phone}</p>
+                            `;
 
-                            const instruction=`
+                            const instruction = `
                                  <p style="font-size: 12px; margin-top: 10px;">           
                                  感谢您使用长岛中华夏文学校的在线注册系统。您可以选择以下支付方式缴纳学费
                                  <li style="font-size: 12px">选择使用PayPal 支付 点击 PayPal 使用您的PayPal账户 付清学费，您的注册马上生效</li>
@@ -1037,9 +1074,9 @@ export default function RegisterStudent({
 
                                  </li>
                                  </p>           
-                            `                 
+                            `;
 
-                            const billing = document.querySelector('.billing-details');
+                            const billing = document.querySelector(".billing-details");
                             const printContent = `
                                 <h1 style="text-align: center; margin-bottom: 20px;">长岛中文学校注册凭据</h1>
                                <h2 style="text-align: center; margin-bottom: 15px;">Long Island Chinese School Registration Receipt</h2>
@@ -1050,9 +1087,15 @@ export default function RegisterStudent({
                                <dv><br/></div>
                                <dv><br/></div>
                                 ${tableHtml}
-                                ${billing ? billing.outerHTML : ''}
+                                ${billing ? billing.outerHTML : ""}
                             `;
-                            const printWindow = window.open('', '_blank', 'height=600,width=800');
+                            const printWindow = window.open("", "_blank", "height=600,width=800");
+                            if (!printWindow) {
+                                alert(
+                                    "Unable to open print window. Please allow pop-ups for this site."
+                                );
+                                return;
+                            }
                             printWindow.document.write(`
                                 <html>
                                     <head>
