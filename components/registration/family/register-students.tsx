@@ -1,22 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-    CreateOrderActions,
-    CreateOrderData,
-    OnApproveActions,
-    OnApproveData,
-} from "@paypal/paypal-js";
-import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { InferSelectModel } from "drizzle-orm";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
 import {
     Select,
     SelectContent,
@@ -26,6 +9,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    CreateOrderActions,
+    CreateOrderData,
+    OnApproveActions,
+    OnApproveData,
+} from "@paypal/paypal-js";
+import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { InferSelectModel } from "drizzle-orm";
+import Link from "next/dist/client/link";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -790,6 +791,8 @@ export default function RegisterStudent({
                                 </div>
                             );
                         })}
+
+
                     <div className="flex justify-end">
                         <div className="flex gap-2">
                             <button
@@ -815,6 +818,15 @@ export default function RegisterStudent({
                             </button>
                         </div>
                     </div>
+                    <div className="mt-4 rounded-md p-4 text-sm font-bold">
+                        <div>你已阅读并且同意遵守长岛中文学校(LISOC)的注册规则. 如需要进一步了解注册规则请<Link href="/SchoolPolicy.htm" className="text-blue-500 hover:underline">点击这里</Link> </div>
+
+                        <div>you have read and agreed to comply with the registration rules of Long Island Chinese School. Please <Link href="/SchoolPolicy.htm" className="text-blue-500 hover:underline">
+                            click here
+                        </Link> for more details of the registration rules.</div>
+                    </div>    
+
+
                 </div>
             </form>
             <div className="mt-5">
@@ -912,7 +924,7 @@ export default function RegisterStudent({
                         </div>
                     )}
 
-                    <p className="font-bold text-black">Total Balance: {totalBalance.toFixed(2)}</p>
+                    <p className={`font-bold ${totalBalance < 0 ? "text-red-500" : "text-black-500"}`}>Total Balance: {totalBalance.toFixed(2)}</p>
                     <p className="text-sm text-gray-600">
                         Family Balance IDs:{" "}
                         {Array.from(familyBalanceIdSet).length > 0
