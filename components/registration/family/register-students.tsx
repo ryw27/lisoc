@@ -32,7 +32,7 @@ import RegTable from "./reg-table";
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
-    family: InferSelectModel<typeof family>;
+    family: InferSelectModel<typeof family> &{ user: { email: string; name: string ; phone: string } };
     students: InferSelectModel<typeof student>[];
     // registerSpring: boolean
     seasons: threeSeasons;
@@ -52,10 +52,12 @@ type RegStudentProps = {
 };
 
 // For reference
-const periodMap = {
-    1: "1:30 - 3:30",
-    2: "1:30 - 4:30",
-    3: "3:30 - 4:30",
+const regStatusMap = {
+    1: "S/提交",
+    2: "R/注册",
+    3: "T/转课",
+    4: "D/退课",
+    5: "D/退课(春)",
 };
 
 type billDetail = {
@@ -829,7 +831,7 @@ export default function RegisterStudent({
 
                 </div>
             </form>
-            <div className="mt-5">
+            <div className="mt-5 reg-table-container">
                 <RegTable
                     registrations={registrations}
                     idMaps={idMaps}
@@ -841,7 +843,7 @@ export default function RegisterStudent({
                     regchangerequests={regchangerequests}
                 />
             </div>
-            <div className="mt-5 flex items-center gap-4 self-end">
+            <div className="mt-5 flex items-center gap-4 self-end billing-details">
                 <div className="flex flex-col items-end">
                     {billdetail.tutionfee != 0 && (
                         <p
@@ -934,6 +936,7 @@ export default function RegisterStudent({
                 </div>
                 <div className="flex flex-col items-end">
                     <PayPalScriptProvider
+                        className="print:hidden"
                         options={{
                             clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
                             currency: "USD",
@@ -960,7 +963,126 @@ export default function RegisterStudent({
                     </PayPalScriptProvider>
                     <button
                         type="button"
-                        onClick={() => window.print()}
+                        onClick={() => {
+                            const arrangementMap = new Map([...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring].map((arr) => [arr.arrangeid, arr]));
+                            const tableData = registrations.map((reg) => {
+                                const arrangement = arrangementMap.get(reg.arrangeid);
+                                return {
+                                    regno: reg.regid,
+                                    registerdate: reg.registerdate,
+                                    classid: arrangement?.classid || 0,
+                                    studentid: reg.studentid,
+                                    teacherid: arrangement?.teacherid || 0,
+                                    roomid: arrangement?.roomid || 0,
+                                    period: arrangement?.timeid || 0,
+                                    seasonid: arrangement?.seasonid || 0,
+                                    tuition: Number(arrangement?.tuitionW || 0) + Number(arrangement?.bookfeeW || 0) + Number(arrangement?.specialfeeW || 0),
+                                    status: reg.statusid,
+                                };
+                            });
+                            const tableHtml = `
+                                <table style="font-size: 10px; width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr>
+                                            <th style="border: 1px solid black; padding: 2px;">RegNo</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Reg Date</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Course</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Student</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Teacher</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Room</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Period</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Semester</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Tuition</th>
+                                            <th style="border: 1px solid black; padding: 2px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableData.map(row => `
+                                            <tr>
+                                                <td style="border: 1px solid black; padding: 2px;">${row.regno}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${new Date(row.registerdate).toLocaleDateString()}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${idMaps.classMap[row.classid] ? idMaps.classMap[row.classid].classnamecn : "N/A"}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${students.find(s => s.studentid === row.studentid)!.namecn}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${idMaps.teacherMap[row.teacherid] ? idMaps.teacherMap[row.teacherid].namecn : "N/A"}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${idMaps.roomMap[row.roomid] ? idMaps.roomMap[row.roomid].roomno : "N/A"}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${idMaps.timeMap[row.period] ? idMaps.timeMap[row.period].period : "N/A"}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${seasons.year.seasonid === row.seasonid ? seasons.year.seasonnamecn : seasons.fall.seasonid === row.seasonid ? seasons.fall.seasonnamecn : seasons.spring.seasonid === row.seasonid ? seasons.spring.seasonnamecn : "N/A"}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${row.tuition}</td>
+                                                <td style="border: 1px solid black; padding: 2px;">${regStatusMap[row.status as keyof typeof regStatusMap]}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `;
+
+                            const familyinfo = `
+                                <p><strong>Family Id(家庭ID):</strong> ${family.familyid}</p>
+
+                                <p><strong>Parent(父母):</strong> ${family.fatherfirsten} ${family.fatherlasten} ${family.fathernamecn} ${family.mothernamecn} ${family.motherfirsten} ${family.motherlasten}</p>
+                                <p><strong>Email(电子邮件):</strong> ${family.user.email}</p>
+                                <p><strong>Phone(电话号码):</strong> ${family.user.phone}</p>
+                            `;                
+
+                            const instruction=`
+                                 <p style="font-size: 12px; margin-top: 10px;">           
+                                 感谢您使用长岛中华夏文学校的在线注册系统。您可以选择以下支付方式缴纳学费
+                                 <li style="font-size: 12px">选择使用PayPal 支付 点击 PayPal 使用您的PayPal账户 付清学费，您的注册马上生效</li>
+                                 <li style="font-size: 12px">选择支票付款： 支票抬头请写您的家庭账号 打印此凭据联通支票交给学校管理员或者邮件至
+                                            <div>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Long Island School of Chines <br/>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PO Box 666 <br/>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Jericho, NY 11753 <br/>
+                                            </div>
+                                       &nbsp;&nbsp;&nbsp;&nbsp;注意：请在网上注册后14 天内完成支付，否则注册可能被取消 
+
+                                 </li>
+                                 </p>           
+                            `                 
+
+                            const billing = document.querySelector('.billing-details');
+                            const printContent = `
+                                <h1 style="text-align: center; margin-bottom: 20px;">长岛中文学校注册凭据</h1>
+                               <h2 style="text-align: center; margin-bottom: 15px;">Long Island Chinese School Registration Receipt</h2>
+                               <div><br/></div>
+                               ${instruction}             
+                               <div><br/></div>
+                                ${familyinfo}
+                               <dv><br/></div>
+                               <dv><br/></div>
+                                ${tableHtml}
+                                ${billing ? billing.outerHTML : ''}
+                            `;
+                            const printWindow = window.open('', '_blank', 'height=600,width=800');
+                            printWindow.document.write(`
+                                <html>
+                                    <head>
+                                        <title>Registration Details</title>
+                                        <style>
+                                            body { font-family: Arial, sans-serif; }
+                                            .print\\:hidden { display: none !important; }
+                                            .billing-details { justify-content: flex-end; text-align: right; }
+                                        </style>
+                                    </head>
+                                    <body>${printContent}</body>
+                                    <footer>
+                                        <p style="text-align: center; font-size: 5px; margin-top: 5px;">
+                                                    <div><br/></div>
+                                                    <dv><br/></div>
+                                                    <div><br/></div>
+
+                                            <div classname="text-xs">
+                                                你已阅读并且同意遵守长岛中文学校(LISOC)的注册规则. 请上网进一步了解注册规则
+                                            </div>
+                                            <div classname="text-xs">
+                                                you have read and agreed to comply with the registration rules of Long Island Chinese School. Please go online for more details of the registration rules.
+                                            </div>
+                                        </p>
+                                    </footer>
+                                </html>
+                            `);
+                            printWindow.document.close();
+                            printWindow.print();
+                        }}
                         className="rounded-full bg-blue-500 px-4 py-2 font-semibold text-white hover:bg-blue-600 print:hidden"
                     >
                         Print (打印)

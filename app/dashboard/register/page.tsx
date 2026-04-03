@@ -1,11 +1,11 @@
-import { redirect } from "next/navigation";
+import RegisterStudent from "@/components/registration/family/register-students";
 import { db } from "@/lib/db";
-import { type threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
 import { calculateBalance } from "@/server/familymanagement/actions";
 import { getSelectOptions } from "@/server/seasons/actions/getSelectOptions";
 import fetchCurrentSeasons from "@/server/seasons/data";
-import RegisterStudent from "@/components/registration/family/register-students";
+import { type threeSeasons } from "@/types/seasons.types";
+import { redirect } from "next/navigation";
 
 export default async function RegisterPage() {
     // 1. Get User
@@ -38,6 +38,15 @@ export default async function RegisterPage() {
     // 5. Get family and students
     const userFamily = await db.query.family.findFirst({
         where: (family, { eq }) => eq(family.userid, user.user.id),
+        with: {
+            user: {
+                columns:{ 
+                    email: true, 
+                    name: true,
+                    phone: true, 
+                }
+            }
+        }
     });
     if (!userFamily) {
         throw new Error("No family found on register page");
