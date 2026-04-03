@@ -32,7 +32,7 @@ import RegTable from "./reg-table";
 
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
-    family: InferSelectModel<typeof family> &{ user: { email: string; name: string ; phone: string } };
+    family: InferSelectModel<typeof family>  & { user: { email: string|null; name: string|null ; phone: string|null }|null };
     students: InferSelectModel<typeof student>[];
     // registerSpring: boolean
     seasons: threeSeasons;

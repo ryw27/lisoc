@@ -1,4 +1,6 @@
-import React from "react";
+import Header from "@/components/header";
+import SideNav from "@/components/sidenav";
+import { requireRole } from "@/server/auth/actions";
 import {
     BookOpenIcon,
     DollarSign,
@@ -8,10 +10,8 @@ import {
     Mail,
     UserIcon,
 } from "lucide-react";
+import React from "react";
 import { FaChalkboardTeacher } from "react-icons/fa";
-import { requireRole } from "@/server/auth/actions";
-import Header from "@/components/header";
-import SideNav from "@/components/sidenav";
 
 const DASHBOARD = "/dashboard";
 interface NavItem {
@@ -68,6 +68,13 @@ const navItems: NavSection[] = [
                 icon: <UserIcon className="h-4 w-4" />,
                 tip: "家长值班",
             },
+            {
+                label: "Registration Policy(注册规定)",
+                href: [`/SchoolPolicy.htm`],
+                icon: <UserIcon className="h-4 w-4" />,
+                tip: "注册规定",
+            },
+
         ],
     },
     {
