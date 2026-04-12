@@ -1,5 +1,5 @@
-import { z } from "zod/v4";
 import { arrangementSchema } from "@/lib/schema";
+import { z } from "zod/v4";
 
 // TODO: Add further refinement to make sure dates are in order
 export const seasonDatesSchema = z.object({
@@ -46,6 +46,7 @@ export const seasonRegSettingsSchema = z.object({
 export const seasonSchema = z.object({
     seasonnamecn: z.string().min(1, { message: "Season name is required." }),
     seasonnameen: z.string().min(1, { message: "Season name is required." }),
+    adminNotice: z.string().optional(),
     ...seasonDatesSchema.shape,
     ...seasonRegSettingsSchema.shape,
 });

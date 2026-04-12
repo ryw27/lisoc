@@ -1,12 +1,12 @@
 "use server";
 
-import { eq, or } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement, seasons } from "@/lib/db/schema";
 import { arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
+import { eq, or } from "drizzle-orm";
+import { z } from "zod/v4";
 import { startSemFormSchema } from "../schema";
 
 export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
@@ -48,6 +48,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
+                notes: semData.adminNotice ? semData.adminNotice : "",
                 updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             })
             .returning();
@@ -83,6 +84,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                     : toESTString(semData.fallearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
+                //notes: semData.adminNotice ? `{semData.adminNotice}` : "",
                 updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             })
             .returning();
@@ -116,7 +118,8 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 date4newfamilytoregister: toESTString(semData.springearlyreg),
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
-                updateby: "testaccount", // user.user.name ?? user.user.email ?? "Unknown admin"
+                //notes: semData.adminNotice ? `{semData.adminNotice}` : "",
+                updateby:  user.user.name ?? user.user.email ?? "Unknown admin"
             })
             .returning();
 

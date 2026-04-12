@@ -1,12 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq, InferSelectModel, or } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { toESTString } from "@/lib/utils";
 import { type term } from "@/types/shared.types";
+import { eq, InferSelectModel } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod/v4";
 import { seasonRegSettingsSchema } from "../schema";
 
 export async function updateRegControls(
@@ -16,7 +16,7 @@ export async function updateRegControls(
 ) {
     const parsed = seasonRegSettingsSchema.parse(data);
     await db.transaction(async (tx) => {
-        const seasonIds = [inSeason.seasonid, inSeason.seasonid + 1, inSeason.seasonid + 2];
+/*        const seasonIds = [inSeason.seasonid, inSeason.seasonid + 1, inSeason.seasonid + 2];
         const where =
             changeSeason === "year"
                 ? or(...seasonIds.map((id) => eq(seasons.seasonid, id))) // Change all 3
@@ -25,7 +25,9 @@ export async function updateRegControls(
                       seasons.seasonid,
                       changeSeason === "fall" ? inSeason.seasonid + 1 : inSeason.seasonid + 2
                   );
+*/
 
+        console.log("Updating reg controls with data: ", parsed, " for season: ", inSeason, " changeSeason: ", changeSeason);
         const [updated] = await tx
             .update(seasons)
             .set({
@@ -39,7 +41,7 @@ export async function updateRegControls(
                 allownewfamilytoregister: parsed.allownewfamilytoregister,
                 date4newfamilytoregister: toESTString(parsed.date4newfamilytoregister),
             })
-            .where(where)
+            .where(eq(seasons.seasonid, inSeason.seasonid))
             .returning();
 
         if (!updated) {

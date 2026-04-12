@@ -4,8 +4,10 @@ import { useState } from "react";
 
 export default function DisclaimerPage({
     handleDisclaimerChange,
+    notes,
 }: {
     handleDisclaimerChange: (agreed: boolean) => void;
+    notes: string;
 }) {
     const [checked, setChecked] = useState<boolean>(false);
     return (
@@ -27,7 +29,7 @@ export default function DisclaimerPage({
                 <br />
             </h1>
             <iframe
-                src="/SchoolPolicy.htm"
+                srcDoc={notes}
                 style={{ width: "100%", height: "600px", border: "solid black" }}
                 title="School Policy"
             />

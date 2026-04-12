@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { seasons } from "@/lib/db/schema";
+import { cn, toESTString } from "@/lib/utils";
+import { createSemester } from "@/server/seasons/actions/createSemester";
+import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
+import { startSemFormSchema } from "@/server/seasons/schema";
+import { threeSeasons } from "@/types/seasons.types";
+import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DrizzleError, InferSelectModel } from "drizzle-orm";
 import { BookOpen, CalendarIcon, PlusIcon, Save, School, Settings2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 import {
     FormProvider,
     Path,
@@ -14,13 +21,6 @@ import {
     useFormContext,
 } from "react-hook-form";
 import { z } from "zod";
-import { seasons } from "@/lib/db/schema";
-import { cn, toESTString } from "@/lib/utils";
-import { threeSeasons } from "@/types/seasons.types";
-import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
-import { createSemester } from "@/server/seasons/actions/createSemester";
-import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
-import { startSemFormSchema } from "@/server/seasons/schema";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,6 +138,7 @@ export default function StartSemesterForm({
             // Text Defaults
             seasonnamecn: `${now.getFullYear()}-${nextYear} 学年`,
             seasonnameen: `${now.getFullYear()}-${nextYear} Academic Year`,
+            adminNotice:"<html><body><h1>School Policy</h1><p>This is the school policy document.</p></body></html>",
 
             // Date Defaults (Projected +1 year)
             // We use the helper to strictly cast these strings to Date types for TS satisfaction
@@ -241,6 +242,8 @@ export default function StartSemesterForm({
 
                         <SeasonInfoSection />
 
+                        <AdminNoticeSection />
+
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                             <DateGroup label="Fall Semester" prefix="fall" />
                             <DateGroup label="Spring Semester" prefix="spring" />
@@ -305,6 +308,105 @@ function SeasonInfoSection() {
                     )}
                 </div>
             </CardContent>
+        </Card>
+    );
+}
+
+function UploadButton() {
+
+    const {
+        setValue,
+        formState: { errors },
+    } = useFormContext<FormValues>();
+
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const handleClick = () => {
+        // Manually trigger the hidden file input's click event
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            console.log("Selected file:", file.name);
+            // Logic to upload the file (e.g., to a Server Action or API)
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                setValue("adminNotice", text);
+//                setFileContent(text); // Populate the form field state
+            };
+            reader.readAsText(file);
+            // event.target.value = ""; // Reset the input so the same file can be uploaded again if needed
+            // Allow selecting the same file again
+            event.target.value = "";
+
+        }
+
+    };
+
+    return (
+        <div>
+            <button 
+                onClick={handleClick}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+                Upload Policy file
+            </button>
+
+            {errors.adminNotice && (
+                        <p className="text-destructive text-xs">{errors.adminNotice.message}</p>
+            )}
+
+
+            {/* Hidden input to handle the OS file dialog */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".html,.htm" // Optional: restrict file types
+                style={{ display: "none" }}
+
+            />
+        </div>
+    );
+}
+
+
+function AdminNoticeSection() {
+    const {
+        register,
+        formState: { errors },
+    } = useFormContext<FormValues>();
+
+    return (
+        <Card className="rounded-none">
+            <CardHeader className="pb-3">
+
+                <CardTitle className="text-primary flex items-center gap-2 text-lg font-medium">
+                    <CalendarIcon className="text-accent h-5 w-5" />
+                   Admin Notice
+                </CardTitle>
+            </CardHeader>
+  
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Input
+                        id="adminNotice"
+                        {...register("adminNotice")}
+                        placeholder="Enter admin notice here you can also upload an html file"
+                        className="bg-muted/30"
+                    />
+                    {errors.adminNotice && (
+                        <p className="text-destructive text-xs">{errors.adminNotice.message}</p>
+                    )}
+                </div>
+
+                <UploadButton />  
+
+            </CardContent>
+            
         </Card>
     );
 }
