@@ -1,5 +1,5 @@
-import { arrangementSchema } from "@/lib/schema";
 import { z } from "zod/v4";
+import { arrangementSchema } from "@/lib/schema";
 
 // TODO: Add further refinement to make sure dates are in order
 export const seasonDatesSchema = z.object({

@@ -1,12 +1,7 @@
 "use client";
 
-
-export default function RegNotes({
-    notes,
-}: {
-    notes: string;
-}) {
-/*    const [isClient, setIsClient] = useState(true)
+export default function RegNotes({ notes }: { notes: string }) {
+    /*    const [isClient, setIsClient] = useState(true)
  
     useEffect(() => {
         setIsClient(true)
@@ -15,15 +10,14 @@ export default function RegNotes({
 */
 
     return (
-      <div>
-        {notes  && (
-           <iframe
-                srcDoc={notes}
-                style={{ width: "100%", height: "600px", border: "solid black" }}
-                title="School Policy"
-            />  
-        )}
-      </div>
+        <div>
+            {notes && (
+                <iframe
+                    srcDoc={notes}
+                    style={{ width: "100%", height: "600px", border: "solid black" }}
+                    title="School Policy"
+                />
+            )}
+        </div>
     );
-
 }

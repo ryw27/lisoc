@@ -1,19 +1,7 @@
 "use client";
 
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/dist/client/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     CreateOrderActions,
@@ -23,10 +11,22 @@ import {
 } from "@paypal/paypal-js";
 import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { InferSelectModel } from "drizzle-orm";
-import Link from "next/dist/client/link";
-import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -697,7 +697,7 @@ export default function RegisterStudent({
         //setPaypalError('An error occurred with PayPal. Please try again.');
     };
 
-    const agree_disclaimer_str=`lisoc_disclaimer_agreed_${seasons.year.seasonid}`;
+    const agree_disclaimer_str = `lisoc_disclaimer_agreed_${seasons.year.seasonid}`;
     const [disclaimerChecked, setDisclaimerChecked] = useState<boolean | null>(null);
     useEffect(() => {
         const agreed = localStorage.getItem(agree_disclaimer_str);
@@ -714,7 +714,12 @@ export default function RegisterStudent({
     }
 
     if (disclaimerChecked === false) {
-        return <DisclaimerPage handleDisclaimerChange={handleDisclaimerChange} notes={seasons.fall.notes ?? ""} />;
+        return (
+            <DisclaimerPage
+                handleDisclaimerChange={handleDisclaimerChange}
+                notes={seasons.fall.notes ?? ""}
+            />
+        );
     }
 
     return (

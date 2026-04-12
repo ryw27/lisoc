@@ -1,17 +1,10 @@
 "use client";
 
-import { seasons } from "@/lib/db/schema";
-import { cn, toESTString } from "@/lib/utils";
-import { createSemester } from "@/server/seasons/actions/createSemester";
-import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
-import { startSemFormSchema } from "@/server/seasons/schema";
-import { threeSeasons } from "@/types/seasons.types";
-import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DrizzleError, InferSelectModel } from "drizzle-orm";
 import { BookOpen, CalendarIcon, PlusIcon, Save, School, Settings2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
 import {
     FormProvider,
     Path,
@@ -21,6 +14,13 @@ import {
     useFormContext,
 } from "react-hook-form";
 import { z } from "zod";
+import { seasons } from "@/lib/db/schema";
+import { cn, toESTString } from "@/lib/utils";
+import { threeSeasons } from "@/types/seasons.types";
+import { IdMaps, selectOptions, uiClasses } from "@/types/shared.types";
+import { createSemester } from "@/server/seasons/actions/createSemester";
+import { selectRegistrationClass } from "@/server/seasons/actions/selectRegistration";
+import { startSemFormSchema } from "@/server/seasons/schema";
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,7 +138,8 @@ export default function StartSemesterForm({
             // Text Defaults
             seasonnamecn: `${now.getFullYear()}-${nextYear} 学年`,
             seasonnameen: `${now.getFullYear()}-${nextYear} Academic Year`,
-            adminNotice:"<html><body><h1>School Policy</h1><p>This is the school policy document.</p></body></html>",
+            adminNotice:
+                "<html><body><h1>School Policy</h1><p>This is the school policy document.</p></body></html>",
 
             // Date Defaults (Projected +1 year)
             // We use the helper to strictly cast these strings to Date types for TS satisfaction
@@ -313,12 +314,10 @@ function SeasonInfoSection() {
 }
 
 function UploadButton() {
-
     const {
         setValue,
         formState: { errors },
     } = useFormContext<FormValues>();
-
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const handleClick = () => {
@@ -335,30 +334,27 @@ function UploadButton() {
             reader.onload = (event) => {
                 const text = event.target?.result as string;
                 setValue("adminNotice", text);
-//                setFileContent(text); // Populate the form field state
+                //                setFileContent(text); // Populate the form field state
             };
             reader.readAsText(file);
             // event.target.value = ""; // Reset the input so the same file can be uploaded again if needed
             // Allow selecting the same file again
             event.target.value = "";
-
         }
-
     };
 
     return (
         <div>
-            <button 
+            <button
                 onClick={handleClick}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
             >
                 Upload Policy file
             </button>
 
             {errors.adminNotice && (
-                        <p className="text-destructive text-xs">{errors.adminNotice.message}</p>
+                <p className="text-destructive text-xs">{errors.adminNotice.message}</p>
             )}
-
 
             {/* Hidden input to handle the OS file dialog */}
             <input
@@ -367,12 +363,10 @@ function UploadButton() {
                 onChange={handleFileChange}
                 accept=".html,.htm" // Optional: restrict file types
                 style={{ display: "none" }}
-
             />
         </div>
     );
 }
-
 
 function AdminNoticeSection() {
     const {
@@ -383,13 +377,12 @@ function AdminNoticeSection() {
     return (
         <Card className="rounded-none">
             <CardHeader className="pb-3">
-
                 <CardTitle className="text-primary flex items-center gap-2 text-lg font-medium">
                     <CalendarIcon className="text-accent h-5 w-5" />
-                   Admin Notice
+                    Admin Notice
                 </CardTitle>
             </CardHeader>
-  
+
             <CardContent className="space-y-4">
                 <div className="space-y-2">
                     <Input
@@ -403,10 +396,8 @@ function AdminNoticeSection() {
                     )}
                 </div>
 
-                <UploadButton />  
-
+                <UploadButton />
             </CardContent>
-            
         </Card>
     );
 }

@@ -1,5 +1,16 @@
 "use client";
 
+import React, { useRef, useState } from "react";
+import { useRouter } from "next/navigation"; // Import from 'next/navigation'
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Calendar, Cog, Hammer, Power, Settings } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
+import { type threeSeasons } from "@/types/seasons.types";
+import { updateDates } from "@/server/seasons/actions/updateDates";
+import { updatePolicy } from "@/server/seasons/actions/updatePolicy";
+import { updateRegControls } from "@/server/seasons/actions/updateRegControls";
+import { seasonDatesSchema, seasonRegSettingsSchema } from "@/server/seasons/schema";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,17 +22,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { updateDates } from "@/server/seasons/actions/updateDates";
-import { updatePolicy } from "@/server/seasons/actions/updatePolicy";
-import { updateRegControls } from "@/server/seasons/actions/updateRegControls";
-import { seasonDatesSchema, seasonRegSettingsSchema } from "@/server/seasons/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Calendar, Cog, Hammer, Power, Settings } from "lucide-react";
-import { useRouter } from "next/navigation"; // Import from 'next/navigation'
-import React, { useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
 
 type settingOptions = "HOME" | "DATES" | "REGISTRATION" | "CONTROLS";
 export default function SemesterControlsPopover() {
@@ -85,8 +85,7 @@ function HomeControls({
                 Change Registration Settings
             </button>
 
-            <UpDatePolicyControls setSettings={setSettings}  />
-
+            <UpDatePolicyControls setSettings={setSettings} />
         </>
     );
 }
@@ -510,7 +509,7 @@ function RegistrationControls({
                                     className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-yellow-500"
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    disabled ={true}
+                                    disabled={true}
                                 />
                             )}
                         />
@@ -747,13 +746,11 @@ function Controls({
     );
 }
 
-function UpDatePolicyControls( {
+function UpDatePolicyControls({
     setSettings,
 }: {
     setSettings: React.Dispatch<React.SetStateAction<settingOptions>>;
-}){
-
-
+}) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const handleClick = () => {
         // Manually trigger the hidden file input's click event
@@ -768,36 +765,31 @@ function UpDatePolicyControls( {
             const reader = new FileReader();
             reader.onload = async (event) => {
                 const text = event.target?.result as string;
-//                setValue("adminNotice", text);
-//                setFileContent(text); // Populate the form field state
+                //                setValue("adminNotice", text);
+                //                setFileContent(text); // Populate the form field state
                 await updatePolicy(text).catch((err) => {
                     console.error("Error uploading policy file:", err);
                     // Optionally, set an error state here to display in the UI
                 });
 
                 setSettings("HOME");
-
             };
             reader.readAsText(file);
             // event.target.value = ""; // Reset the input so the same file can be uploaded again if needed
             // Allow selecting the same file again
             event.target.value = "";
-
-
         }
-
     };
 
     return (
         <div>
-            <button 
+            <button
                 onClick={handleClick}
-                className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"                
+                className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
             >
                 <Hammer className="h-4 w-4" />
                 Upload Policy file
             </button>
-
 
             {/* Hidden input to handle the OS file dialog */}
             <input
@@ -806,9 +798,7 @@ function UpDatePolicyControls( {
                 onChange={handleFileChange}
                 accept=".html,.htm" // Optional: restrict file types
                 style={{ display: "none" }}
-
             />
         </div>
     );
 }
-

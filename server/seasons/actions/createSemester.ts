@@ -1,12 +1,12 @@
 "use server";
 
+import { eq, or } from "drizzle-orm";
+import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement, seasons } from "@/lib/db/schema";
 import { arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
-import { eq, or } from "drizzle-orm";
-import { z } from "zod/v4";
 import { startSemFormSchema } from "../schema";
 
 export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
@@ -119,7 +119,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 createddate: toESTString(new Date()),
                 lastmodifieddate: toESTString(new Date()),
                 //notes: semData.adminNotice ? `{semData.adminNotice}` : "",
-                updateby:  user.user.name ?? user.user.email ?? "Unknown admin"
+                updateby: user.user.name ?? user.user.email ?? "Unknown admin",
             })
             .returning();
 
