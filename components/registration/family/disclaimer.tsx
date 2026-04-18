@@ -32,6 +32,7 @@ export default function DisclaimerPage({
                 srcDoc={notes}
                 style={{ width: "100%", height: "600px", border: "solid black" }}
                 title="School Policy"
+                sandbox="" // This disables all JavaScript and prevents the content from navigating the parent page
             />
             <div>
                 <label style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
