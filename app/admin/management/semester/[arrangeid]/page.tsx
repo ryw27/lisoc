@@ -1,19 +1,16 @@
-import ClassCardWithPrint from "@/components/teacher/class-card-with-print";
+import { Suspense, type FC } from "react";
 import { db } from "@/lib/db";
 import { REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, regStatusMap } from "@/lib/utils";
 import { teacherClassStudentView } from "@/types/shared.types";
-import { Suspense, type FC } from "react";
-
+import ClassCardWithPrint from "@/components/teacher/class-card-with-print";
 
 interface ArrangeIDPageProps {
     params: Promise<{ arrangeid: string }>;
 }
 
 const ClassDetails: FC<{ arrangeid: number }> = async ({ arrangeid }) => {
-
-    const classinfo  = await db.query.arrangement.findFirst({
-        where: (arrangement, { eq }) =>
-            eq(arrangement.arrangeid, arrangeid),
+    const classinfo = await db.query.arrangement.findFirst({
+        where: (arrangement, { eq }) => eq(arrangement.arrangeid, arrangeid),
         with: {
             class: {
                 columns: {
@@ -65,10 +62,7 @@ const ClassDetails: FC<{ arrangeid: number }> = async ({ arrangeid }) => {
                 eq(reg.classid, classinfo.classid),
                 eq(reg.isdropspring, false),
                 eq(reg.seasonid, classinfo.seasonid),
-                or(
-                    eq(reg.statusid, REGSTATUS_REGISTERED),
-                    eq(reg.statusid, REGSTATUS_SUBMITTED)
-                )
+                or(eq(reg.statusid, REGSTATUS_REGISTERED), eq(reg.statusid, REGSTATUS_SUBMITTED))
             ),
         with: {
             student: {
@@ -107,9 +101,7 @@ const ClassDetails: FC<{ arrangeid: number }> = async ({ arrangeid }) => {
         return {
             student: `${s.student.namefirsten} ${s.student.namelasten} ${s.student.namecn}`,
             gender: `${s.student.gender ? s.student.gender[0] : "N/A"}`,
-            age: Math.floor(
-                new Date().getFullYear() - new Date(s.student.dob).getFullYear() + 1
-            ),
+            age: Math.floor(new Date().getFullYear() - new Date(s.student.dob).getFullYear() + 1),
             familyid: s.familyid,
             father: `${s.student.family?.fatherfirsten} ${s.student.family?.fatherlasten} ${s.student.family?.fathernamecn}`,
             mother: `${s.student.family?.motherfirsten} ${s.student.family?.motherlasten} ${s.student.family?.mothernamecn}`,
@@ -132,13 +124,12 @@ const ClassDetails: FC<{ arrangeid: number }> = async ({ arrangeid }) => {
             allClassStudent={flatstudents}
         />
     );
-
 };
 
 export default async function Page({ params }: ArrangeIDPageProps) {
     const { arrangeid } = await params;
     if (!arrangeid) {
-        return <div>Class  not found</div>;
+        return <div>Class not found</div>;
     }
     return (
         <Suspense
