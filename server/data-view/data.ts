@@ -1,6 +1,6 @@
 import { and, eq, getTableColumns, gt, gte, lt, lte, or, SQL } from "drizzle-orm";
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
-import { transporter } from "@/lib/nodemailer";
+import { msSendEmail } from "@/lib/nodemailer";
 import { SITE_LINK, toESTString } from "@/lib/utils";
 import { type ParsedFilter, type Table } from "@/types/dataview.types";
 
@@ -45,16 +45,15 @@ export async function sendUserRegEmail(
     password: string,
     type: "Admin" | "Teacher"
 ) {
-    await transporter.sendMail({
-        from: "LISOC Registration <regadmin@lisoc.org>",
-        to: emailTo,
-        subject: `LISOC ${type} Registration`,
-        html: `
+    await msSendEmail(
+        emailTo,
+        `LISOC ${type} Registration`,
+        `
             <p>Login with the following <a href="${SITE_LINK}/login/${type.toLowerCase()}">link</a></p>
             <p>If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/login/${type.toLowerCase()}</p>
             <p>Use the following credentials:</p>
             <p><strong>Email:</strong> ${emailTo}</p>
             <p><strong>Password:</strong> ${password}</p>
-        `,
-    });
+        `
+    );
 }

@@ -1,15 +1,18 @@
 import { UserObject } from "@/server/data-view/entity-configs/(people)/users";
 import { db } from "../../lib/db";
 import { msSendEmail } from "../../lib/nodemailer";
-
 //import { transporter } from "../../lib/nodemailer";
 import { SITE_LINK } from "../../lib/utils";
 
 export async function sendRegEmail(emailTo: string, token: string) {
-    await msSendEmail(emailTo, "LISOC Account Registration Verification", `
+    await msSendEmail(
+        emailTo,
+        "LISOC Account Registration Verification",
+        `
         <p> Your verification code is <strong> ${token} </strong>. This code will expire in 10 minutes </p>
         <p> If you are not trying to register, please ignore this email </p>
-    `);
+    `
+    );
 }
 
 // export async function sendFPEmail(emailTo: string, uuid: string) {
@@ -25,21 +28,27 @@ export async function sendRegEmail(emailTo: string, token: string) {
 // }
 
 export async function sendFPEmail(emailTo: string, uuid: string) {
-    await msSendEmail(emailTo, "LISOC Forgot Password Link", `
+    await msSendEmail(
+        emailTo,
+        "LISOC Forgot Password Link",
+        `
             <p> Reset your password with the following <a href="${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)}"> link </a> </p>
             <p> If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/reset-password?token=${uuid}&email=${encodeURIComponent(emailTo)} </p>
             <p> If you are not trying to reset your password, please ignore this email </p>
-        `,
+        `
     );
 }
 
 export async function sendRegLinkEmail(emailTo: string, token: string, type: "Teacher" | "Admin") {
-    await msSendEmail(emailTo, `LISOC ${type} Registration Link`, `
+    await msSendEmail(
+        emailTo,
+        `LISOC ${type} Registration Link`,
+        `
             <p> Register your account with the following link: <a href="${SITE_LINK}/register/${token}?email=${encodeURIComponent(emailTo)}"> </a> </p>
             <p> If the link is not working, please try copy and pasting the following into your browser: ${SITE_LINK}/register/${token}?email=${encodeURIComponent(emailTo)} </p>
             <p> This link will expire in 7 days </p>
             <p> If you are not trying to register, please ignore this email </p>
-        `,
+        `
     );
 }
 

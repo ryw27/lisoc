@@ -11,6 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 // ----------------------------------------------------------------
 
 export function toESTString(date: Date) {
+    date.setHours(0, 0, 0, 0);
     return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd'T'HH:mm:ssXXX");
 }
 

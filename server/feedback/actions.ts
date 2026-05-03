@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import z from "zod/v4";
 import { db } from "@/lib/db";
 import { feedback } from "@/lib/db/schema";
-import { transporter } from "@/lib/nodemailer";
+import { msSendEmail } from "@/lib/nodemailer";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
 import { requireRole } from "@/server/auth/actions";
@@ -45,11 +45,10 @@ async function sendFeedbackMail(
     emailTo: string,
     name: string | null
 ) {
-    await transporter.sendMail({
-        from: "LISOC Registration <regadmin@lisoc.org>",
-        to: emailTo,
-        subject: `LISOC feedback reply ${name ? `to ${name}` : ""}`,
-        html: `
+    await msSendEmail(
+        emailTo,
+        `LISOC feedback reply ${name ? `to ${name}` : ""}`,
+        `
             <div style="font-family: Arial, sans-serif; color: #222; background: #f9f9f9; padding: 24px; border-radius: 8px;">
                 <h2 style="color: #2d6cdf; margin-bottom: 16px;">LISOC Feedback Response</h2>
                 <div style="margin-bottom: 20px;">
@@ -70,8 +69,8 @@ async function sendFeedbackMail(
                     Thank you for reaching out to LISOC!
                 </p>
             </div>
-        `,
-    });
+        `
+    );
 }
 
 const replyFeedbackSchema = z.object({
