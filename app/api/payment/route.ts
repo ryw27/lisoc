@@ -41,7 +41,7 @@ async function getPayPalAccessToken() {
 
 async function capturePayPalOrder(orderID: string, accessToken: string) {
     try {
-        console.log(`Capturing order ${orderID} with token ${accessToken.substring(0, 10)}...`);
+        //console.log(`Capturing order ${orderID} with token ${accessToken.substring(0, 10)}...`);
 
         const response = await fetch(`${PAYPAL_API_URL}/v2/checkout/orders/${orderID}/capture`, {
             method: "POST",
@@ -53,7 +53,7 @@ async function capturePayPalOrder(orderID: string, accessToken: string) {
         });
 
         const data = await response.json();
-        console.log("Capture response:", data);
+        //console.log("Capture response:", data);
         return data;
     } catch (error) {
         console.error("Error capturing PayPal order:", error);
@@ -64,7 +64,7 @@ async function capturePayPalOrder(orderID: string, accessToken: string) {
 export async function POST(request: Request) {
     try {
         const data: PaymentData = await request.json();
-        console.log("Received payment data:", data);
+        //console.log("Received payment data:", data);
 
         // Validate the payment data
         if (!data.name || !data.email || !data.amount || !data.orderID) {
@@ -73,15 +73,15 @@ export async function POST(request: Request) {
 
         // Get PayPal access token
         const accessToken = await getPayPalAccessToken();
-        console.log("Got PayPal access token");
+        //console.log("Got PayPal access token");
 
         // Capture the payment
         const captureData = await capturePayPalOrder(data.orderID, accessToken);
-        console.log("PayPal capture response:", captureData);
+        //console.log("PayPal capture response:", captureData);
 
         // Check if capture was successful
         if (captureData.status !== "COMPLETED") {
-            console.log(`Invalid capture status: ${captureData.status}`);
+            //console.log(`Invalid capture status: ${captureData.status}`);
             return NextResponse.json(
                 { error: `Payment capture failed with status: ${captureData.status}` },
                 { status: 400 }
