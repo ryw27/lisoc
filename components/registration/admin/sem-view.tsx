@@ -275,8 +275,12 @@ export default function SemesterView({
     const getCurrentPhase = (term: InferSelectModel<typeof seasons>, termName: string) => {
         if (curDate <= new Date(term.earlyregdate)) {
             return `${termName} registration has not begun`;
+        } else if (term.earlyregdate2 && curDate <= new Date(term.earlyregdate2)) {
+            return `${termName} early registration 1`;
         } else if (curDate <= new Date(term.normalregdate)) {
-            return `${termName} early registration`;
+            return term.earlyregdate2
+                ? `${termName} early registration 2`
+                : `${termName} early registration`;
         } else if (curDate <= new Date(term.lateregdate1)) {
             return `${termName} normal registration`;
         } else if (curDate <= new Date(term.closeregdate)) {
@@ -313,6 +317,10 @@ export default function SemesterView({
                 <div>
                     <span className="font-medium">Early Registration: </span>
                     {term.earlyregdate ? new Date(term.earlyregdate).toLocaleString() : "N/A"}
+                </div>
+                <div>
+                    <span className="font-medium">Early Registration 2: </span>
+                    {term.earlyregdate2 ? new Date(term.earlyregdate2).toLocaleString() : "N/A"}
                 </div>
                 <div>
                     <span className="font-medium">Normal Registration: </span>

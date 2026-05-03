@@ -108,6 +108,7 @@ function DateControls({
             fallstart: formatDateForInput(seasons.fall.startdate),
             fallend: formatDateForInput(seasons.fall.enddate),
             fallearlyreg: formatDateForInput(seasons.fall.earlyregdate),
+            fallearlyreg2: formatDateForInput(seasons.fall.earlyregdate2),
             fallnormalreg: formatDateForInput(seasons.fall.normalregdate),
             falllatereg: formatDateForInput(seasons.fall.lateregdate1),
             fallclosereg: formatDateForInput(seasons.fall.closeregdate),
@@ -115,6 +116,7 @@ function DateControls({
             springstart: formatDateForInput(seasons.spring.startdate),
             springend: formatDateForInput(seasons.spring.enddate),
             springearlyreg: formatDateForInput(seasons.spring.earlyregdate),
+            springearlyreg2: formatDateForInput(seasons.spring.earlyregdate2),
             springnormalreg: formatDateForInput(seasons.spring.normalregdate),
             springlatereg: formatDateForInput(seasons.spring.lateregdate1),
             springclosereg: formatDateForInput(seasons.spring.closeregdate),
@@ -130,7 +132,7 @@ function DateControls({
             const dateData = Object.fromEntries(
                 Object.entries(data).map(([key, value]) => [
                     key,
-                    value ? new Date(value as unknown as string) : undefined,
+                    value ? new Date(value as unknown as string) : null,
                 ])
             ) as z.infer<typeof seasonDatesSchema>;
 
@@ -148,13 +150,19 @@ function DateControls({
         <div className="rounded-lg bg-white p-10 opacity-100 shadow-xl">
             <h3 className="border-b pb-2 font-semibold text-gray-800">Change dates</h3>
             <form onSubmit={dateForm.handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-4">
+                <div>
+                    <h3 className="text-center text-blue-600">
+                        {" "}
+                        =============== Fall ==============={" "}
+                    </h3>
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                         <label
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallstart"
                         >
-                            Fall Start
+                            Start
                         </label>
                         <Input id="fallstart" type="date" {...dateForm.register("fallstart")} />
                         {dateForm.formState.errors.fallstart && (
@@ -168,7 +176,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallend"
                         >
-                            Fall End
+                            End
                         </label>
                         <Input id="fallend" type="date" {...dateForm.register("fallend")} />
                         {dateForm.formState.errors.fallend && (
@@ -180,37 +188,9 @@ function DateControls({
                     <div>
                         <label
                             className="mb-1 block text-sm font-medium text-gray-700"
-                            htmlFor="springstart"
-                        >
-                            Spring Start
-                        </label>
-                        <Input id="springstart" type="date" {...dateForm.register("springstart")} />
-                        {dateForm.formState.errors.springstart && (
-                            <span className="text-xs text-red-500">
-                                {dateForm.formState.errors.springstart.message}
-                            </span>
-                        )}
-                    </div>
-                    <div>
-                        <label
-                            className="mb-1 block text-sm font-medium text-gray-700"
-                            htmlFor="springend"
-                        >
-                            Spring End
-                        </label>
-                        <Input id="springend" type="date" {...dateForm.register("springend")} />
-                        {dateForm.formState.errors.springend && (
-                            <span className="text-xs text-red-500">
-                                {dateForm.formState.errors.springend?.message}
-                            </span>
-                        )}
-                    </div>
-                    <div>
-                        <label
-                            className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallearlyreg"
                         >
-                            Early Registration (Fall)
+                            Early Registration
                         </label>
                         <Input
                             id="fallearlyreg"
@@ -226,9 +206,27 @@ function DateControls({
                     <div>
                         <label
                             className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="fallearlyreg2"
+                        >
+                            Early Registration 2
+                        </label>
+                        <Input
+                            id="fallearlyreg2"
+                            type="date"
+                            {...dateForm.register("fallearlyreg2")}
+                        />
+                        {dateForm.formState.errors.fallearlyreg2 && (
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.fallearlyreg2.message}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallnormalreg"
                         >
-                            Normal Registration (Fall)
+                            Normal Registration
                         </label>
                         <Input
                             id="fallnormalreg"
@@ -246,7 +244,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="falllatereg"
                         >
-                            Late Registration (Fall)
+                            Late Registration
                         </label>
                         <Input id="falllatereg" type="date" {...dateForm.register("falllatereg")} />
                         {dateForm.formState.errors.falllatereg && (
@@ -260,7 +258,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallclosereg"
                         >
-                            Close Registration (Fall)
+                            Close Registration
                         </label>
                         <Input
                             id="fallclosereg"
@@ -278,7 +276,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="fallcanceldeadline"
                         >
-                            Cancel Deadline (Fall)
+                            Cancel Deadline
                         </label>
                         <Input
                             id="fallcanceldeadline"
@@ -291,12 +289,48 @@ function DateControls({
                             </span>
                         )}
                     </div>
+                </div>
+                <div>
+                    <h3 className="text-center text-green-600">
+                        {" "}
+                        =============== Spring ==============={" "}
+                    </h3>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springstart"
+                        >
+                            Start
+                        </label>
+                        <Input id="springstart" type="date" {...dateForm.register("springstart")} />
+                        {dateForm.formState.errors.springstart && (
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springstart.message}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springend"
+                        >
+                            End
+                        </label>
+                        <Input id="springend" type="date" {...dateForm.register("springend")} />
+                        {dateForm.formState.errors.springend && (
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springend?.message}
+                            </span>
+                        )}
+                    </div>
                     <div>
                         <label
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="springearlyreg"
                         >
-                            Early Registration (Spring)
+                            Early Registration
                         </label>
                         <Input
                             id="springearlyreg"
@@ -312,9 +346,28 @@ function DateControls({
                     <div>
                         <label
                             className="mb-1 block text-sm font-medium text-gray-700"
+                            htmlFor="springearlyreg2"
+                        >
+                            Early Registration 2
+                        </label>
+                        <Input
+                            id="springearlyreg2"
+                            type="date"
+                            {...dateForm.register("springearlyreg2")}
+                        />
+                        {dateForm.formState.errors.springearlyreg2 && (
+                            <span className="text-xs text-red-500">
+                                {dateForm.formState.errors.springearlyreg2.message}
+                            </span>
+                        )}
+                    </div>
+
+                    <div>
+                        <label
+                            className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="springnormalreg"
                         >
-                            Normal Registration (Spring)
+                            Normal Registration
                         </label>
                         <Input
                             id="springnormalreg"
@@ -332,7 +385,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="springlatereg"
                         >
-                            Late Registration (Spring)
+                            Late Registration
                         </label>
                         <Input
                             id="springlatereg"
@@ -350,7 +403,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="springclosereg"
                         >
-                            Close Registration (Spring)
+                            Close Registration
                         </label>
                         <Input
                             id="springclosereg"
@@ -368,7 +421,7 @@ function DateControls({
                             className="mb-1 block text-sm font-medium text-gray-700"
                             htmlFor="springcanceldeadline"
                         >
-                            Cancel Deadline (Spring)
+                            Cancel Deadline
                         </label>
                         <Input
                             id="springcanceldeadline"

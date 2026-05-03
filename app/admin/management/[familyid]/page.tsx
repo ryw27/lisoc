@@ -166,6 +166,22 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
         studentsInFamily
     );
 
+    const feeIdMap = async (): Promise<Record<number, string>> => {
+        const feeTypes = await db.query.familybalancetype.findMany({});
+        return feeTypes.reduce<Record<number, string>>((rec, feeType) => {
+            if (
+                feeType.typeid != null &&
+                typeof feeType.typenameen === "string" &&
+                feeType.isshow
+            ) {
+                rec[feeType.typeid] = feeType.typenameen;
+            }
+            return rec;
+        }, {});
+    };
+
+    const feeTypeIdMap = await feeIdMap();
+
     return (
         <div className="mx-auto max-w-7xl p-6">
             <h1 className="mb-4 text-2xl font-bold">Family: {selectFamilyName(fam)}</h1>
@@ -203,6 +219,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
                 hasRegistrations={registrationData.length > 0}
                 family={fam}
                 registrations={registrationData}
+                feeTypeIdMap={feeTypeIdMap}
             />
 
             {/*<ApplyButton family={fam} />*/}

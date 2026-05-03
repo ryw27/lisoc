@@ -42,6 +42,7 @@ export const seasonFormSchema = z.object({
     earlyregdate: z
         .date({ message: "Invalid early registration date" })
         .default(new Date(toESTString(new Date("1900-01-01")))),
+    earlyregdate2: z.date({ message: "Invalid early registration date 2" }).nullable().optional(),
     normalregdate: z
         .date({ message: "Invalid normal registration date" })
         .default(new Date(toESTString(new Date("1900-01-01")))),

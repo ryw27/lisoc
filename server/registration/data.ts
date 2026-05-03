@@ -173,7 +173,8 @@ export async function canRegister(
 
     // 2. Get current date in eastern time
     const now = new Date(toESTString(new Date()));
-    const { earlyregdate, closeregdate, lateregdate1, lateregdate2, normalregdate } = arrSeason;
+    const { earlyregdate, earlyregdate2, closeregdate, lateregdate1, lateregdate2, normalregdate } =
+        arrSeason;
 
     if (arrangement.closeregistration !== true) {
         return "noclosereg";
@@ -197,6 +198,10 @@ export async function canRegister(
     // Normal registration period
     if (now >= new Date(normalregdate)) {
         return "normal";
+    }
+
+    if (earlyregdate2 && now >= new Date(earlyregdate2)) {
+        return "early2";
     }
 
     // Early registration period

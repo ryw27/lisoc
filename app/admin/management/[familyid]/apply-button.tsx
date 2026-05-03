@@ -9,7 +9,13 @@ import { applyCheck } from "@/server/payments/actions";
 import { checkApplySchema } from "@/server/payments/schema";
 import { Input } from "@/components/ui/input";
 
-export default function ApplyButton({ family }: { family: familyObj }) {
+export default function ApplyButton({
+    family,
+    feeTypeIdMap,
+}: {
+    family: familyObj;
+    feeTypeIdMap: Record<number, string>;
+}) {
     const formRef = useRef<HTMLFormElement>(null);
 
     const today = new Date().toISOString().split("T")[0];
@@ -62,6 +68,18 @@ export default function ApplyButton({ family }: { family: familyObj }) {
                 className="border-input bg-background focus:border-accent focus:ring-accent w-40 px-3 py-2 text-sm focus:ring-1"
                 {...checkForm.register("amount", { required: true, valueAsNumber: true })}
             />
+
+            <select
+                defaultValue="6"
+                className="border-input bg-background focus:border-accent focus:ring-accent w-40 px-3 py-2 text-sm focus:ring-1"
+                {...checkForm.register("feeTypeId", { required: true, valueAsNumber: true })}
+            >
+                {Object.entries(feeTypeIdMap).map(([key, value]) => (
+                    <option key={key} value={key}>
+                        {key}-{value}
+                    </option>
+                ))}
+            </select>
 
             <Input
                 placeholder="Check No"

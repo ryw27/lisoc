@@ -146,6 +146,7 @@ export default function StartSemesterForm({
             fallstart: asDate(getNextYearDateString(lastFall?.startdate)),
             fallend: asDate(getNextYearDateString(lastFall?.enddate)),
             fallearlyreg: asDate(getNextYearDateString(lastFall?.earlyregdate)),
+            fallearlyreg2: asDate(getNextYearDateString(lastFall?.earlyregdate2)),
             fallnormalreg: asDate(getNextYearDateString(lastFall?.normalregdate)),
             falllatereg: asDate(getNextYearDateString(lastFall?.lateregdate1)),
             fallclosereg: asDate(getNextYearDateString(lastFall?.closeregdate)),
@@ -154,6 +155,7 @@ export default function StartSemesterForm({
             springstart: asDate(getNextYearDateString(lastSpring?.startdate)),
             springend: asDate(getNextYearDateString(lastSpring?.enddate)),
             springearlyreg: asDate(getNextYearDateString(lastSpring?.earlyregdate)),
+            springearlyreg2: asDate(getNextYearDateString(lastSpring?.earlyregdate2)),
             springnormalreg: asDate(getNextYearDateString(lastSpring?.normalregdate)),
             springlatereg: asDate(getNextYearDateString(lastSpring?.lateregdate1)),
             springclosereg: asDate(getNextYearDateString(lastSpring?.closeregdate)),
@@ -422,6 +424,10 @@ function DateGroup({ label, prefix }: { label: string; prefix: "fall" | "spring"
                     <DateInput
                         label="Early Reg. Start"
                         name={`${prefix}earlyreg` as Path<FormValues>}
+                    />
+                    <DateInput
+                        label="Early Reg. 2 Start"
+                        name={`${prefix}earlyreg2` as Path<FormValues>}
                     />
                     <DateInput
                         label="Normal Reg. Start"

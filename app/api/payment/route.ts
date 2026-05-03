@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 //import { headers } from 'next/headers';
+import { FAMILYBALANCE_TYPE_PAYMENT } from "@/lib/utils";
 import { applyCheck } from "@/server/payments/actions";
 
 interface PaymentData {
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
             amount: amount,
             checkNo: `${data.orderID}`,
             paidDate: paidDate,
+            feeTypeId: FAMILYBALANCE_TYPE_PAYMENT,
             note: `PayPal Capture ID: ${captureData.id}`,
         };
 

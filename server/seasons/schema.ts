@@ -1,11 +1,17 @@
 import { z } from "zod/v4";
 import { arrangementSchema } from "@/lib/schema";
 
+const nullableDate = z.preprocess(
+    (value) => (value === "" || value === undefined ? null : value),
+    z.coerce.date().nullable()
+);
+
 // TODO: Add further refinement to make sure dates are in order
 export const seasonDatesSchema = z.object({
     fallstart: z.coerce.date(),
     fallend: z.coerce.date(),
     fallearlyreg: z.coerce.date(),
+    fallearlyreg2: nullableDate,
     fallnormalreg: z.coerce.date(),
     falllatereg: z.coerce.date(),
     fallclosereg: z.coerce.date(),
@@ -13,6 +19,7 @@ export const seasonDatesSchema = z.object({
     springstart: z.coerce.date(),
     springend: z.coerce.date(),
     springearlyreg: z.coerce.date(),
+    springearlyreg2: nullableDate,
     springnormalreg: z.coerce.date(),
     springlatereg: z.coerce.date(),
     springclosereg: z.coerce.date(),
@@ -23,6 +30,7 @@ export const oneSeasonDatesSchema = z.object({
     startdate: z.coerce.date(),
     enddate: z.coerce.date(),
     earlyregdate: z.coerce.date(),
+    earlyregdate2: nullableDate,
     normalregdate: z.coerce.date(),
     lateregdate1: z.coerce.date(),
     lateregdate2: z.coerce.date(),

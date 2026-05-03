@@ -1147,6 +1147,7 @@ export const seasons = pgTable("seasons", {
     createddate: timestamp({ mode: "string" }).default("1900-01-01 00:00:00"),
     lastmodifieddate: timestamp({ mode: "string" }).defaultNow(),
     updateby: varchar({ length: 50 }).default("").notNull(),
+    earlyregdate2: timestamp({ mode: "string" }),
 });
 
 export const scorefactors = pgTable("scorefactors", {

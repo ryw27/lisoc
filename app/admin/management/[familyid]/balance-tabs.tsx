@@ -21,6 +21,7 @@ interface BalanceTabsProps {
     family: familyObj;
 
     registrations: adminFamilyRegView[];
+    feeTypeIdMap: Record<number, string>;
 }
 
 export default function BalanceTabs({
@@ -28,6 +29,7 @@ export default function BalanceTabs({
     hasRegistrations,
     family,
     registrations,
+    feeTypeIdMap,
 }: BalanceTabsProps) {
     return (
         <Tabs defaultValue="balances" className="w-full">
@@ -54,7 +56,7 @@ export default function BalanceTabs({
                 ) : (
                     <div className="text-gray-500">No class registrations found.</div>
                 )}
-                <ApplyButton family={family} />
+                <ApplyButton family={family} feeTypeIdMap={feeTypeIdMap} />
             </TabsContent>
             <TabsContent
                 value="registrations"

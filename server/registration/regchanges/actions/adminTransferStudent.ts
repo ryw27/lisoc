@@ -5,12 +5,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
-    EARLY_REG_DISCOUNT,
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_TRANSFER,
-    LATE_REG_FEE_1,
     REGISTRATION_FEE,
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
@@ -18,13 +16,7 @@ import {
     toESTString,
 } from "@/lib/utils";
 import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
-import {
-    canTransferOutandIn,
-    getArrSeason,
-    getTotalPrice,
-    isEarlyReg,
-    isLateReg,
-} from "../../data";
+import { canTransferOutandIn, getArrSeason, getTotalPrice } from "../../data";
 
 export async function adminTransferStudent(
     regid: number,
@@ -187,10 +179,16 @@ export async function adminTransferStudent(
         // 9. Insert new family balance with registration prices
         // TODO: Another field to consider is extrafee4newfamily
         const newTotalPrice = await getTotalPrice(tx, newArrange, arrTerm);
+        /*
         const regFee = newArrange.waiveregfee ? 0 : REGISTRATION_FEE;
         const earlyregdiscount = (await isEarlyReg(tx, newArrange)) ? EARLY_REG_DISCOUNT : 0;
         const lateregfee = (await isLateReg(tx, newArrange)) ? LATE_REG_FEE_1 : 0;
-        const totalamount = newTotalPrice + regFee + lateregfee - earlyregdiscount;
+        */
+        //  transfer only consider tuition difference, all other fees are waived or charged as extra fee
+        const regFee = 0.0;
+        const earlyregdiscount = 0.0;
+        const lateregfee = 0.0;
+        const totalamount = newTotalPrice; // + regFee + lateregfee - earlyregdiscount;
 
         const newBalVals = {
             appliedid: oldReg.familybalanceid || 0,

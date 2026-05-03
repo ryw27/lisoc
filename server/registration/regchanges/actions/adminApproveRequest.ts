@@ -6,14 +6,11 @@ import { and, eq, ne, or, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import {
-    EARLY_REG_DISCOUNT,
     FAMILYBALANCE_STATUS_PENDING,
     //FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_DROPOUT,
     //FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_TRANSFER,
-    LATE_REG_FEE_1,
-    REGISTRATION_FEE,
     REGSTATUS_DROPOUT,
     REGSTATUS_REGISTERED,
     REGSTATUS_TRANSFERRED,
@@ -23,7 +20,7 @@ import {
 } from "@/lib/utils";
 import { type famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
-import { getArrSeason, getTotalPrice, isEarlyReg, isLateReg } from "../../data";
+import { getArrSeason, getTotalPrice } from "../../data";
 
 export async function adminApproveRequest(
     requestid: number,
@@ -159,12 +156,15 @@ export async function adminApproveRequest(
                 // 9. Open new family balances
                 // TODO: Another field to consider is extrafee4newfamily
                 const newTotalPrice = await getTotalPrice(tx, newArrange, arrTerm);
+                /*
                 const regFee = newArrange.waiveregfee ? 0 : REGISTRATION_FEE;
                 const earlyregdiscount = (await isEarlyReg(tx, newArrange))
                     ? EARLY_REG_DISCOUNT
                     : 0;
                 const lateregfee = (await isLateReg(tx, newArrange)) ? LATE_REG_FEE_1 : 0;
-                const totalamount = newTotalPrice + regFee + lateregfee - earlyregdiscount;
+                */
+                //  transfer only consider tuition difference, all other fees are waived or charged as extra fee
+                const totalamount = newTotalPrice; //+ regFee + lateregfee - earlyregdiscount;
 
                 const diff = totalamount - oldTotalPrice + extraFee;
                 if (Math.abs(diff) > 0.01) {
@@ -238,10 +238,11 @@ export async function adminApproveRequest(
                     );
 
                 if (!otherReg) {
-                    // no other registered class for the family in the season, credit back management fee
+                    // no other registered class for the family in the season, credit back management fee - discount fee
                     const result = await tx
                         .select({
                             managementfee: sum(familybalance.managementfee).mapWith(Number), // Map to correct type
+                            earlyregdiscount: sum(familybalance.earlyregdiscount).mapWith(Number), // Map to correct type
                         })
                         .from(familybalance)
                         .where(
@@ -252,7 +253,9 @@ export async function adminApproveRequest(
                         );
 
                     const managementfee = result[0]?.managementfee || 0;
+                    const earlyregdiscount = result[0]?.earlyregdiscount || 0;
                     credit -= managementfee;
+                    credit += earlyregdiscount;
                 }
 
                 const dropBalVals = {

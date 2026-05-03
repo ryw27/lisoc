@@ -71,10 +71,16 @@ export async function familyRegister(
         let lateRegFee1 = feeSchedule.find((fee) => fee.feeid === 2)?.feeamount || "0";
         let lateRegFee2 = feeSchedule.find((fee) => fee.feeid === 3)?.feeamount || "0";
         let earlyRegDiscount = feeSchedule.find((fee) => fee.feeid === 7)?.feeamount || "50";
+        let earlyRegDiscount2 = feeSchedule.find((fee) => fee.feeid === 11)?.feeamount || "0";
         const dutyFeeDeposit = feeSchedule.find((fee) => fee.feeid === 6)?.feeamount || "0";
 
         registrationFee = arrData.waiveregfee ? "0" : registrationFee;
-        earlyRegDiscount = checkReg === "early" ? earlyRegDiscount : "0";
+        earlyRegDiscount =
+            checkReg === "early"
+                ? earlyRegDiscount
+                : checkReg === "early2"
+                  ? earlyRegDiscount2
+                  : "0";
         const lateregfee =
             checkReg === "late1" ? lateRegFee1 : checkReg === "late2" ? lateRegFee2 : "0";
 

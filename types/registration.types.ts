@@ -54,6 +54,7 @@ export type uniqueRegRequests = {
 
 export type regKind =
     | "early"
+    | "early2"
     | "normal"
     | "late1"
     | "late2"

@@ -33,6 +33,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 startdate: toESTString(semData.fallstart),
                 enddate: toESTString(semData.fallend),
                 earlyregdate: toESTString(semData.fallearlyreg),
+                earlyregdate2: semData.fallearlyreg2 ? toESTString(semData.fallearlyreg2) : null,
                 normalregdate: toESTString(semData.fallnormalreg),
                 lateregdate1: toESTString(semData.falllatereg),
                 lateregdate2: toESTString(semData.falllatereg),
@@ -67,6 +68,7 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 startdate: toESTString(semData.fallstart), // Full Academic Year
                 enddate: toESTString(semData.springend), // Full Academic Year
                 earlyregdate: toESTString(semData.fallearlyreg),
+                earlyregdate2: semData.fallearlyreg2 ? toESTString(semData.fallearlyreg2) : null,
                 normalregdate: toESTString(semData.fallnormalreg),
                 lateregdate1: toESTString(semData.falllatereg),
                 lateregdate2: toESTString(semData.falllatereg),
@@ -103,6 +105,9 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
                 startdate: toESTString(semData.springstart),
                 enddate: toESTString(semData.springend),
                 earlyregdate: toESTString(semData.springearlyreg),
+                earlyregdate2: semData.springearlyreg2
+                    ? toESTString(semData.springearlyreg2)
+                    : null,
                 normalregdate: toESTString(semData.springnormalreg),
                 lateregdate1: toESTString(semData.springlatereg),
                 lateregdate2: toESTString(semData.springlatereg),

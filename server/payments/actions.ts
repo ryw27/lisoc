@@ -8,7 +8,6 @@ import { classregistration, familybalance } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PAID,
     FAMILYBALANCE_STATUS_PROCESSED,
-    FAMILYBALANCE_TYPE_PAYMENT,
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
@@ -51,7 +50,7 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
             appliedid: oldFB.balanceid,
             familyid: familyid,
             seasonid: oldFB.seasonid,
-            typeid: FAMILYBALANCE_TYPE_PAYMENT, // this may need to be changed based on payment type
+            typeid: data.feeTypeId,
             statusid: FAMILYBALANCE_STATUS_PAID, // Because we're applying a payment
             checkno: parsed.checkNo,
             totalamount: (-parsed.amount).toString(),
