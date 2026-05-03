@@ -173,18 +173,18 @@ export async function canRegister(
 
     // 2. Get current date in eastern time
     const now = new Date(toESTString(new Date()));
-    const { earlyregdate, earlyregdate2, closeregdate, lateregdate1, lateregdate2, normalregdate } =
-        arrSeason;
+    const { earlyregdate, earlyregdate2, closeregdate, lateregdate1, lateregdate2 } = arrSeason;
 
-    if (arrangement.closeregistration !== true) {
-        return "noclosereg";
-    }
-
-    // Registration closed if before early reg or after close reg
-    if (now < new Date(earlyregdate) || now > new Date(closeregdate)) {
+    if (arrangement.closeregistration == true || now > new Date(closeregdate)) {
         return "closed";
     }
 
+    // Registration closed if before early reg or after close reg
+    /*    if (now < new Date(earlyregdate) || now > new Date(closeregdate)) {
+        return "closed";
+    }
+*/
+    // up to here not closed and now < closeregdate
     // Late2 registration period
     if (now >= new Date(lateregdate2)) {
         return "late2";
@@ -195,22 +195,17 @@ export async function canRegister(
         return "late1";
     }
 
-    // Normal registration period
-    if (now >= new Date(normalregdate)) {
-        return "normal";
-    }
-
-    if (earlyregdate2 && now >= new Date(earlyregdate2)) {
-        return "early2";
-    }
-
     // Early registration period
-    if (now >= new Date(earlyregdate)) {
+    if (now <= new Date(earlyregdate)) {
         return "early";
     }
 
+    if (earlyregdate2 && now <= new Date(earlyregdate2)) {
+        return "early2";
+    }
+
     // Fallback: closed
-    return "closed";
+    return "normal";
 }
 
 // Ensures that a registration for a given timeline (class time) does not conflict with existing registrations.

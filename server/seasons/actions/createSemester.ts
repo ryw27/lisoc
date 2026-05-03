@@ -144,13 +144,14 @@ export async function createSemester(data: z.infer<typeof startSemFormSchema>) {
             .set({ activestatus: "Inactive", regstatus: "Close" })
             .where(or(eq(arrangement.activestatus, "Active"), eq(arrangement.regstatus, "Open")));
 
+        const seasonid = fallSem.seasonid;
+
         // Push into arrangements
         for (const classData of semData.classes) {
             const parsedClass = arrangementSchema.parse(classData);
             // TODO: Uncomment once this is fixed
             // const { seasonid, activestatus, regstatus } = await getTermVariables(parsedClass, academicYear, tx);
             // Term should only appear if semester only is chosen for suitable term
-            const seasonid = academicYear.seasonid;
             let activestatus = "Active";
             let regstatus = "Open";
 

@@ -184,7 +184,7 @@ export default function RegisterStudent({
 
             if (filtered.length === 0) {
                 // no reg classes found, return all classes
-                return [...threeArrs.year, ...threeArrs.fall, ...threeArrs.spring];
+                return threeArrs.year;
             }
             return filtered;
         } else if (selectedSemester[idx] === seasons.fall.seasonid) {
@@ -340,24 +340,24 @@ export default function RegisterStudent({
                                     <SelectValue placeholder="Select a Semester" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-white">
-                                    <SelectItem
+                                    {/*    <SelectItem
                                         key={seasons.year.seasonid}
                                         value={String(seasons.year.seasonid)}
                                     >
                                         {seasons.year.seasonnamecn}
-                                    </SelectItem>
+                                    </SelectItem> */}
                                     <SelectItem
                                         key={seasons.fall.seasonid}
                                         value={String(seasons.fall.seasonid)}
                                     >
                                         {seasons.fall.seasonnamecn}
                                     </SelectItem>
-                                    <SelectItem
+                                    {/* <SelectItem
                                         key={seasons.spring.seasonid}
                                         value={String(seasons.spring.seasonid)}
                                     >
                                         {seasons.spring.seasonnamecn}
-                                    </SelectItem>
+                                    </SelectItem> */}
                                 </SelectContent>
                             </Select>
                         )}
