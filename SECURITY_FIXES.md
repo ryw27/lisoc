@@ -1,4 +1,4 @@
-# Security Fixes — Critical & Moderate Items
+# Security Fixes — Critical, Moderate & Low Items
 
 Date: 2026-05-15
 Branch: `gamma`
@@ -34,6 +34,14 @@ This document records the security fixes applied in this branch. It maps each it
 | M8 | Auth disabled if `ischangepwdnext=true` (typo'd-email takeover) | Fixed (invite-link flow replaces emailed-password flow) |
 | M9 | No CSRF protection on `/api/payment` | Fixed (same-origin Origin/Referer check) |
 | M10 | Stale role in JWT after demotion | Fixed (DB role refresh in jwt callback every 5 min, with hard-revoke on missing role) |
+
+### Low / Hygiene
+
+| # | Low item from review | Status |
+|---|---|---|
+| L1 | `.gitignore` ignores `drizzle/migrations/` and `scripts/` | Fixed (both un-ignored, with comments warning against re-ignoring) |
+| L2 | `lib/db/index.ts` doesn't set SSL on `pg.Pool` | Fixed (TLS required by default in production, configurable via `sslmode=` / `PGSSLMODE` / `PG_SSL_REJECT_UNAUTHORIZED`) |
+| L3 | No security headers in `next.config.ts` | Fixed (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Content-Security-Policy) |
 
 Type-check: `npx tsc --noEmit` clean.
 Behavioural smoke tests: see "Verification" sections per item below.
@@ -506,9 +514,143 @@ The middleware is intentionally left using the cheaper, edge-safe callback (it c
 
 ---
 
+---
+
+# Low / Hygiene Items
+
+## L1. `.gitignore` no longer hides schema-changing artifacts and scripts
+
+**File:** [`.gitignore`](.gitignore).
+
+### Before
+
+```
+# db
+drizzle/migrations
+
+# scripts
+scripts/
+```
+
+Both directories were excluded from version control. `drizzle/migrations` is exactly where reviewable schema changes live; ignoring it means migrations are generated locally and never code-reviewed. `scripts/` typically holds operational utilities — ignoring it (a) prevents collaborators from seeing or running them and (b) creates a tempting place to drop sensitive operational notes that would never be reviewed.
+
+### Changes
+
+- Removed both ignore entries.
+- Replaced them with `NOTE:` comments warning against re-adding either one, and reminding that anything sensitive must live in env files (already ignored by the `.env*` rule above) and be referenced via `process.env`.
+- The new in-tree `scripts/seed-users.ts` (created during local-setup work earlier on this branch) becomes part of the working tree once tracked.
+
+### Follow-up
+
+- Once a real Drizzle migration is generated (`npx drizzle-kit generate`), commit the resulting `drizzle/migrations/*.sql` files. The `drizzle.config.ts` already points there.
+- Add a CI step that runs `drizzle-kit check` to flag schema/migration drift.
+
+---
+
+## L2. SSL on `pg.Pool`
+
+**File:** [`lib/db/index.ts`](lib/db/index.ts).
+
+### Before
+
+```ts
+export const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+});
+```
+
+No `ssl` field. The `pg` driver's default behaviour is to negotiate plaintext unless `sslmode=` is in the URL. A managed-Postgres URL that happens to omit `sslmode=require` would have its password traversing the public internet in cleartext.
+
+### Changes
+
+- New `resolveSsl()` helper:
+  - If the URL carries `sslmode=` **or** `PGSSLMODE` is set, defer to pg.
+  - Otherwise: in `production`, default to `{ rejectUnauthorized: true }` (TLS with cert verification).
+  - In `development`, default to `false` so vanilla local Postgres works.
+- Operators can opt in to "TLS but skip cert verification" with `PG_SSL_REJECT_UNAUTHORIZED=false` for managed-provider CAs that aren't bundled.
+- The pool is constructed with `ssl: resolveSsl()`.
+
+### Verification
+
+```
+dev (no sslmode):       false
+prod (no sslmode):      {"rejectUnauthorized":true}
+prod + reject=false:    {"rejectUnauthorized":false}
+with sslmode in URL:    undefined         # ← pg/libpq decides
+```
+
+---
+
+## L3. Security headers in `next.config.ts`
+
+**File:** [`next.config.ts`](next.config.ts).
+
+### Before
+
+`next.config.ts` was bare — no headers were emitted. Browsers received `/*` responses without HSTS, X-Frame-Options, Permissions-Policy, or any Content-Security-Policy.
+
+### Changes
+
+A `headers()` block now attaches the following to every route (`/:path*`):
+
+| Header | Value | Purpose |
+|---|---|---|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | Forces HTTPS for 1 year, eligible for the HSTS preload list. No-op over local `http://localhost`. |
+| `X-Content-Type-Options` | `nosniff` | Stops MIME sniffing. |
+| `X-Frame-Options` | `DENY` | Belt-and-braces with CSP `frame-ancestors 'none'`. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Don't leak path/query to third parties. |
+| `Permissions-Policy` | denies camera, microphone, geolocation, etc.; allows `fullscreen=(self)` and `payment=(self)` for PayPal | Disables browser features the app shouldn't request. |
+| `Content-Security-Policy` | composed by `buildCsp()` | See below. |
+
+CSP shape (built per-environment by `buildCsp()`):
+
+- `default-src 'self'`
+- `script-src 'self' 'unsafe-inline' [+'unsafe-eval' in dev] https://www.paypal.com https://www.paypalobjects.com`
+- `style-src 'self' 'unsafe-inline'`
+- `img-src 'self' data: blob: https:`
+- `font-src 'self' data:`
+- `connect-src 'self' <PayPal API hosts> [+ws: wss: in dev]`
+- `frame-src 'self' https://www.paypal.com https://www.paypalobjects.com`
+- `frame-ancestors 'none'`
+- `base-uri 'self'`
+- `form-action 'self'`
+- `object-src 'none'`
+- `upgrade-insecure-requests` (production only)
+
+### Known compromises in this CSP
+
+- `'unsafe-inline'` is allowed for both `script-src` and `style-src`. Next/Turbopack and several existing components emit inline scripts and inline `style="…"` attributes. Removing this needs a nonce-based rewrite (every inline `<script>` and `<style>` would need the nonce attribute injected at render time) and is tracked in the deferred-items list.
+- `'unsafe-eval'` is allowed in dev so Turbopack's HMR runtime works. Production omits it.
+- `img-src ... https:` is broad — refine once we enumerate the exact image sources we use.
+
+### Verification
+
+```
+$ curl -sI http://localhost:3000/ | grep -iE 'strict-transport|x-(content|frame)|referrer|permissions|content-security'
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: accelerometer=(), autoplay=(), camera=(), ... payment=(self), ...
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com ...
+
+$ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
+200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/login
+200
+```
+
+(Pages still render. CSP-violation telemetry is not wired up in this PR; recommend adding a `report-to` endpoint when fronting this through a CDN that can collect reports.)
+
+---
+
 ## Files changed (cumulative for this branch)
 
 ```
+M  .gitignore                                            (un-ignore drizzle/migrations + scripts/)
 A  SECURITY_FIXES.md                                     (this document)
 A  app/(auth-pages)/setup-account/page.tsx               (new — invite-link landing page)
 M  app/api/payment/route.ts                              (auth, server-side amount, idempotency, CSRF)
@@ -516,9 +658,12 @@ A  components/auth/setup-account-form.tsx                (new — set-password f
 M  components/auth/forgot-password-form.tsx              (email-only, generic success)
 A  lib/htmlEscape.ts                                     (new — HTML/attr/href escapers)
 M  lib/auth.ts                                           (rate limit, JWT role refresh, no ischangepwdnext bypass)
+M  lib/db/index.ts                                       (SSL config on pg.Pool)
 A  lib/rateLimit.ts                                      (new — in-memory rate limiter)
 M  messages/en.json, messages/zh.json                    (generic reset-success copy)
+M  next.config.ts                                        (HSTS, CSP, Permissions-Policy, etc.)
 M  package.json, package-lock.json                       (bcryptjs removed)
+A  scripts/seed-users.ts                                 (new — dev seed for admin + family)
 A  server/auth/accountSetup.actions.ts                   (new — invite-link verify + complete)
 M  server/auth/data.ts                                   (HTML-escaped templates, sendAccountSetupEmail)
 M  server/auth/familyreg.actions.ts                      (8-digit code, rate limit)
@@ -544,6 +689,7 @@ These are noted in the engineering review but not addressed here. Each is a reas
 - Persistent rate-limit store (Upstash / Redis).
 - Column-level encryption for sensitive PII (M5).
 - HIBP password-breach check + one-time forced rotation for users on weak passwords.
-- Security headers (CSP, HSTS) in `next.config.ts`.
+- Tighten CSP: replace `'unsafe-inline'` / `'unsafe-eval'` with a nonce-based policy and enumerate exact `img-src` hosts.
+- CSP-violation reporting endpoint (`Content-Security-Policy-Report-Only` + `report-to`).
 - Audit-log table for financial mutations.
 - Drop legacy tables once migration to `users` is complete (M6).

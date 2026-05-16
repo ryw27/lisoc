@@ -42,7 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 # db
-drizzle/migrations
+# NOTE: drizzle/migrations IS version-controlled now — committing the SQL is
+# how we get reviewable, reproducible schema changes. Don't add it back.
 
 # scripts
-scripts/
+# NOTE: scripts/ IS version-controlled now. Anything sensitive (real creds,
+# personal access tokens, etc.) must live in env files (already ignored
+# above) and be referenced via process.env, NOT hard-coded in a script.
