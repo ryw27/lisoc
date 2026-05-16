@@ -7,6 +7,7 @@ import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { checkExistence, sendFPEmail } from "./data";
 import {
@@ -23,6 +24,15 @@ export const requestPasswordReset = safeAction(
     async function (data: z.infer<typeof forgotPassSchema>) {
         // Validate input using schema
         const { emailUsername } = forgotPassSchema.parse(data);
+
+        // Rate-limit per identifier and per IP to prevent email-bombing and
+        // user-enumeration probing. Limits are intentionally tight.
+        const ip = await clientIp();
+        enforceRateLimit(`pwreset:request:id:${emailUsername.toLowerCase()}`, {
+            max: 3,
+            windowMs: 15 * 60_000,
+        });
+        enforceRateLimit(`pwreset:request:ip:${ip}`, { max: 10, windowMs: 15 * 60_000 });
 
         // Determine if input is an email or username
         const isEmail = emailSchema.safeParse({ email: emailUsername }).success;
@@ -88,6 +98,15 @@ export const checkResetLink = safeAction(
 // Step 3: Reset the password
 export const resetPassword = safeAction(resetPassSchema, async (data) => {
     const { email, password, confirmPassword, token } = data;
+
+    // Rate-limit the token-redemption step itself. UUID tokens are high-entropy
+    // so this is more about damping brute-force fishing than blocking guesses.
+    const ip = await clientIp();
+    enforceRateLimit(`pwreset:redeem:email:${email.toLowerCase()}`, {
+        max: 10,
+        windowMs: 15 * 60_000,
+    });
+    enforceRateLimit(`pwreset:redeem:ip:${ip}`, { max: 30, windowMs: 15 * 60_000 });
 
     if (password !== confirmPassword) {
         throw new Error("Passwords don't match");

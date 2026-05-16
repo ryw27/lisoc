@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
-// import { requireRole } from "@/lib/auth/actions/requireRole";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_TUITION,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // TODO: Check stuff with student
@@ -22,8 +22,19 @@ export async function familyRegister(
     family: familyObj,
     studentid: number
 ) {
-    // 1. Check user role and TODO: parse data
-    // const user = await requireRole(["FAMILY"], { redirect: false });
+    // 1. Auth: caller must be a FAMILY user, and the family they're operating
+    //    on must be their own. Never trust the client-supplied family object —
+    //    re-derive the family from the session and compare.
+    const session = await requireRole(["FAMILY"], { redirect: false });
+    const userFamily = await db.query.family.findFirst({
+        where: (f, { eq }) => eq(f.userid, session.user.id),
+    });
+    if (!userFamily || userFamily.familyid !== family.familyid) {
+        throw new Error("Forbidden");
+    }
+    // Use the server-derived family from here on. This shadows the parameter
+    // so any downstream code can't accidentally trust the client's version.
+    family = userFamily as typeof family;
 
     await db.transaction(async (tx) => {
         // 2. Check other active registrations and ensure timeline is correct

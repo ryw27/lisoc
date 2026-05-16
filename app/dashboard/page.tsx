@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { familybalance } from "@/lib/db/schema";
 import { requireRole } from "@/server/auth/actions";
 
 export default async function Dashboard() {
@@ -27,6 +25,7 @@ export default async function Dashboard() {
         where: (s, { eq }) => eq(s.familyid, familyInfo.familyid),
     });
 
+    /*
     const currentBalance = await db
         .select({ total: sum(familybalance.totalamount) })
         .from(familybalance)
@@ -37,7 +36,7 @@ export default async function Dashboard() {
         const tmp = currentBalance[0].total || 0.0;
         balanceTotal = Number(tmp);
     }
-
+    */
     const names = [
         familyInfo.fatherfirsten?.trim() || familyInfo.fathernamecn?.trim(),
         familyInfo.motherfirsten?.trim() || familyInfo.mothernamecn?.trim(),
@@ -219,7 +218,7 @@ export default async function Dashboard() {
                         <div className="absolute top-0 right-0 p-4 opacity-10">
                             <div className="h-32 w-32 rounded-full"></div>
                         </div>
-                        <div className="relative z-10 p-6">
+                        {/*<div className="relative z-10 p-6">
                             <h3 className="text-background text-sm font-medium opacity-90">
                                 Account Balance / 账号金额
                             </h3>
@@ -234,7 +233,7 @@ export default async function Dashboard() {
                             <p className="mt-2 text-xs opacity-75">
                                 Please ensure your balance is up to date.
                             </p>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Quick Actions Grid */}
@@ -248,7 +247,7 @@ export default async function Dashboard() {
                             className="group hover:border-primary flex flex-col items-start gap-2 rounded-md border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md"
                         >
                             <span className="text-primary font-bold decoration-2 underline-offset-4 group-hover:underline">
-                                Register Here
+                                Register Here / 开始注册
                             </span>
                             <span className="text-muted-foreground text-xs">
                                 Start a new registration for classes.

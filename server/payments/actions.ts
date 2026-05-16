@@ -32,7 +32,7 @@ function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
 
 export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number) {
     // 1. Auth and parse
-    //await requireRole(["ADMIN"]);
+    await requireRole(["ADMIN", "FAMILY"]);
     const parsed = checkApplySchema.parse(data);
 
     await db.transaction(async (tx) => {

@@ -8,6 +8,7 @@ import { arrangement } from "@/lib/db/schema";
 import { arrangementArraySchema, arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
 import { type arrangementInsert, type seasonObj } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
 import { getTermVariables } from "@/server/registration/data";
 
 // TODO: more efficiency? Not sure if this is updating all that have been edited or just all of them regardless
@@ -15,7 +16,8 @@ export async function editArrangement(
     data: z.infer<typeof arrangementArraySchema>,
     season: seasonObj
 ) {
-    // const user = await requireRole(["ADMIN"]);
+    // Auth check — admin only.
+    await requireRole(["ADMIN"]);
     return await db.transaction(async (tx) => {
         const parsedArray = arrangementArraySchema.parse(data);
         // Ensure arrangeid is present and valid. It should since it's an update

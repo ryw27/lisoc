@@ -51,6 +51,7 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
         [ErrorCode.IncorrectEmailPassword]: "Incorrect Email or password",
         [ErrorCode.InternalServerError]: "Something unexpected went wrong. Please contact regadmin",
         [ErrorCode.UserMissingPassword]: "Please fill in your password",
+        [ErrorCode.RateLimitExceeded]: "Too many login attempts. Please try again later.",
     };
 
     const router = useRouter();
@@ -83,6 +84,9 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
             router.push(redirectURL);
         } else if (res.code === ErrorCode.IncorrectEmailPassword) {
             setError(errorMessages[ErrorCode.IncorrectEmailPassword]);
+            setBusy(false);
+        } else if (res.code === ErrorCode.RateLimitExceeded) {
+            setError(errorMessages[ErrorCode.RateLimitExceeded]);
             setBusy(false);
         } /*else if (res.code === ErrorCode.UserMissingPassword) {
             setPasswordForm("setPassword");
@@ -176,7 +180,7 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
                             Contact
                         </Link>
                         <Link
-                            href="#"
+                            href="mailto:regadmingroup@lisoc.org"
                             className="hover:text-secondary font-semibold underline-offset-4 transition-colors hover:underline"
                         >
                             求助与建议
@@ -328,10 +332,10 @@ export function FamilyLoginForm({ className, ...props }: React.ComponentProps<"d
                                         <strong>Disclaimer:</strong> This is a beta version. Please
                                         use a desktop for the best experience. Report issues to{" "}
                                         <a
-                                            href="mailto:tech.lisoc@gmail.com"
+                                            href="mailto:regadmingroup@lisoc.org"
                                             className="text-primary underline"
                                         >
-                                            tech.lisoc@gmail.com
+                                            regadmingroup@lisoc.org
                                         </a>
                                         . Due to system migration, old passwords may not work—please
                                         use the forgot password feature to reset.

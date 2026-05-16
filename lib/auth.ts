@@ -3,11 +3,11 @@ import PostgresAdapter from "@auth/pg-adapter";
 import bcrypt from "bcrypt";
 import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
-// @ts-expect-error JWT needs to be used to edit the module
-import { type JWT } from "next-auth/jwt"; // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
+// import { type JWT } from "next-auth/jwt"; // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
 import Credentials from "next-auth/providers/credentials";
 import { adminloginSchema, credSchema, loginSchema } from "@/server/auth/schema";
 import { db, pool } from "./db";
+import { clientIp, rateLimit } from "./rateLimit";
 
 //Declare module for session user but it's not working idk why lol
 declare module "next-auth" {
@@ -18,13 +18,6 @@ declare module "next-auth" {
 
     interface Session {
         user: User & DefaultSession["user"];
-    }
-}
-
-declare module "next-auth/jwt" {
-    interface JWT {
-        sub: string; // user id
-        role: "ADMIN" | "TEACHER" | "FAMILY";
     }
 }
 
@@ -40,6 +33,26 @@ class NewAccountError extends CredentialsSignin {
 
 class InternalServerError extends CredentialsSignin {
     code = "internal-server-error";
+}
+
+class RateLimitExceededError extends CredentialsSignin {
+    code = "rate-limit-exceeded";
+}
+
+// Rate-limit login attempts. Both per-IP (catches credential-stuffing tools)
+// and per-identifier (catches targeted attacks against one account). We
+// throw RateLimitExceededError instead of IncorrectEmailPasswordError so
+// legitimate users get useful feedback once they're rate-limited; the
+// thresholds are loose enough that real users will rarely trip them.
+async function enforceLoginRateLimit(provider: string, identifier: string) {
+    const ip = await clientIp();
+    const ipRes = rateLimit(`login:${provider}:ip:${ip}`, { max: 15, windowMs: 15 * 60_000 });
+    if (!ipRes.ok) throw new RateLimitExceededError();
+    const idRes = rateLimit(`login:${provider}:id:${identifier.toLowerCase()}`, {
+        max: 10,
+        windowMs: 15 * 60_000,
+    });
+    if (!idRes.ok) throw new RateLimitExceededError();
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -77,6 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const { emailUsername, password } = parsedCredentials.data;
+                await enforceLoginRateLimit("admin", emailUsername);
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
                         isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
@@ -147,6 +161,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const { emailUsername, password } = parsedCredentials.data;
+                await enforceLoginRateLimit("teacher", emailUsername);
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
                         isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
@@ -214,6 +229,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const { emailUsername, password } = parsedCredentials.data;
+                await enforceLoginRateLimit("family", emailUsername);
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
                         isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),

@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils";
 import { regKind } from "@/types/registration.types";
 import { type famBalanceInsert, type seasonObj, type uiClasses } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // const regValidation = z.object({
@@ -31,8 +32,8 @@ export async function adminRegister(
     studentid: number,
     override: boolean
 ) {
-    // 1. Auth Check and TODO: Parse data?
-    // const user = await requireRole(["ADMIN"]);
+    // 1. Auth check — admin only.
+    await requireRole(["ADMIN"]);
     return await db.transaction(async (tx) => {
         // 2. Check other active registrations and ensure timeline is correct
         // TODO: Find a more efficient way of doing this
