@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq, InferSelectModel } from "drizzle-orm";
 import { z } from "zod/v4";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -31,8 +32,26 @@ function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
 }
 
 export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number) {
-    // 1. Auth and parse
-    //await requireRole(["ADMIN"]);
+    // 1. Auth: require a session; FAMILY users may only credit their own family.
+    //    ADMINs may credit any family. Anonymous callers are rejected here as
+    //    defense-in-depth — the /api/payment route also gates this, but other
+    //    server-action callers should not be able to bypass auth.
+    const session = await auth();
+    if (!session?.user) {
+        throw new Error("Authentication required");
+    }
+    if (session.user.role === "FAMILY") {
+        const fam = await db.query.family.findFirst({
+            where: (f, { eq }) => eq(f.userid, session.user.id),
+        });
+        if (!fam || fam.familyid !== familyid) {
+            throw new Error("Forbidden");
+        }
+    } else if (session.user.role !== "ADMIN") {
+        throw new Error("Forbidden");
+    }
+
+    // 2. Parse
     const parsed = checkApplySchema.parse(data);
 
     await db.transaction(async (tx) => {

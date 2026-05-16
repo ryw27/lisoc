@@ -30,7 +30,7 @@ export const passwordSchema = z.object({
 });
 
 export const codeSchema = z.object({
-    code: z.string().length(6, { message: "Code must be 6 digits（6位验证码）" }),
+    code: z.string().length(8, { message: "Code must be 8 digits（8位验证码）" }),
 });
 
 export const uuidSchema = z.object({

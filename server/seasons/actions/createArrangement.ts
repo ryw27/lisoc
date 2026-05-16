@@ -7,6 +7,7 @@ import { arrangement } from "@/lib/db/schema";
 import { arrangementArraySchema, arrangementSchema } from "@/lib/schema";
 import { toESTString, UNKNOWN_CLASSROOMID, UNKNOWN_TEACHERID } from "@/lib/utils";
 import { type seasonObj } from "@/types/shared.types";
+import { requireRole } from "@/server/auth/actions";
 import { getTermVariables } from "@/server/registration/data";
 
 // Create new regclas with constituent classrooms
@@ -14,8 +15,8 @@ export async function createArrangement(
     data: z.infer<typeof arrangementArraySchema>,
     season: seasonObj
 ) {
-    // 1. Auth Check
-    // const user = await requireRole(["ADMIN"]);
+    // 1. Auth check — admin only.
+    await requireRole(["ADMIN"]);
 
     // 2. Parse data
     const parsedArray = arrangementArraySchema.parse(data);

@@ -7,8 +7,16 @@ import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { family, registration_drafts, teacher, users } from "@/lib/db/schema";
+import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
+
+// 8-digit numeric verification code: 10^7 .. 10^8 - 1 (always 8 digits).
+// Combined with per-email rate limiting on checkRegCode below, brute-forcing
+// within the 10-minute expiry window is no longer feasible.
+function generateVerificationCode(): string {
+    return randomInt(10_000_000, 100_000_000).toString();
+}
 import { sendRegEmail } from "./data";
 import {
     codeSchema,
@@ -19,10 +27,14 @@ import {
     userPassSchema,
 } from "./schema";
 
-// Helper to resend code
+// Helper to resend code. Rate-limited to avoid email bombing.
 export async function resendCode(data: z.infer<typeof emailSchema>) {
     const userEmail = emailSchema.parse(data).email;
-    const code = randomInt(100000, 1000000).toString();
+    const ip = await clientIp();
+    enforceRateLimit(`regcode:resend:email:${userEmail}`, { max: 3, windowMs: 10 * 60_000 });
+    enforceRateLimit(`regcode:resend:ip:${ip}`, { max: 10, windowMs: 10 * 60_000 });
+
+    const code = generateVerificationCode();
     await pgadapter.createVerificationToken({
         token: code,
         identifier: userEmail,
@@ -31,10 +43,14 @@ export async function resendCode(data: z.infer<typeof emailSchema>) {
     await sendRegEmail(userEmail, code);
 }
 
-// STEP 1: Enter email. If valid, request a code using the auth.js PostgresAdapter
+// STEP 1: Enter email. If valid, request a code using the auth.js PostgresAdapter.
+// Rate-limited per email and per IP to avoid email bombing and signup abuse.
 export async function requestRegCode(data: z.infer<typeof emailSchema>) {
     // Parse incoming data
     const userData = emailSchema.parse(data);
+    const ip = await clientIp();
+    enforceRateLimit(`regcode:request:email:${userData.email}`, { max: 3, windowMs: 10 * 60_000 });
+    enforceRateLimit(`regcode:request:ip:${ip}`, { max: 10, windowMs: 10 * 60_000 });
 
     // unique check
     const unique = await db.query.users.findFirst({
@@ -47,7 +63,7 @@ export async function requestRegCode(data: z.infer<typeof emailSchema>) {
     }
 
     const email = userData.email;
-    const code = randomInt(100000, 1000000).toString();
+    const code = generateVerificationCode();
     await pgadapter.createVerificationToken({
         token: code,
         identifier: email,
@@ -57,10 +73,17 @@ export async function requestRegCode(data: z.infer<typeof emailSchema>) {
     await sendRegEmail(email, code);
 }
 
-// Step 2: Check registration code
+// Step 2: Check registration code.
+// Rate-limited per email and per IP to slow OTP brute-force. With 8-digit codes
+// (10^8 search space), 5 attempts per 10-minute window means the expected work
+// to guess one code at random is ~10^7 windows, i.e. infeasible inside the
+// 10-minute token expiry.
 export async function checkRegCode(data: z.infer<typeof codeSchema>, email: string) {
     emailSchema.parse({ email: email });
     const codeData = codeSchema.parse(data);
+    const ip = await clientIp();
+    enforceRateLimit(`regcode:check:email:${email}`, { max: 5, windowMs: 10 * 60_000 });
+    enforceRateLimit(`regcode:check:ip:${ip}`, { max: 20, windowMs: 10 * 60_000 });
 
     // Automatically deletes the token and validates it
     const vt = await pgadapter.useVerificationToken({ identifier: email, token: codeData.code });
