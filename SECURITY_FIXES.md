@@ -1,9 +1,9 @@
-# Security Fixes — Critical, Moderate & Low Items
+# Security Fixes — Critical, Moderate, Low & Dependency Items
 
 Date: 2026-05-15
 Branch: `gamma`
 
-This document records the security fixes applied in this branch. It maps each item from the external engineering review to the specific code changes that address it, the threat model, and how each fix was verified.
+This document records the security fixes applied in this branch. It maps each item from the external engineering review to the specific code changes that address it, the threat model, and how each fix was verified. A final section covers a separate Dependabot-driven dependency cleanup that resolves the upstream CVEs surfaced by GitHub.
 
 ---
 
@@ -42,6 +42,12 @@ This document records the security fixes applied in this branch. It maps each it
 | L1 | `.gitignore` ignores `drizzle/migrations/` and `scripts/` | Fixed (both un-ignored, with comments warning against re-ignoring) |
 | L2 | `lib/db/index.ts` doesn't set SSL on `pg.Pool` | Fixed (TLS required by default in production, configurable via `sslmode=` / `PGSSLMODE` / `PG_SSL_REJECT_UNAUTHORIZED`) |
 | L3 | No security headers in `next.config.ts` | Fixed (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Content-Security-Policy) |
+
+### Dependency / Dependabot
+
+| # | Item | Status |
+|---|---|---|
+| D1 | 69 Dependabot alerts on the repo's lockfile | Fixed (production-tree alerts dropped from 69 → 0; 9 remain only in `shadcn`'s devDep tree, never shipped) |
 
 Type-check: `npx tsc --noEmit` clean.
 Behavioural smoke tests: see "Verification" sections per item below.
@@ -647,10 +653,147 @@ $ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/login
 
 ---
 
-## Files changed (cumulative for this branch)
+---
+
+# Dependency Cleanup (D1)
+
+GitHub Dependabot flagged 69 vulnerabilities on the repo's lockfile (25 high, 38 moderate, 6 low). This section walks through how each was triaged and resolved.
+
+## Triage approach
+
+For every alert I checked:
+
+1. **Direct vs transitive.** Direct deps need an explicit bump in `package.json`. Transitives need either a parent bump or an `npm overrides` pin.
+2. **Production vs development.** `npm audit --omit=dev` is the meaningful number — devDeps don't ship.
+3. **Are we actually exposed?** For CVEs that affect a specific API surface (e.g. `sql.identifier`, uuid `buf` arg, next-intl `experimental.messages.precompile`), grep the code. Several alerts cleared because we don't touch the vulnerable surface even on the unpatched version.
+4. **Do the patches require code changes?** For every direct dep, cross-reference the new version's changelog with the APIs we use.
+
+Result: **none of the patches require any code changes in `app/`, `components/`, `server/`, or `lib/`.** All resolution is in `package.json` and the resulting lockfile.
+
+## Changes
+
+### Direct-dep bumps (within minor / patch — no breaking changes)
+
+| Package | Before | After | Alerts cleared |
+|---|---|---|---|
+| `next` | `^15.5.9` | `^15.5.18` | 8 (RSC cache poisoning, middleware/proxy bypass, DoS, image cache exhaustion, HTTP request smuggling in rewrites) |
+| `next-intl` | `^4.5.8` | `^4.9.2` | 2 (open redirect, prototype pollution in `experimental.messages.precompile` — not used by us) |
+| `drizzle-orm` | `^0.45.0` | `^0.45.2` | 1 (`sql.identifier()` escaping — not used by us; bumped for defence in depth) |
+| `uuid` | `^13.0.0` | `^13.0.1` | 1 (v3/v5/v6 with `buf` arg — we use `v4` only) |
+
+For each, I confirmed by grep that none of our call sites touch the vulnerable surface:
+
+```
+grep "sql.identifier\|sql.raw"           # 0 hits
+grep "uuid("                             # only v4 / validate
+grep "experimental.messages.precompile"  # 0 hits
+```
+
+### Dead-weight removals
+
+**`nodemailer` (and `@types/nodemailer`):** the import was already commented out at `lib/nodemailer.ts:1`; the only mailer in actual use is Microsoft Graph (`@microsoft/microsoft-graph-client`). Removing the dep:
+
+- Eliminates 2 medium SMTP-injection alerts on `nodemailer` itself.
+- Eliminates 5 alerts on `fast-xml-parser`, which was pulled transitively via `@types/nodemailer → @aws-sdk/client-sesv2 → @aws-sdk/xml-builder → fast-xml-parser`.
+
+**`shadcn` moved from `dependencies` to `devDependencies`:** `shadcn` is a CLI invoked via `npx shadcn add ...`; grepping `from "shadcn"` across `app/`, `components/`, `server/`, `lib/` returns zero hits. Leaving it under `dependencies` meant it was pulling a runtime tree of:
+
+```
+shadcn → @modelcontextprotocol/sdk → express + hono + ajv + express-rate-limit + ip-address + fast-uri
+shadcn → msw → path-to-regexp
+```
+
+Moving it to devDependencies removes all of the following from production:
+
+| Pkg | Alerts cleared |
+|---|---|
+| `hono` | 16 |
+| `@hono/node-server` | 2 |
+| `ajv` | 1 |
+| `express-rate-limit` | 1 |
+| `fast-uri` | 2 |
+| `ip-address` | 1 |
+| `path-to-regexp` | 2 |
+| `qs` | 1 |
+| **subtotal** | **26** |
+
+### `overrides` for transitives the lockfile won't bump on its own
+
+```json
+"overrides": {
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "axios": "^1.15.2",
+    "esbuild": "^0.25.0",
+    "flatted": "^3.4.2",
+    "follow-redirects": "^1.16.0",
+    "minimatch": "^9.0.7",
+    "picomatch": "^2.3.2",
+    "postcss": "^8.5.10"
+}
+```
+
+- `axios`: PayPal SDK's `@apimatic/axios-client-adapter` pulled `1.13.2`; the latest fix lives in `^1.15.2`. The adapter's own constraint is `^1.8.4` (open), so the override is compatible.
+- `minimatch`, `picomatch`, `flatted`, `postcss`, `esbuild`: dev-only chains (eslint, tailwind, drizzle-kit). Overrides cleared them.
+- `follow-redirects`: pulled by axios; also cleared by the override.
+
+## Verification
+
+```
+$ npm install --legacy-peer-deps
+added 5 packages, removed 93 packages, changed 23 packages
+
+$ npm audit
+9 vulnerabilities (1 low, 2 moderate, 6 high)
+
+$ npm audit --omit=dev
+found 0 vulnerabilities          # ← all remaining alerts are dev-only
+
+$ npx tsc --noEmit
+(no output — clean)
+
+$ npm run dev
+   ▲ Next.js 15.5.18 (Turbopack)
+   ✓ Ready in 972ms
+
+# Smoke-test
+GET /                       → 200
+GET /login                  → 200
+GET /login/admin            → 200
+GET /forgot-password        → 200
+GET /setup-account?token=… (bogus)  → 404
+admin / 123456              → session { role: "ADMIN" }
+user@lisoc.org / 123456     → session { role: "FAMILY" }
+POST /api/payment (anonymous, valid Origin) → 401   # auth gate intact
+HSTS, X-Frame-Options, CSP headers present on every response
+```
+
+## Remaining 9 alerts (post-cleanup)
+
+| Package | Severity | Source |
+|---|---|---|
+| `hono`, `@hono/node-server`, `ajv`, `express-rate-limit`, `fast-uri`, `ip-address`, `path-to-regexp`, `qs`, `minimatch` | mixed | All under `shadcn` (devDep) → `@modelcontextprotocol/sdk` / `msw` / `express` |
+
+These never ship in a build. They only execute when a developer runs `npx shadcn add ...`. Options for the long term:
+
+- Dismiss in GitHub Dependabot with reason `tolerable_risk` (these are CLI-time, not runtime).
+- File upstream with `shadcn` to slim its dep tree — pulling `@modelcontextprotocol/sdk` for a UI component CLI is heavier than it needs to be.
+
+## Files changed (this round)
+
+```
+M  package.json        (bumps, removals, overrides)
+M  package-lock.json   (regenerated — 93 packages removed, 5 added)
+```
+
+---
+
+## Files changed (cumulative across all four rounds)
 
 ```
 M  .gitignore                                            (un-ignore drizzle/migrations + scripts/)
+M  package.json                                          (dep bumps, removals, overrides — D1)
+M  package-lock.json                                     (regenerated — D1)
 A  SECURITY_FIXES.md                                     (this document)
 A  app/(auth-pages)/setup-account/page.tsx               (new — invite-link landing page)
 M  app/api/payment/route.ts                              (auth, server-side amount, idempotency, CSRF)
