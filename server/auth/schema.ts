@@ -21,11 +21,50 @@ export const usernameSchema = z.object({
         .max(24, { message: "Username is too long" }),
 });
 
+// Strong policy for setting a NEW password (registration, password reset,
+// admin/teacher account setup). NIST SP 800-63B-aligned: length-first, no
+// composition rules; rejects a small list of trivial passwords.
+//
+// We deliberately keep the floor lower for the LOGIN validator below — a tight
+// floor there would lock out legacy accounts that were created under the old
+// 6-char policy. Those users will be migrated when they next reset.
+const TRIVIAL_PASSWORDS = new Set([
+    "password",
+    "password1",
+    "password123",
+    "qwerty",
+    "qwerty123",
+    "12345678",
+    "123456789",
+    "1234567890",
+    "letmein",
+    "welcome",
+    "admin",
+    "iloveyou",
+    "abc12345",
+    "lisoc1234",
+]);
+
 export const passwordSchema = z.object({
     password: z
         .string()
-        // .min(4, { message: "Password must be filled" })
-        .min(6, { message: "Password must be at least 6 characters (密码必须至少6位）" })
+        .min(10, { message: "Password must be at least 10 characters (密码必须至少10位)" })
+        .max(72, { message: "Password is too long (max 72 / 密码过长，最多72位)" })
+        .refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), {
+            message: "Password must contain at least one letter and one number",
+        })
+        .refine((p) => !TRIVIAL_PASSWORDS.has(p.toLowerCase()), {
+            message: "Password is too common, please choose another one",
+        }),
+});
+
+// Loose validator used only for parsing the LOGIN form. We only need enough
+// to reject obvious garbage — the bcrypt compare is the actual gate, and the
+// stronger policy applies whenever a user *changes* their password.
+export const loginPasswordSchema = z.object({
+    password: z
+        .string()
+        .min(1, { message: "Password must be filled" })
         .max(72, { message: "Password is too long" }),
 });
 
@@ -57,18 +96,18 @@ export const emailPassSchema = z.object({
 });
 export const loginSchema = z.object({
     emailUsername: emailSchema.shape.email /*.or(usernameSchema.shape.username)*/,
-    password: passwordSchema.shape.password,
+    password: loginPasswordSchema.shape.password,
 });
 
 export const adminloginSchema = z.object({
     emailUsername: emailSchema.shape.email.or(usernameSchema.shape.username),
-    password: passwordSchema.shape.password,
+    password: loginPasswordSchema.shape.password,
 });
 
 export const credSchema = z.object({
     email: emailSchema.shape.email.optional(),
     username: usernameSchema.shape.username.optional(),
-    password: passwordSchema.shape.password,
+    password: loginPasswordSchema.shape.password,
 });
 
 // ------------------------------------------------------------------------------------------------
@@ -246,8 +285,11 @@ export const teacherUpdateSchema = z.object({
 // Forgot Password Schemas
 // ------------------------------------------------------------------------------------------------
 
+// Reset by EMAIL ONLY. Allowing username here let an attacker probe valid
+// usernames (typically shorter and more guessable than emails) and also
+// shipped a username -> email lookup that broadened the attack surface.
 export const forgotPassSchema = z.object({
-    emailUsername: emailSchema.shape.email.or(usernameSchema.shape.username),
+    email: emailSchema.shape.email,
 });
 
 export const resetPassSchema = z.object({

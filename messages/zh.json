@@ -18,7 +18,7 @@
             "form-confirmation": "Confirm your details"
         },
         "ForgotPassword": {
-            "reset-success-msg": "重置密码的链接已发送至您的邮箱。如果您没有收到邮件，请 \u2009",
+            "reset-success-msg": "如果该邮箱已注册，重置密码的链接已发送至您的邮箱。如果您没有收到邮件，请 ",
             "try-again": "再试一次"
         },
         "Register": {

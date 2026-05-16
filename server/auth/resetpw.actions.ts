@@ -9,69 +9,45 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
-import { checkExistence, sendFPEmail } from "./data";
-import {
-    emailSchema,
-    forgotPassSchema,
-    resetPassSchema,
-    usernameSchema,
-    uuidSchema,
-} from "./schema";
+import { sendFPEmail } from "./data";
+import { emailSchema, forgotPassSchema, resetPassSchema, uuidSchema } from "./schema";
 
-// Step 1: Request password reset
+// Step 1: Request password reset.
+// IMPORTANT: this action MUST NOT reveal whether the email exists. Both the
+// "account exists" and "account does not exist" branches return success and
+// take roughly the same amount of work — that prevents both response-content
+// and timing-based user enumeration. The email is only actually sent when an
+// account exists.
 export const requestPasswordReset = safeAction(
     forgotPassSchema,
     async function (data: z.infer<typeof forgotPassSchema>) {
-        // Validate input using schema
-        const { emailUsername } = forgotPassSchema.parse(data);
+        const { email } = forgotPassSchema.parse(data);
+        const normalisedEmail = email.toLowerCase();
 
-        // Rate-limit per identifier and per IP to prevent email-bombing and
-        // user-enumeration probing. Limits are intentionally tight.
+        // Rate-limit per email and per IP to prevent email-bombing.
         const ip = await clientIp();
-        enforceRateLimit(`pwreset:request:id:${emailUsername.toLowerCase()}`, {
+        enforceRateLimit(`pwreset:request:id:${normalisedEmail}`, {
             max: 3,
             windowMs: 15 * 60_000,
         });
         enforceRateLimit(`pwreset:request:ip:${ip}`, { max: 10, windowMs: 15 * 60_000 });
 
-        // Determine if input is an email or username
-        const isEmail = emailSchema.safeParse({ email: emailUsername }).success;
-        const isUsername = usernameSchema.safeParse({ username: emailUsername }).success;
-
-        let userEmail: string | null = null;
-
-        if (isEmail) {
-            // Input is an email, check existence
-            const check = await checkExistence(emailUsername, "email");
-            if (!check.exists) {
-                throw new Error("Account does not exist");
-            }
-            userEmail = emailUsername;
-        } else if (isUsername) {
-            // Input is a username, check existence and resolve to email
-            const check = await checkExistence(emailUsername, "name");
-            if (!check.exists || !check.data) {
-                throw new Error("Account does not exist");
-            }
-            userEmail = check.data.email;
-        } else {
-            throw new Error("Invalid Email or Username");
-        }
-
-        // Generate a unique verification token
-        const token = uuid();
-
-        const result = await pgadapter.createVerificationToken({
-            token,
-            identifier: userEmail,
-            expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+        // Look up account. We always do the lookup so the timing of both
+        // branches stays roughly equal.
+        const account = await db.query.users.findFirst({
+            where: (u, { eq }) => eq(u.email, email),
         });
 
-        if (!result) {
-            throw new Error("Database error");
+        if (account) {
+            const token = uuid();
+            await pgadapter.createVerificationToken({
+                token,
+                identifier: email,
+                expires: new Date(Date.now() + 15 * 60 * 1000),
+            });
+            await sendFPEmail(email, token);
         }
-
-        await sendFPEmail(userEmail, token);
+        // No account: silently succeed. The user-facing message is generic.
     }
 );
 

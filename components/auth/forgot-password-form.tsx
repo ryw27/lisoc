@@ -25,16 +25,22 @@ export default function ForgotPasswordForm() {
     const onEmail = async (data: z.infer<typeof forgotPassSchema>) => {
         setBusy(true);
         const result = await requestPasswordReset(data);
-        if (!result.ok) {
+        // Always show the generic success state. The server intentionally does
+        // not reveal whether the email exists — surfacing a different message
+        // here would defeat that. Validation errors (bad format, rate-limited)
+        // are still shown.
+        if (!result.ok && result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
             setSentLink(false);
-            fpForm.setError("emailUsername", { message: result.errorMessage });
-            // To map through field errors, you can use Object.entries(result.fieldErrors ?? {}) and set errors for each field:
-            Object.entries(result.fieldErrors ?? {}).forEach(([field, messages]) => {
+            Object.entries(result.fieldErrors).forEach(([field, messages]) => {
                 if (messages && messages.length > 0) {
                     // @ts-expect-error: field is dynamically typed and matches form field keys
                     fpForm.setError(field, { message: messages[0] });
                 }
             });
+        } else if (!result.ok && result.errorMessage) {
+            // Form-level error (e.g. rate limit). Still don't reveal account existence.
+            fpForm.setError("email", { message: result.errorMessage });
+            setSentLink(false);
         } else {
             setSentLink(true);
         }
@@ -64,18 +70,18 @@ export default function ForgotPasswordForm() {
                         className="flex w-full flex-col space-y-4"
                     >
                         <p className="text-center text-sm text-gray-500">
-                            Enter your email or username to receive a reset link.
+                            Enter your email to receive a reset link.
                             <br />
-                            (请输入您的邮箱或用户名)
+                            (请输入您的邮箱)
                         </p>
 
                         <div>
                             <FormInput
-                                label="Email or Username (邮箱/用户名)"
-                                type="text"
-                                register={fpForm.register("emailUsername")}
+                                label="Email (邮箱)"
+                                type="email"
+                                register={fpForm.register("email")}
                             />
-                            <FormError error={fpForm.formState.errors.emailUsername?.message} />
+                            <FormError error={fpForm.formState.errors.email?.message} />
                         </div>
 
                         <FormSubmit className="bg-primary text-white" disabled={busy}>

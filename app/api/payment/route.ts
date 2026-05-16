@@ -67,6 +67,35 @@ async function capturePayPalOrder(orderID: string, accessToken: string): Promise
 }
 
 export async function POST(request: Request) {
+    // 0. CSRF: require the request to come from the same origin. Browsers send
+    //    `Origin` on every CORS-relevant POST; if it's missing or doesn't match
+    //    `Host`, we reject. Cookies-only auth is otherwise vulnerable to a
+    //    cross-site form submission tricking a logged-in admin/family into
+    //    moving money around.
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const host = request.headers.get("host");
+    const expectedOrigins = new Set<string>();
+    if (host) {
+        expectedOrigins.add(`https://${host}`);
+        expectedOrigins.add(`http://${host}`);
+    }
+    const siteLink = process.env.SITE_LINK;
+    if (siteLink) {
+        try {
+            expectedOrigins.add(new URL(siteLink).origin);
+        } catch {
+            // ignore malformed env value
+        }
+    }
+    const sourceOrigin = origin ?? (referer ? new URL(referer).origin : null);
+    if (!sourceOrigin || !expectedOrigins.has(sourceOrigin)) {
+        return NextResponse.json(
+            { error: "Cross-origin request blocked" },
+            { status: 403 }
+        );
+    }
+
     // 1. Authentication — middleware excludes /api/*, so we self-check here.
     const session = await auth();
     if (!session?.user) {

@@ -110,10 +110,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (
                     !result ||
                     !result.roles.includes("ADMINUSER") ||
-                    (!result.emailVerified && !result.adminusers?.ischangepwdnext) ||
+                    !result.emailVerified ||
                     !result.adminusers
                 ) {
-                    // Don't reveal that their account does not exist
+                    // Don't reveal that their account does not exist or that
+                    // their email isn't verified yet — same response either way.
                     throw new IncorrectEmailPasswordError();
                 }
 
@@ -125,7 +126,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 if (result.adminusers.ischangepwdnext) {
-                    // Make client show input password
+                    // Admin reset this user's password from the data-view tool.
+                    // Force them through the "set new password" flow on first
+                    // sign-in. emailVerified is already required above, so this
+                    // can no longer bootstrap a brand-new unverified account.
                     throw new NewAccountError();
                 }
 
@@ -181,7 +185,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (
                     !result ||
                     !result.roles.includes("TEACHER") ||
-                    (!result.emailVerified && !result.teachers?.ischangepwdnext)
+                    !result.emailVerified
                 ) {
                     throw new IncorrectEmailPasswordError();
                 }
@@ -263,4 +267,60 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }),
     ],
     adapter: pgadapter,
+    // Periodically re-check the user's role against the DB. The base jwt
+    // callback in `auth.config.ts` is edge-safe (used by middleware) and only
+    // copies fields off `user` on initial sign-in, so a demoted admin would
+    // otherwise keep ADMIN powers until JWT expiry. This callback runs in the
+    // Node runtime (route handlers, server actions, server components) where
+    // we can hit the DB.
+    callbacks: {
+        ...authConfig.callbacks,
+        async jwt(params) {
+            // Run the base callback first so initial-sign-in token bootstrap
+            // still happens.
+            const baseToken = (await authConfig.callbacks?.jwt?.(params)) ?? params.token;
+            const { user } = params;
+            const token = baseToken as typeof params.token & {
+                lastRoleCheckAt?: number;
+            };
+
+            // Only refresh after the cache window. We check on every call but
+            // skip the DB hit until at least REFRESH_AFTER_SEC has elapsed.
+            const REFRESH_AFTER_SEC = 5 * 60;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const issuedAt = token.iat ?? nowSec;
+            const lastCheck = token.lastRoleCheckAt ?? issuedAt;
+            const skip = user || nowSec - lastCheck < REFRESH_AFTER_SEC || !token.sub;
+            if (skip) return token;
+
+            try {
+                const fresh = await db.query.users.findFirst({
+                    where: (u, { eq }) => eq(u.id, token.sub as string),
+                });
+                if (!fresh) {
+                    // User was deleted — invalidating the JWT signs them out.
+                    return null;
+                }
+                // Defence-in-depth demotion: if the role baked into the JWT is
+                // no longer present in the DB, force re-auth. We never PROMOTE
+                // here — the role is whichever provider the user signed in
+                // with — but we hard-revoke if their grant has been removed.
+                const roleStillValid =
+                    (token.role === "ADMIN" && fresh.roles.includes("ADMINUSER")) ||
+                    (token.role === "TEACHER" && fresh.roles.includes("TEACHER")) ||
+                    (token.role === "FAMILY" && fresh.roles.includes("FAMILY"));
+                if (!roleStillValid) {
+                    return null;
+                }
+                token.email = fresh.email ?? token.email;
+                token.name = fresh.name ?? token.name;
+                token.lastRoleCheckAt = nowSec;
+            } catch (err) {
+                console.error("jwt role refresh failed:", err);
+                // Fall through with the cached token rather than locking
+                // everyone out on a transient DB blip.
+            }
+            return token;
+        },
+    },
 });
