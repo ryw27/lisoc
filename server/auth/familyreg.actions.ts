@@ -1,15 +1,15 @@
 "use server";
 
-import { randomInt } from "crypto";
-import bcrypt from "bcrypt";
-import { and, eq } from "drizzle-orm";
-import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { family, registration_drafts, teacher, users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
+import bcrypt from "bcrypt";
+import { randomInt } from "crypto";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod/v4";
 import { sendRegEmail } from "./data";
 import {
     codeSchema,
@@ -24,7 +24,7 @@ import {
 // Combined with per-email rate limiting on checkRegCode below, brute-forcing
 // within the 10-minute expiry window is no longer feasible.
 function generateVerificationCode(): string {
-    return randomInt(10_000_000, 100_000_000).toString();
+    return randomInt(100000, 1000000).toString();
 }
 
 // Helper to resend code. Rate-limited to avoid email bombing.
