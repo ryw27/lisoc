@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod/v4";
+import Logo from "@/components/logo";
 import { resetPassword } from "@/server/auth/resetpw.actions";
 import { resetPassSchema } from "@/server/auth/schema";
-import Logo from "@/components/logo";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import { FormError, FormInput, FormSubmit } from "./form-components";
 
 type resetPasswordParams = {
@@ -63,14 +63,18 @@ export default function ResetPasswordForm({ userEmail, userToken }: resetPasswor
                         label="Password"
                         type="password"
                         register={rpForm.register("password")}
+                        error={rpForm.formState.errors.password?.message}
                     />
                     <FormInput
                         label="Confirm Password"
                         type="password"
                         register={rpForm.register("confirmPassword")}
+                        error={rpForm.formState.errors.confirmPassword?.message}
                         // extras={{ placeholder: "Confirm Password" }}
                     />
                     <FormError error={rpForm.formState.errors.email?.message} />
+                    <FormError error={rpForm.formState.errors.password?.message} />
+                    <FormError error={rpForm.formState.errors.confirmPassword?.message} />
                     <FormSubmit disabled={busy}>Continue</FormSubmit>
                 </form>
             )}

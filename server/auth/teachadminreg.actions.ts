@@ -7,21 +7,13 @@ import { db } from "@/lib/db";
 import { adminuser, teacher, users } from "@/lib/db/schema";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
-import { emailSchema } from "./schema";
+import { emailSchema, passwordSchema } from "./schema";
 
 const setPasswordSchema = z
     .object({
         email: emailSchema.shape.email,
-        password: z
-            .string()
-            .min(1, { message: "Password must be filled" })
-            .min(6, { message: "Password must be at least 6 characters long" })
-            .max(72, { message: "Password is too long" }),
-        confirmpassword: z
-            .string()
-            .min(1, { message: "Password must be filled" })
-            .min(6, { message: "Password must be at least 6 characters long" })
-            .max(72, { message: "Password is too long" }),
+        password: passwordSchema.shape.password,
+        confirmpassword: passwordSchema.shape.password,
         role: z.enum(["ADMINUSER", "TEACHER"]),
     })
     .refine(({ password, confirmpassword }) => password === confirmpassword, {

@@ -18,7 +18,7 @@
             "form-confirmation": "Confirm your details"
         },
         "ForgotPassword": {
-            "reset-success-msg": "A link to reset your password has been sent to your email. If you did not receive an email, please \u2009",
+            "reset-success-msg": "If an account exists for that email, a reset link has been sent. If you did not receive an email, please \u2009",
             "try-again": "try again"
         },
         "Register": {

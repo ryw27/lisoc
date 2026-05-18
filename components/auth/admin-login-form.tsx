@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { adminloginSchema, emailSchema, ErrorCode, usernameSchema } from "@/server/auth/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
-import { adminloginSchema, emailSchema, ErrorCode, usernameSchema } from "@/server/auth/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormError, FormInput, FormSubmit } from "./form-components";
 
 export default function AdminLoginForm() {
@@ -45,40 +45,82 @@ export default function AdminLoginForm() {
             }
         }
 
-        // at this point isEmail or isUsername one of must be true and one of them must be false
-        const provider = isUsername ? "admin-credentials" : "teacher-credentials";
+        // at this point either isEmail or isUsername is true
+        if (isUsername) {
+            // Username logins always use admin-credentials
+            const credSubmitObj = {
+                username: data.emailUsername,
+                password: data.password,
+                redirect: false as const,
+            };
 
-        const redirectURL = isUsername ? "/admin" : "/teacher";
-        console.log("redirectURL=", redirectURL);
+            const res = await signIn("admin-credentials", credSubmitObj);
+            if (!res) {
+                setError(errorMessages[ErrorCode.InternalServerError]);
+                setBusy(false);
+            } else if (!res.code) {
+                router.push("/admin");
+            } else if (res.code === ErrorCode.IncorrectEmailPassword) {
+                setError(errorMessages[ErrorCode.IncorrectEmailPassword]);
+                setBusy(false);
+            } else {
+                setError(errorMessages[res.code] || "Something went wrong.");
+                setBusy(false);
+            }
+        } else {
+            // Email logins: try admin first, then fall back to teacher
+            const emailCred = {
+                email: data.emailUsername,
+                password: data.password,
+                redirect: false as const,
+            };
 
-        const credSubmitObj = isEmail
-            ? {
-                  email: data.emailUsername,
-                  password: data.password,
-                  redirect: false as const,
-              }
-            : {
-                  username: data.emailUsername,
-                  password: data.password,
-                  redirect: false as const,
-                  // redirectTo: redirectURL
-              };
+            const adminRes = await signIn("admin-credentials", emailCred);
+            if (!adminRes) {
+                setError(errorMessages[ErrorCode.InternalServerError]);
+                setBusy(false);
+                return;
+            }
 
-        const res = await signIn(provider, credSubmitObj);
-        if (!res) {
-            setError(errorMessages[ErrorCode.InternalServerError]);
-            setBusy(false);
-        } else if (!res.code) {
-            router.push(redirectURL);
-        } else if (res.code === ErrorCode.IncorrectEmailPassword) {
-            setError(errorMessages[ErrorCode.IncorrectEmailPassword]);
-            setBusy(false);
-        } /*else if (res.code === ErrorCode.UserMissingPassword) {
-            setPasswordForm("setPassword");
-            setEmail(data.emailUsername);
-            setBusy(false);
-        } */ else {
-            setError(errorMessages[res.code] || "Something went wrong.");
+            if (!adminRes.code) {
+                // Admin succeeded
+                router.push("/admin");
+                return;
+            }
+
+            if (adminRes.code === ErrorCode.IncorrectEmailPassword) {
+                // Try teacher next
+                const teacherRes = await signIn("teacher-credentials", emailCred);
+                if (!teacherRes) {
+                    setError(errorMessages[ErrorCode.InternalServerError]);
+                    setBusy(false);
+                    return;
+                }
+
+                if (!teacherRes.code) {
+                    router.push("/teacher");
+                    return;
+                }
+
+                if (teacherRes.code === ErrorCode.IncorrectEmailPassword) {
+                    setError(errorMessages[ErrorCode.IncorrectEmailPassword]);
+                    setBusy(false);
+                    return;
+                }
+
+                setError(errorMessages[teacherRes.code] || "Something went wrong.");
+                setBusy(false);
+                return;
+            }
+
+            // Other admin-specific responses (e.g., missing password)
+            if (adminRes.code === ErrorCode.UserMissingPassword) {
+                setError(errorMessages[ErrorCode.UserMissingPassword]);
+                setBusy(false);
+                return;
+            }
+
+            setError(errorMessages[adminRes.code] || "Something went wrong.");
             setBusy(false);
         }
     };

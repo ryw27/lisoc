@@ -1,19 +1,31 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcrypt";
 import { eq, InferInsertModel } from "drizzle-orm";
+import { v4 as uuid } from "uuid";
 import { z } from "zod/v4";
+import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { classes, users } from "@/lib/db/schema";
 import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
 import { Transaction } from "@/types/server.types";
 import { requireRole } from "@/server/auth/actions";
+import { sendAccountSetupEmail } from "@/server/auth/data";
 import { getEntityConfig, Registry } from "@/server/data-view/registry";
-import { sendUserRegEmail } from "../data";
 import { AdminSchema, AdminUserJoined } from "../entity-configs/(people)/adminuser";
 import { FamilyJoined } from "../entity-configs/(people)/family";
 import { TeacherJoined, TeacherSchema } from "../entity-configs/(people)/teacher";
+
+// Generate a placeholder bcrypt hash that no plaintext can satisfy. Used so
+// the NOT NULL `users.password` column has a valid bcrypt-shaped value while
+// the user has not yet completed setup. They MUST complete the setup-link
+// flow to set a real, login-usable hash.
+async function unusableBcryptHash(): Promise<string> {
+    const random = randomBytes(48).toString("base64");
+    return bcrypt.hash(`unusable:${random}`, 10);
+}
 
 const UserInsertTables = ["adminuser", "teacher"];
 async function insertUser(
@@ -48,12 +60,18 @@ async function insertUser(
         return { user, newUser };
     }
 
+    // For brand-new admin/teacher accounts we ignore any password the admin
+    // typed in the data-view form. Plaintext passwords used to be emailed to
+    // the user, which meant a typo'd email address handed full credentials to
+    // whoever owned that address. Instead we store an unguessable placeholder
+    // hash here; the real password is set by the user through the setup link
+    // sent via `sendAccountSetupEmail`.
     const [user] = await tx
         .insert(users)
         .values({
             name: data.name,
             email: data.email,
-            password: await bcrypt.hash(data.password, 10),
+            password: await unusableBcryptHash(),
             roles: [roleMap[entity as keyof typeof roleMap]],
             address: data.address,
             city: data.city,
@@ -135,11 +153,23 @@ export async function insertRow(
 
                 const [entityRow] = await tx.insert(table).values(userInsertData).returning();
 
-                await sendUserRegEmail(
-                    parsed.data.email as string,
-                    parsed.data.password as string,
-                    entity === "adminuser" ? "Admin" : "Teacher"
-                );
+                // Only send a setup link when this is a fresh user. If the
+                // user already existed and we just attached a new role, they
+                // already have working credentials.
+                if (newUser) {
+                    const setupToken = uuid();
+                    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+                    await pgadapter.createVerificationToken({
+                        identifier: parsed.data.email as string,
+                        token: setupToken,
+                        expires: new Date(Date.now() + SEVEN_DAYS_MS),
+                    });
+                    await sendAccountSetupEmail(
+                        parsed.data.email as string,
+                        setupToken,
+                        entity === "adminuser" ? "Admin" : "Teacher"
+                    );
+                }
                 return entityRow;
             } else {
                 const [entityRow] = await tx.insert(table).values(insertData).returning();

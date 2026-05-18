@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { redirect } from "next/navigation";
 import { requireRole } from "@/server/auth/actions";
 import { familyResetPassword } from "@/server/auth/familyRestPassword";
+import { passwordSchema } from "@/server/auth/schema";
+import { redirect } from "next/navigation";
+import React, { useState } from "react";
 
 export default function UpdatePasswordPage() {
     const [oldPassword, setOldPassword] = useState("");
@@ -28,8 +29,10 @@ export default function UpdatePasswordPage() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            setError("New password must be at least 6 characters");
+        // Validate password against passwordSchema
+        const passwordValidation = passwordSchema.shape.password.safeParse(newPassword);
+        if (!passwordValidation.success) {
+            setError(passwordValidation.error.issues[0]?.message || "Invalid password");
             return;
         }
 
