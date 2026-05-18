@@ -1,14 +1,14 @@
 "use server";
 
+import bcrypt from "bcrypt";
+import { eq, gt } from "drizzle-orm";
+import { v4 as uuid } from "uuid";
+import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
-import bcrypt from "bcrypt";
-import { eq, gt } from "drizzle-orm";
-import { v4 as uuid } from "uuid";
-import { z } from "zod/v4";
 import { sendFPEmail } from "./data";
 import { emailSchema, forgotPassSchema, resetPassSchema, uuidSchema } from "./schema";
 
@@ -61,7 +61,12 @@ export const checkResetLink = safeAction(
     async function (data: z.infer<typeof checkResetLinkSchema>): Promise<boolean> {
         // Data is already parsed
         const row = await db.query.verificationToken.findFirst({
-            where: (vt, { and, eq }) => and(eq(vt.identifier, data.email), eq(vt.token, data.uuid), gt(vt.expires, new Date().toISOString())),
+            where: (vt, { and, eq }) =>
+                and(
+                    eq(vt.identifier, data.email),
+                    eq(vt.token, data.uuid),
+                    gt(vt.expires, new Date().toISOString())
+                ),
         });
 
         if (!row) {

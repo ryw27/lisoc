@@ -3,9 +3,9 @@ import PostgresAdapter from "@auth/pg-adapter";
 import bcrypt from "bcrypt";
 import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
+import Credentials from "next-auth/providers/credentials";
 // import { type JWT } from "next-auth/jwt"; // eslint-disable-line @typescript-eslint/no-unused-vars -- imported only for module augmentation
 import { adminloginSchema, credSchema, loginSchema } from "@/server/auth/schema";
-import Credentials from "next-auth/providers/credentials";
 import { db, pool } from "./db";
 import { clientIp, rateLimit } from "./rateLimit";
 
@@ -92,8 +92,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const { emailUsername, password } = parsedCredentials.data;
                 await enforceLoginRateLimit("admin", emailUsername);
                 const result = await db.query.users.findFirst({
-                    where: (users, { eq,or  }) =>
-                        isEmail ? or(eq(users.email, emailUsername), eq(users.name, emailUsername)) : eq(users.name, emailUsername),
+                    where: (users, { eq, or }) =>
+                        isEmail
+                            ? or(eq(users.email, emailUsername), eq(users.name, emailUsername))
+                            : eq(users.name, emailUsername),
                     with: {
                         adminusers: {},
                     },
@@ -167,18 +169,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const { emailUsername, password } = parsedCredentials.data;
                 await enforceLoginRateLimit("teacher", emailUsername);
                 const result = await db.query.users.findFirst({
-                    where: (users, { eq,or }) =>
-                        isEmail ? or(eq(users.email, emailUsername), eq(users.name, emailUsername)) : eq(users.name, emailUsername),
+                    where: (users, { eq, or }) =>
+                        isEmail
+                            ? or(eq(users.email, emailUsername), eq(users.name, emailUsername))
+                            : eq(users.name, emailUsername),
                     with: {
                         teachers: {},
                     },
                 });
 
-                if (
-                    !result ||
-                    !result.roles.includes("TEACHER") ||
-                    !result.emailVerified
-                ) {
+                if (!result || !result.roles.includes("TEACHER") || !result.emailVerified) {
                     throw new IncorrectEmailPasswordError();
                 }
 

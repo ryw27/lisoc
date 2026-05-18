@@ -2,6 +2,11 @@
 
 //import { FcGoogle } from "react-icons/fc";
 //import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import { cn } from "@/lib/utils";
 import {
     checkRegCode,
@@ -10,11 +15,6 @@ import {
     resendCode,
 } from "@/server/auth/familyreg.actions";
 import { codeSchema, emailSchema, userPassSchema } from "@/server/auth/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Check } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod/v4";
 // import TeacherForm from "./LEGACY_teacher-form";
 import Logo from "@/components/logo";
 import FamilyForm from "./family-form";

@@ -1,13 +1,13 @@
 "use client";
 
-import Logo from "@/components/logo";
-import { resetPassword } from "@/server/auth/resetpw.actions";
-import { resetPassSchema } from "@/server/auth/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
+import { resetPassword } from "@/server/auth/resetpw.actions";
+import { resetPassSchema } from "@/server/auth/schema";
+import Logo from "@/components/logo";
 import { FormError, FormInput, FormSubmit } from "./form-components";
 
 type resetPasswordParams = {

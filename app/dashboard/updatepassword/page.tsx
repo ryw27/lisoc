@@ -1,10 +1,10 @@
 "use client";
 
+import React, { useState } from "react";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/server/auth/actions";
 import { familyResetPassword } from "@/server/auth/familyRestPassword";
 import { passwordSchema } from "@/server/auth/schema";
-import { redirect } from "next/navigation";
-import React, { useState } from "react";
 
 export default function UpdatePasswordPage() {
     const [oldPassword, setOldPassword] = useState("");
