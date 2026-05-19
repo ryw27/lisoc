@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,14 @@ async function redirectFamily(formData: FormData): Promise<void> {
     const familyid = formData.get("familyid");
     const phone = formData.get("phone");
     const regno = formData.get("regno");
+    const studentname = formData.get("studentname");
+
+    if (typeof studentname === "string" && studentname.trim()) {
+        redirect(
+            `/admin/other/find-family?studentname=${encodeURIComponent(studentname.trim())}`
+        );
+    }
+
     if (
         !familyid &&
         !phone &&
@@ -54,62 +63,157 @@ async function redirectFamily(formData: FormData): Promise<void> {
     redirect(`/admin/management/${finalFamID}`);
 }
 
-export default function FindFamily() {
+type StudentMatch = {
+    studentid: number;
+    familyid: number;
+    namecn: string;
+    namefirsten: string;
+    namelasten: string;
+};
+
+export default async function FindFamily({
+    searchParams,
+}: {
+    searchParams?: Promise<{ studentname?: string | string[] }>;
+}) {
+    const params = searchParams ? await searchParams : {};
+    const rawName = params.studentname;
+    const name = (Array.isArray(rawName) ? rawName[0] : rawName)?.trim();
+
+    let matches: StudentMatch[] = [];
+    if (name) {
+        matches = await db.query.student.findMany({
+            where: (s, { ilike, or }) =>
+                or(
+                    ilike(s.namecn, `%${name}%`),
+                    ilike(s.namefirsten, `%${name}%`),
+                    ilike(s.namelasten, `%${name}%`)
+                ),
+            columns: {
+                studentid: true,
+                familyid: true,
+                namecn: true,
+                namefirsten: true,
+                namelasten: true,
+            },
+            limit: 100,
+        });
+    }
+
     return (
-        <form
-            action={redirectFamily}
-            className="border-input bg-card mx-auto flex w-full max-w-[300px] flex-col gap-3 rounded-md border p-6 shadow-sm"
-        >
-            <h2 className="text-muted-foreground mb-2 text-center text-xs font-bold tracking-widest uppercase">
-                Find Family Record
-            </h2>
-
-            <Input
-                id="familyid"
-                name="familyid"
-                type="number"
-                min={1}
-                placeholder="Family ID"
-                autoComplete="off"
-                className="border-input h-9 w-full rounded-sm text-sm"
-            />
-
-            <div className="relative flex items-center justify-center">
-                <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">or</span>
-                <div className="absolute inset-0 -z-10 flex items-center">
-                    <div className="border-input w-full border-t"></div>
-                </div>
-            </div>
-
-            <Input
-                id="phone"
-                name="phone"
-                type="text"
-                placeholder="Phone Number"
-                className="border-input h-9 w-full rounded-sm text-sm"
-            />
-
-            <div className="relative flex items-center justify-center">
-                <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">or</span>
-                <div className="absolute inset-0 -z-10 flex items-center">
-                    <div className="border-input w-full border-t"></div>
-                </div>
-            </div>
-
-            <Input
-                id="regno"
-                name="regno"
-                type="number"
-                placeholder="Registration No"
-                className="border-input h-9 w-full rounded-sm text-sm"
-            />
-
-            <button
-                type="submit"
-                className="bg-primary hover:bg-primary/90 mt-2 h-9 w-full rounded-sm text-xs font-bold tracking-widest text-white uppercase transition-colors"
+        <div className="mx-auto flex w-full max-w-[300px] flex-col gap-4">
+            <form
+                action={redirectFamily}
+                className="border-input bg-card flex flex-col gap-3 rounded-md border p-6 shadow-sm"
             >
-                Search
-            </button>
-        </form>
+                <h2 className="text-muted-foreground mb-2 text-center text-xs font-bold tracking-widest uppercase">
+                    Find Family Record
+                </h2>
+
+                <Input
+                    id="familyid"
+                    name="familyid"
+                    type="number"
+                    min={1}
+                    placeholder="Family ID"
+                    autoComplete="off"
+                    className="border-input h-9 w-full rounded-sm text-sm"
+                />
+
+                <div className="relative flex items-center justify-center">
+                    <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">
+                        or
+                    </span>
+                    <div className="absolute inset-0 -z-10 flex items-center">
+                        <div className="border-input w-full border-t"></div>
+                    </div>
+                </div>
+
+                <Input
+                    id="phone"
+                    name="phone"
+                    type="text"
+                    placeholder="Phone Number"
+                    className="border-input h-9 w-full rounded-sm text-sm"
+                />
+
+                <div className="relative flex items-center justify-center">
+                    <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">
+                        or
+                    </span>
+                    <div className="absolute inset-0 -z-10 flex items-center">
+                        <div className="border-input w-full border-t"></div>
+                    </div>
+                </div>
+
+                <Input
+                    id="regno"
+                    name="regno"
+                    type="number"
+                    placeholder="Registration No"
+                    className="border-input h-9 w-full rounded-sm text-sm"
+                />
+
+                <div className="relative flex items-center justify-center">
+                    <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">
+                        or
+                    </span>
+                    <div className="absolute inset-0 -z-10 flex items-center">
+                        <div className="border-input w-full border-t"></div>
+                    </div>
+                </div>
+
+                <Input
+                    id="studentname"
+                    name="studentname"
+                    type="text"
+                    placeholder="Student Name"
+                    autoComplete="off"
+                    defaultValue={name ?? ""}
+                    className="border-input h-9 w-full rounded-sm text-sm"
+                />
+
+                <button
+                    type="submit"
+                    className="bg-primary hover:bg-primary/90 mt-2 h-9 w-full rounded-sm text-xs font-bold tracking-widest text-white uppercase transition-colors"
+                >
+                    Search
+                </button>
+            </form>
+
+            {name && (
+                <div className="border-input bg-card flex flex-col gap-2 rounded-md border p-4 shadow-sm">
+                    <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+                        Matches for &ldquo;{name}&rdquo;
+                    </h3>
+                    {matches.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No matches</p>
+                    ) : (
+                        <ul className="flex flex-col gap-1">
+                            {matches.map((m) => (
+                                <li key={m.studentid}>
+                                    <Link
+                                        href={`/admin/management/${m.familyid}`}
+                                        className="border-input hover:bg-muted block rounded-sm border p-2 text-sm"
+                                    >
+                                        <span className="font-bold">{m.namecn}</span>{" "}
+                                        ({m.namefirsten} {m.namelasten})
+                                        <span className="text-muted-foreground">
+                                            {" "}
+                                            · Family #{m.familyid}
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {matches.length === 100 && (
+                        <p className="text-muted-foreground text-xs">
+                            Showing first 100 — refine search if needed.
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
     );
 }
