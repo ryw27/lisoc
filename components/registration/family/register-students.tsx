@@ -885,7 +885,8 @@ export default function RegisterStudent({
                         <p
                             className={`font-bold ${billdetail.managementfee < 0 ? "text-red-500" : "text-blue-500"}`}
                         >
-                            Management Fee(管理费): {billdetail.managementfee.toFixed(2)}
+                            Management Fee Per Family (家庭管理费):{" "}
+                            {billdetail.managementfee.toFixed(2)}
                         </p>
                     )}
                     {billdetail.earlyDiscountManagementfee != 0 && (
