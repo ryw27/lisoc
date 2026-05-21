@@ -1,8 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { auth, signIn, signOut } from "@/lib/auth";
 import { emailSchema, loginSchema, usernameSchema } from "@/server/auth/schema";
+import { redirect } from "next/navigation";
 
 export async function requireRole(
     allowed: ("ADMIN" | "TEACHER" | "FAMILY")[],
@@ -18,7 +18,7 @@ export async function requireRole(
         }
     } else if (!allowed.includes(session.user.role)) {
         if (options.redirect) {
-            redirect("/unauthorized"); // Logged in as user and trying to access admin pages
+            redirect("/forbidden"); // Logged in as user and trying to access admin pages
         } else {
             throw new Error("Access denied. Required role not found");
         }

@@ -1,15 +1,15 @@
 "use server";
 
-import { randomInt } from "crypto";
-import bcrypt from "bcrypt";
-import { and, eq } from "drizzle-orm";
-import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { family, registration_drafts, teacher, users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
+import bcrypt from "bcrypt";
+import { randomInt } from "crypto";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod/v4";
 import { sendRegEmail } from "./data";
 import {
     codeSchema,
@@ -20,7 +20,7 @@ import {
     userPassSchema,
 } from "./schema";
 
-// 8-digit numeric verification code: 10^7 .. 10^8 - 1 (always 8 digits).
+// 6-digit numeric verification code: 10^7 .. 10^8 - 1 (always 8 digits).
 // Combined with per-email rate limiting on checkRegCode below, brute-forcing
 // within the 10-minute expiry window is no longer feasible.
 function generateVerificationCode(): string {
