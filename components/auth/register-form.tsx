@@ -302,7 +302,7 @@ export default function RegisterForm({
                                 <FormInput
                                     label="Username (用户名)"
                                     type="text"
-                                    extras={{ value: credentials?.email }}
+                                    extras={{ defaultValue: credentials?.email }}
                                     register={credForm.register("username")}
                                 />
                                 <FormError error={credForm.formState.errors.username?.message} />

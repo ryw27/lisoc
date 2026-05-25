@@ -18,7 +18,7 @@ export const usernameSchema = z.object({
     username: z
         .string()
         //       .min(4, { message: "Username has to be filled"})
-        .max(24, { message: "Username is too long" }),
+        .max(50, { message: "Username is too long" }),
 });
 
 // Strong policy for setting a NEW password (registration, password reset,
