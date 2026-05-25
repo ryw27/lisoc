@@ -1,7 +1,7 @@
 import { InferSelectModel } from "drizzle-orm";
 import { z } from "zod/v4";
 import { student } from "@/lib/db/schema";
-import { toESTString } from "@/lib/utils";
+import { dateOnlyToString, toESTString } from "@/lib/utils";
 import { type EntityConfig, type Extras } from "@/types/dataview.types";
 
 // 1. Types
@@ -32,9 +32,10 @@ export const studentFormSchema = z.object({
         .number({ message: "Age must be a number" })
         .int()
         .min(0, { message: "Age must be positive" }),
-    dob: z
+    dob: z.coerce
         .date({ message: "Date of birth must be a valid date" })
-        .default(new Date(toESTString(new Date("1900-01-01")))),
+        .default(new Date("1900-01-01T00:00:00Z"))
+        .transform(dateOnlyToString),
     active: z.boolean().default(false),
     notes: z.string().max(200, { message: "Notes must be at most 200 characters" }).optional(),
 });

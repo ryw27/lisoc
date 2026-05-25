@@ -13,6 +13,7 @@ import {
     FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_SCHOOL_CHECK,
     FAMILYBALANCE_TYPE_TRANSFER,
+    dateOnlyToString,
     toESTString,
 } from "@/lib/utils";
 import { type threeSeasons } from "@/types/seasons.types";
@@ -139,7 +140,7 @@ export async function createStudent(
                 gender: parsed.gender ?? "",
                 ageof: "Child",
                 age: null,
-                dob: toESTString(parsed.dob),
+                dob: dateOnlyToString(parsed.dob),
                 active: parsed.active,
                 createddate: toESTString(new Date()),
                 lastmodify: toESTString(new Date()),
@@ -159,7 +160,7 @@ export async function createStudent(
                 namecn: parsed.namecn ?? "",
                 namelasten: parsed.namelasten ?? "",
                 namefirsten: parsed.namefirsten ?? "",
-                dob: toESTString(parsed.dob),
+                dob: dateOnlyToString(parsed.dob),
                 gender: parsed.gender ?? "",
                 active: parsed.active,
                 lastmodify: toESTString(new Date()),

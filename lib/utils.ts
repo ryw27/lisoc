@@ -15,6 +15,19 @@ export function toESTString(date: Date) {
     return formatInTimeZone(date, "America/New_York", "yyyy-MM-dd'T'HH:mm:ssXXX");
 }
 
+// For calendar-date-only values (e.g. date of birth) where time-of-day is
+// meaningless. The incoming Date is assumed to be UTC midnight of the intended
+// calendar date — which is what `z.coerce.date("YYYY-MM-DD")` produces. We
+// anchor the stored value at noon so `new Date(stored).toLocaleDateString()`
+// returns the same calendar date in any timezone from UTC-11 to UTC+11,
+// avoiding the off-by-one shift caused by storing at midnight.
+export function dateOnlyToString(date: Date): string {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d} 12:00:00`;
+}
+
 // ----------------------------------------------------------------
 // Format Currency
 // ----------------------------------------------------------------
