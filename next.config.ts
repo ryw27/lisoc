@@ -19,12 +19,22 @@ import packageJson from "./package.json";
 //     (clickjacking).
 //   - form-action / base-uri: 'self' to neutralise base-href and form-action
 //     hijacks.
-const PAYPAL_SCRIPT_HOSTS = ["https://www.paypal.com", "https://www.paypalobjects.com"];
-const PAYPAL_API_HOSTS = [
-    "https://www.paypal.com",
-    "https://api-m.paypal.com",
-    "https://api-m.sandbox.paypal.com",
-    "https://www.sandbox.paypal.com",
+// The PayPal JS SDK loads a script from www.paypal.com which then renders
+// buttons in iframes, opens a checkout iframe (production or sandbox), and
+// beacons telemetry/FPTI data to a handful of PayPal subdomains. Rather
+// than enumerate them — PayPal frequently introduces new regional / risk /
+// experiment subdomains, and a missing entry silently breaks checkout —
+// we trust the *.paypal.com and *.paypalobjects.com namespaces.
+//
+// This matches PayPal's own CSP guidance
+// (https://developer.paypal.com/docs/checkout/troubleshoot/support/#csp).
+// Trust trade-off: any compromised PayPal subdomain would be in scope, but
+// (a) PayPal manages subdomain hygiene as a regulated payments company,
+// and (b) we already grant www.paypal.com script-src trust — a compromise
+// at that domain dominates anything a sibling subdomain could do.
+const PAYPAL_HOST_WILDCARDS = [
+    "https://*.paypal.com",
+    "https://*.paypalobjects.com",
 ];
 
 const isProd = process.env.NODE_ENV === "production";
@@ -36,14 +46,15 @@ function buildCsp(): string {
     const scriptExtras = isProd ? "" : " 'unsafe-eval'";
     const connectExtras = isProd ? "" : " ws: wss:";
 
+    const paypal = PAYPAL_HOST_WILDCARDS.join(" ");
     const directives: Record<string, string> = {
         "default-src": "'self'",
-        "script-src": `'self' 'unsafe-inline'${scriptExtras} ${PAYPAL_SCRIPT_HOSTS.join(" ")}`,
+        "script-src": `'self' 'unsafe-inline'${scriptExtras} ${paypal}`,
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob: https:",
         "font-src": "'self' data:",
-        "connect-src": `'self' ${PAYPAL_API_HOSTS.join(" ")}${connectExtras}`,
-        "frame-src": `'self' ${PAYPAL_SCRIPT_HOSTS.join(" ")}`,
+        "connect-src": `'self' ${paypal}${connectExtras}`,
+        "frame-src": `'self' ${paypal}`,
         "frame-ancestors": "'none'",
         "base-uri": "'self'",
         "form-action": "'self'",
