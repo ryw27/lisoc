@@ -20,31 +20,21 @@ import packageJson from "./package.json";
 //   - form-action / base-uri: 'self' to neutralise base-href and form-action
 //     hijacks.
 // The PayPal JS SDK loads a script from www.paypal.com which then renders
-// buttons in iframes, opens a checkout iframe, and beacons telemetry/FPTI
-// data to a handful of PayPal subdomains. Each directive needs the right
-// subset — these lists are intentionally split rather than reused across
-// directives so it's obvious why each host is there.
-const PAYPAL_SCRIPT_HOSTS = [
-    "https://www.paypal.com", // /sdk/js loader
-    "https://www.paypalobjects.com", // images / assets the SDK pulls
-];
-const PAYPAL_FRAME_HOSTS = [
-    "https://www.paypal.com", // production button + checkout iframes
-    "https://www.paypalobjects.com",
-    "https://www.sandbox.paypal.com", // sandbox checkout iframe — required when running against the sandbox API
-];
-const PAYPAL_CONNECT_HOSTS = [
-    "https://www.paypal.com",
-    "https://www.sandbox.paypal.com",
-    "https://api-m.paypal.com",
-    "https://api-m.sandbox.paypal.com",
-    // Fraud / telemetry beacons the SDK fires during checkout. Without these
-    // the buttons still render but the SDK logs CSP errors and some risk
-    // signals never reach PayPal.
-    "https://c.paypal.com",
-    "https://c6.paypal.com",
-    "https://b.stats.paypal.com",
-    "https://t.paypal.com",
+// buttons in iframes, opens a checkout iframe (production or sandbox), and
+// beacons telemetry/FPTI data to a handful of PayPal subdomains. Rather
+// than enumerate them — PayPal frequently introduces new regional / risk /
+// experiment subdomains, and a missing entry silently breaks checkout —
+// we trust the *.paypal.com and *.paypalobjects.com namespaces.
+//
+// This matches PayPal's own CSP guidance
+// (https://developer.paypal.com/docs/checkout/troubleshoot/support/#csp).
+// Trust trade-off: any compromised PayPal subdomain would be in scope, but
+// (a) PayPal manages subdomain hygiene as a regulated payments company,
+// and (b) we already grant www.paypal.com script-src trust — a compromise
+// at that domain dominates anything a sibling subdomain could do.
+const PAYPAL_HOST_WILDCARDS = [
+    "https://*.paypal.com",
+    "https://*.paypalobjects.com",
 ];
 
 const isProd = process.env.NODE_ENV === "production";
@@ -56,14 +46,15 @@ function buildCsp(): string {
     const scriptExtras = isProd ? "" : " 'unsafe-eval'";
     const connectExtras = isProd ? "" : " ws: wss:";
 
+    const paypal = PAYPAL_HOST_WILDCARDS.join(" ");
     const directives: Record<string, string> = {
         "default-src": "'self'",
-        "script-src": `'self' 'unsafe-inline'${scriptExtras} ${PAYPAL_SCRIPT_HOSTS.join(" ")}`,
+        "script-src": `'self' 'unsafe-inline'${scriptExtras} ${paypal}`,
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob: https:",
         "font-src": "'self' data:",
-        "connect-src": `'self' ${PAYPAL_CONNECT_HOSTS.join(" ")}${connectExtras}`,
-        "frame-src": `'self' ${PAYPAL_FRAME_HOSTS.join(" ")}`,
+        "connect-src": `'self' ${paypal}${connectExtras}`,
+        "frame-src": `'self' ${paypal}`,
         "frame-ancestors": "'none'",
         "base-uri": "'self'",
         "form-action": "'self'",
