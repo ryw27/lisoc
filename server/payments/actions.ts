@@ -88,37 +88,21 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
             })
             .where(eq(familybalance.balanceid, oldFB.balanceid));
 
-        // 4. Get the class reg
-        //            where: (cr, { eq }) => eq(cr.regid, oldFB.appliedregid),
-        // find class regsitrations which are linked to the oldFB.balancedid
-        // it is ok not find, but if found we need to update depends if full amount is paid
-
+        // 4. Find class registrations linked to the balance being paid.
+        //    findMany ALWAYS returns an array, so the `if (!classreg)` guard
+        //    below never actually fires — kept as a no-op for safety, but the
+        //    real signal is `classreg.length`.
         const classreg = await tx.query.classregistration.findMany({
             where: (cr, { eq }) => eq(cr.familybalanceid, oldFB.balanceid),
-            // eq(cr.familyid, family.familyid),
-            // eq(cr.seasonid, oldFB.seasonid),
-            // We need the arrangement to check the price
-            /*
-            with: {
-                class: {
-                    columns: {classid: true}
-                },
-                season: {
-                    columns: {seasonid: true}
-                }
-            }
-                */
         });
-        if (!classreg) {
-            // throw new Error("Cannot find corresponding registrations");
-            console.warn("Cannot find corresponding registrations");
-            return;
-        }
 
-        // 5. Update the class reg
-        if (isFullPayment(oldFB) - parsed.amount < 0.01) {
-            // full payment or overpayment
-            // for each class registration, update to registered
+        // 5. Decide whether this payment fully clears the invoice. Log the
+        //    decision inputs so we can diagnose the "status didn't flip"
+        //    case from production logs without a DB dump.
+        const owed = isFullPayment(oldFB);
+        const isFull = owed - parsed.amount < 0.01;
+        const updatedRegIds: number[] = [];
+        if (isFull) {
             for (const cr of classreg) {
                 await tx
                     .update(classregistration)
@@ -127,31 +111,65 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
                         previousstatusid: cr.statusid,
                     })
                     .where(eq(classregistration.regid, cr.regid));
+                updatedRegIds.push(cr.regid);
             }
-
-            /*
-            await tx
-                .update(classregistration)
-                .set({
-                    statusid: REGSTATUS_REGISTERED,
-                    previousstatusid: classreg.statusid,
-                    familybalanceid: oldFB.balanceid,
-                    newbalanceid: newFB.balanceid,
-                })
-                .where(eq(classregistration.regid, classreg.regid));*/
-        } else {
-            /*
-            await tx
-                .update(classregistration)
-                .set({
-                    familybalanceid: oldFB.balanceid,
-                    newbalanceid: newFB.balanceid
-                })
-                    */
-            console.log("to be implemented - partial payment case");
         }
 
+        console.log("[PAYMENT-APPLY]", {
+            balanceId: oldFB.balanceid,
+            familyId: oldFB.familyid,
+            seasonId: oldFB.seasonid,
+            paidAmount: parsed.amount,
+            owedFromFees: owed,
+            owedMinusPaid: owed - parsed.amount,
+            isFullPayment: isFull,
+            classregMatched: classreg.length,
+            classregUpdated: updatedRegIds,
+            feeBreakdown: {
+                tuition: Number(oldFB.tuition),
+                regfee: Number(oldFB.regfee),
+                earlyregdiscount: Number(oldFB.earlyregdiscount),
+                lateregfee: Number(oldFB.lateregfee),
+                managementfee: Number(oldFB.managementfee),
+                dutyfee: Number(oldFB.dutyfee),
+                cleaningfee: Number(oldFB.cleaningfee),
+                otherfee: Number(oldFB.otherfee),
+                extrafee4newfamily: Number(oldFB.extrafee4newfamily),
+                childnumRegfee: Number(oldFB.childnumRegfee),
+            },
+            storedTotalAmount: Number(oldFB.totalamount),
+        });
+
+        if (!isFull) {
+            // Partial payment path is not yet implemented. The credit row
+            // was still inserted above so the family's balance reflects the
+            // payment; classregistration rows just don't flip to REGISTERED.
+            console.log(
+                "[PAYMENT-APPLY] partial payment — classregistration left at previous status",
+                { balanceId: oldFB.balanceid, shortBy: owed - parsed.amount }
+            );
+        } else if (classreg.length === 0) {
+            // Full payment but nothing to update. Most likely cause is that
+            // the classregistration rows were inserted without
+            // familybalanceid pointing at this balance, or were already
+            // detached (e.g. drop/transfer requests). Worth investigating
+            // when this fires.
+            console.warn(
+                "[PAYMENT-APPLY] full payment matched zero classregistration rows",
+                { balanceId: oldFB.balanceid, familyId: oldFB.familyid }
+            );
+        }
+
+        // Revalidate both the admin family-detail page and the family-side
+        // dashboard pages so neither view shows stale "S/提交" after a
+        // successful payment. Previously only the admin path was
+        // invalidated, so families paying through the dashboard would see
+        // the old status until they hard-refreshed.
         revalidatePath(`/admin/management/${oldFB.familyid}`);
+        revalidatePath("/dashboard");
+        revalidatePath("/dashboard/register");
+        revalidatePath("/dashboard/reghistory");
+        revalidatePath("/dashboard/balhistory");
     });
 }
 
