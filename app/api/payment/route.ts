@@ -17,9 +17,11 @@ async function getPayPalAccessToken(): Promise<string> {
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
-        throw new Error("PayPal credentials not configured");
+        throw new Error(
+            "PayPal credentials not configured: set NEXT_PUBLIC_PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET"
+        );
     }
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    const auth = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString("base64");
 
     const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
         method: "POST",
@@ -31,7 +33,26 @@ async function getPayPalAccessToken(): Promise<string> {
     });
 
     if (!response.ok) {
-        throw new Error(`PayPal token request failed: ${response.status}`);
+        // Surface enough context to diagnose env-var mismatches without
+        // ever printing the secret. The two most common causes of 401
+        // here are: (a) PAYPAL_API_URL points at one environment (sandbox
+        // / live) but the secret belongs to the other, and (b) the
+        // public client id and the secret are from different PayPal apps.
+        const apiHost = (() => {
+            try {
+                return new URL(PAYPAL_API_URL).host;
+            } catch {
+                return PAYPAL_API_URL;
+            }
+        })();
+        const isSandbox = apiHost.includes("sandbox");
+        const hint =
+            response.status === 401
+                ? ` Likely PAYPAL_CLIENT_SECRET does not match NEXT_PUBLIC_PAYPAL_CLIENT_ID, or the credentials are for the ${isSandbox ? "live" : "sandbox"} environment while PAYPAL_API_URL targets ${isSandbox ? "sandbox" : "live"}.`
+                : "";
+        throw new Error(
+            `PayPal token request failed: ${response.status} (apiHost=${apiHost}, clientIdPrefix=${clientId.slice(0, 8)}…).${hint}`
+        );
     }
 
     const data = (await response.json()) as { access_token?: string };
