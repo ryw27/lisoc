@@ -30,9 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files 
+# env files
 .env*
 !.env.example
+
+# local Claude Code state (preview launch configs, worktrees, etc.)
+.claude/
 
 # vercel
 .vercel
