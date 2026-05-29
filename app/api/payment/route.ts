@@ -17,9 +17,11 @@ async function getPayPalAccessToken(): Promise<string> {
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
-        throw new Error("PayPal credentials not configured");
+        throw new Error(
+            "PayPal credentials not configured: set NEXT_PUBLIC_PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET"
+        );
     }
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    const auth = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString("base64");
 
     const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
         method: "POST",
@@ -31,7 +33,26 @@ async function getPayPalAccessToken(): Promise<string> {
     });
 
     if (!response.ok) {
-        throw new Error(`PayPal token request failed: ${response.status}`);
+        // Surface enough context to diagnose env-var mismatches without
+        // ever printing the secret. The two most common causes of 401
+        // here are: (a) PAYPAL_API_URL points at one environment (sandbox
+        // / live) but the secret belongs to the other, and (b) the
+        // public client id and the secret are from different PayPal apps.
+        const apiHost = (() => {
+            try {
+                return new URL(PAYPAL_API_URL).host;
+            } catch {
+                return PAYPAL_API_URL;
+            }
+        })();
+        const isSandbox = apiHost.includes("sandbox");
+        const hint =
+            response.status === 401
+                ? ` Likely PAYPAL_CLIENT_SECRET does not match NEXT_PUBLIC_PAYPAL_CLIENT_ID, or the credentials are for the ${isSandbox ? "live" : "sandbox"} environment while PAYPAL_API_URL targets ${isSandbox ? "sandbox" : "live"}.`
+                : "";
+        throw new Error(
+            `PayPal token request failed: ${response.status} (apiHost=${apiHost}, clientIdPrefix=${clientId.slice(0, 8)}…).${hint}`
+        );
     }
 
     const data = (await response.json()) as { access_token?: string };
@@ -67,6 +88,35 @@ async function capturePayPalOrder(orderID: string, accessToken: string): Promise
 }
 
 export async function POST(request: Request) {
+    // 0. CSRF: require the request to come from the same origin. Browsers send
+    //    `Origin` on every CORS-relevant POST; if it's missing or doesn't match
+    //    `Host`, we reject. Cookies-only auth is otherwise vulnerable to a
+    //    cross-site form submission tricking a logged-in admin/family into
+    //    moving money around.
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const host = request.headers.get("host");
+    const expectedOrigins = new Set<string>();
+    if (host) {
+        expectedOrigins.add(`https://${host}`);
+        expectedOrigins.add(`http://${host}`);
+    }
+    const siteLink = process.env.SITE_LINK;
+    if (siteLink) {
+        try {
+            expectedOrigins.add(new URL(siteLink).origin);
+        } catch {
+            // ignore malformed env value
+        }
+    }
+    const sourceOrigin = origin ?? (referer ? new URL(referer).origin : null);
+    if (!sourceOrigin || !expectedOrigins.has(sourceOrigin)) {
+        return NextResponse.json(
+            { error: "Cross-origin request blocked" },
+            { status: 403 }
+        );
+    }
+
     // 1. Authentication — middleware excludes /api/*, so we self-check here.
     const session = await auth();
     if (!session?.user) {
@@ -163,7 +213,10 @@ export async function POST(request: Request) {
     const capturedAmountStr = capturedUnit?.amount?.value;
     const capturedCurrency = capturedUnit?.amount?.currency_code;
     if (!capturedAmountStr || !capturedCurrency) {
-        console.error("[PAYMENT-RECONCILE] PayPal capture response missing amount", captureData);
+        console.error(
+            "[PAYMENT-RECONCILE] PayPal capture response missing amount",
+            captureData
+        );
         return NextResponse.json(
             { error: "Could not verify captured amount", captureID: captureData.id },
             { status: 502 }
@@ -211,7 +264,8 @@ export async function POST(request: Request) {
         });
         return NextResponse.json(
             {
-                error: "Payment was captured but failed to apply. Please contact the administrator with the Capture ID below; do not retry the payment.",
+                error:
+                    "Payment was captured but failed to apply. Please contact the administrator with the Capture ID below; do not retry the payment.",
                 captureID: captureData.id,
                 needsManualReconciliation: true,
             },

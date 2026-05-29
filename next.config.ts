@@ -40,16 +40,26 @@ const PAYPAL_HOST_WILDCARDS = [
 const isProd = process.env.NODE_ENV === "production";
 
 function buildCsp(): string {
-    // In dev we have to allow 'unsafe-eval' for Turbopack's HMR runtime, plus
-    // ws:/wss: so the dev server's WebSocket connection succeeds. Production
-    // tightens both.
-    const scriptExtras = isProd ? "" : " 'unsafe-eval'";
+    // In dev we additionally allow ws:/wss: so the Turbopack HMR socket can
+    // connect. Production omits those.
+    //
+    // 'unsafe-eval' is allowed in BOTH modes. We initially gated it to dev
+    // only, but the production bundle plus the PayPal checkout SDK both
+    // execute `new Function(...)` at runtime (Zod v4 compiles validators
+    // into functions; PayPal's checkout chunks use eval in some flows).
+    // With 'unsafe-inline' already required for Next + Turbopack inline
+    // scripts, the marginal XSS-resistance of removing 'unsafe-eval' is
+    // small — an attacker who can inject inline <script> can already
+    // achieve everything `eval` would give them. The proper tightening is
+    // a nonce-based CSP that drops 'unsafe-inline'; until that lands,
+    // forbidding 'unsafe-eval' alone just breaks legitimate code without
+    // meaningfully raising the bar for an attacker.
     const connectExtras = isProd ? "" : " ws: wss:";
 
     const paypal = PAYPAL_HOST_WILDCARDS.join(" ");
     const directives: Record<string, string> = {
         "default-src": "'self'",
-        "script-src": `'self' 'unsafe-inline'${scriptExtras} ${paypal}`,
+        "script-src": `'self' 'unsafe-inline' 'unsafe-eval' ${paypal}`,
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob: https:",
         "font-src": "'self' data:",
