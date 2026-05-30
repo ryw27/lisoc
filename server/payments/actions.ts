@@ -1,5 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
+import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -8,14 +11,11 @@ import {
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
+import { famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { checkApplySchema } from "@/server/payments/schema";
-import { famBalanceInsert } from "@/types/shared.types";
-import { eq, InferSelectModel } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { z } from "zod/v4";
 
-function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
+/*function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
     const total =
         Number(originalFB.childnumRegfee) +
         Number(originalFB.regfee) -
@@ -29,8 +29,13 @@ function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
         Number(originalFB.tuition);
     return total;
 }
+*/
 
-export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number, fromAdmin = false) {
+export async function applyCheck(
+    data: z.infer<typeof checkApplySchema>,
+    familyid: number,
+    fromAdmin = false
+) {
     // 1. Auth and parse
     await requireRole(["ADMIN", "FAMILY"]);
     const parsed = checkApplySchema.parse(data);
@@ -62,8 +67,11 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
         await tx.insert(familybalance).values(newFBVals).returning();
 
         const allFBs = await tx.query.familybalance.findMany({
-            where: (fb, { and, eq,or }) =>
-                and(eq(fb.familyid, familyid), or(eq(fb.balanceid, parsed.balanceid), eq(fb.appliedid, parsed.balanceid))),
+            where: (fb, { and, eq, or }) =>
+                and(
+                    eq(fb.familyid, familyid),
+                    or(eq(fb.balanceid, parsed.balanceid), eq(fb.appliedid, parsed.balanceid))
+                ),
         });
 
         // check total amount of all balance records
@@ -83,12 +91,10 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
                 })
                 .where(eq(familybalance.balanceid, oldFB.balanceid));
 
-
             // 4. Get the class reg
             //            where: (cr, { eq }) => eq(cr.regid, oldFB.appliedregid),
             // find class regsitrations which are linked to the oldFB.balancedid
             // it is ok not find, but if found we need to update depends if full amount is paid
-
 
             const classreg = await tx.query.classregistration.findMany({
                 where: (cr, { eq }) => eq(cr.familybalanceid, oldFB.balanceid),
@@ -112,15 +118,13 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
                     })
                     .where(eq(classregistration.regid, cr.regid));
             }
-
         }
 
         if (fromAdmin) {
             revalidatePath(`/admin/management/${familyid}`);
-        }else {
+        } else {
             revalidatePath(`/dashboard/register`);
         }
-
     });
 }
 

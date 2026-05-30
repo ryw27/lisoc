@@ -1,8 +1,8 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { auth, signIn, signOut } from "@/lib/auth";
 import { emailSchema, loginSchema, usernameSchema } from "@/server/auth/schema";
-import { redirect } from "next/navigation";
 
 export async function requireRole(
     allowed: ("ADMIN" | "TEACHER" | "FAMILY")[],

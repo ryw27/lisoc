@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -8,11 +10,9 @@ import {
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
-import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { requireRole } from "@/server/auth/actions";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // TODO: Check stuff with student

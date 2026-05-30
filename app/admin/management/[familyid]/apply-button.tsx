@@ -1,13 +1,13 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { applyCheck } from "@/server/payments/actions";
-import { checkApplySchema } from "@/server/payments/schema";
-import { familyObj } from "@/types/shared.types";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
+import { familyObj } from "@/types/shared.types";
+import { applyCheck } from "@/server/payments/actions";
+import { checkApplySchema } from "@/server/payments/schema";
+import { Input } from "@/components/ui/input";
 
 export default function ApplyButton({
     family,
@@ -29,7 +29,7 @@ export default function ApplyButton({
 
     const onSubmit = async (formData: z.infer<typeof checkApplySchema>) => {
         try {
-            await applyCheck(formData, family.familyid,true);
+            await applyCheck(formData, family.familyid, true);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             checkForm.setError("root", { message: errorMessage });

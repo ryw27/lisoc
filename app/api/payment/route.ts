@@ -111,10 +111,7 @@ export async function POST(request: Request) {
     }
     const sourceOrigin = origin ?? (referer ? new URL(referer).origin : null);
     if (!sourceOrigin || !expectedOrigins.has(sourceOrigin)) {
-        return NextResponse.json(
-            { error: "Cross-origin request blocked" },
-            { status: 403 }
-        );
+        return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
     }
 
     // 1. Authentication — middleware excludes /api/*, so we self-check here.
@@ -213,10 +210,7 @@ export async function POST(request: Request) {
     const capturedAmountStr = capturedUnit?.amount?.value;
     const capturedCurrency = capturedUnit?.amount?.currency_code;
     if (!capturedAmountStr || !capturedCurrency) {
-        console.error(
-            "[PAYMENT-RECONCILE] PayPal capture response missing amount",
-            captureData
-        );
+        console.error("[PAYMENT-RECONCILE] PayPal capture response missing amount", captureData);
         return NextResponse.json(
             { error: "Could not verify captured amount", captureID: captureData.id },
             { status: 502 }
@@ -264,8 +258,7 @@ export async function POST(request: Request) {
         });
         return NextResponse.json(
             {
-                error:
-                    "Payment was captured but failed to apply. Please contact the administrator with the Capture ID below; do not retry the payment.",
+                error: "Payment was captured but failed to apply. Please contact the administrator with the Capture ID below; do not retry the payment.",
                 captureID: captureData.id,
                 needsManualReconciliation: true,
             },

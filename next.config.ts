@@ -32,10 +32,7 @@ import packageJson from "./package.json";
 // (a) PayPal manages subdomain hygiene as a regulated payments company,
 // and (b) we already grant www.paypal.com script-src trust — a compromise
 // at that domain dominates anything a sibling subdomain could do.
-const PAYPAL_HOST_WILDCARDS = [
-    "https://*.paypal.com",
-    "https://*.paypalobjects.com",
-];
+const PAYPAL_HOST_WILDCARDS = ["https://*.paypal.com", "https://*.paypalobjects.com"];
 
 const isProd = process.env.NODE_ENV === "production";
 
