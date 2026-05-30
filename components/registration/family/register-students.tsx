@@ -1,23 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/dist/client/link";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-    CreateOrderActions,
-    CreateOrderData,
-    OnApproveActions,
-    OnApproveData,
-} from "@paypal/paypal-js";
-import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { InferSelectModel } from "drizzle-orm";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
-import { familyRegister } from "@/server/registration/actions/familyRegister";
-import { newRegSchema } from "@/server/registration/schema";
 import {
     Select,
     SelectContent,
@@ -27,6 +9,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangement, classregistration, family, regchangerequest, student } from "@/lib/db/schema";
+import { familyRegister } from "@/server/registration/actions/familyRegister";
+import { newRegSchema } from "@/server/registration/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type IdMaps, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    CreateOrderActions,
+    CreateOrderData,
+    OnApproveActions,
+    OnApproveData,
+} from "@paypal/paypal-js";
+import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { InferSelectModel } from "drizzle-orm";
+import Link from "next/dist/client/link";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
@@ -619,6 +619,9 @@ export default function RegisterStudent({
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
         const amount = Number(totalBalance || 0).toFixed(2);
+        const balanceIdInfo = familyBalanceIdSet
+            ? String([...familyBalanceIdSet][0])
+            : "registration";
         return actions.order.create({
             intent: "CAPTURE",
             purchase_units: [
@@ -627,11 +630,9 @@ export default function RegisterStudent({
                         value: amount,
                         currency_code: "USD",
                     },
-                    description: `School Registration`,
+                    description: `LISOC School Registration - ${new Date().toLocaleDateString()} - ${family.familyid} - ${balanceIdInfo}`,
                     // include familyBalanceId if available so backend can tie payment to a balance record
-                    custom_id: familyBalanceIdSet
-                        ? String([...familyBalanceIdSet][0])
-                        : "registration",
+                    custom_id: balanceIdInfo,
                 },
             ],
         });
@@ -681,7 +682,7 @@ export default function RegisterStudent({
 
             const result = await response.json();
             console.log("API response:", result);
-            alert("Payment processed successfully!");
+            //alert("Payment processed successfully!");
         } catch (error) {
             console.error("Payment failed:", error);
             //setPaypalError('Payment failed. Please try again.');

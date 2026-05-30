@@ -69,6 +69,7 @@ interface PayPalCapture {
         payments?: {
             captures?: Array<{
                 amount?: { value?: string; currency_code?: string };
+                id?: string;
             }>;
         };
     }>;
@@ -207,6 +208,7 @@ export async function POST(request: Request) {
 
     // 7. Use the AMOUNT FROM PAYPAL'S CAPTURE RESPONSE, never the client's request.
     const capturedUnit = captureData.purchase_units?.[0]?.payments?.captures?.[0];
+    const transactionId = capturedUnit?.id || captureData.id;
     const capturedAmountStr = capturedUnit?.amount?.value;
     const capturedCurrency = capturedUnit?.amount?.currency_code;
     if (!capturedAmountStr || !capturedCurrency) {
@@ -238,7 +240,8 @@ export async function POST(request: Request) {
             {
                 balanceid: balanceId,
                 amount: amountNumber,
-                checkNo: orderID,
+                //                checkNo: orderID,
+                checkNo: transactionId || orderID, // Store the PayPal transaction ID for reconciliation; the order ID is less specific and may not be unique across captures.
                 paidDate: new Date(),
                 feeTypeId: FAMILYBALANCE_TYPE_PAYMENT,
                 note: `PayPal Capture ID: ${captureData.id}`,
