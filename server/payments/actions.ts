@@ -1,8 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq, InferSelectModel } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -11,9 +8,12 @@ import {
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
-import { famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { checkApplySchema } from "@/server/payments/schema";
+import { famBalanceInsert } from "@/types/shared.types";
+import { eq, InferSelectModel } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod/v4";
 
 function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
     const total =
@@ -30,7 +30,7 @@ function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
     return total;
 }
 
-export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number) {
+export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyid: number, fromAdmin = false) {
     // 1. Auth and parse
     await requireRole(["ADMIN", "FAMILY"]);
     const parsed = checkApplySchema.parse(data);
@@ -61,43 +61,46 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
         } satisfies famBalanceInsert;
         await tx.insert(familybalance).values(newFBVals).returning();
 
-        // update old family balance to processed
-        await tx
-            .update(familybalance)
-            .set({
-                statusid: FAMILYBALANCE_STATUS_PROCESSED,
-            })
-            .where(eq(familybalance.balanceid, oldFB.balanceid));
-
-        // 4. Get the class reg
-        //            where: (cr, { eq }) => eq(cr.regid, oldFB.appliedregid),
-        // find class regsitrations which are linked to the oldFB.balancedid
-        // it is ok not find, but if found we need to update depends if full amount is paid
-
-        const classreg = await tx.query.classregistration.findMany({
-            where: (cr, { eq }) => eq(cr.familybalanceid, oldFB.balanceid),
-            // eq(cr.familyid, family.familyid),
-            // eq(cr.seasonid, oldFB.seasonid),
-            // We need the arrangement to check the price
-            /*
-            with: {
-                class: {
-                    columns: {classid: true}
-                },
-                season: {
-                    columns: {seasonid: true}
-                }
-            }
-                */
+        const allFBs = await tx.query.familybalance.findMany({
+            where: (fb, { and, eq,or }) =>
+                and(eq(fb.familyid, familyid), or(eq(fb.balanceid, parsed.balanceid), eq(fb.appliedid, parsed.balanceid))),
         });
-        if (!classreg) {
-            // throw new Error("Cannot find corresponding registrations");
-            console.warn("Cannot find corresponding registrations");
-            return;
+
+        // check total amount of all balance records
+        let totalAmount = 0;
+        for (const bal of allFBs) {
+            totalAmount += bal.totalamount ? Number(bal.totalamount) : 0;
         }
 
-        // 5. Update the class reg
-        if (isFullPayment(oldFB) - parsed.amount < 0.01) {
+        if (totalAmount < 0.01) {
+            // full payment or overpayment, update all related class registrations to registered
+
+            // update old family balance to processed
+            await tx
+                .update(familybalance)
+                .set({
+                    statusid: FAMILYBALANCE_STATUS_PROCESSED,
+                })
+                .where(eq(familybalance.balanceid, oldFB.balanceid));
+
+
+            // 4. Get the class reg
+            //            where: (cr, { eq }) => eq(cr.regid, oldFB.appliedregid),
+            // find class regsitrations which are linked to the oldFB.balancedid
+            // it is ok not find, but if found we need to update depends if full amount is paid
+
+
+            const classreg = await tx.query.classregistration.findMany({
+                where: (cr, { eq }) => eq(cr.familybalanceid, oldFB.balanceid),
+            });
+            if (!classreg) {
+                // throw new Error("Cannot find corresponding registrations");
+                console.warn("Cannot find corresponding registrations");
+                return;
+            }
+
+            // 5. Update the class reg
+
             // full payment or overpayment
             // for each class registration, update to registered
             for (const cr of classreg) {
@@ -110,29 +113,14 @@ export async function applyCheck(data: z.infer<typeof checkApplySchema>, familyi
                     .where(eq(classregistration.regid, cr.regid));
             }
 
-            /*
-            await tx
-                .update(classregistration)
-                .set({
-                    statusid: REGSTATUS_REGISTERED,
-                    previousstatusid: classreg.statusid,
-                    familybalanceid: oldFB.balanceid,
-                    newbalanceid: newFB.balanceid,
-                })
-                .where(eq(classregistration.regid, classreg.regid));*/
-        } else {
-            /*
-            await tx
-                .update(classregistration)
-                .set({
-                    familybalanceid: oldFB.balanceid,
-                    newbalanceid: newFB.balanceid
-                })
-                    */
-            console.log("to be implemented - partial payment case");
         }
 
-        revalidatePath(`/admin/management/${oldFB.familyid}`);
+        if (fromAdmin) {
+            revalidatePath(`/admin/management/${familyid}`);
+        }else {
+            revalidatePath(`/dashboard/register`);
+        }
+
     });
 }
 
