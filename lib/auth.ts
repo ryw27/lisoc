@@ -1,6 +1,8 @@
 import authConfig from "@/auth.config";
 import PostgresAdapter from "@auth/pg-adapter";
 import bcrypt from "bcrypt";
+import { sql, SQL } from "drizzle-orm";
+import { AnyPgColumn } from "drizzle-orm/pg-core";
 import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
@@ -55,6 +57,10 @@ async function enforceLoginRateLimit(provider: string, identifier: string) {
     if (!idRes.ok) throw new RateLimitExceededError();
 }
 
+function lower(column: AnyPgColumn): SQL {
+    return sql`lower(${column})`;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
     providers: [
@@ -94,8 +100,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const result = await db.query.users.findFirst({
                     where: (users, { eq, or }) =>
                         isEmail
-                            ? or(eq(users.email, emailUsername), eq(users.name, emailUsername))
-                            : eq(users.name, emailUsername),
+                            ? or(
+                                  eq(lower(users.email), emailUsername.toLowerCase()),
+                                  eq(lower(users.name), emailUsername.toLowerCase())
+                              )
+                            : eq(lower(users.name), emailUsername.toLowerCase()),
                     with: {
                         adminusers: {},
                     },
@@ -171,8 +180,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const result = await db.query.users.findFirst({
                     where: (users, { eq, or }) =>
                         isEmail
-                            ? or(eq(users.email, emailUsername), eq(users.name, emailUsername))
-                            : eq(users.name, emailUsername),
+                            ? or(
+                                  eq(lower(users.email), emailUsername.toLowerCase()),
+                                  eq(lower(users.name), emailUsername.toLowerCase())
+                              )
+                            : eq(lower(users.name), emailUsername.toLowerCase()),
                     with: {
                         teachers: {},
                     },
@@ -236,7 +248,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 await enforceLoginRateLimit("family", emailUsername);
                 const result = await db.query.users.findFirst({
                     where: (users, { eq }) =>
-                        isEmail ? eq(users.email, emailUsername) : eq(users.name, emailUsername),
+                        isEmail
+                            ? eq(lower(users.email), emailUsername.toLowerCase())
+                            : eq(lower(users.name), emailUsername.toLowerCase()),
                 });
 
                 if (!result || !result.emailVerified || !result.roles.includes("FAMILY")) {
