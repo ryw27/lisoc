@@ -840,7 +840,7 @@ export default function RegisterStudent({
                             你已阅读并且同意遵守长岛中文学校(LISOC)的注册规则.
                             如需要进一步了解注册规则请
                             <Link
-                                href="/SchoolPolicy.htm"
+                                href="/dashboard/regnotes"
                                 className="text-blue-500 hover:underline"
                             >
                                 点击这里
@@ -851,7 +851,7 @@ export default function RegisterStudent({
                             you have read and agreed to comply with the registration rules of Long
                             Island Chinese School. Please{" "}
                             <Link
-                                href="/SchoolPolicy.htm"
+                                href="/dashboard/regnotes"
                                 className="text-blue-500 hover:underline"
                             >
                                 click here
