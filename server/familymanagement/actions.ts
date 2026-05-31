@@ -1,7 +1,5 @@
 "use server";
 
-import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { family, familybalance, feedback, student } from "@/lib/db/schema";
 import {
@@ -15,10 +13,12 @@ import {
     FAMILYBALANCE_TYPE_TRANSFER,
     toESTString,
 } from "@/lib/utils";
-import { type threeSeasons } from "@/types/seasons.types";
-import { type balanceFees, type familyObj } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { familySchema } from "@/server/auth/schema";
+import { type threeSeasons } from "@/types/seasons.types";
+import { type balanceFees, type familyObj } from "@/types/shared.types";
+import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { z } from "zod/v4";
 import { feedbackSchema, studentSchema } from "./validation";
 
 function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): balanceFees {
@@ -139,7 +139,7 @@ export async function createStudent(
                 gender: parsed.gender ?? "",
                 ageof: "Child",
                 age: null,
-                dob: toESTString(parsed.dob),
+                dob: parsed.dob.toISOString(), //toESTString(parsed.dob),
                 active: parsed.active,
                 createddate: toESTString(new Date()),
                 lastmodify: toESTString(new Date()),
