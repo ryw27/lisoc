@@ -7,24 +7,7 @@ const config = {
     bracketSpacing: true,
     arrowParens: "always",
 
-    plugins: [
-        "prettier-plugin-tailwindcss",
-        "prettier-plugin-packagejson",
-    ],
-    importOrder: [
-        "^(react/(.*)$)|^(react$)",
-        "^(next/(.*)$)|^(next$)",
-
-        "<THIRD_PARTY_MODULES>",
-
-        "^@/lib/(.*)$",
-        "^@/types/(.*)$",
-        "^@/server/(.*)$",
-        "^@/components/(.*)$",
-        "^@/styles/(.*)$",
-
-        "^[./]",
-    ],
+    plugins: ["prettier-plugin-tailwindcss", "prettier-plugin-packagejson"],
 };
 
 export default config;
