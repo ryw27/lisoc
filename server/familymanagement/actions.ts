@@ -6,8 +6,11 @@ import {
     FAMILYBALANCE_TYPE_CREDIT,
     FAMILYBALANCE_TYPE_CREDIT_DUTY,
     FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE,
+    FAMILYBALANCE_TYPE_DONATION,
     FAMILYBALANCE_TYPE_DROPOUT,
+    FAMILYBALANCE_TYPE_DUTY_DEPOSIT,
     FAMILYBALANCE_TYPE_OLDBALANCE,
+    FAMILYBALANCE_TYPE_OTHER,
     FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_SCHOOL_CHECK,
     FAMILYBALANCE_TYPE_TRANSFER,
@@ -69,7 +72,11 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
             bal.typeid == FAMILYBALANCE_TYPE_CREDIT ||
             bal.typeid == FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE ||
             bal.typeid == FAMILYBALANCE_TYPE_CREDIT_DUTY ||
-            bal.typeid == FAMILYBALANCE_TYPE_SCHOOL_CHECK
+            bal.typeid == FAMILYBALANCE_TYPE_SCHOOL_CHECK ||
+            bal.typeid == FAMILYBALANCE_TYPE_OTHER ||
+            bal.typeid == FAMILYBALANCE_TYPE_DONATION ||
+            bal.typeid == FAMILYBALANCE_TYPE_CREDIT_DUTY ||
+            bal.typeid == FAMILYBALANCE_TYPE_DUTY_DEPOSIT
         ) {
             totals.discrteionamouont += Number(bal.totalamount ?? 0);
         } else {

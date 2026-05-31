@@ -30,7 +30,6 @@ import { z } from "zod/v4";
 import DisclaimerPage from "./disclaimer";
 import RegTable from "./reg-table";
 
-
 type RegStudentProps = {
     registrations: InferSelectModel<typeof classregistration>[];
     family: InferSelectModel<typeof family> & {

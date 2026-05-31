@@ -1,8 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -11,9 +8,12 @@ import {
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
-import { famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { checkApplySchema } from "@/server/payments/schema";
+import { famBalanceInsert } from "@/types/shared.types";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod/v4";
 
 /*function isFullPayment(originalFB: InferSelectModel<typeof familybalance>) {
     const total =
@@ -40,6 +40,17 @@ export async function applyCheck(
     await requireRole(["ADMIN", "FAMILY"]);
     const parsed = checkApplySchema.parse(data);
 
+    //read fee type id from database , adjust the sign
+    let feeTyepeSign = 1;
+    const feeType = await db.query.familybalancetype.findFirst({
+        where: (ft, { eq }) => eq(ft.typeid, data.feeTypeId),
+    });
+    if (feeType) {
+        if (feeType.isminusvalue) {
+            feeTyepeSign = -1;
+        }
+    }
+
     await db.transaction(async (tx) => {
         // 2. Find old family balance vals
         const oldFB = await tx.query.familybalance.findFirst({
@@ -58,7 +69,7 @@ export async function applyCheck(
             typeid: data.feeTypeId,
             statusid: FAMILYBALANCE_STATUS_PAID, // Because we're applying a payment
             checkno: parsed.checkNo,
-            totalamount: (-parsed.amount).toString(),
+            totalamount: (parsed.amount * feeTyepeSign).toString(),
             paiddate: toESTString(parsed.paidDate),
             tuition: "0",
             //notes: "Tuition paid with check"

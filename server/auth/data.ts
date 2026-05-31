@@ -79,7 +79,7 @@ export async function sendAccountSetupEmail(
     );
 }
 
-export async function sendPaymentEmail(emailTo: string, season : string, totalBalance: number) {
+export async function sendPaymentEmail(emailTo: string, season: string, totalBalance: number) {
     await msSendEmail(
         emailTo,
         `LISOC ${season} Registration`,
@@ -90,8 +90,6 @@ export async function sendPaymentEmail(emailTo: string, season : string, totalBa
         `
     );
 }
-
-
 
 export async function checkExistence(
     input: string,
