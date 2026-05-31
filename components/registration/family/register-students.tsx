@@ -630,7 +630,7 @@ export default function RegisterStudent({
                         value: amount,
                         currency_code: "USD",
                     },
-                    description: `LISOC School Registration - ${new Date().toLocaleDateString()} - ${family.familyid} - ${balanceIdInfo}`,
+                    description: `LISOC School Registration -${seasons.year.seasonnamecn}- ${new Date().toLocaleDateString()} - ${family.familyid} - ${balanceIdInfo}`,
                     // include familyBalanceId if available so backend can tie payment to a balance record
                     custom_id: balanceIdInfo,
                 },
