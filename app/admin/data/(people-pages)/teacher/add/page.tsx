@@ -1,6 +1,6 @@
+import AddEntity from "@/components/data-view/add-entity/add-entity";
 import { classTypeMap } from "@/lib/utils";
 import { type FormSections } from "@/types/dataview.types";
-import AddEntity from "@/components/data-view/add-entity/add-entity";
 
 export default async function AddTeacher() {
     const fields: FormSections[] = [
@@ -52,6 +52,23 @@ export default async function AddTeacher() {
         {
             section: "Teacher Details",
             sectionFields: [
+                {
+                    name: "namefirsten",
+                    label: "First Name",
+                    type: "text",
+                    placeholder: "Enter the first name",
+                    required: true,
+                    width: "half",
+                },
+                {
+                    name: "namelasten",
+                    label: "Last Name",
+                    type: "text",
+                    placeholder: "Enter the last name",
+                    required: true,
+                    width: "half",
+                },
+
                 {
                     label: "Teacher Index",
                     name: "teacherindex",
