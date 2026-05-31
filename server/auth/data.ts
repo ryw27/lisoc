@@ -79,6 +79,20 @@ export async function sendAccountSetupEmail(
     );
 }
 
+export async function sendPaymentEmail(emailTo: string, season : string, totalBalance: number) {
+    await msSendEmail(
+        emailTo,
+        `LISOC ${season} Registration`,
+        `
+        thank you for your payment! This email is to confirm that we have received your payment of $${totalBalance.toFixed(2)} for the ${season} registration. If you have any questions, please contact us at ${SITE_LINK}/contact. Thank you for registering your student(s) with LISOC! \n\n<br/><br/>
+
+        感謝您的付款！這封郵件是為了確認我們已經收到您為${season}註冊支付的$${totalBalance.toFixed(2)}。如果您有任何問題，請通過${SITE_LINK}/contact與我們聯繫。感謝您為您的學生註冊LISOC！
+        `
+    );
+}
+
+
+
 export async function checkExistence(
     input: string,
     column: "name" | "email"

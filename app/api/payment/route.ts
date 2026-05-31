@@ -1,16 +1,18 @@
-import { NextResponse } from "next/server";
-import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/rateLimit";
 import { FAMILYBALANCE_TYPE_PAYMENT } from "@/lib/utils";
+import { sendPaymentEmail } from "@/server/auth/data";
 import { applyCheck } from "@/server/payments/actions";
+import { NextResponse } from "next/server";
+import { z } from "zod/v4";
 
 const PAYPAL_API_URL = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com";
 
 const paymentRequestSchema = z.object({
     orderID: z.string().min(1).max(64),
     balanceId: z.coerce.number().int().positive(),
+    season: z.string().optional(),
 });
 
 async function getPayPalAccessToken(): Promise<string> {
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
         return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    const { orderID, balanceId } = parsed.data;
+    const { orderID, balanceId, season } = parsed.data;
 
     // 4. Load the target balance row server-side. Never trust a client-sent
     //    familyId — derive it from the balance row, then verify the caller owns it.
@@ -267,6 +269,25 @@ export async function POST(request: Request) {
             },
             { status: 500 }
         );
+    }
+
+    if (season) {
+        try {
+            const familyRow = await db.query.family.findFirst({
+                where: (f, { eq }) => eq(f.familyid, target.familyid),
+            });
+            if (familyRow?.userid) {
+                const userid = familyRow.userid as string; // narrow nullable uuid to string after runtime check
+                const userRow = await db.query.users.findFirst({
+                    where: (u, { eq }) => eq(u.id, userid),
+                });
+                if (userRow?.email) {
+                    await sendPaymentEmail(userRow.email, season, amountNumber);
+                }
+            }
+        } catch (emailErr) {
+            console.error("Payment succeeded but failed to send confirmation email:", emailErr);
+        }
     }
 
     return NextResponse.json(
