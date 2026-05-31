@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -10,9 +8,11 @@ import {
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
+import { requireRole } from "@/server/auth/actions";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
-import { requireRole } from "@/server/auth/actions";
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { canRegister, ensureTimeline, getArrSeason, getTotalPrice } from "../data";
 
 // TODO: Check stuff with student
@@ -124,7 +124,8 @@ export async function familyRegister(
             .limit(1)
             .for("update");
 
-        // get all balances for this family and seasons management fee and registration fee are per family per season ,needs to check if one of the balance already has the fee applied, if not apply to this registration, if yes then skip
+        // get all balances for this family and seasons management fee, earlydiscount and registration fee are per family per season ,
+        // needs to check if one of the balance already has the fee applied, if not apply to this registration, if yes then skip
         // we also need find the one of  existing that is not processed if it exists
         let theExistingBal = null;
 
@@ -134,6 +135,10 @@ export async function familyRegister(
             }
             if (bal.regfee && bal.regfee !== "0") {
                 registrationFee = "0";
+            }
+
+            if (bal.earlyregdiscount && bal.earlyregdiscount !== "0") {
+                earlyRegDiscount = "0";
             }
 
             if (bal.statusid == FAMILYBALANCE_STATUS_PENDING) theExistingBal = bal;
