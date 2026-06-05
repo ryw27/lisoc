@@ -13,6 +13,7 @@ import { ADMIN_DATAVIEW_LINK } from "@/lib/utils";
 import { Transaction } from "@/types/server.types";
 import { requireRole } from "@/server/auth/actions";
 import { sendAccountSetupEmail } from "@/server/auth/data";
+import { hashToken } from "@/server/auth/tokenHash";
 import { getEntityConfig, Registry } from "@/server/data-view/registry";
 import { AdminSchema, AdminUserJoined } from "../entity-configs/(people)/adminuser";
 import { FamilyJoined } from "../entity-configs/(people)/family";
@@ -160,8 +161,8 @@ export async function insertRow(
                     const setupToken = uuid();
                     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
                     await pgadapter.createVerificationToken({
-                        identifier: parsed.data.email as string,
-                        token: setupToken,
+                        identifier: `account-setup:${parsed.data.email as string}`,
+                        token: hashToken(setupToken),
                         expires: new Date(Date.now() + SEVEN_DAYS_MS),
                     });
                     await sendAccountSetupEmail(

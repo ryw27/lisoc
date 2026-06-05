@@ -23,7 +23,7 @@ export async function sendRegEmail(emailTo: string, token: string) {
 }
 
 export async function sendFPEmail(emailTo: string, uuid: string) {
-    const url = `${SITE_LINK}/reset-password?token=${encodeURIComponent(uuid)}&email=${encodeURIComponent(emailTo)}`;
+    const url = `${SITE_LINK}/reset-password#token=${encodeURIComponent(uuid)}`;
     const safeHrefValue = safeHref(url);
     const safeUrlText = escapeHtml(url);
     await msSendEmail(
@@ -59,7 +59,7 @@ export async function sendAccountSetupEmail(
     token: string,
     type: "Teacher" | "Admin"
 ) {
-    const url = `${SITE_LINK}/setup-account?token=${encodeURIComponent(token)}&email=${encodeURIComponent(emailTo)}`;
+    const url = `${SITE_LINK}/setup-account#token=${encodeURIComponent(token)}`;
     const safeHrefValue = safeHref(url);
     const safeUrlText = escapeHtml(url);
     const safeType = escapeHtml(type);

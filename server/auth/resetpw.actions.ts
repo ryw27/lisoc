@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcrypt";
+import { cookies } from "next/headers";
 import { eq, gt } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { z } from "zod/v4";
@@ -10,7 +11,31 @@ import { users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { sendFPEmail } from "./data";
-import { emailSchema, forgotPassSchema, resetPassSchema, uuidSchema } from "./schema";
+import { forgotPassSchema, passwordSchema, uuidSchema } from "./schema";
+import { hashToken } from "./tokenHash";
+
+const RESET_SESSION_COOKIE = "lisoc_pw_reset";
+const RESET_TOKEN_PREFIX = "pwreset:";
+const RESET_SESSION_PREFIX = "pwreset-session:";
+const RESET_SESSION_TTL_MS = 15 * 60 * 1000;
+
+const resetSessionCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/reset-password",
+    maxAge: RESET_SESSION_TTL_MS / 1000,
+};
+
+const resetPasswordWithSessionSchema = z
+    .object({
+        password: passwordSchema.shape.password,
+        confirmPassword: passwordSchema.shape.password,
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+        message: "Passwords don't match",
+        path: ["confirmPassword"],
+    });
 
 // Step 1: Request password reset.
 // IMPORTANT: this action MUST NOT reveal whether the email exists. Both the
@@ -41,8 +66,8 @@ export const requestPasswordReset = safeAction(
         if (account) {
             const token = uuid();
             await pgadapter.createVerificationToken({
-                token,
-                identifier: email,
+                token: hashToken(token),
+                identifier: `${RESET_TOKEN_PREFIX}${email}`,
                 expires: new Date(Date.now() + 15 * 60 * 1000),
             });
             await sendFPEmail(email, token);
@@ -53,18 +78,16 @@ export const requestPasswordReset = safeAction(
 
 // Step 2: Check reset link
 const checkResetLinkSchema = z.object({
-    ...emailSchema.shape,
     ...uuidSchema.shape,
 });
 export const checkResetLink = safeAction(
     checkResetLinkSchema,
     async function (data: z.infer<typeof checkResetLinkSchema>): Promise<boolean> {
-        // Data is already parsed
         const row = await db.query.verificationToken.findFirst({
-            where: (vt, { and, eq }) =>
+            where: (vt, { and, eq, like }) =>
                 and(
-                    eq(vt.identifier, data.email),
-                    eq(vt.token, data.uuid),
+                    like(vt.identifier, `${RESET_TOKEN_PREFIX}%`),
+                    eq(vt.token, hashToken(data.uuid)),
                     gt(vt.expires, new Date().toISOString())
                 ),
         });
@@ -76,9 +99,81 @@ export const checkResetLink = safeAction(
     }
 );
 
+export const exchangePasswordResetToken = safeAction(
+    z.object({ token: uuidSchema.shape.uuid }),
+    async ({ token }) => {
+        const ip = await clientIp();
+        enforceRateLimit(`pwreset:exchange:ip:${ip}`, { max: 30, windowMs: 15 * 60_000 });
+
+        const tokenHash = hashToken(token);
+        const row = await db.query.verificationToken.findFirst({
+            where: (vt, { and, eq, like }) =>
+                and(
+                    like(vt.identifier, `${RESET_TOKEN_PREFIX}%`),
+                    eq(vt.token, tokenHash),
+                    gt(vt.expires, new Date().toISOString())
+                ),
+        });
+        if (!row) {
+            throw new Error("Invalid or expired reset link.");
+        }
+
+        const consumed = await pgadapter.useVerificationToken({
+            identifier: row.identifier,
+            token: tokenHash,
+        });
+        if (!consumed || new Date(consumed.expires) < new Date()) {
+            throw new Error("Invalid or expired reset link.");
+        }
+
+        const email = consumed.identifier.slice(RESET_TOKEN_PREFIX.length);
+        const sessionToken = uuid();
+        await pgadapter.createVerificationToken({
+            identifier: `${RESET_SESSION_PREFIX}${email}`,
+            token: hashToken(sessionToken),
+            expires: new Date(Date.now() + RESET_SESSION_TTL_MS),
+        });
+        (await cookies()).set(RESET_SESSION_COOKIE, sessionToken, resetSessionCookieOptions);
+    }
+);
+
+export async function isPasswordResetSessionValid() {
+    const sessionToken = (await cookies()).get(RESET_SESSION_COOKIE)?.value;
+    if (!sessionToken) return false;
+
+    const row = await db.query.verificationToken.findFirst({
+        where: (vt, { and, eq, like }) =>
+            and(
+                like(vt.identifier, `${RESET_SESSION_PREFIX}%`),
+                eq(vt.token, hashToken(sessionToken)),
+                gt(vt.expires, new Date().toISOString())
+            ),
+    });
+    return Boolean(row);
+}
+
 // Step 3: Reset the password
-export const resetPassword = safeAction(resetPassSchema, async (data) => {
-    const { email, password, confirmPassword, token } = data;
+export const resetPassword = safeAction(resetPasswordWithSessionSchema, async (data) => {
+    const { password } = data;
+    const sessionToken = (await cookies()).get(RESET_SESSION_COOKIE)?.value;
+    if (!sessionToken) {
+        throw new Error("Invalid or expired reset session.");
+    }
+
+    const tokenHash = hashToken(sessionToken);
+    const sessionRow = await db.query.verificationToken.findFirst({
+        where: (vt, { and, eq, like }) =>
+            and(
+                like(vt.identifier, `${RESET_SESSION_PREFIX}%`),
+                eq(vt.token, tokenHash),
+                gt(vt.expires, new Date().toISOString())
+            ),
+    });
+    if (!sessionRow) {
+        throw new Error("Invalid or expired reset session.");
+    }
+
+    const email = sessionRow.identifier.slice(RESET_SESSION_PREFIX.length);
 
     // Rate-limit the token-redemption step itself. UUID tokens are high-entropy
     // so this is more about damping brute-force fishing than blocking guesses.
@@ -89,16 +184,16 @@ export const resetPassword = safeAction(resetPassSchema, async (data) => {
     });
     enforceRateLimit(`pwreset:redeem:ip:${ip}`, { max: 30, windowMs: 15 * 60_000 });
 
-    if (password !== confirmPassword) {
-        throw new Error("Passwords don't match");
-    }
-
-    const tokenRow = await pgadapter.useVerificationToken({ identifier: email, token });
-    if (!tokenRow) {
-        throw new Error("Invalid or expired Link");
+    const consumed = await pgadapter.useVerificationToken({
+        identifier: sessionRow.identifier,
+        token: tokenHash,
+    });
+    if (!consumed || new Date(consumed.expires) < new Date()) {
+        throw new Error("Invalid or expired reset session.");
     }
 
     const pwdhash = await bcrypt.hash(password, 10);
 
     await db.update(users).set({ password: pwdhash }).where(eq(users.email, email));
+    (await cookies()).delete(RESET_SESSION_COOKIE);
 });

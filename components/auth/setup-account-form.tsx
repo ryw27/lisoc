@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
-import { completeAccountSetup } from "@/server/auth/accountSetup.actions";
+import {
+    completeAccountSetup,
+    exchangeAccountSetupToken,
+    isAccountSetupSessionValid,
+} from "@/server/auth/accountSetup.actions";
 import { passwordSchema } from "@/server/auth/schema";
 import Logo from "@/components/logo";
 import { FormError, FormInput, FormSubmit } from "./form-components";
@@ -20,14 +24,12 @@ const formSchema = z
         path: ["confirmPassword"],
     });
 
-type Props = {
-    userEmail: string;
-    userToken: string;
-};
-
-export default function SetupAccountForm({ userEmail, userToken }: Props) {
+export default function SetupAccountForm() {
     const [busy, setBusy] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [ready, setReady] = useState(false);
+    const [linkError, setLinkError] = useState<string | null>(null);
+    const [email, setEmail] = useState<string | null>(null);
     const router = useRouter();
 
     const form = useForm({
@@ -35,12 +37,50 @@ export default function SetupAccountForm({ userEmail, userToken }: Props) {
         resolver: zodResolver(formSchema),
     });
 
+    useEffect(() => {
+        let cancelled = false;
+
+        async function exchangeToken() {
+            const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+            const token = hashParams.get("token");
+
+            try {
+                if (token) {
+                    const res = await exchangeAccountSetupToken({ token });
+                    window.history.replaceState(null, "", window.location.pathname);
+                    if (!res.ok) {
+                        throw new Error(res.errorMessage ?? "Invalid or expired setup link.");
+                    }
+                    if (!cancelled) setEmail(res.data?.email ?? null);
+                } else {
+                    const session = await isAccountSetupSessionValid();
+                    if (!session) {
+                        throw new Error("Invalid or expired setup link.");
+                    }
+                    if (!cancelled) setEmail(session.email);
+                }
+
+                if (!cancelled) setReady(true);
+            } catch (err) {
+                window.history.replaceState(null, "", window.location.pathname);
+                if (!cancelled) {
+                    setLinkError(
+                        err instanceof Error ? err.message : "Invalid or expired setup link."
+                    );
+                }
+            }
+        }
+
+        void exchangeToken();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setBusy(true);
         try {
             const res = await completeAccountSetup({
-                email: userEmail,
-                token: userToken,
                 password: data.password,
                 confirmPassword: data.confirmPassword,
             });
@@ -80,10 +120,22 @@ export default function SetupAccountForm({ userEmail, userToken }: Props) {
                     Set Up Your Account
                 </h1>
                 <p className="mb-6 text-center text-sm text-gray-500">
-                    Choose a password for <strong>{userEmail}</strong>
+                    {email ? (
+                        <>
+                            Choose a password for <strong>{email}</strong>
+                        </>
+                    ) : (
+                        "Choose a password for your account"
+                    )}
                 </p>
 
-                {!success && (
+                {linkError && <p className="text-center text-sm text-red-600">{linkError}</p>}
+
+                {!linkError && !ready && (
+                    <p className="text-center text-sm text-gray-600">Checking setup link...</p>
+                )}
+
+                {!success && ready && (
                     <form
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="flex flex-col space-y-4"

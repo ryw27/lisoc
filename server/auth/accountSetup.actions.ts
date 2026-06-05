@@ -1,7 +1,9 @@
 "use server";
 
 import bcrypt from "bcrypt";
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
+import { v4 as uuid } from "uuid";
 import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,12 +11,24 @@ import { adminuser, teacher, users } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
-import { emailSchema, passwordSchema, uuidSchema } from "./schema";
+import { passwordSchema, uuidSchema } from "./schema";
+import { hashToken } from "./tokenHash";
+
+const SETUP_SESSION_COOKIE = "lisoc_account_setup";
+const SETUP_TOKEN_PREFIX = "account-setup:";
+const SETUP_SESSION_PREFIX = "account-setup-session:";
+const SETUP_SESSION_TTL_MS = 30 * 60 * 1000;
+
+const setupSessionCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/setup-account",
+    maxAge: SETUP_SESSION_TTL_MS / 1000,
+};
 
 const setupAccountSchema = z
     .object({
-        email: emailSchema.shape.email,
-        token: uuidSchema.shape.uuid,
         password: passwordSchema.shape.password,
         confirmPassword: passwordSchema.shape.password,
     })
@@ -23,43 +37,100 @@ const setupAccountSchema = z
         path: ["confirmPassword"],
     });
 
-// Server-side validation of an account-setup link before the user is asked
-// to choose a password. Returns true only if there's an unverified user with
-// a still-valid pgadapter verification token for this email. Note: we do NOT
-// consume the token here — that happens in `completeAccountSetup`. We only
-// peek at it so the setup page can render the form vs an "expired link"
-// error.
 export const isAccountSetupLinkValid = safeAction(
-    z.object({ email: emailSchema.shape.email, token: uuidSchema.shape.uuid }),
-    async ({ email, token }): Promise<boolean> => {
-        const row = await db.query.verificationToken.findFirst({
-            where: (v, { and, eq }) => and(eq(v.identifier, email), eq(v.token, token)),
-        });
-        if (!row) return false;
-        if (new Date(row.expires) < new Date()) return false;
-        const u = await db.query.users.findFirst({
-            where: (u, { eq }) => eq(u.email, email),
-        });
-        if (!u) return false;
-        // If the user has already verified, the setup link is no longer the
-        // appropriate path — they should use forgot-password instead.
-        if (u.emailVerified) return false;
-        return true;
+    z.object({ token: uuidSchema.shape.uuid }),
+    async ({ token }): Promise<boolean> => {
+        return Boolean(await exchangeSetupTokenForSession(token));
     }
 );
 
+async function exchangeSetupTokenForSession(token: string) {
+    const tokenHash = hashToken(token);
+    const row = await db.query.verificationToken.findFirst({
+        where: (v, { and, eq, like }) =>
+            and(like(v.identifier, `${SETUP_TOKEN_PREFIX}%`), eq(v.token, tokenHash)),
+    });
+    if (!row || new Date(row.expires) < new Date()) return null;
+
+    const email = row.identifier.slice(SETUP_TOKEN_PREFIX.length);
+    const u = await db.query.users.findFirst({
+        where: (u, { eq }) => eq(u.email, email),
+    });
+    if (!u || u.emailVerified) return null;
+
+    const consumed = await pgadapter.useVerificationToken({
+        identifier: row.identifier,
+        token: tokenHash,
+    });
+    if (!consumed || new Date(consumed.expires) < new Date()) return null;
+
+    const sessionToken = uuid();
+    await pgadapter.createVerificationToken({
+        identifier: `${SETUP_SESSION_PREFIX}${email}`,
+        token: hashToken(sessionToken),
+        expires: new Date(Date.now() + SETUP_SESSION_TTL_MS),
+    });
+    (await cookies()).set(SETUP_SESSION_COOKIE, sessionToken, setupSessionCookieOptions);
+    return email;
+}
+
+export const exchangeAccountSetupToken = safeAction(
+    z.object({ token: uuidSchema.shape.uuid }),
+    async ({ token }) => {
+        const ip = await clientIp();
+        enforceRateLimit(`setup:exchange:ip:${ip}`, { max: 30, windowMs: 15 * 60_000 });
+
+        const email = await exchangeSetupTokenForSession(token);
+        if (!email) {
+            throw new Error("This setup link is invalid or has expired.");
+        }
+        return { email };
+    }
+);
+
+export async function isAccountSetupSessionValid() {
+    const sessionToken = (await cookies()).get(SETUP_SESSION_COOKIE)?.value;
+    if (!sessionToken) return null;
+
+    const row = await db.query.verificationToken.findFirst({
+        where: (v, { and, eq, like }) =>
+            and(
+                like(v.identifier, `${SETUP_SESSION_PREFIX}%`),
+                eq(v.token, hashToken(sessionToken))
+            ),
+    });
+    if (!row || new Date(row.expires) < new Date()) return null;
+    return { email: row.identifier.slice(SETUP_SESSION_PREFIX.length) };
+}
+
 export const completeAccountSetup = safeAction(setupAccountSchema, async (data) => {
-    const { email, token, password } = data;
+    const { password } = data;
+    const sessionToken = (await cookies()).get(SETUP_SESSION_COOKIE)?.value;
+    if (!sessionToken) {
+        throw new Error("This setup session is invalid or has expired.");
+    }
+
+    const tokenHash = hashToken(sessionToken);
+    const sessionRow = await db.query.verificationToken.findFirst({
+        where: (v, { and, eq, like }) =>
+            and(like(v.identifier, `${SETUP_SESSION_PREFIX}%`), eq(v.token, tokenHash)),
+    });
+    if (!sessionRow || new Date(sessionRow.expires) < new Date()) {
+        throw new Error("This setup session is invalid or has expired.");
+    }
+
+    const email = sessionRow.identifier.slice(SETUP_SESSION_PREFIX.length);
 
     const ip = await clientIp();
     enforceRateLimit(`setup:email:${email.toLowerCase()}`, { max: 5, windowMs: 15 * 60_000 });
     enforceRateLimit(`setup:ip:${ip}`, { max: 20, windowMs: 15 * 60_000 });
 
-    // Use-and-consume the token. If invalid or expired, the auth.js adapter
-    // returns null and we bail without touching the user row.
-    const consumed = await pgadapter.useVerificationToken({ identifier: email, token });
+    const consumed = await pgadapter.useVerificationToken({
+        identifier: sessionRow.identifier,
+        token: tokenHash,
+    });
     if (!consumed || new Date(consumed.expires) < new Date()) {
-        throw new Error("This setup link is invalid or has expired.");
+        throw new Error("This setup session is invalid or has expired.");
     }
 
     const u = await db.query.users.findFirst({
@@ -98,4 +169,5 @@ export const completeAccountSetup = safeAction(setupAccountSchema, async (data) 
                 .where(eq(teacher.userid, u.id));
         }
     });
+    (await cookies()).delete(SETUP_SESSION_COOKIE);
 });
