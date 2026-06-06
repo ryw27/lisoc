@@ -9,8 +9,11 @@ import { toESTString } from "@/lib/utils";
 import { threeSeasons } from "@/types/seasons.types";
 import { seasonDatesSchema } from "../schema";
 
+import { requireRole } from "@/server/auth/actions";
+
 // TODO: Add better validation for dates
 export async function updateDates(data: z.infer<typeof seasonDatesSchema>, inSeason: threeSeasons) {
+    await requireRole(["ADMIN"]);
     const parsed = seasonDatesSchema.parse(data);
     await db.transaction(async (tx) => {
         /*        const [updatedYear] = await tx

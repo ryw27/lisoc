@@ -3,6 +3,7 @@
 import { desc, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
+import { requireRole } from "@/server/auth/actions";
 import { uiClasses } from "@/types/shared.types";
 import { getSeasonDrafts } from "../data";
 
@@ -30,6 +31,7 @@ import { getSeasonDrafts } from "../data";
 
 // TODO: TEMP FUNCTION TO WORK IN DEV.
 export async function getPreviousSeason() {
+    await requireRole(["ADMIN", "FAMILY", "TEACHER"]);
     return await db.transaction(async (tx) => {
         const maxSeasonRow = await tx
             .select()

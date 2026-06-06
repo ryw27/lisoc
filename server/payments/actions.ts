@@ -8,7 +8,7 @@ import {
     REGSTATUS_REGISTERED,
     toESTString,
 } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
+import { requireFamily, requireRole } from "@/server/auth/actions";
 import { checkApplySchema } from "@/server/payments/schema";
 import { famBalanceInsert } from "@/types/shared.types";
 import { eq } from "drizzle-orm";
@@ -37,7 +37,13 @@ export async function applyCheck(
     fromAdmin = false
 ) {
     // 1. Auth and parse
-    await requireRole(["ADMIN", "FAMILY"]);
+    const session = await requireRole(["ADMIN", "FAMILY"]);
+    if (session.user.role === "FAMILY") {
+        const { family: userFamily } = await requireFamily();
+        if (userFamily.familyid !== familyid) {
+            throw new Error("Forbidden");
+        }
+    }
     const parsed = checkApplySchema.parse(data);
 
     //read fee type id from database , adjust the sign

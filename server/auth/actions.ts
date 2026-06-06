@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth, signIn, signOut } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { emailSchema, loginSchema, usernameSchema } from "@/server/auth/schema";
 
 export async function requireRole(
@@ -25,6 +26,21 @@ export async function requireRole(
     }
 
     return session;
+}
+
+/**
+ * Ensures the caller is a FAMILY user and returns their verified family record.
+ * This is the primary defense against IDOR for family-facing actions.
+ */
+export async function requireFamily() {
+    const session = await requireRole(["FAMILY"], { redirect: false });
+    const userFamily = await db.query.family.findFirst({
+        where: (f, { eq }) => eq(f.userid, session.user.id),
+    });
+    if (!userFamily) {
+        throw new Error("Family account not found");
+    }
+    return { session, family: userFamily };
 }
 
 // Only for server page logins. Client side logins are handled by auth.js

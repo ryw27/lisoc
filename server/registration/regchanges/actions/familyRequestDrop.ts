@@ -41,6 +41,8 @@ async function createRemoveFamBalanceVals(
     return removeFamBalValues;
 }
 
+import { requireFamily } from "@/server/auth/actions";
+
 // Family overrides as well in this case. They just have to take the losses.
 export async function familyRequestDrop(
     regid: number,
@@ -49,6 +51,10 @@ export async function familyRequestDrop(
     override: boolean,
     notes: string
 ) {
+    const { family: userFamily } = await requireFamily();
+    if (userFamily.familyid !== familyid) {
+        throw new Error("Forbidden");
+    }
     await db.transaction(async (tx) => {
         // 1. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({

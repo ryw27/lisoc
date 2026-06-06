@@ -3,8 +3,10 @@
 import { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classes } from "@/lib/db/schema";
+import { requireRole } from "@/server/auth/actions";
 
 export async function selectRegistrationClass(): Promise<InferSelectModel<typeof classes>[]> {
+    await requireRole(["ADMIN", "FAMILY", "TEACHER"]);
     let result: InferSelectModel<typeof classes>[] = [];
 
     try {

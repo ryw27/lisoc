@@ -6,10 +6,16 @@ import { db } from "@/lib/db";
 import { teacher, users } from "@/lib/db/schema";
 import { teacherUpdateSchema } from "@/server/auth/schema";
 
+import { requireRole } from "@/server/auth/actions";
+
 export async function updateTeacher(
     teacherData: z.infer<typeof teacherUpdateSchema>,
     userid: string
 ) {
+    const session = await requireRole(["TEACHER", "ADMIN"]);
+    if (session.user.role === "TEACHER" && session.user.id !== userid) {
+        throw new Error("Forbidden");
+    }
     await db.transaction(async (tx) => {
         await tx
             .update(teacher)

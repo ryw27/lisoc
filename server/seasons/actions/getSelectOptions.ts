@@ -1,9 +1,11 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { requireRole } from "@/server/auth/actions";
 import { type IdMaps, type selectOptions } from "@/types/shared.types";
 
 export async function getSelectOptions() {
+    await requireRole(["ADMIN", "FAMILY", "TEACHER"]);
     const teachers = await db.query.teacher.findMany({
         columns: {
             teacherid: true,

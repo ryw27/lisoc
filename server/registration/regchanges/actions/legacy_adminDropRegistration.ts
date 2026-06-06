@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
+import { requireRole } from "@/server/auth/actions";
 import { toESTString } from "@/lib/utils";
 
 export async function legacy_adminDropRegistration(regid: number, orgTuition: number) {
+    await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
         const reg = await tx.query.classregistration.findFirst({
             where: (r, { eq }) => eq(r.regid, regid),

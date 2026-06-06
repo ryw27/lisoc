@@ -5,9 +5,11 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 import { threeSeasons } from "@/types/seasons.types";
+import { requireRole } from "@/server/auth/actions";
 import fetchCurrentSeasons from "../data";
 
 export async function updatePolicy(data: string) {
+    await requireRole(["ADMIN"]);
     const inSeason: threeSeasons = await fetchCurrentSeasons();
 
     await db.transaction(async (tx) => {

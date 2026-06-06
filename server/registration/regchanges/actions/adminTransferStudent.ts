@@ -18,6 +18,8 @@ import {
 import { type famBalanceInsert, type uiClasses } from "@/types/shared.types";
 import { canTransferOutandIn, getArrSeason, getTotalPrice } from "../../data";
 
+import { requireRole } from "@/server/auth/actions";
+
 export async function adminTransferStudent(
     regid: number,
     studentid: number,
@@ -26,6 +28,7 @@ export async function adminTransferStudent(
     override: boolean,
     type: "intraTransfer" | "classTransfer"
 ) {
+    await requireRole(["ADMIN"]);
     // TODO: Parse data
     return await db.transaction(async (tx) => {
         // 1. Get old registration
@@ -239,6 +242,7 @@ export async function adminTransferStudent2(
     familyid: number,
     newArrange: uiClasses
 ) {
+    await requireRole(["ADMIN"]);
     // TODO: Parse data
     return await db.transaction(async (tx) => {
         // 1. Get old registration

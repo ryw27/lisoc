@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { adminuser, teacher, users } from "@/lib/db/schema";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
+import { requireRole } from "@/server/auth/actions";
 import { emailSchema, passwordSchema } from "./schema";
 
 const setPasswordSchema = z
@@ -24,6 +25,13 @@ const setPasswordSchema = z
 export const setPasswordAfterLogin = safeAction(
     setPasswordSchema,
     async ({ email, password, role }) => {
+        // Auth check
+        const mappedRole = role === "ADMINUSER" ? "ADMIN" : "TEACHER";
+        const session = await requireRole([mappedRole as "ADMIN" | "TEACHER"]);
+        if (session.user.email !== email) {
+            throw new Error("Forbidden");
+        }
+
         // Already parsed
         await db.transaction(async (tx) => {
             const curUser = await tx.query.users.findFirst({

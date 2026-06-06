@@ -44,8 +44,11 @@ async function deleteAllRegistrations(
     }
 }
 
+import { requireRole } from "@/server/auth/actions";
+
 // TODO: Change based on new format
 export async function deleteArrangement(classData: uiClasses, override: boolean) {
+    await requireRole(["ADMIN"]);
     return await db.transaction(async (tx) => {
         if (typeof classData.arrangeid !== "number" || isNaN(classData.arrangeid)) {
             throw new Error("Update data does not contain a valid arrange ID identifier");

@@ -8,7 +8,7 @@ import {
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
+import { requireFamily, requireRole } from "@/server/auth/actions";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
 import { and, eq } from "drizzle-orm";
@@ -25,11 +25,8 @@ export async function familyRegister(
     // 1. Auth: caller must be a FAMILY user, and the family they're operating
     //    on must be their own. Never trust the client-supplied family object —
     //    re-derive the family from the session and compare.
-    const session = await requireRole(["FAMILY"], { redirect: false });
-    const userFamily = await db.query.family.findFirst({
-        where: (f, { eq }) => eq(f.userid, session.user.id),
-    });
-    if (!userFamily || userFamily.familyid !== family.familyid) {
+    const { family: userFamily } = await requireFamily();
+    if (userFamily.familyid !== family.familyid) {
         throw new Error("Forbidden");
     }
     // Use the server-derived family from here on. This shadows the parameter

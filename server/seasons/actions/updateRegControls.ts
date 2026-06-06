@@ -9,11 +9,14 @@ import { toESTString } from "@/lib/utils";
 import { type term } from "@/types/shared.types";
 import { seasonRegSettingsSchema } from "../schema";
 
+import { requireRole } from "@/server/auth/actions";
+
 export async function updateRegControls(
     data: z.infer<typeof seasonRegSettingsSchema>,
     inSeason: InferSelectModel<typeof seasons>,
     changeSeason: term
 ) {
+    await requireRole(["ADMIN"]);
     const parsed = seasonRegSettingsSchema.parse(data);
     await db.transaction(async (tx) => {
         /*        const seasonIds = [inSeason.seasonid, inSeason.seasonid + 1, inSeason.seasonid + 2];

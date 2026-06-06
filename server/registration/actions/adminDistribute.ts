@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
+import { requireRole } from "@/server/auth/actions";
 import { toESTString } from "@/lib/utils";
 import { fullRegClass } from "@/types/registration.types";
 import { Transaction } from "@/types/server.types";
@@ -55,6 +56,7 @@ export async function adminDistribute(
     data: fullRegClass,
     moved: { studentid: number; toarrangeid: number; toclassid: number }[]
 ) {
+    await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
         for (const student of moved) {
             if (!(await checkCapacity(tx, data.arrinfo.seasonid, student))) {

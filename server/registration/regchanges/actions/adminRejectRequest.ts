@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { regchangerequest } from "@/lib/db/schema";
-// import { requireRole } from "@/app/lib/auth-lib/auth-actions";
+import { requireRole } from "@/server/auth/actions";
 import {
     REGSTATUS_REGISTERED,
     REQUEST_STATUS_PENDING,
@@ -15,6 +15,7 @@ import {
 
 // TODO: Check
 export async function adminRejectRequest(requestid: number, registerid: number, adminMemo: string) {
+    await requireRole(["ADMIN"]);
     try {
         // need lock and check,  it is possible some one else change it
         //const txResult = await db.transaction(async (tx) => {

@@ -16,7 +16,7 @@ import {
     FAMILYBALANCE_TYPE_TRANSFER,
     toESTString,
 } from "@/lib/utils";
-import { requireRole } from "@/server/auth/actions";
+import { requireFamily, requireRole } from "@/server/auth/actions";
 import { familySchema } from "@/server/auth/schema";
 import { type threeSeasons } from "@/types/seasons.types";
 import { type balanceFees, type familyObj } from "@/types/shared.types";
@@ -88,6 +88,13 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
 }
 
 export async function calculateBalance(family: familyObj, seasons: threeSeasons) {
+    const session = await requireRole(["ADMIN", "FAMILY"]);
+    if (session.user.role === "FAMILY") {
+        const { family: userFamily } = await requireFamily();
+        if (userFamily.familyid !== family.familyid) {
+            throw new Error("Forbidden");
+        }
+    }
     return await db.transaction(async (tx) => {
         const yearBalances = await tx.query.familybalance.findMany({
             where: (bal, { and, eq }) =>
@@ -119,19 +126,16 @@ export async function createStudent(
     familyid: number,
     studentid: number
 ) {
+    const { family: userFamily } = await requireFamily();
+    if (userFamily.familyid !== familyid) {
+        throw new Error("Forbidden");
+    }
     const parsed = studentSchema.parse(data);
-    await requireRole(["FAMILY"]);
 
     return await db.transaction(async (tx) => {
-        const family = await tx.query.family.findFirst({
-            where: (family, { eq }) => eq(family.familyid, familyid),
-        });
-        if (!family) {
-            throw new Error("Family not found");
-        }
 
         const curStudents = await tx.query.student.findMany({
-            where: (student, { eq }) => eq(student.familyid, family.familyid),
+            where: (student, { eq }) => eq(student.familyid, userFamily.familyid),
         });
 
         const newStudentNo = curStudents.length + 1;
@@ -187,21 +191,35 @@ export async function createStudent(
 export async function getFammilyStudent(
     familyid: number
 ): Promise<InferSelectModel<typeof student>[]> {
+    const session = await requireRole(["ADMIN", "FAMILY"]);
+    if (session.user.role === "FAMILY") {
+        const { family: userFamily } = await requireFamily();
+        if (userFamily.familyid !== familyid) {
+            throw new Error("Forbidden");
+        }
+    }
     return await db.query.student.findMany({
         where: (s, { eq }) => eq(s.familyid, familyid),
     });
 }
 
 export async function removeStudent(studentid: number) {
-    const students = await db.query.student.findMany({
+    const session = await requireRole(["ADMIN", "FAMILY"]);
+
+    const studentToDelete = await db.query.student.findFirst({
         where: (s, { eq }) => eq(s.studentid, studentid),
     });
 
-    if (students.length === 0) {
+    if (!studentToDelete) {
         throw new Error("Student not found");
     }
 
-    const studentToDelete = students[0];
+    if (session.user.role === "FAMILY") {
+        const { family: userFamily } = await requireFamily();
+        if (studentToDelete.familyid !== userFamily.familyid) {
+            throw new Error("Forbidden");
+        }
+    }
 
     // Check for existing registrations
     const registrations = await db.query.classregistration.findMany({
@@ -217,10 +235,17 @@ export async function removeStudent(studentid: number) {
     // If no registrations, proceed to delete
     await db.delete(student).where(eq(student.studentid, studentToDelete.studentid));
 }
-
 export async function updateFamily(familyData: z.infer<typeof familySchema>, familyid: number) {
+    const session = await requireRole(["ADMIN", "FAMILY"]);
+    if (session.user.role === "FAMILY") {
+        const { family: userFamily } = await requireFamily();
+        if (userFamily.familyid !== familyid) {
+            throw new Error("Forbidden");
+        }
+    }
     await db
         .update(family)
+...
         .set({
             mothernamecn: familyData.mothernamecn,
             motherfirsten: familyData.motherfirsten,
@@ -240,12 +265,15 @@ export async function SubmitFeedback(
     incomingData: z.infer<typeof feedbackSchema>,
     familyid: number
 ) {
-    await requireRole(["FAMILY"]);
+    const { family: userFamily } = await requireFamily();
+    if (userFamily.familyid !== familyid) {
+        throw new Error("Forbidden");
+    }
     const parsedData = feedbackSchema.parse(incomingData);
     await db.transaction(async (tx) => {
         await tx.insert(feedback).values({
             ...Object.fromEntries(Object.entries(parsedData).filter(([key]) => key !== "website")),
-            familyid: familyid,
+            familyid: userFamily.familyid,
             postdate: toESTString(new Date()),
         });
     });

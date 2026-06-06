@@ -43,7 +43,10 @@ async function createRemoveFamBalanceVals(
     return removeFamBalValues;
 }
 
+import { requireRole } from "@/server/auth/actions";
+
 export async function adminDropRegistration(regid: number, studentid: number, override: boolean) {
+    await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
         // 1. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({

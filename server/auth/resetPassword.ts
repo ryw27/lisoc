@@ -7,8 +7,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { userRoles } from "@/lib/db/db-types";
 import { users } from "@/lib/db/schema";
-
-//import { safeAction } from "@/lib/safeAction";
+import { requireRole } from "@/server/auth/actions";
 
 export const resetPassword = async (data: {
     role: string;
@@ -17,16 +16,23 @@ export const resetPassword = async (data: {
     newpassword: string;
 }) => {
     try {
-        // reuse sreset pass schema
-        const { role, email, oldpassword, newpassword } = data;
-
         const roleSchema = z.enum(userRoles.enumValues);
 
         let validatedRole: (typeof userRoles.enumValues)[number];
         try {
-            validatedRole = roleSchema.parse(role);
+            validatedRole = roleSchema.parse(data.role);
         } catch {
             throw new Error("Invalid role");
+        }
+
+        const session = await requireRole([validatedRole as "ADMIN" | "TEACHER" | "FAMILY"]);
+
+        // reuse sreset pass schema
+        const { email, oldpassword, newpassword } = data;
+
+        // Ensure user is only resetting their own password
+        if (session.user.name !== email) {
+            throw new Error("Forbidden");
         }
 
         const userInfo = await db.query.users.findFirst({

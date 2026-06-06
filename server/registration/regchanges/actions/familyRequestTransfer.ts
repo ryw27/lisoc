@@ -44,6 +44,8 @@ async function createRemoveFamBalanceVals(
     return removeFamBalValues;
 }
 
+import { requireFamily } from "@/server/auth/actions";
+
 // TODO: Ensure that this is a valid transfer, that the family has paid for the original class. Enforced on client at the current moment.
 export async function familyRequestTransfer(
     regid: number,
@@ -53,6 +55,10 @@ export async function familyRequestTransfer(
     notes: string
 ) {
     try {
+        const { family: userFamily } = await requireFamily();
+        if (userFamily.familyid !== familyid) {
+            throw new Error("Forbidden");
+        }
         const txResult = await db.transaction(async (tx) => {
             // 1. Get old registration
             const oldReg = await tx.query.classregistration.findFirst({

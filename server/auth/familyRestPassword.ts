@@ -5,8 +5,7 @@ import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-
-//import { safeAction } from "@/lib/safeAction";
+import { requireRole } from "@/server/auth/actions";
 
 export const familyResetPassword = async (data: {
     email: string;
@@ -14,8 +13,14 @@ export const familyResetPassword = async (data: {
     newpassword: string;
 }) => {
     try {
+        const session = await requireRole(["FAMILY"]);
         // reuse sreset pass schema
         const { email, oldpassword, newpassword } = data;
+
+        // Ensure user is only resetting their own password
+        if (session.user.name !== email) {
+            throw new Error("Forbidden");
+        }
 
         const userInfo = await db.query.users.findFirst({
             where: (users, { eq }) => eq(users.name, email),

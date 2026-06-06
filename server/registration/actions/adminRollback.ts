@@ -3,10 +3,12 @@
 import { and, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration } from "@/lib/db/schema";
+import { requireRole } from "@/server/auth/actions";
 import { toESTString } from "@/lib/utils";
 import { fullRegClass } from "@/types/registration.types";
 
 export async function adminRollback(data: fullRegClass) {
+    await requireRole(["ADMIN"]);
     await db.transaction(async (tx) => {
         if (!data.arrinfo.arrangeid || data.arrinfo.arrangeid === 0) {
             throw new Error("Arrange identifier does not exist in data in rollback.");
