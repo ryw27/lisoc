@@ -1,10 +1,5 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { MoreHorizontal, PencilIcon } from "lucide-react";
 import { classregistration, student } from "@/lib/db/schema";
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import {
@@ -12,6 +7,11 @@ import {
     adminRejectRequest,
     adminUndoRequest,
 } from "@/server/registration/regchanges";
+import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
+import { MoreHorizontal, PencilIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 //import { useRouter } from 'next/navigation';
 import { ClientTable } from "@/components/client-table";
 //import { request } from "http";
@@ -43,6 +43,7 @@ export type processRegChangeRow = {
 type processRegChangeProps = {
     requestId: number;
     regId: number;
+    adminmemo: string;
     appliedRegId: number;
     classId: number;
     familyId: number;
@@ -182,6 +183,7 @@ function NumericTextInput({ onValueChange }: handleFunction) {
 export default function ProcessRegChange({
     requestId,
     regId,
+    adminmemo,
     appliedRegId,
     classId,
     familyId,
@@ -358,12 +360,16 @@ export default function ProcessRegChange({
         size: 400,
         enableResizing: false,
         cell: ({ row }) => {
-            if (row.original.regId !== regId) {
+            if (
+                (appliedRegId !== 0 && row.original.regId !== appliedRegId) ||
+                (appliedRegId === 0 && row.original.regId !== regId)
+            ) {
                 return <div> </div>;
             }
             return (
                 <Textarea
                     ref={adminMemoRef}
+                    defaultValue={adminmemo}
                     className="min-w 1200 max-w 2400 min-h-10 resize-none"
                     maxLength={50}
                     placeholder="please enter memo here no more than 50 chars"
@@ -380,7 +386,10 @@ export default function ProcessRegChange({
         size: 80,
         enableResizing: false,
         cell: ({ row }) => {
-            if (row.original.regId !== regId) {
+            if (
+                (appliedRegId !== 0 && row.original.regId !== appliedRegId) ||
+                (appliedRegId === 0 && row.original.regId !== regId)
+            ) {
                 return <div> </div>;
             }
 
@@ -396,7 +405,10 @@ export default function ProcessRegChange({
         size: 80,
         enableResizing: false,
         cell: ({ row }) => {
-            if (row.original.regId !== regId) {
+            if (
+                (appliedRegId !== 0 && row.original.regId !== appliedRegId) ||
+                (appliedRegId === 0 && row.original.regId !== regId)
+            ) {
                 return <div> </div>;
             }
 

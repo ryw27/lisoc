@@ -1,13 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { InferSelectModel } from "drizzle-orm";
-import { PencilIcon, Repeat2Icon, UserXIcon } from "lucide-react";
+import { ClientTable } from "@/components/client-table";
 import { regchangerequest } from "@/lib/db/schema";
 import { cn, REQUEST_STATUS_PENDING } from "@/lib/utils";
 import { type regChangeRow } from "@/types/registration.types";
-import { ClientTable } from "@/components/client-table";
+import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { InferSelectModel } from "drizzle-orm";
+import { PencilIcon, Repeat2Icon, UserXIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type regChangeTableProps = {
     requests: InferSelectModel<typeof regchangerequest>[];
