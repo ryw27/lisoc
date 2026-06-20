@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { db } from "@/lib/db";
 import ProcessRegChange from "@/components/registration/regchanges/processRegChange";
+import { db } from "@/lib/db";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 //import { classes, familybalancetype } from "@/lib/db/schema";
 
@@ -17,6 +17,7 @@ type Props = {
 
 export default async function ProcessRegChangePage({ searchParams }: Props) {
     // Await the searchParams promise to get the actual object
+
     const params = searchParams ? await searchParams : {};
 
     /*    const familyIdRaw = params.familyid;
@@ -212,6 +213,7 @@ export default async function ProcessRegChangePage({ searchParams }: Props) {
                 <ProcessRegChange
                     requestId={requestid}
                     regId={regid}
+                    adminmemo={changereq.adminmemo ?? ""}
                     appliedRegId={appliedRegId}
                     classId={classid}
                     familyId={familyId}
