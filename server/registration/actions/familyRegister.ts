@@ -8,7 +8,7 @@ import {
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
-import { requireFamily, requireRole } from "@/server/auth/actions";
+import { requireFamily } from "@/server/auth/actions";
 import { regKind } from "@/types/registration.types";
 import { famBalanceInsert, familyObj, seasonObj, type uiClasses } from "@/types/shared.types";
 import { and, eq } from "drizzle-orm";

@@ -245,7 +245,6 @@ export async function updateFamily(familyData: z.infer<typeof familySchema>, fam
     }
     await db
         .update(family)
-...
         .set({
             mothernamecn: familyData.mothernamecn,
             motherfirsten: familyData.motherfirsten,
