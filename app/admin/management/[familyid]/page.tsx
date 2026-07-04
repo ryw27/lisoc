@@ -182,6 +182,22 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
 
     const feeTypeIdMap = await feeIdMap();
 
+    // Contact lines. Address comes from the user record (address/city/state/zip);
+    // the alternative phone/email from the family record are appended to the
+    // primary phone/email, semicolon-separated, rather than on their own lines.
+    const contactUser = fam.user!;
+    const emailLine = [contactUser.email, fam.email2].filter(Boolean).join("; ");
+    const phoneLine = [contactUser.phone, fam.cellphone, fam.officephone]
+        .filter(Boolean)
+        .join("; ");
+    const cityStateZip = [
+        [contactUser.city, contactUser.state].filter(Boolean).join(", "),
+        contactUser.zip,
+    ]
+        .filter(Boolean)
+        .join(" ");
+    const addressLine = [contactUser.address, cityStateZip].filter(Boolean).join(", ");
+
     return (
         <div className="mx-auto max-w-7xl p-6">
             <h1 className="mb-4 text-2xl font-bold">Family: {selectFamilyName(fam)}</h1>
@@ -191,12 +207,13 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
                 <h2 className="text-lg font-semibold">Contact</h2>
                 <div className="text-gray-700">
                     <div>
-                        Email:{" "}
-                        {fam.user!.email || <span className="text-gray-400 italic">N/A</span>}
+                        Email: {emailLine || <span className="text-gray-400 italic">N/A</span>}
                     </div>
                     <div>
-                        Phone:{" "}
-                        {fam.user!.phone || <span className="text-gray-400 italic">N/A</span>}
+                        Phone: {phoneLine || <span className="text-gray-400 italic">N/A</span>}
+                    </div>
+                    <div>
+                        Address: {addressLine || <span className="text-gray-400 italic">N/A</span>}
                     </div>
                 </div>
             </div>

@@ -2,16 +2,25 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Input } from "@/components/ui/input";
+import { requireRole } from "@/server/auth/actions";
 
 async function redirectFamily(formData: FormData): Promise<void> {
     "use server";
+    await requireRole(["ADMIN"]);
     const familyid = formData.get("familyid");
     const phone = formData.get("phone");
+    const email = formData.get("email");
     const regno = formData.get("regno");
     const studentname = formData.get("studentname");
 
     if (typeof studentname === "string" && studentname.trim()) {
         redirect(`/admin/other/find-family?studentname=${encodeURIComponent(studentname.trim())}`);
+    }
+
+    // Email is a partial match that can hit multiple families, so route to the
+    // results list (like student name) rather than a single-family redirect.
+    if (typeof email === "string" && email.trim()) {
+        redirect(`/admin/other/find-family?email=${encodeURIComponent(email.trim())}`);
     }
 
     if (
@@ -69,14 +78,23 @@ type StudentMatch = {
     namelasten: string;
 };
 
+type EmailMatch = {
+    userid: string;
+    email: string;
+    name: string | null;
+    familyid: number;
+};
+
 export default async function FindFamily({
     searchParams,
 }: {
-    searchParams?: Promise<{ studentname?: string | string[] }>;
+    searchParams?: Promise<{ studentname?: string | string[]; email?: string | string[] }>;
 }) {
     const params = searchParams ? await searchParams : {};
     const rawName = params.studentname;
     const name = (Array.isArray(rawName) ? rawName[0] : rawName)?.trim();
+    const rawEmail = params.email;
+    const email = (Array.isArray(rawEmail) ? rawEmail[0] : rawEmail)?.trim();
 
     let matches: StudentMatch[] = [];
     if (name) {
@@ -96,6 +114,34 @@ export default async function FindFamily({
             },
             limit: 100,
         });
+    }
+
+    let emailMatches: EmailMatch[] = [];
+    if (email) {
+        const users = await db.query.users.findMany({
+            where: (u, { ilike }) => ilike(u.email, `%${email}%`),
+            columns: {
+                id: true,
+                email: true,
+                name: true,
+            },
+            with: {
+                families: {
+                    columns: {
+                        familyid: true,
+                    },
+                },
+            },
+            limit: 100,
+        });
+        emailMatches = users
+            .filter((u) => u.families?.familyid)
+            .map((u) => ({
+                userid: u.id,
+                email: u.email,
+                name: u.name,
+                familyid: u.families!.familyid,
+            }));
     }
 
     return (
@@ -132,6 +178,25 @@ export default async function FindFamily({
                     name="phone"
                     type="text"
                     placeholder="Phone Number"
+                    className="border-input h-9 w-full rounded-sm text-sm"
+                />
+
+                <div className="relative flex items-center justify-center">
+                    <span className="bg-card text-muted-foreground px-2 text-[10px] uppercase">
+                        or
+                    </span>
+                    <div className="absolute inset-0 -z-10 flex items-center">
+                        <div className="border-input w-full border-t"></div>
+                    </div>
+                </div>
+
+                <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Email"
+                    autoComplete="off"
+                    defaultValue={email ?? ""}
                     className="border-input h-9 w-full rounded-sm text-sm"
                 />
 
@@ -206,6 +271,40 @@ export default async function FindFamily({
                         </ul>
                     )}
                     {matches.length === 100 && (
+                        <p className="text-muted-foreground text-xs">
+                            Showing first 100 — refine search if needed.
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {email && (
+                <div className="border-input bg-card flex flex-col gap-2 rounded-md border p-4 shadow-sm">
+                    <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+                        Matches for &ldquo;{email}&rdquo;
+                    </h3>
+                    {emailMatches.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No matches</p>
+                    ) : (
+                        <ul className="flex flex-col gap-1">
+                            {emailMatches.map((m) => (
+                                <li key={m.userid}>
+                                    <Link
+                                        href={`/admin/management/${m.familyid}`}
+                                        className="border-input hover:bg-muted block rounded-sm border p-2 text-sm"
+                                    >
+                                        <span className="font-bold">{m.email}</span>
+                                        {m.name ? ` (${m.name})` : ""}
+                                        <span className="text-muted-foreground">
+                                            {" "}
+                                            · Family #{m.familyid}
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {emailMatches.length === 100 && (
                         <p className="text-muted-foreground text-xs">
                             Showing first 100 — refine search if needed.
                         </p>

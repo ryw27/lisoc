@@ -16,3 +16,6 @@ package-lock.json
 
 # System Files
 .DS_Store
+
+# Tooling (not part of the source tree)
+.claude/
