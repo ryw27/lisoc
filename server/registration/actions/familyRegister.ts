@@ -33,7 +33,7 @@ export async function familyRegister(
     // so any downstream code can't accidentally trust the client's version.
     family = userFamily as typeof family;
 
-    await db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         // 2. Check other active registrations and ensure timeline is correct
         const canRegisterTimeline = await ensureTimeline(tx, arrData.timeid, {
             seasonid: season.seasonid,
