@@ -135,7 +135,6 @@ export async function createStudent(
     const parsed = studentSchema.parse(data);
 
     return await db.transaction(async (tx) => {
-
         const curStudents = await tx.query.student.findMany({
             where: (student, { eq }) => eq(student.familyid, userFamily.familyid),
         });

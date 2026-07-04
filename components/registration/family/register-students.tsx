@@ -616,7 +616,6 @@ export default function RegisterStudent({
         setCheckNo(gropuPaymentDetail());
     }, [termPrices, gropuPaymentDetail]);
 
-
     const groupPaymentNotes = useCallback(() => {
         const allnotes = termPrices["yearPrices"].notes.concat(
             termPrices["fallPrices"].notes,
@@ -633,9 +632,7 @@ export default function RegisterStudent({
 
     useEffect(() => {
         setAllNotes(groupPaymentNotes());
-    }, [termPrices, groupPaymentNotes])
-
-
+    }, [termPrices, groupPaymentNotes]);
 
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
@@ -993,10 +990,7 @@ export default function RegisterStudent({
                             ? Array.from(familyBalanceIdSet).join(", ")
                             : ""}
                     </p>
-                    <p className="text-sm text-gray-400">
-                        {allnotes && ` (Notes: ${allnotes})`}
-                    </p>
-
+                    <p className="text-sm text-gray-400">{allnotes && ` (Notes: ${allnotes})`}</p>
                 </div>
                 <div className="flex flex-col items-end">
                     <PayPalScriptProvider

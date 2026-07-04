@@ -23,7 +23,7 @@ export type balanceFees = {
     paymentdetails: string[]; // this is details of payment
     dropoutamount: number; // this is for dropout refund amount, if applicable
     transferamount: number; // this is for transfer balance, if applicable
-    notes: string ; 
+    notes: string;
 };
 
 // Season
