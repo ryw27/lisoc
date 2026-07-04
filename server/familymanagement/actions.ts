@@ -44,6 +44,7 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         paymentdetails: [],
         dropoutamount: 0,
         transferamount: 0,
+        notes: "",
     };
 
     for (const bal of balances) {
@@ -59,6 +60,7 @@ function calculateTerm(balances: InferSelectModel<typeof familybalance>[]): bala
         totals.tuition += Number(bal.tuition ?? 0);
         totals.groupdiscount += Number(bal.groupdiscount ?? 0);
         totals.processfee += Number(bal.processfee ?? 0);
+        totals.notes += bal.notes ?? " ";
         //totals.totalamount += Number(bal.totalamount ?? 0);
         if (bal.typeid == FAMILYBALANCE_TYPE_PAYMENT) {
             totals.payment += Number(bal.totalamount ?? 0);

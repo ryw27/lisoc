@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import BetaBanner from "@/components/beta-banner";
 
 const crimson = localFont({
     src: "../public/fonts/CrimsonPro-VariableFont_wght.ttf",
@@ -35,7 +36,10 @@ export default async function RootLayout({
     return (
         <html lang={locale} className={`${crimson.variable} ${notoSerif.variable} antialiased`}>
             <body>
-                <NextIntlClientProvider>{children}</NextIntlClientProvider>
+                <NextIntlClientProvider>
+                    <BetaBanner />
+                    {children}
+                </NextIntlClientProvider>
             </body>
         </html>
     );
