@@ -71,6 +71,11 @@ export async function familyRequestTransfer(
                 };
             }
 
+            // IDOR defense: authorize against the loaded row, not the client-supplied familyid.
+            if (oldReg.familyid !== userFamily.familyid) {
+                throw new Error("Forbidden");
+            }
+
             // 2. Check if the registration is in a valid state to be dropped. Should only be submitted or registered
             if (
                 oldReg.statusid !== REGSTATUS_SUBMITTED &&

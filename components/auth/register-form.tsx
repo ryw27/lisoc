@@ -15,7 +15,6 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
-// import TeacherForm from "./LEGACY_teacher-form";
 import Logo from "@/components/logo";
 import FamilyForm from "./family-form";
 import { FormError, FormInput, FormSubmit } from "./form-components";
