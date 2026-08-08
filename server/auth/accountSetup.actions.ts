@@ -7,10 +7,12 @@ import { v4 as uuid } from "uuid";
 import { z } from "zod/v4";
 import { pgadapter } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { adminuser, teacher, users } from "@/lib/db/schema";
+import { adminuser, teacher, users, verificationToken } from "@/lib/db/schema";
 import { clientIp, enforceRateLimit } from "@/lib/rateLimit";
 import { safeAction } from "@/lib/safeAction";
 import { toESTString } from "@/lib/utils";
+import { requireRole } from "./actions";
+import { sendAdminPasswordResetEmail } from "./data";
 import { passwordSchema, uuidSchema } from "./schema";
 import { hashToken } from "./tokenHash";
 
@@ -18,6 +20,7 @@ const SETUP_SESSION_COOKIE = "lisoc_account_setup";
 const SETUP_TOKEN_PREFIX = "account-setup:";
 const SETUP_SESSION_PREFIX = "account-setup-session:";
 const SETUP_SESSION_TTL_MS = 30 * 60 * 1000;
+const ADMIN_RESET_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 const setupSessionCookieOptions = {
     httpOnly: true,
@@ -171,3 +174,69 @@ export const completeAccountSetup = safeAction(setupAccountSchema, async (data) 
     });
     (await cookies()).delete(SETUP_SESSION_COOKIE);
 });
+
+// Admin-initiated password reset, triggered from the data-view edit pages for
+// teacher/admin accounts. ADMIN ONLY — this hands whoever controls the target
+// mailbox a link that sets a new password, so it must never be reachable by a
+// TEACHER or FAMILY session.
+//
+// It deliberately reuses the account-setup flow rather than the family
+// forgot-password flow: clearing `emailVerified` immediately locks the old
+// password out (every credentials provider requires a verified email), and
+// `completeAccountSetup` is the only path that sets it back — so the account
+// cannot be left permanently unverified by a half-finished reset.
+export const adminResetUserPassword = safeAction(
+    z.object({ userid: uuidSchema.shape.uuid }),
+    async ({ userid }) => {
+        const session = await requireRole(["ADMIN"], { redirect: false });
+
+        const ip = await clientIp();
+        enforceRateLimit(`admin-pwreset:actor:${session.user.id}`, {
+            max: 20,
+            windowMs: 15 * 60_000,
+        });
+        enforceRateLimit(`admin-pwreset:ip:${ip}`, { max: 30, windowMs: 15 * 60_000 });
+
+        const target = await db.query.users.findFirst({
+            where: (u, { eq }) => eq(u.id, userid),
+        });
+        if (!target) {
+            throw new Error("User not found");
+        }
+        // The setup flow only knows how to finish teacher/admin accounts (it
+        // clears `ischangepwdnext` on those tables), so refuse anything else.
+        const isAdminUser = target.roles.includes("ADMINUSER");
+        const isTeacher = target.roles.includes("TEACHER");
+        if (!isAdminUser && !isTeacher) {
+            throw new Error("This account cannot be reset from here.");
+        }
+
+        const token = uuid();
+        const identifier = `${SETUP_TOKEN_PREFIX}${target.email}`;
+        const now = toESTString(new Date());
+
+        await db.transaction(async (tx) => {
+            // Any setup/reset link already outstanding for this address is
+            // superseded — otherwise an older link stays redeemable.
+            await tx.delete(verificationToken).where(eq(verificationToken.identifier, identifier));
+            await tx
+                .update(users)
+                .set({ emailVerified: null, updateon: now })
+                .where(eq(users.id, target.id));
+            await tx.insert(verificationToken).values({
+                identifier,
+                token: hashToken(token),
+                expires: new Date(Date.now() + ADMIN_RESET_TTL_MS).toISOString(),
+            });
+            // Sent inside the transaction so a send failure rolls the reset
+            // back instead of stranding the user unverified with no link.
+            await sendAdminPasswordResetEmail(
+                target.email,
+                token,
+                isAdminUser ? "Admin" : "Teacher"
+            );
+        });
+
+        return { email: target.email };
+    }
+);

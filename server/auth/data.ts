@@ -79,6 +79,33 @@ export async function sendAccountSetupEmail(
     );
 }
 
+// Admin-initiated password reset. The account's `emailVerified` is cleared at
+// the same time this is sent, so the recipient goes back through the exact same
+// setup-account flow used for brand-new accounts — that flow is the only thing
+// that can set a usable password and re-verify the address.
+export async function sendAdminPasswordResetEmail(
+    emailTo: string,
+    token: string,
+    type: "Teacher" | "Admin"
+) {
+    const url = `${SITE_LINK}/setup-account#token=${encodeURIComponent(token)}`;
+    const safeHrefValue = safeHref(url);
+    const safeUrlText = escapeHtml(url);
+    const safeType = escapeHtml(type);
+    await msSendEmail(
+        emailTo,
+        `LISOC ${safeType} Password Reset`,
+        `
+            <p>An administrator has reset the password on your LISOC ${safeType} account.</p>
+            <p>Your old password no longer works. To choose a new one, click the link below.</p>
+            <p><a href="${safeHrefValue}">Reset your password</a></p>
+            <p>If the link is not working, please try copy and pasting the following into your browser: ${safeUrlText}</p>
+            <p>This link will expire in 3 days.</p>
+            <p>If you did not expect this email, please contact the school administrator.</p>
+        `
+    );
+}
+
 export async function sendPaymentEmail(emailTo: string, season: string, totalBalance: number) {
     await msSendEmail(
         emailTo,

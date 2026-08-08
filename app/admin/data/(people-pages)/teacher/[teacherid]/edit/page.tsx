@@ -76,6 +76,7 @@ export default async function EditTeacherPage({
                     placeholder: "Enter Password",
                     width: "half",
                     defaultValue: data.password ?? "",
+                    ...(rows.users?.id ? { resetPassword: { userid: rows.users.id } } : {}),
                 },
             ],
         },

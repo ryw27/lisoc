@@ -130,6 +130,10 @@ export type FormField =
       })
     | (BaseFormField & {
           type: "password";
+          // When set, the edit form renders an admin-only "Reset password"
+          // button next to the field that emails the user a reset link.
+          // `userid` is the `users.id` of the account being edited.
+          resetPassword?: { userid: string };
       })
     | (BaseFormField & {
           type: "number";

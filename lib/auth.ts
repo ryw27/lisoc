@@ -307,6 +307,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     // User was deleted — invalidating the JWT signs them out.
                     return null;
                 }
+                if (!fresh.emailVerified) {
+                    // An admin reset this user's password (which clears
+                    // emailVerified). Sign the live session out so the reset
+                    // actually locks them out rather than letting an already
+                    // -issued JWT ride out its hour.
+                    return null;
+                }
                 // Defence-in-depth demotion: if the role baked into the JWT is
                 // no longer present in the DB, force re-auth. We never PROMOTE
                 // here — the role is whichever provider the user signed in

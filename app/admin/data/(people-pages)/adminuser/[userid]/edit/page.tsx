@@ -77,6 +77,7 @@ export default async function EditAdministratorPage({
                     placeholder: "Enter the password",
                     width: "half",
                     defaultValue: data.password ?? undefined,
+                    ...(rows.users?.id ? { resetPassword: { userid: rows.users.id } } : {}),
                 },
                 {
                     name: "status",

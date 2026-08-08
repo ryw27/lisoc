@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import ResetPasswordButton from "./reset-password-button";
 
 const renderField = (
     field: FormField,
@@ -54,17 +55,27 @@ const renderField = (
             );
         case "password":
             return (
-                <Input
-                    type="password"
-                    name={field.name}
-                    placeholder={field.placeholder}
-                    defaultValue={field.defaultValue as string | undefined}
-                    required={field.required}
-                    aria-invalid={Boolean(opts.fieldError?.length)}
-                    aria-describedby={opts.fieldError?.length ? `${field.name}-error` : undefined}
-                    disabled={opts.pending}
-                    aria-required={field.required}
-                />
+                <>
+                    <Input
+                        type="password"
+                        name={field.name}
+                        placeholder={field.placeholder}
+                        defaultValue={field.defaultValue as string | undefined}
+                        required={field.required}
+                        aria-invalid={Boolean(opts.fieldError?.length)}
+                        aria-describedby={
+                            opts.fieldError?.length ? `${field.name}-error` : undefined
+                        }
+                        disabled={opts.pending}
+                        aria-required={field.required}
+                    />
+                    {field.resetPassword && (
+                        <ResetPasswordButton
+                            userid={field.resetPassword.userid}
+                            disabled={opts.pending}
+                        />
+                    )}
+                </>
             );
         case "number":
             return (
