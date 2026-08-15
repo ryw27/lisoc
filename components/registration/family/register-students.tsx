@@ -1098,7 +1098,7 @@ export default function RegisterStudent({
                                  <li style="font-size: 12px">选择支票付款： 支票抬头请写您的家庭账号 打印此凭据联通支票交给学校管理员或者邮件至
                                             <div>
                                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Long Island School of Chines <br/>
-                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PO Box 666 <br/>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PO Box 665 <br/>
                                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Jericho, NY 11753 <br/>
                                             </div>
                                        &nbsp;&nbsp;&nbsp;&nbsp;注意：请在网上注册后14 天内完成支付，否则注册可能被取消 
