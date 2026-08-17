@@ -7,27 +7,34 @@ import { vi } from "vitest";
  * only executes when awaited. This returns itself for every intermediate builder method and
  * resolves to `result` when awaited (or when `.returning()`/`.execute()` is awaited).
  */
-export function makeChain(result: unknown = undefined) {
-    const chain: Record<string, unknown> = {};
-    const passthrough = [
-        "from",
-        "where",
-        "set",
-        "values",
-        "limit",
-        "offset",
-        "orderBy",
-        "groupBy",
-        "having",
-        "leftJoin",
-        "innerJoin",
-        "rightJoin",
-        "for",
-        "returning",
-        "onConflictDoUpdate",
-        "onConflictDoNothing",
-    ];
-    for (const m of passthrough) chain[m] = vi.fn(() => chain);
+const PASSTHROUGH = [
+    "from",
+    "where",
+    "set",
+    "values",
+    "limit",
+    "offset",
+    "orderBy",
+    "groupBy",
+    "having",
+    "leftJoin",
+    "innerJoin",
+    "rightJoin",
+    "for",
+    "returning",
+    "onConflictDoUpdate",
+    "onConflictDoNothing",
+] as const;
+
+/** Builder methods stay mocks so tests can assert on what was passed, e.g. `chain.set.mock.calls[0][0]`. */
+export type MockChain = Record<(typeof PASSTHROUGH)[number], ReturnType<typeof vi.fn>> & {
+    execute: ReturnType<typeof vi.fn>;
+    then: (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) => Promise<unknown>;
+};
+
+export function makeChain(result: unknown = undefined): MockChain {
+    const chain = {} as MockChain;
+    for (const m of PASSTHROUGH) chain[m] = vi.fn(() => chain);
     chain.execute = vi.fn(() => Promise.resolve(result));
     chain.then = (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) =>
         Promise.resolve(result).then(resolve, reject);

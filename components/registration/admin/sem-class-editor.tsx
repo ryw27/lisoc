@@ -1,15 +1,5 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { z } from "zod/v4";
-import { arrangementArraySchema } from "@/lib/schema";
-import { cn } from "@/lib/utils";
-import { type classJoin, type uiClasses } from "@/types/shared.types";
-import { createArrangement } from "@/server/seasons/actions/createArrangement";
-import { editArrangement } from "@/server/seasons/actions/editArrangement";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +9,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { arrangementArraySchema } from "@/lib/schema";
+import { cn } from "@/lib/utils";
+import { createArrangement } from "@/server/seasons/actions/createArrangement";
+import { editArrangement } from "@/server/seasons/actions/editArrangement";
+import { type classJoin, type uiClasses } from "@/types/shared.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { z } from "zod/v4";
 import { type Action, type fullRegID } from "./sem-view";
 
 type semClassEditorProps = {
@@ -51,7 +51,7 @@ export default function SemClassEditor({
                     seatlimit: uuid === "ADDING" ? 0 : initialData.arrinfo.seatlimit,
                     teacherid: uuid === "ADDING" ? 7 : initialData.arrinfo.teacherid,
                     roomid: uuid === "ADDING" ? 59 : initialData.arrinfo.roomid,
-                    isregclass: true,
+                    isregclass: false,
                 },
                 ...(initialData.classrooms?.map((c) => ({
                     ...c.arrinfo,
@@ -63,32 +63,6 @@ export default function SemClassEditor({
 
     const { fields, append } = useFieldArray({ control: editForm.control, name: "classrooms" });
 
-    // TODO: Uncomment when gradeclassid is ready
-    // const [childClasses, setChildClasses] = useState<classObject[]>([]);
-
-    // useEffect(() => {
-    //     let isMounted = true;
-    //     const fetchChildClasses = async () => {
-    //         if (initialData?.arrinfo?.classid) {
-    //             try {
-    //                 const result = await getSubClassrooms(initialData.arrinfo.classid);
-    //                 if (isMounted) setChildClasses(result);
-    //             } catch (err) {
-    //                 setChildClasses([]);
-    //             }
-    //         } else {
-    //             setChildClasses([]);
-    //         }
-    //     };
-    //     fetchChildClasses();
-    //     return () => { isMounted = false; };
-    // }, [initialData]);
-
-    /*const [childClasses, setChildClasses] = useState<number[]>([]);
-    useEffect(() => {
-        setChildClasses([1, 2, 4, 6, 8, 12]);
-    }, [])
-    */
     const onAddClassroom = async () => {
         const newIndex = fields.length;
         append({
@@ -110,17 +84,19 @@ export default function SemClassEditor({
             isregclass: false,
         });
         setClassEdited(newIndex);
-
-        // editForm.setValue(`classrooms.${newIndex}.classid`, childClasses[newIndex - 1], {
-        //     shouldDirty: true,
-        //     shouldValidate: true,
-        // });
     };
 
     const onSubmit = async (formData: z.infer<typeof arrangementArraySchema>) => {
         const snapshot = initialData;
         let new_uuid = crypto.randomUUID();
         try {
+            let seasonobj = seasons.fall; // Default to fall
+            if (seasons.year.seasonid == initialData.arrinfo.seasonid) {
+                seasonobj = seasons.year;
+            } else if (seasons.spring.seasonid == initialData.arrinfo.seasonid) {
+                seasonobj = seasons.spring;
+            }
+
             // Safely check if classrooms is defined and is an array
             if (uuid !== "ADDING") {
                 const dirtyClassrooms = editForm.formState.dirtyFields.classrooms;
@@ -189,9 +165,12 @@ export default function SemClassEditor({
                     }
                 });
                 // Server update
-                await editArrangement(formData, seasons.year);
+
+                await editArrangement(formData, seasonobj);
             } else {
-                let seasonid;
+                // New classes have no seasonid yet (arrinfo is empty on the ADDING path), default to fall
+                const seasonid = initialData.arrinfo.seasonid ?? seasons.fall.seasonid;
+                /*
                 if (formData.classrooms[0].suitableterm === 3) {
                     seasonid = seasons.year.seasonid;
                 } else {
@@ -201,6 +180,7 @@ export default function SemClassEditor({
                         seasonid = seasons.spring.seasonid;
                     }
                 }
+                    */
                 // Generate a UUID for the new reg class on the client
                 // Prepare the regDraft for the new registration class
                 const classid = formData.classrooms[0].classid;
@@ -229,31 +209,17 @@ export default function SemClassEditor({
                         bookfeeH: formData.classrooms[0].bookfeeH?.toString() || null,
                         classkey: parseInt(new_uuid),
                     },
-                    /*classrooms: formData.classrooms.map((c) => ({
-                        arrinfo: {
-                            ...c,
-                            seasonid: seasonid,
-                            notes: formData.classrooms[0].notes || null,
-                            tuitionW: c.tuitionW?.toString() || null,
-                            specialfeeW: c.specialfeeW?.toString() || null,
-                            bookfeeW: c.bookfeeW?.toString() || null,
-                            tuitionH: c.tuitionH?.toString() || null,
-                            specialfeeH: c.specialfeeH?.toString() || null,
-                            bookfeeH: c.bookfeeH?.toString() || null,
-                            classkey: initialData.arrinfo.classkey ,
-
-                        },
-                        students: [],
-                    })),*/
                 } satisfies fullRegID;
 
-                const arid = await createArrangement(formData, seasons.year);
+                const arid = await createArrangement(formData, seasonobj);
                 console.log(arid);
                 regDraft.arrinfo.arrangeid = arid;
                 dispatch({ type: "reg/add", regDraft: regDraft });
                 router.refresh();
             }
             endEdit();
+            // full refresh to get arrange id
+            window.location.reload();
         } catch (error) {
             // Revert optimistic update in case of error
             if (uuid !== "adding") {

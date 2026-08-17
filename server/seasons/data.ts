@@ -85,6 +85,24 @@ export default async function fetchCurrentSeasons(client: dbClient = db) {
     });
 }
 
+/**
+ * Fetches a single arrangement row shaped as `uiClasses` (server-managed
+ * bookkeeping columns omitted, same as `getSeasonDrafts`).
+ */
+export async function getArrangementById(arrangeid: number, tx: dbClient = db) {
+    const row = (await tx.query.arrangement.findFirst({
+        where: eq(arrangement.arrangeid, arrangeid),
+        columns: {
+            activestatus: false,
+            regstatus: false,
+            lastmodify: false,
+            updateby: false,
+        },
+    })) satisfies uiClasses | undefined;
+
+    return row ?? null;
+}
+
 export async function getSeasonDrafts(seasonid: number, tx: dbClient = db) {
     const seasonRows = (await tx.query.arrangement.findMany({
         where: eq(arrangement.seasonid, seasonid),

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { uiClasses, type IdMaps } from "@/types/shared.types";
 import { adminTransferStudent2 } from "@/server/registration/regchanges/actions/adminTransferStudent";
+import { uiClasses, type IdMaps } from "@/types/shared.types";
+import { useState } from "react";
 import { type fullRegID } from "./sem-view";
 
 interface Item {
@@ -231,21 +231,21 @@ export default function BulkTransfer({
                         seasonid: dataWithStudents.arrinfo.seasonid,
                         classid: dataWithStudents.arrinfo.classid,
                         classkey: dataWithStudents.arrinfo.classkey,
-                        teacherid: 0,
-                        roomid: 0,
-                        seatlimit: 0,
-                        isregclass: false,
-                        tuitionW: null,
-                        specialfeeW: null,
-                        bookfeeW: null,
-                        tuitionH: null,
-                        specialfeeH: null,
-                        bookfeeH: null,
-                        waiveregfee: false,
-                        timeid: 0,
-                        agelimit: null,
-                        suitableterm: 0,
-                        closeregistration: false,
+                        teacherid: dataWithStudents.arrinfo.teacherid,
+                        roomid: dataWithStudents.arrinfo.roomid,
+                        seatlimit: dataWithStudents.arrinfo.seatlimit,
+                        isregclass: dataWithStudents.arrinfo.isregclass,
+                        tuitionW: dataWithStudents.arrinfo.tuitionW,
+                        specialfeeW: dataWithStudents.arrinfo.specialfeeW,
+                        bookfeeW: dataWithStudents.arrinfo.bookfeeW,
+                        tuitionH: dataWithStudents.arrinfo.tuitionH,
+                        specialfeeH: dataWithStudents.arrinfo.specialfeeH,
+                        bookfeeH: dataWithStudents.arrinfo.bookfeeH,
+                        waiveregfee: dataWithStudents.arrinfo.waiveregfee,
+                        timeid: dataWithStudents.arrinfo.timeid,
+                        agelimit: dataWithStudents.arrinfo.agelimit,
+                        suitableterm: dataWithStudents.arrinfo.suitableterm,
+                        closeregistration: dataWithStudents.arrinfo.closeregistration,
                         notes: "",
                     };
 
@@ -286,21 +286,21 @@ export default function BulkTransfer({
                             seasonid: classrooms[i].arrinfo.seasonid,
                             classid: classrooms[i].arrinfo.classid,
                             classkey: classrooms[i].arrinfo.classkey,
-                            teacherid: 0,
-                            roomid: 0,
-                            seatlimit: 0,
+                            teacherid: classrooms[i].arrinfo.teacherid,
+                            roomid: classrooms[i].arrinfo.roomid,
+                            seatlimit: classrooms[i].arrinfo.seatlimit,
                             isregclass: false,
-                            tuitionW: null,
-                            specialfeeW: null,
-                            bookfeeW: null,
-                            tuitionH: null,
-                            specialfeeH: null,
-                            bookfeeH: null,
-                            waiveregfee: false,
-                            timeid: 0,
-                            agelimit: null,
-                            suitableterm: 0,
-                            closeregistration: false,
+                            tuitionW: classrooms[i].arrinfo.tuitionW,
+                            specialfeeW: classrooms[i].arrinfo.specialfeeW,
+                            bookfeeW: classrooms[i].arrinfo.bookfeeW,
+                            tuitionH: classrooms[i].arrinfo.tuitionH,
+                            specialfeeH: classrooms[i].arrinfo.specialfeeH,
+                            bookfeeH: classrooms[i].arrinfo.bookfeeH,
+                            waiveregfee: classrooms[i].arrinfo.waiveregfee,
+                            timeid: classrooms[i].arrinfo.timeid,
+                            agelimit: classrooms[i].arrinfo.agelimit,
+                            suitableterm: classrooms[i].arrinfo.suitableterm,
+                            closeregistration: classrooms[i].arrinfo.closeregistration,
                             notes: "",
                         };
 

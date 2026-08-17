@@ -17,6 +17,7 @@ import {
     adminTransferStudent,
     adminTransferStudent2,
 } from "@/server/registration/regchanges/actions/adminTransferStudent";
+import { getArrangement } from "@/server/seasons/actions/getArrangement";
 import { ClientTable } from "@/components/client-table";
 import { useRegistrationContext } from "@/components/registration/registration-context";
 import {
@@ -296,27 +297,13 @@ function TransferButton({
                 (c) => c.arrangeid === newarrangeid
             );
 
+            // Pull the real arrangement row so fees/time/limits are accurate
+            // instead of the placeholder zeros.
+            const dbArrange = await getArrangement(newarrangeid);
+
             const newArrangeObj: uiClasses & { classkey: number } = {
-                arrangeid: newarrangeid,
-                seasonid: newCls ? newCls.seasonid : 0,
-                classid: newCls ? newCls.classid : 0,
+                ...dbArrange,
                 classkey: newCls ? (newCls.classno + 100) * 1000 + newCls.typeid : 0,
-                teacherid: 0,
-                roomid: 0,
-                seatlimit: 0,
-                isregclass: false,
-                tuitionW: null,
-                specialfeeW: null,
-                bookfeeW: null,
-                tuitionH: null,
-                specialfeeH: null,
-                bookfeeH: null,
-                waiveregfee: false,
-                timeid: 0,
-                agelimit: null,
-                suitableterm: 0,
-                closeregistration: false,
-                notes: "",
             };
             // make sure phase matches adminTransferStudents
             //const newRegObj =

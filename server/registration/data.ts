@@ -1,9 +1,9 @@
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangementSchema } from "@/lib/schema";
 import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
+import { z } from "zod/v4";
 import fetchCurrentSeasons from "../seasons/data";
 
 //-----------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ export function inReg(season: Partial<seasonObj>, closereg: boolean): boolean {
 
 export function inSession(season: seasonObj): boolean {
     const now = new Date(toESTString(new Date()));
-    return now >= new Date(season.startdate) && now <= new Date(season.enddate);
+    return now >= new Date(season.earlyregdate) && now <= new Date(season.enddate);
 }
 
 export async function isLateReg(tx: Transaction, arrData: uiClasses) {

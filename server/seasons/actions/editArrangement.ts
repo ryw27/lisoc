@@ -1,15 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { arrangement } from "@/lib/db/schema";
 import { arrangementArraySchema, arrangementSchema } from "@/lib/schema";
 import { toESTString } from "@/lib/utils";
-import { type arrangementInsert, type seasonObj } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
 import { getTermVariables } from "@/server/registration/data";
+import { type arrangementInsert, type seasonObj } from "@/types/shared.types";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod/v4";
 
 // TODO: more efficiency? Not sure if this is updating all that have been edited or just all of them regardless
 export async function editArrangement(
@@ -17,7 +17,9 @@ export async function editArrangement(
     season: seasonObj
 ) {
     // Auth check — admin only.
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // arrangement.updateby is varchar(50); a longer name/email would abort the transaction.
+    const updateby = (session.user.name ?? session.user.email ?? "Unknown admin").slice(0, 50);
     return await db.transaction(async (tx) => {
         const parsedArray = arrangementArraySchema.parse(data);
         // Ensure arrangeid is present and valid. It should since it's an update
@@ -41,7 +43,7 @@ export async function editArrangement(
             specialfeeH: regClass.specialfeeH?.toString() ?? null,
             bookfeeH: regClass.bookfeeH?.toString() ?? null,
             lastmodify: toESTString(new Date()),
-            updateby: "testaccount",
+            updateby,
         } satisfies arrangementInsert;
 
         await tx

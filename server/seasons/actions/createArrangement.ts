@@ -16,7 +16,9 @@ export async function createArrangement(
     season: seasonObj
 ) {
     // 1. Auth check — admin only.
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // arrangement.updateby is varchar(50); a longer name/email would abort the transaction.
+    const updateby = (session.user.name ?? session.user.email ?? "Unknown admin").slice(0, 50);
 
     // 2. Parse data
     const parsedArray = arrangementArraySchema.parse(data);
@@ -47,7 +49,7 @@ export async function createArrangement(
             notes: regclass.notes ?? "",
             lastmodify: toESTString(new Date()),
             isregclass: true,
-            updateby: "admin", // TODO: Switch to user
+            updateby,
         };
         // 6. Insert reg class
         const [record] = await tx
