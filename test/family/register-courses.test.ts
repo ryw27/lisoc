@@ -15,6 +15,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 // mock intercepts the relative import.
 vi.mock("@/server/registration/data", () => ({
     ensureTimeline: vi.fn(),
+    ensureSeats: vi.fn(),
     canRegister: vi.fn(),
     getArrSeason: vi.fn(),
     getTotalPrice: vi.fn(),
@@ -25,6 +26,7 @@ import { db } from "@/lib/db";
 import { requireFamily } from "@/server/auth/actions";
 import {
     canRegister,
+    ensureSeats,
     ensureTimeline,
     getArrSeason,
     getTotalPrice,
@@ -38,6 +40,7 @@ const anyDb = db as any;
 const tx = anyDb.__tx;
 const mockRequireFamily = vi.mocked(requireFamily);
 const mockEnsureTimeline = vi.mocked(ensureTimeline);
+const mockEnsureSeats = vi.mocked(ensureSeats);
 const mockCanRegister = vi.mocked(canRegister);
 const mockGetArrSeason = vi.mocked(getArrSeason);
 const mockGetTotalPrice = vi.mocked(getTotalPrice);
@@ -108,36 +111,53 @@ describe("familyRegister — transactional validation", () => {
         asFamily(1);
         // Sensible defaults; individual tests override the branch under test.
         mockEnsureTimeline.mockResolvedValue(true);
+        mockEnsureSeats.mockResolvedValue(true);
         mockCanRegister.mockResolvedValue("normal");
         mockGetArrSeason.mockResolvedValue("year");
         mockGetTotalPrice.mockResolvedValue(300);
     });
 
-    it("throws when ensureTimeline reports a schedule conflict", async () => {
+    // Validation failures are returned rather than thrown so the reason survives a production
+    // build, where Next.js strips thrown Server Action messages.
+    it("reports a schedule conflict when ensureTimeline rejects", async () => {
         mockEnsureTimeline.mockResolvedValue(false);
-        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).rejects.toThrow(
-            "Registered class does not fit this student's schedule"
-        );
+        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).resolves.toEqual({
+            ok: false,
+            errorMessage: "Registered class does not fit this student's schedule",
+        });
     });
 
-    it("throws when the arrangement season does not match the passed-in season", async () => {
+    it("reports when the arrangement season does not match the passed-in season", async () => {
         await expect(
             familyRegister(makeArr({ seasonid: 999 }), makeSeason(5), makeFamily(1), 20)
-        ).rejects.toThrow("Season of arrangement and passed in season do not match");
+        ).resolves.toEqual({
+            ok: false,
+            errorMessage: "Season of arrangement and passed in season do not match",
+        });
     });
 
-    it("throws when registration is closed for the class", async () => {
+    it("reports when registration is closed for the class", async () => {
         mockCanRegister.mockResolvedValue("closed");
-        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).rejects.toThrow(
-            "Registration is not currently open for this class"
-        );
+        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).resolves.toEqual({
+            ok: false,
+            errorMessage: "Registration is not currently open for this class",
+        });
     });
 
-    it("throws when the student is not in this family", async () => {
+    it("reports when the class has no seats left", async () => {
+        mockEnsureSeats.mockResolvedValue(false);
+        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).resolves.toEqual({
+            ok: false,
+            errorMessage: "This class is full/注册已满",
+        });
+    });
+
+    it("reports when the student is not in this family", async () => {
         tx.query.student.findFirst.mockResolvedValue(undefined);
-        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).rejects.toThrow(
-            "Student not found in this family"
-        );
+        await expect(familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)).resolves.toEqual({
+            ok: false,
+            errorMessage: "Student not found in this family",
+        });
     });
 });
 
@@ -145,6 +165,7 @@ describe("familyRegister — happy path (new balance)", () => {
     beforeEach(() => {
         asFamily(1);
         mockEnsureTimeline.mockResolvedValue(true);
+        mockEnsureSeats.mockResolvedValue(true);
         mockCanRegister.mockResolvedValue("normal");
         mockGetArrSeason.mockResolvedValue("year");
         mockGetTotalPrice.mockResolvedValue(300);
@@ -169,7 +190,7 @@ describe("familyRegister — happy path (new balance)", () => {
         // The action returns its transaction result: the created family balance.
         await expect(
             familyRegister(makeArr(), makeSeason(5), makeFamily(1), 20)
-        ).resolves.toMatchObject({ balanceid: 77 });
+        ).resolves.toMatchObject({ ok: true, balance: { balanceid: 77 } });
 
         // Two inserts: familybalance, then classregistration.
         expect(tx.insert).toHaveBeenCalledTimes(2);

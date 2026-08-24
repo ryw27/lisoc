@@ -1,8 +1,15 @@
 import { db } from "@/lib/db";
+import { arrangement, classregistration } from "@/lib/db/schema";
 import { arrangementSchema } from "@/lib/schema";
-import { CLASSTIME_PERIOD_BOTH_TIMEID, toESTString } from "@/lib/utils";
+import {
+    CLASSTIME_PERIOD_BOTH_TIMEID,
+    REGSTATUS_REGISTERED,
+    REGSTATUS_SUBMITTED,
+    toESTString,
+} from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import fetchCurrentSeasons from "../seasons/data";
 
@@ -256,4 +263,41 @@ export async function ensureTimeline(
     }
 
     return true;
+}
+
+// Ensures the class still has an open seat. Returns true if registration is allowed, false otherwise.
+// A null or 0 seatlimit means unlimited, matching checkCapacity in adminDistribute.
+export async function ensureSeats(
+    tx: Transaction,
+    arrData: uiClasses,
+    seasonid: number
+): Promise<boolean> {
+    if (arrData.arrangeid == null) {
+        throw new Error("Arrangement id missing for registration");
+    }
+    if (arrData.seatlimit == null || arrData.seatlimit === 0) return true;
+
+    // Serialize concurrent registrations for this class: without this lock two callers can both
+    // read taken < seatlimit and both insert, putting the class over its limit.
+    await tx
+        .select({ arrangeid: arrangement.arrangeid })
+        .from(arrangement)
+        .where(eq(arrangement.arrangeid, arrData.arrangeid))
+        .limit(1)
+        .for("update");
+
+    // Only active registrations occupy a seat; dropped and transferred students release theirs.
+    const [taken] = await tx
+        .select({ count: count() })
+        .from(classregistration)
+        .where(
+            and(
+                eq(classregistration.seasonid, seasonid),
+                eq(classregistration.arrangeid, arrData.arrangeid),
+                eq(classregistration.classid, arrData.classid),
+                inArray(classregistration.statusid, [REGSTATUS_SUBMITTED, REGSTATUS_REGISTERED])
+            )
+        );
+
+    return taken.count < arrData.seatlimit;
 }

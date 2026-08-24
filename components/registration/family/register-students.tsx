@@ -1,6 +1,15 @@
 "use client";
 
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -24,6 +33,7 @@ import {
 import { FUNDING, PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { InferSelectModel } from "drizzle-orm";
 import Link from "next/dist/client/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
@@ -132,6 +142,12 @@ export default function RegisterStudent({
         { classid: 0, timeid: 0, contrib: 0 },
         { classid: 0, timeid: 0, contrib: 0 },
     ]);
+    const router = useRouter();
+
+    // Server-side registration failure, shown in a blocking dialog. Distinct from `error` below,
+    // which holds per-student, per-slot field validation messages.
+    const [submitError, setSubmitError] = useState<string | null>(null);
+
     // Errors
     const [error, setError] = useState<Record<number, [string, string, string]>>(() => {
         const errors = {} as Record<number, [string, string, string]>;
@@ -280,6 +296,10 @@ export default function RegisterStudent({
         regForm.formState.isSubmitting;
 
     const onSubmit = async (formData: z.infer<typeof newRegSchema>) => {
+        setSubmitError(null);
+        // Each course is its own transaction, so an early failure leaves the ones before it
+        // committed. Track how many landed to tell the user what actually happened.
+        let registered = 0;
         try {
             // console.log(formData);
             for (let i = 0; i < formData.registeredClasses.length; i++) {
@@ -301,17 +321,37 @@ export default function RegisterStudent({
                         (c) => c.arrangeid === formData.registeredClasses[i].arrid
                     );
                 }
-                await familyRegister(
+                const res = await familyRegister(
                     arrangementData as uiClasses,
                     classSeason,
                     family,
                     formData.studentid
                 );
+
+                if (!res.ok) {
+                    resetAll();
+                    setSubmitError(
+                        registered > 0
+                            ? `Course ${i + 1}: ${res.errorMessage} — the first ${registered} course(s) were registered.`
+                            : `Course ${i + 1}: ${res.errorMessage}`
+                    );
+                    return;
+                }
+                registered++;
             }
         } catch (err) {
+            // Backstop for network failures and non-validation throws (e.g. "Forbidden").
             console.error("Registration submission error: ", err);
+            setSubmitError(
+                registered > 0
+                    ? `Registration failed after ${registered} course(s) were registered. Please reload and check your registrations.`
+                    : "Registration failed. Please try again."
+            );
         } finally {
+            // Clear the selections on every outcome, success or failure. The dialog keeps its own
+            // state, so the error stays on screen after the form resets.
             resetAll();
+            router.refresh();
         }
     };
 
@@ -883,6 +923,31 @@ export default function RegisterStudent({
                     </div>
                 </div>
             </form>
+            <AlertDialog
+                open={submitError !== null}
+                onOpenChange={(open) => {
+                    // Dismissing the dialog does a real page load, not router.refresh(), which
+                    // preserves client state. This is what clears the per-student period/error
+                    // maps, whose hand-maintained counters can drift out of sync with the form.
+                    // The message has already been read by this point, so losing it is fine.
+                    if (!open) {
+                        setSubmitError(null);
+                        window.location.reload();
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Registration Failed</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {submitError ?? "An unknown error occurred while registering."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction>Close</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <div className="reg-table-container mt-5">
                 <RegTable
                     registrations={registrations}
