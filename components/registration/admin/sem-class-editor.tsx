@@ -288,7 +288,7 @@ export default function SemClassEditor({
             >
                 Add Classroom
             </button>
-            <form className="mt-2" onSubmit={editForm.handleSubmit(onSubmit)}>
+            <form className="mt-2" noValidate onSubmit={editForm.handleSubmit(onSubmit)}>
                 {/* Field selector */}
                 <div className="mb-4">
                     <label className="mb-2 block text-sm font-bold text-gray-400">
