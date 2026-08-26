@@ -12,7 +12,19 @@ import {
     SortingState,
     useReactTable,
 } from "@tanstack/react-table";
+import { type ColumnHeader } from "export-to-csv";
+import { Download, Filter, TableIcon } from "lucide-react";
+import { exportRowsToCsv } from "@/lib/export-csv";
+import { toESTString } from "@/lib/utils";
 import { ClientTable } from "@/components/client-table";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type RegistrationView = {
     studentid: number;
@@ -71,6 +83,21 @@ function TextInputFilter({ column }: { column: Column<RegistrationView> }): Reac
         />
     );
 }
+
+// Picks and orders the columns written to the CSV, with the same labels as the table headers
+const REGISTRATION_CSV_HEADERS: ColumnHeader[] = [
+    { key: "studentid", displayLabel: "SID" },
+    { key: "familyid", displayLabel: "FID" },
+    { key: "regid", displayLabel: "RegID" },
+    { key: "studentnameen", displayLabel: "Name_Eng" },
+    { key: "studentnamecn", displayLabel: "学生姓名" },
+    { key: "classnamecn", displayLabel: "Courses" },
+    { key: "teachernamecn", displayLabel: "老师" },
+    { key: "regdate", displayLabel: "DATE" },
+    { key: "statusnamecn", displayLabel: "Status" },
+    { key: "phone", displayLabel: "Phone" },
+    { key: "email", displayLabel: "Email" },
+];
 
 const columns: ColumnDef<RegistrationView>[] = [
     {
@@ -212,9 +239,54 @@ export function SemesterRegistrations({ registrations }: { registrations: Regist
         getFilteredRowModel: getFilteredRowModel(), // Required for filtering
     });
 
+    const handleExport = (option: "all" | "filtered") => {
+        // No pagination on this table, so getRowModel() is the filtered + sorted view
+        const rows =
+            option === "all" ? table.getPreFilteredRowModel().rows : table.getRowModel().rows;
+
+        exportRowsToCsv(
+            rows.map((row) => row.original),
+            `lisoc_semester_registrations_${toESTString(new Date()).split("T")[0]}`,
+            REGISTRATION_CSV_HEADERS
+        );
+    };
+
     return (
         <div>
-            <div className="mb-4" />
+            <div className="mb-4 flex items-center justify-end gap-3">
+                <span className="text-muted-foreground text-sm tracking-wide uppercase">
+                    {table.getRowModel().rows.length} of {registrations.length} rows
+                </span>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="bg-primary border-primary hover:bg-primary/90 flex h-10 cursor-pointer items-center gap-2 border px-6 text-sm font-semibold tracking-wide text-white shadow-sm transition-all">
+                        <Download size={16} />
+                        Export
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end" className="bg-background w-56">
+                        <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                            onClick={() => handleExport("all")}
+                            className="cursor-pointer"
+                        >
+                            <TableIcon className="text-muted-foreground mr-2 h-4 w-4" />
+                            <span>Export All Rows</span>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                            onClick={() => handleExport("filtered")}
+                            className="cursor-pointer"
+                        >
+                            <Filter className="text-muted-foreground mr-2 h-4 w-4" />
+                            <span>Export Filtered Rows</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
             <ClientTable table={table} />
         </div>
     );
