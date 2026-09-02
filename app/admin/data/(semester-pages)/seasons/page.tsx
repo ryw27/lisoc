@@ -94,6 +94,7 @@ export default async function SemestersPage() {
                         namefirsten: true,
                         namelasten: true,
                         gender: true,
+                        dob: true,
                     },
                 },
                 class: {
@@ -145,6 +146,10 @@ export default async function SemestersPage() {
                 regid: reg.regid,
                 studentnameen: `${reg.student.namefirsten} ${reg.student.namelasten}`,
                 studentnamecn: reg.student.namecn,
+                // dob comes back as "YYYY-MM-DDTHH:mm:ss" (or space-separated); keep just the date
+                dob: reg.student.dob.startsWith("1900-01-01")
+                    ? "N/A"
+                    : reg.student.dob.slice(0, 10),
                 gender: reg.student.gender ?? "N/A",
 
                 arrangeid: classInfo.arrangeid,

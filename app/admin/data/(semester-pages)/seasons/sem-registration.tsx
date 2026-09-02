@@ -32,6 +32,7 @@ export type RegistrationView = {
     regid: number;
     studentnameen: string;
     studentnamecn: string;
+    dob: string;
     gender: string;
 
     arrangeid: number;
@@ -91,6 +92,7 @@ const REGISTRATION_CSV_HEADERS: ColumnHeader[] = [
     { key: "regid", displayLabel: "RegID" },
     { key: "studentnameen", displayLabel: "Name_Eng" },
     { key: "studentnamecn", displayLabel: "学生姓名" },
+    { key: "dob", displayLabel: "DOB" },
     { key: "classnamecn", displayLabel: "Courses" },
     { key: "teachernamecn", displayLabel: "老师" },
     { key: "regdate", displayLabel: "DATE" },
@@ -133,6 +135,11 @@ const columns: ColumnDef<RegistrationView>[] = [
     {
         accessorKey: "studentnamecn",
         header: "学生姓名",
+    },
+    {
+        accessorKey: "dob",
+        header: "DOB",
+        sortingFn: "alphanumeric",
     },
     /*    {
         accessorKey: "gender",
