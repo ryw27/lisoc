@@ -21,16 +21,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { type DutyAssignmentRow } from "@/types/duty.types";
+import { DUTY_STATUSES } from "@/lib/utils";
 import { deleteDutyAssignment, updateDutyAssignment } from "@/server/duty/actions";
-
-/** `dutystatus` lookup values. */
-export const DUTY_STATUSES = [
-    { id: 1, label: "Assigned" },
-    { id: 2, label: "Done" },
-    { id: 3, label: "Reassigned" },
-    { id: 4, label: "Missing" },
-    { id: 5, label: "Waived" },
-];
 
 /** Columns with a partial-match filter box, in display order. */
 const FILTER_COLUMNS = [

@@ -1,23 +1,25 @@
-import { and, asc, eq, notExists, sql } from "drizzle-orm";
+import { and, asc, desc, eq, notExists, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
     classes,
     classregistration,
     dutyassignment,
     family,
+    seasons,
     student,
     users,
 } from "@/lib/db/schema";
 import { REGSTATUS_REGISTERED } from "@/lib/utils";
 import {
     type DutyAssignmentRow,
+    type FamilyDutyRow,
     type DutyAssignments,
     type DutyDateOption,
     type DutyRoster,
     type SeasonFilterOptions,
     type SeasonYearOption,
 } from "@/types/duty.types";
-import { requireRole } from "@/server/auth/actions";
+import { requireFamily, requireRole } from "@/server/auth/actions";
 
 /** Seasons default their dates to the 1900 sentinel, which means "not set". */
 function isRealDate(timestamp: string | null | undefined) {
@@ -289,4 +291,39 @@ export async function fetchDutyAssignments(seasonid: number | null): Promise<Dut
             })
         ),
     };
+}
+
+/**
+ * The signed-in family's own duty assignments, newest season first. The family is resolved
+ * from the session rather than the request, so one family can't read another's duties.
+ */
+export async function fetchFamilyDutyAssignments(): Promise<FamilyDutyRow[]> {
+    const { family: userFamily } = await requireFamily();
+
+    const rows = await db
+        .select({
+            dutyassignid: dutyassignment.dutyassignid,
+            seasonid: dutyassignment.seasonid,
+            seasonnamecn: seasons.seasonnamecn,
+            seasonnameeng: seasons.seasonnameeng,
+            dutydate: dutyassignment.dutydate,
+            dutystatus: dutyassignment.dutystatus,
+            studentnamecn: student.namecn,
+            studentfirsten: student.namefirsten,
+            studentlasten: student.namelasten,
+        })
+        .from(dutyassignment)
+        .leftJoin(seasons, eq(seasons.seasonid, dutyassignment.seasonid))
+        .leftJoin(student, eq(student.studentid, dutyassignment.studentid))
+        .where(eq(dutyassignment.familyid, userFamily.familyid))
+        .orderBy(desc(dutyassignment.seasonid), asc(dutyassignment.dutydate));
+
+    return rows.map((r) => ({
+        dutyassignid: r.dutyassignid,
+        seasonid: r.seasonid,
+        seasonname: r.seasonnamecn?.trim() || (r.seasonnameeng ?? ""),
+        studentname: displayName(r.studentnamecn, r.studentfirsten, r.studentlasten),
+        dutydate: r.dutydate.slice(0, 10),
+        dutystatus: r.dutystatus,
+    }));
 }

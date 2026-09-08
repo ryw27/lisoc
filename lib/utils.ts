@@ -185,6 +185,21 @@ export const REGSTATUS_REGISTERED = 2;
 export const REGSTATUS_TRANSFERRED = 3;
 export const REGSTATUS_DROPOUT = 4;
 export const REGSTATUS_DROPOUT_SPRING = 5;
+// Duty status (dutystatus table)
+export const DUTY_STATUSES = [
+    { id: 1, label: "Assigned", labelcn: "已安排" },
+    { id: 2, label: "Done", labelcn: "已完成" },
+    { id: 3, label: "Reassigned", labelcn: "已改派" },
+    { id: 4, label: "Missing", labelcn: "缺席" },
+    { id: 5, label: "Waived", labelcn: "已免除" },
+];
+
+/** Bilingual label for family-facing pages, e.g. `Assigned/已安排`. */
+export const dutyStatusLabel = (dutystatus: number) => {
+    const status = DUTY_STATUSES.find((s) => s.id === dutystatus);
+    return status ? `${status.label}/${status.labelcn}` : String(dutystatus);
+};
+
 export const regStatusMap = {
     [REGSTATUS_SUBMITTED]: "S/提交",
     [REGSTATUS_REGISTERED]: "R/注册",

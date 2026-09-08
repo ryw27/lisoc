@@ -61,3 +61,14 @@ export interface DutyAssignments {
     seasonname: string | null;
     rows: DutyAssignmentRow[];
 }
+
+/** One duty assignment as shown on the family dashboard. */
+export interface FamilyDutyRow {
+    dutyassignid: number;
+    seasonid: number | null;
+    seasonname: string;
+    studentname: string;
+    /** `YYYY-MM-DD`, the date part of `dutyassignment.dutydate`. */
+    dutydate: string;
+    dutystatus: number;
+}
