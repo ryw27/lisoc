@@ -2,6 +2,8 @@ import React from "react";
 import {
     Book,
     Calendar,
+    CalendarCheck,
+    ClipboardList,
     CreditCard,
     Home,
     LogOut,
@@ -100,6 +102,23 @@ const navItems = [
                 href: [`${beginlink}/data/fee-management`],
                 icon: <FaMoneyCheck className="h-4 w-4" />,
                 tip: "费用管理",
+            },
+        ],
+    },
+    {
+        header: "Duty Maintance",
+        items: [
+            {
+                label: "Arrange Duty",
+                href: [`${beginlink}/duty/arrange-duty`],
+                icon: <CalendarCheck className="h-4 w-4" />,
+                tip: "安排值日",
+            },
+            {
+                label: "Duty Management",
+                href: [`${beginlink}/duty/duty-management`],
+                icon: <ClipboardList className="h-4 w-4" />,
+                tip: "值日管理",
             },
         ],
     },
