@@ -33,6 +33,7 @@ export default async function ParentDuty() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>D_ID</TableHead>
                             <TableHead>Semester</TableHead>
                             <TableHead>Student</TableHead>
                             <TableHead>Duty Date</TableHead>
@@ -43,7 +44,7 @@ export default async function ParentDuty() {
                         {rows.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={4}
+                                    colSpan={5}
                                     className="text-muted-foreground text-center"
                                 >
                                     No duty assignments yet.
@@ -52,6 +53,7 @@ export default async function ParentDuty() {
                         ) : (
                             rows.map((row) => (
                                 <TableRow key={row.dutyassignid}>
+                                    <TableCell>{row.dutyassignid}</TableCell>
                                     <TableCell>{row.seasonname}</TableCell>
                                     <TableCell>{row.studentname}</TableCell>
                                     <TableCell>{formatDutyDate(row.dutydate)}</TableCell>

@@ -1,10 +1,7 @@
 "use server";
 
-import { request } from "http";
-import { revalidatePath } from "next/cache";
-import { and, eq, ne, or, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
+import { classregistration, familybalance, regchangerequest, seasons } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     //FAMILYBALANCE_STATUS_PENDING,
@@ -18,8 +15,11 @@ import {
     REQUEST_STATUS_PENDING,
     toESTString,
 } from "@/lib/utils";
-import { type famBalanceInsert } from "@/types/shared.types";
 import { requireRole } from "@/server/auth/actions";
+import { type famBalanceInsert } from "@/types/shared.types";
+import { and, eq, ne, or, sum } from "drizzle-orm";
+import { request } from "http";
+import { revalidatePath } from "next/cache";
 import { getArrSeason, getTotalPrice } from "../../data";
 
 export async function adminApproveRequest(
@@ -218,7 +218,9 @@ export async function adminApproveRequest(
                 }
             } else {
                 //drop out only need to update balance
-                let credit = -1.0 * oldTotalPrice;
+                let credit = -1.0 * oldTotalPrice + 40; // registration fee = 40 is not refunded
+
+                // get start date of oladArr.seasonid to check if it is before or after the start of the season
 
                 // check if we need to credit management fee back
 
@@ -252,10 +254,41 @@ export async function adminApproveRequest(
                             )
                         );
 
-                    const managementfee = result[0]?.managementfee || 0;
+                    //const managementfee = result[0]?.managementfee || 0;
                     const earlyregdiscount = result[0]?.earlyregdiscount || 0;
-                    credit -= managementfee;
+                    //credit -= managementfee; // management fee is not refunded
                     credit += earlyregdiscount;
+                }
+
+                // need to check if the season has started or not, if it has started, we need to charge a late drop fee
+                // if sesaon has started, we need adjust credit
+                const [seasonRecord] = await tx
+                    .select()
+                    .from(seasons)
+                    .where(eq(seasons.seasonid, oldArr.seasonid));
+
+                const seasonStartDate = new Date(seasonRecord?.startdate || 0);
+                const today = new Date();
+
+                // if today is 28 days after seasonStartDate, hard coded to 0
+                // if todday is 14 days after seasonStartDate, hard coded to 400
+                // if today is 7 days after seasonStartDate, %85 percent of totalprice
+
+                if (today > seasonStartDate) {
+                    const daysAfterStart = Math.floor(
+                        (today.getTime() - seasonStartDate.getTime()) / (1000 * 60 * 60 * 24)
+                    );
+
+                    if (daysAfterStart > 29) {
+                        // 4 weeks 28 plus extra 1 day
+                        credit = 0; // hard coded late drop fee
+                    } else if (daysAfterStart > 15) {
+                        // 2 weeks plus extra 1 day
+                        credit -= 400; // hard coded late drop fee
+                    } else if (daysAfterStart > 8) {
+                        // 1 weeks plus extra 1 day
+                        credit = Math.floor(oldTotalPrice * 0.85); // 85% of total price rounded down to nearest dollar
+                    }
                 }
 
                 const dropBalVals = {
