@@ -1,15 +1,10 @@
 import { db } from "@/lib/db";
-import { arrangement, classregistration } from "@/lib/db/schema";
+import { arrangement, classregistration, classtime, student } from "@/lib/db/schema";
 import { arrangementSchema } from "@/lib/schema";
-import {
-    CLASSTIME_PERIOD_BOTH_TIMEID,
-    REGSTATUS_REGISTERED,
-    REGSTATUS_SUBMITTED,
-    toESTString,
-} from "@/lib/utils";
+import { REGSTATUS_REGISTERED, REGSTATUS_SUBMITTED, toESTString } from "@/lib/utils";
 import { type regKind, type uniqueRegistration } from "@/types/registration.types";
 import { type seasonObj, type uiClasses } from "@/types/shared.types";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import fetchCurrentSeasons from "../seasons/data";
 
@@ -217,52 +212,62 @@ export async function canRegister(
 
 // Ensures that a registration for a given timeline (class time) does not conflict with existing registrations.
 // Returns true if registration is allowed, false otherwise.
+//
+// A student may only occupy one class per time slot. Overlap is decided from classtime.timebegin /
+// timeend so "both periods" (1:30-4:30) conflicts with either single period. Only active
+// (submitted/registered) registrations count so a student can re-register after a drop or transfer.
 export async function ensureTimeline(
     tx: Transaction,
     curtimeid: number,
     regInfo: uniqueRegistration
 ): Promise<boolean> {
-    // If the class time is "both periods", check for any registration for this student/family/class/season
-    if (curtimeid === CLASSTIME_PERIOD_BOTH_TIMEID) {
-        const reg = await tx.query.classregistration.findFirst({
-            where: (cr, { and, or, eq }) =>
+    // Serialize concurrent registrations for this student so two parallel requests cannot both
+    // pass the conflict check and double-book the same period.
+    await tx
+        .select({ studentid: student.studentid })
+        .from(student)
+        .where(eq(student.studentid, regInfo.studentid))
+        .limit(1)
+        .for("update");
+
+    const [curTime] = await tx
+        .select({ timebegin: classtime.timebegin, timeend: classtime.timeend })
+        .from(classtime)
+        .where(eq(classtime.timeid, curtimeid))
+        .limit(1);
+    if (!curTime) {
+        throw new Error("Class time not found for this arrangement");
+    }
+
+    // Legacy rows may carry arrangeid = 0; fall back to matching the arrangement by class + season.
+    const [conflict] = await tx
+        .select({ regid: classregistration.regid })
+        .from(classregistration)
+        .innerJoin(
+            arrangement,
+            or(
+                eq(classregistration.arrangeid, arrangement.arrangeid),
                 and(
-                    eq(cr.seasonid, regInfo.seasonid),
-                    eq(cr.familyid, regInfo.familyid),
-                    eq(cr.studentid, regInfo.studentid),
-                    eq(cr.classid, regInfo.classid),
-                    or(eq(cr.statusid, 1), eq(cr.statusid, 2)) // Submitted or registered, still being considered or already paid
-                ),
-        });
-        return !reg;
-    }
-
-    // For a specific class time, check if the student is already registered for this class/time/season/family
-    const reg = await tx.query.classregistration.findFirst({
-        where: (cr, { and, eq }) =>
+                    eq(classregistration.arrangeid, 0),
+                    eq(classregistration.classid, arrangement.classid),
+                    eq(classregistration.seasonid, arrangement.seasonid)
+                )
+            )
+        )
+        .innerJoin(classtime, eq(arrangement.timeid, classtime.timeid))
+        .where(
             and(
-                eq(cr.seasonid, regInfo.seasonid),
-                eq(cr.familyid, regInfo.familyid),
-                eq(cr.studentid, regInfo.studentid),
-                eq(cr.classid, regInfo.classid)
-            ),
-        with: {
-            class: {
-                with: {
-                    arrangements: {
-                        columns: { timeid: true },
-                    },
-                },
-            },
-        },
-    });
+                eq(classregistration.seasonid, regInfo.seasonid),
+                eq(classregistration.studentid, regInfo.studentid),
+                inArray(classregistration.statusid, [REGSTATUS_SUBMITTED, REGSTATUS_REGISTERED]),
+                // Two slots overlap when each starts before the other ends.
+                lt(classtime.timebegin, curTime.timeend),
+                lt(sql`${curTime.timebegin}::numeric`, classtime.timeend)
+            )
+        )
+        .limit(1);
 
-    // If registration exists, check if any arrangement matches the current time id
-    if (reg?.class?.arrangements?.some((a) => a.timeid === curtimeid)) {
-        return false;
-    }
-
-    return true;
+    return !conflict;
 }
 
 // Ensures the class still has an open seat. Returns true if registration is allowed, false otherwise.

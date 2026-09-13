@@ -175,9 +175,10 @@ export const FAMILYBALANCE_STATUS_PROCESSED = 5;
 export const SEMESTERONLY_SUITBALETERM_FOREIGNKEY = 2;
 
 // Time periods
+// Must match the classtime table: 1 = 1:30-3:30, 2 = 1:30-4:30 (both periods), 3 = 3:30-4:30
 export const CLASSTIME_PERIOD_ONE_TIMEID = 1;
-export const CLASSTIME_PERIOD_TWO_TIMEID = 2;
-export const CLASSTIME_PERIOD_BOTH_TIMEID = 3;
+export const CLASSTIME_PERIOD_BOTH_TIMEID = 2;
+export const CLASSTIME_PERIOD_TWO_TIMEID = 3;
 
 // Reg status
 export const REGSTATUS_SUBMITTED = 1;

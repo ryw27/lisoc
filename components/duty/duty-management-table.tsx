@@ -44,6 +44,9 @@ interface RowEdit {
     note: string;
 }
 
+/** Completed duties are kept as a record, so they can't be deleted. */
+const DUTY_STATUS_DONE = 2;
+
 const ALL_STATUSES = "__all__";
 const ALL_DATES = "__all__";
 const COLUMN_COUNT = 13;
@@ -323,6 +326,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                 const rowSaving = isSaving && savingId === id;
 
                                 const rowDeleting = isSaving && deletingId === id;
+                                const isDone = values.dutystatus === DUTY_STATUS_DONE;
 
                                 return (
                                     <TableRow key={id}>
@@ -332,8 +336,12 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label={`Delete duty ${id}`}
-                                                title="Delete"
-                                                disabled={rowDeleting}
+                                                title={
+                                                    isDone
+                                                        ? "Completed duties can't be deleted"
+                                                        : "Delete"
+                                                }
+                                                disabled={rowDeleting || isDone}
                                                 onClick={() => removeRow(id)}
                                             >
                                                 <X className="h-4 w-4" />
