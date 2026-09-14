@@ -284,7 +284,7 @@ export async function adminApproveRequest(
                         credit = 0; // hard coded late drop fee
                     } else if (daysAfterStart > 15) {
                         // 2 weeks plus extra 1 day
-                        credit -= 400; // hard coded late drop fee
+                        credit = 400; // hard coded late drop fee
                     } else if (daysAfterStart > 8) {
                         // 1 weeks plus extra 1 day
                         credit = Math.floor(oldTotalPrice * 0.85); // 85% of total price rounded down to nearest dollar

@@ -147,6 +147,9 @@ export default function RegisterStudent({
     // Server-side registration failure, shown in a blocking dialog. Distinct from `error` below,
     // which holds per-student, per-slot field validation messages.
     const [submitError, setSubmitError] = useState<string | null>(null);
+    // PayPal / payment API failure, shown in a blocking dialog. Without this the family only saw
+    // a silent page reload and retried the same failing payment over and over.
+    const [paymentError, setPaymentError] = useState<string | null>(null);
 
     // Errors
     const [error, setError] = useState<Record<number, [string, string, string]>>(() => {
@@ -677,9 +680,14 @@ export default function RegisterStudent({
     // PayPal Integration
     const createOrder = (_: CreateOrderData, actions: CreateOrderActions) => {
         const amount = Number(totalBalance || 0).toFixed(2);
-        const balanceIdInfo = familyBalanceIdSet
-            ? String([...familyBalanceIdSet][0])
-            : "registration";
+        // `familyBalanceIdSet` is a Set and therefore always truthy; guard on size so we never
+        // send "undefined" as custom_id (the API then rejects balanceId as NaN with a 400).
+        const balanceIdInfo = familyBalanceIdSet.size > 0 ? String([...familyBalanceIdSet][0]) : "";
+        if (!balanceIdInfo) {
+            throw new Error(
+                "No open invoice is linked to your registration. Please contact the school office to pay."
+            );
+        }
         return actions.order.create({
             intent: "CAPTURE",
             purchase_units: [
@@ -737,27 +745,38 @@ export default function RegisterStudent({
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("API error response:", errorText);
-                throw new Error("Payment processing failed");
+                // The API returns { error, captureID?, needsManualReconciliation? }. Show the
+                // server's message so the family knows what happened (and whether to retry).
+                let message = `Payment processing failed (HTTP ${response.status}).`;
+                try {
+                    const body = (await response.json()) as { error?: string; captureID?: string };
+                    if (body.error) message = body.error;
+                    if (body.captureID) message += ` (Capture ID: ${body.captureID})`;
+                } catch {
+                    // non-JSON body; keep the generic message
+                }
+                throw new Error(message);
             }
 
             const result = await response.json();
             console.log("API response:", result);
-            //alert("Payment processed successfully!");
+            // Success: reload so the balance/registration status reflect the payment.
+            window.location.reload();
         } catch (error) {
             console.error("Payment failed:", error);
-            //setPaypalError('Payment failed. Please try again.');
-        } finally {
-            //setIsProcessing(false);
-            console.log("Payment process completed.");
-            window.location.reload();
+            setPaymentError(
+                error instanceof Error ? error.message : "Payment failed. Please try again."
+            );
         }
     };
 
     const onError = (err: unknown) => {
-        console.log("PayPal error:", err);
-        //setPaypalError('An error occurred with PayPal. Please try again.');
+        console.error("PayPal error:", err);
+        setPaymentError(
+            err instanceof Error
+                ? err.message
+                : "An error occurred with PayPal. Please try again or contact the school office."
+        );
     };
 
     const agree_disclaimer_str = `lisoc_disclaimer_agreed_${seasons.year.seasonid}`;
@@ -948,6 +967,29 @@ export default function RegisterStudent({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <AlertDialog
+                open={paymentError !== null}
+                onOpenChange={(open) => {
+                    // Same as above: a real page load resets the PayPal SDK state so a retry
+                    // starts a fresh order instead of reusing a failed one.
+                    if (!open) {
+                        setPaymentError(null);
+                        window.location.reload();
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Payment Failed / 支付失败</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {paymentError ?? "An unknown error occurred while processing payment."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction>Close</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <div className="reg-table-container mt-5">
                 <RegTable
                     registrations={registrations}
@@ -1065,7 +1107,14 @@ export default function RegisterStudent({
                             intent: "capture",
                         }}
                     >
-                        {totalBalance > 0 ? (
+                        {totalBalance > 0 && familyBalanceIdSet.size === 0 ? (
+                            <p className="max-w-xs text-sm text-red-600">
+                                Online payment is unavailable because no open invoice is linked to
+                                your registration. Please contact the school office to pay.
+                                <br />
+                                您的注册尚未关联到账单，暂时无法在线支付，请联系学校办公室缴费。
+                            </p>
+                        ) : totalBalance > 0 ? (
                             <PayPalButtons
                                 createOrder={createOrder}
                                 onApprove={onApprove}

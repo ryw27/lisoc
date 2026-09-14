@@ -1,6 +1,7 @@
 "use client";
 
 import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,8 @@ import {
 } from "@/components/ui/table";
 import { type DutyRosterRow } from "@/types/duty.types";
 import { type ListDnd } from "@/components/duty/duty-dnd";
-import { cn } from "@/lib/utils";
+import { exportRowsToCsv } from "@/lib/export-csv";
+import { cn, toESTString } from "@/lib/utils";
 
 export function rowKey(row: DutyRosterRow) {
     return `${row.familyid}-${row.studentid}-${row.classid}`;
@@ -44,6 +46,9 @@ type ColumnFilters = Partial<Record<ColumnKey, string>>;
 
 const ALL_CLASSES = "__all__";
 const COLUMN_COUNT = COLUMNS.length + 1; // + the select checkbox column
+
+/** Same columns, in the same order, for the CSV export. */
+const CSV_HEADERS = COLUMNS.map(({ key, label }) => ({ key, displayLabel: label }));
 
 interface DutyRosterTableProps {
     rows: DutyRosterRow[];
@@ -120,6 +125,19 @@ export default function DutyRosterTable({
         setClassFilter(ALL_CLASSES);
     };
 
+    // Exports the whole roster, not just the rows passing the current filters.
+    const exportCsv = () => {
+        const csvRows = rows.map((row) =>
+            Object.fromEntries(COLUMNS.map(({ key }) => [key, row[key]]))
+        );
+
+        exportRowsToCsv(
+            csvRows,
+            `lisoc_duty_available_list_${toESTString(new Date()).split("T")[0]}`,
+            CSV_HEADERS
+        );
+    };
+
     return (
         <>
             <div className="mb-2 flex items-center gap-3">
@@ -131,6 +149,17 @@ export default function DutyRosterTable({
                         Clear filters
                     </Button>
                 ) : null}
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto"
+                    onClick={exportCsv}
+                    disabled={rows.length === 0}
+                >
+                    <Download size={16} />
+                    Export to CSV
+                </Button>
             </div>
 
             <div

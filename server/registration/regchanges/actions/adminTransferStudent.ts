@@ -328,6 +328,9 @@ export async function adminTransferStudent2(
                 registerdate: now,
                 familyid: familyid,
                 statusid: oldReg.statusid,
+                // Carry the balance link over: the old (unpaid) reg is deleted above, and without
+                // this the family can neither pay (PayPal button sends NaN) nor drop the new reg.
+                familybalanceid: oldReg.familybalanceid,
                 byadmin: true,
                 notes: `Admin transfer student to ${newArrange.arrangeid} from ${oldReg.arrangeid}`,
             })

@@ -79,7 +79,7 @@ export async function adminRegister(
             .returning();
 
         // 6. Open family balance
-        const classPrice = getTotalPrice(tx, arrData, arrSeason);
+        const classPrice = await getTotalPrice(tx, arrData, arrSeason);
         // Let defaults fill the rest
         const familyBalanceData: famBalanceInsert = {
             appliedregid: newReg.regid,

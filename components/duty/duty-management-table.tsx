@@ -2,7 +2,16 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronsUpDown, ChevronUp, Pencil, PencilOff, Save, X } from "lucide-react";
+import {
+    ChevronDown,
+    ChevronsUpDown,
+    ChevronUp,
+    Download,
+    Pencil,
+    PencilOff,
+    Save,
+    X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,7 +30,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { type DutyAssignmentRow } from "@/types/duty.types";
-import { DUTY_STATUSES } from "@/lib/utils";
+import { exportRowsToCsv } from "@/lib/export-csv";
+import { DUTY_STATUSES, toESTString } from "@/lib/utils";
 import { deleteDutyAssignment, updateDutyAssignment } from "@/server/duty/actions";
 
 /** Columns with a partial-match filter box, in display order. */
@@ -50,6 +60,21 @@ const DUTY_STATUS_DONE = 2;
 const ALL_STATUSES = "__all__";
 const ALL_DATES = "__all__";
 const COLUMN_COUNT = 13;
+
+/** Data columns of the CSV, in table order; the Delete/Edit controls are left out. */
+const CSV_HEADERS = [
+    { key: "dutyassignid", displayLabel: "D_ID" },
+    { key: "familyid", displayLabel: "Family ID" },
+    { key: "studentname", displayLabel: "Student Name" },
+    { key: "mothername", displayLabel: "Mother" },
+    { key: "fathername", displayLabel: "Father" },
+    { key: "dutydate", displayLabel: "Duty Date" },
+    { key: "dutystatus", displayLabel: "Status" },
+    { key: "phone", displayLabel: "Phone" },
+    { key: "email", displayLabel: "Email" },
+    { key: "address", displayLabel: "Address" },
+    { key: "note", displayLabel: "Note" },
+];
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "UTC",
@@ -192,6 +217,37 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
         });
     };
 
+    // Exports every row, not just the ones passing the filters, but honours edits made here:
+    // rows deleted this session are left out and saved status/note values are used.
+    const exportCsv = () => {
+        const csvRows = rows
+            .filter((row) => !deleted.has(row.dutyassignid))
+            .map((row) => {
+                const current = valuesOf(row);
+                return {
+                    dutyassignid: row.dutyassignid,
+                    familyid: row.familyid,
+                    studentname: row.studentname,
+                    mothername: row.mothername,
+                    fathername: row.fathername,
+                    dutydate: formatDutyDate(row.dutydate),
+                    dutystatus:
+                        DUTY_STATUSES.find((s) => s.id === current.dutystatus)?.label ??
+                        String(current.dutystatus),
+                    phone: row.phone,
+                    email: row.email,
+                    address: row.address,
+                    note: current.note,
+                };
+            });
+
+        exportRowsToCsv(
+            csvRows,
+            `lisoc_duty_assignments_${toESTString(new Date()).split("T")[0]}`,
+            CSV_HEADERS
+        );
+    };
+
     const filterCell = (key: FilterKey) => {
         const column = FILTER_COLUMNS.find((c) => c.key === key)!;
         return (
@@ -226,6 +282,17 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                     </Button>
                 ) : null}
                 {error ? <p className="text-destructive text-sm">{error}</p> : null}
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto"
+                    onClick={exportCsv}
+                    disabled={rows.length === 0}
+                >
+                    <Download size={16} />
+                    Export to CSV
+                </Button>
             </div>
 
             <div className="custom-scrollbar overflow-x-auto rounded-md border">

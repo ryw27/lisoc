@@ -5,8 +5,10 @@ import { and, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance, regchangerequest } from "@/lib/db/schema";
 import {
+    FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
+    FAMILYBALANCE_TYPE_TUITION,
     REGISTRATION_FEE,
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
@@ -101,7 +103,7 @@ export async function familyRequestDrop(
             // update the balance to remove the tuition
             // start transaction here to ensure no
 
-            const [existingBal] = await tx
+            let [existingBal] = await tx
                 .select()
                 .from(familybalance)
                 .where(
@@ -113,6 +115,31 @@ export async function familyRequestDrop(
                 )
                 .limit(1)
                 .for("update");
+
+            // Registrations created by an admin transfer (before the familybalanceid fix) carry
+            // familybalanceid = 0. Fall back to the family's open tuition invoice for the season
+            // so the family can still drop instead of hitting "This should never happen".
+            if (!existingBal && !oldReg.familybalanceid) {
+                [existingBal] = await tx
+                    .select()
+                    .from(familybalance)
+                    .where(
+                        and(
+                            eq(familybalance.familyid, familyid),
+                            eq(familybalance.seasonid, removeFamBalValues.seasonid),
+                            eq(familybalance.typeid, FAMILYBALANCE_TYPE_TUITION),
+                            eq(familybalance.statusid, FAMILYBALANCE_STATUS_PENDING)
+                        )
+                    )
+                    .orderBy(familybalance.balanceid)
+                    .limit(1)
+                    .for("update");
+                if (existingBal) {
+                    console.warn(
+                        `familyRequestDrop: reg ${regid} had no familybalanceid; using pending tuition balance ${existingBal.balanceid}`
+                    );
+                }
+            }
 
             if (existingBal) {
                 // Update existing balance
@@ -144,11 +171,14 @@ export async function familyRequestDrop(
                         .where(eq(familybalance.balanceid, existingBal.balanceid));
                 }
             } else {
-                console.warn(
-                    "Could not find existing balance to update after drop. This should never happen"
-                );
+                console.error("familyRequestDrop: no balance found for dropped registration", {
+                    regid,
+                    familyid,
+                    seasonid: removeFamBalValues.seasonid,
+                    familybalanceid: oldReg.familybalanceid,
+                });
                 throw new Error(
-                    "Could not find existing balance to update after drop. This should never happen"
+                    "Could not find the invoice for this registration. Please contact the school office to drop this class. / 找不到此注册对应的账单，请联系学校办公室退课。"
                 );
             }
 

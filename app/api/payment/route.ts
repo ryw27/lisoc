@@ -72,9 +72,30 @@ interface PayPalCapture {
             captures?: Array<{
                 amount?: { value?: string; currency_code?: string };
                 id?: string;
+                status?: string;
             }>;
         };
     }>;
+    // Present on error responses (HTTP 4xx) instead of the fields above.
+    name?: string;
+    message?: string;
+    details?: Array<{ issue?: string; description?: string }>;
+    debug_id?: string;
+}
+
+/**
+ * Thrown when PayPal answers the capture call with a non-2xx status. `issue` is PayPal's
+ * machine-readable code (e.g. INSTRUMENT_DECLINED, ORDER_ALREADY_CAPTURED, ORDER_NOT_APPROVED)
+ * so the client can decide whether a retry makes sense.
+ */
+class PayPalCaptureError extends Error {
+    constructor(
+        public readonly httpStatus: number,
+        public readonly issue: string,
+        public readonly body: PayPalCapture
+    ) {
+        super(`PayPal capture failed: ${httpStatus} ${issue}`);
+    }
 }
 
 async function capturePayPalOrder(orderID: string, accessToken: string): Promise<PayPalCapture> {
@@ -87,7 +108,15 @@ async function capturePayPalOrder(orderID: string, accessToken: string): Promise
         body: JSON.stringify({}),
     });
 
-    return (await response.json()) as PayPalCapture;
+    const body = (await response.json().catch(() => ({}))) as PayPalCapture;
+    if (!response.ok) {
+        throw new PayPalCaptureError(
+            response.status,
+            body.details?.[0]?.issue ?? body.name ?? "UNKNOWN",
+            body
+        );
+    }
+    return body;
 }
 
 export async function POST(request: Request) {
@@ -147,7 +176,19 @@ export async function POST(request: Request) {
     const raw = await request.json().catch(() => null);
     const parsed = paymentRequestSchema.safeParse(raw);
     if (!parsed.success) {
-        return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+        // Log the shape (not the payload) so a bad client build is diagnosable from the logs.
+        console.warn("[PAYMENT] invalid request body", {
+            userId,
+            issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+            balanceId:
+                raw && typeof raw === "object" ? (raw as Record<string, unknown>).balanceId : raw,
+        });
+        return NextResponse.json(
+            {
+                error: "Invalid payment request. No open invoice is linked to your registration; please contact the school office.",
+            },
+            { status: 400 }
+        );
     }
     const { orderID, balanceId, season } = parsed.data;
 
@@ -194,7 +235,30 @@ export async function POST(request: Request) {
         const accessToken = await getPayPalAccessToken();
         captureData = await capturePayPalOrder(orderID, accessToken);
     } catch (err) {
-        console.error("PayPal capture failed:", err);
+        if (err instanceof PayPalCaptureError) {
+            // PayPal rejected the capture. Nothing was charged. Log the full body (it carries
+            // debug_id for PayPal support) and tell the client the specific issue.
+            console.error("[PAYMENT] PayPal capture rejected", {
+                orderID,
+                balanceId,
+                familyId: target.familyid,
+                httpStatus: err.httpStatus,
+                issue: err.issue,
+                body: err.body,
+            });
+            const retryable = err.issue === "INSTRUMENT_DECLINED";
+            return NextResponse.json(
+                {
+                    error: retryable
+                        ? "Your payment method was declined by PayPal. Please try again with a different funding source."
+                        : `PayPal could not complete this payment (${err.issue}). Please contact the school office.`,
+                    issue: err.issue,
+                    debugId: err.body.debug_id,
+                },
+                { status: retryable ? 402 : 400 }
+            );
+        }
+        console.error("[PAYMENT] PayPal capture failed:", { orderID, balanceId, err });
         return NextResponse.json(
             { error: "Payment processor unavailable. Please try again." },
             { status: 502 }
@@ -202,8 +266,19 @@ export async function POST(request: Request) {
     }
 
     if (captureData.status !== "COMPLETED") {
+        console.error("[PAYMENT] capture not COMPLETED", {
+            orderID,
+            balanceId,
+            familyId: target.familyid,
+            status: captureData.status,
+            captureStatus: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.status,
+            captureID: captureData.id,
+        });
         return NextResponse.json(
-            { error: `Payment capture failed with status: ${captureData.status ?? "unknown"}` },
+            {
+                error: `Payment capture is ${captureData.status ?? "in an unknown state"}. Please do not retry; contact the school office with Order ID ${orderID}.`,
+                captureID: captureData.id,
+            },
             { status: 400 }
         );
     }
