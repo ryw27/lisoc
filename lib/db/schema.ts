@@ -821,6 +821,79 @@ export const familybalance = pgTable(
     ]
 );
 
+// ---------------------------------------------------------------------------
+// Recycle bin tables. Rows hard-deleted by an admin from the family management
+// page are copied here first so a mistaken delete can be recovered manually.
+// Column set mirrors the source table exactly (so a select row spreads straight
+// into an insert) plus deletedon/deletedby. Deliberately: no identity on the
+// original id, no foreign keys, no relations. Safe to TRUNCATE periodically.
+// DDL + restore SQL: drizzle/sql/0001_recycle_bin_tables.sql
+// ---------------------------------------------------------------------------
+export const registrationSave = pgTable("registration_save", {
+    saveid: serial().primaryKey(),
+    regid: bigint({ mode: "number" }).notNull(), // original classregistration.regid
+    appliedid: integer().default(0),
+    studentid: integer().notNull(),
+    arrangeid: integer().default(0).notNull(),
+    seasonid: smallint().notNull(),
+    isyearclass: boolean().default(false).notNull(),
+    classid: integer().notNull(),
+    registerdate: timestamp({ mode: "string" }).defaultNow().notNull(),
+    statusid: smallint().default(1).notNull(),
+    previousstatusid: smallint().default(0).notNull(),
+    familybalanceid: integer().default(0),
+    familyid: integer().default(0).notNull(),
+    newbalanceid: integer().default(0),
+    isdropspring: boolean().default(false).notNull(),
+    byadmin: boolean().default(false),
+    userid: varchar({ length: 100 }).default("0"),
+    lastmodify: timestamp({ mode: "string" }).default("1900-01-01 00:00:00").notNull(),
+    notes: varchar({ length: 500 }),
+    deletedon: timestamp({ mode: "string" }).defaultNow().notNull(),
+    deletedby: varchar({ length: 100 }),
+});
+
+export const familybalanceSave = pgTable("familybalance_save", {
+    saveid: serial().primaryKey(),
+    balanceid: integer().notNull(), // original familybalance.balanceid
+    appliedid: integer().default(0).notNull(),
+    appliedregid: integer().default(0).notNull(),
+    seasonid: smallint().default(0).notNull(),
+    familyid: integer().notNull(),
+    yearclass: smallint().default(0).notNull(),
+    yearclass4child: smallint().default(0).notNull(),
+    semesterclass: smallint().default(0).notNull(),
+    semesterclass4child: smallint().default(0).notNull(),
+    childnum: smallint().default(0).notNull(),
+    childnumRegfee: smallint("childnum_regfee").default(0).notNull(),
+    studentnum: smallint().default(0).notNull(),
+    regfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    earlyregdiscount: numeric({ precision: 9, scale: 2 }).default("0"),
+    lateregfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    extrafee4newfamily: numeric({ precision: 9, scale: 2 }).default("0"),
+    managementfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    dutyfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    cleaningfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    otherfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    tuition: numeric({ precision: 9, scale: 2 }).default("0"),
+    totalamount: numeric({ precision: 9, scale: 2 }).default("0").notNull(),
+    typeid: smallint().default(2).notNull(),
+    statusid: smallint().default(2).notNull(),
+    checkno: varchar({ length: 50 }),
+    transactionno: varchar({ length: 20 }),
+    isonlinepayment: boolean().default(false),
+    registerdate: timestamp({ mode: "string" }).defaultNow().notNull(),
+    lastmodify: timestamp({ mode: "string" }).defaultNow().notNull(),
+    paiddate: timestamp({ mode: "string" }).default("1900-01-01 00:00:00").notNull(),
+    reference: varchar({ length: 50 }),
+    notes: varchar({ length: 250 }),
+    userid: varchar({ length: 100 }).default("app"),
+    groupdiscount: numeric({ precision: 9, scale: 2 }).default("0"),
+    processfee: numeric({ precision: 9, scale: 2 }).default("0"),
+    deletedon: timestamp({ mode: "string" }).defaultNow().notNull(),
+    deletedby: varchar({ length: 100 }),
+});
+
 export const scorecode = pgTable("scorecode", {
     codeid: integer().primaryKey().generatedAlwaysAsIdentity({
         name: "scorecode_codeid_seq",

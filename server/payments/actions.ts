@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { classregistration, familybalance } from "@/lib/db/schema";
+import { classregistration, familybalance, familybalanceSave } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PAID,
     FAMILYBALANCE_STATUS_PROCESSED,
@@ -147,20 +147,25 @@ export async function applyCheck(
 
 export async function removeBalance(balanceid: number) {
     // 1. Auth and parse
-    await requireRole(["ADMIN"]);
-    await db.transaction(async (tx) => {
+    const session = await requireRole(["ADMIN"], { redirect: false });
+    const id = z.number().int().positive().parse(balanceid);
+    const deletedby = session.user.email || session.user.id;
+
+    const familyid = await db.transaction(async (tx) => {
         // 2. Find old family balance vals
         const oldFB = await tx.query.familybalance.findFirst({
-            where: (fb, { eq }) => eq(fb.balanceid, balanceid),
+            where: (fb, { eq }) => eq(fb.balanceid, id),
         });
 
         if (!oldFB) {
             throw new Error("No family balance found");
         }
 
-        const familyid = oldFB.familyid;
-        await tx.delete(familybalance).where(eq(familybalance.balanceid, balanceid));
-
-        revalidatePath(`/admin/management/${familyid}`);
+        // 3. Copy to the recycle bin, then hard delete (same transaction)
+        await tx.insert(familybalanceSave).values({ ...oldFB, deletedby });
+        await tx.delete(familybalance).where(eq(familybalance.balanceid, id));
+        return oldFB.familyid;
     });
+
+    revalidatePath(`/admin/management/${familyid}`);
 }

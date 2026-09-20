@@ -13,21 +13,11 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { download, generateCsv, mkConfig } from "export-to-csv";
-import { Download, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Download } from "lucide-react";
 import { balanceTypes } from "@/types/shared.types";
 import { removeBalance } from "@/server/payments/actions";
 import { ClientTable } from "@/components/client-table";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmCell } from "./delete-confirm-cell";
 
 const csvConfig = mkConfig({
     fieldSeparator: ",",
@@ -123,64 +113,16 @@ type balanceTableProps = {
     balanceData: balanceTypes[];
 };
 
-const DeleteCell = ({ row }: { row: Row<balanceTypes> }) => {
-    const balanceid = row.original.balanceid;
-    const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
-
-    const onDelete = () => {
-        console.log(balanceid); //   handleDelete(reg_id, studentid);
-        setShowConfirmDialog(true);
-    };
-
-    return (
-        <>
-            <button
-                className={cn("rounded-md p-1", "cursor-pointer text-red-600 hover:text-red-800")}
-                onClick={onDelete}
-            >
-                <XIcon className="h-4 w-4" />
-            </button>
-
-            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Deletion </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to delete this {balanceid} ? <br />
-                            This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={async () => {
-                                try {
-                                    console.log("Deleting balance ID: ", balanceid);
-                                    await removeBalance(balanceid);
-                                } catch (err) {
-                                    const msg = err instanceof Error ? err.message : String(err);
-                                    console.error("Deletion failed: ", msg);
-                                } finally {
-                                    setShowConfirmDialog(false);
-                                }
-                            }}
-                        >
-                            Confirm
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
-    );
-};
-
 const deleteColumn: ColumnDef<balanceTypes>[] = [
     {
         id: "delete",
-        cell: DeleteCell,
+        cell: ({ row }) => (
+            <DeleteConfirmCell
+                id={row.original.balanceid}
+                label="balance"
+                onConfirm={removeBalance}
+            />
+        ),
     },
 ];
 

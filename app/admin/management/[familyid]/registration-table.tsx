@@ -11,7 +11,9 @@ import {
     SortingState,
     useReactTable,
 } from "@tanstack/react-table";
+import { removeRegistration } from "@/server/registration/actions/removeRegistration";
 import { ClientTable } from "@/components/client-table";
+import { DeleteConfirmCell } from "./delete-confirm-cell";
 
 export type adminFamilyRegView = {
     regid: number;
@@ -90,6 +92,19 @@ const columns: ColumnDef<adminFamilyRegView>[] = [
     },
 ];
 
+const deleteColumn: ColumnDef<adminFamilyRegView>[] = [
+    {
+        id: "delete",
+        cell: ({ row }) => (
+            <DeleteConfirmCell
+                id={row.original.regid}
+                label="registration"
+                onConfirm={removeRegistration}
+            />
+        ),
+    },
+];
+
 export default function FamilyRegistrationTable({
     registrations,
 }: {
@@ -99,7 +114,7 @@ export default function FamilyRegistrationTable({
 
     const table = useReactTable<adminFamilyRegView>({
         data: registrations,
-        columns,
+        columns: [...deleteColumn, ...columns],
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         enableSorting: true,
