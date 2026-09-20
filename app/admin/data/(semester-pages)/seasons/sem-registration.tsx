@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
     Column,
     ColumnDef,
+    ColumnFiltersState,
+    FilterFn,
     getCoreRowModel,
     getFacetedUniqueValues,
     getFilteredRowModel,
@@ -19,6 +21,7 @@ import { toESTString } from "@/lib/utils";
 import { ClientTable } from "@/components/client-table";
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -29,6 +32,7 @@ import {
 export type RegistrationView = {
     studentid: number;
     familyid: number;
+    balance: number;
     regid: number;
     studentnameen: string;
     studentnamecn: string;
@@ -37,6 +41,7 @@ export type RegistrationView = {
 
     arrangeid: number;
     classnamecn: string;
+    classno: number | null;
     seasonnamecn: string;
     teachernamecn: string;
     regdate: string;
@@ -45,8 +50,30 @@ export type RegistrationView = {
     phone: string | undefined;
 };
 
-function SelectColumnFilter({ column }: { column: Column<RegistrationView> }): React.ReactNode {
+function SelectColumnFilter({
+    column,
+    orderBy,
+}: {
+    column: Column<RegistrationView>;
+    /** Optional numeric rank per row; options are sorted by it (then by label) instead of data order. */
+    orderBy?: (row: RegistrationView) => number | null;
+}): React.ReactNode {
     const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()); // Get unique values
+
+    if (orderBy) {
+        // Rank each option by the first row that carries it; unranked (null) options sort last.
+        const rank = new Map<string, number>();
+        for (const row of column.getFacetedRowModel().flatRows) {
+            const label = String(row.getValue(column.id));
+            if (!rank.has(label)) {
+                rank.set(label, orderBy(row.original) ?? Number.MAX_SAFE_INTEGER);
+            }
+        }
+        uniqueValues.sort((a, b) => {
+            const diff = (rank.get(String(a)) ?? 0) - (rank.get(String(b)) ?? 0);
+            return diff !== 0 ? diff : String(a).localeCompare(String(b), "zh");
+        });
+    }
 
     return (
         <select
@@ -63,23 +90,116 @@ function SelectColumnFilter({ column }: { column: Column<RegistrationView> }): R
     );
 }
 
-function TextInputFilter({ column }: { column: Column<RegistrationView> }): React.ReactNode {
-    const [inputValue, setInputValue] = useState((column.getFilterValue() as string) ?? "");
+/** Row passes when no options are checked, or its value is one of the checked options. */
+const inSetFilter: FilterFn<RegistrationView> = (row, columnId, filterValue: unknown) =>
+    !Array.isArray(filterValue) ||
+    filterValue.length === 0 ||
+    filterValue.includes(String(row.getValue(columnId)));
+
+function MultiSelectColumnFilter({
+    column,
+}: {
+    column: Column<RegistrationView>;
+}): React.ReactNode {
+    const uniqueValues = Array.from(column.getFacetedUniqueValues().keys()).map(String);
+    const raw = column.getFilterValue();
+    const selected: string[] = Array.isArray(raw) ? raw.map(String) : []; // tolerate stale saved state
+
+    const toggle = (value: string, checked: boolean) => {
+        const next = checked ? [...selected, value] : selected.filter((v) => v !== value);
+        column.setFilterValue(next.length ? next : undefined);
+    };
+
+    return (
+        // Stop clicks (incl. those bubbling from the portaled menu) from toggling column sort.
+        <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+                <DropdownMenuTrigger className="bg-background max-w-40 cursor-pointer truncate rounded border border-gray-300 px-2 py-1 text-left text-sm font-normal">
+                    {selected.length ? selected.join(", ") : "All"}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="bg-background">
+                    <DropdownMenuItem
+                        onSelect={() => column.setFilterValue(undefined)}
+                        className="cursor-pointer"
+                    >
+                        All
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {uniqueValues.map((value) => (
+                        <DropdownMenuCheckboxItem
+                            key={value}
+                            checked={selected.includes(value)}
+                            onCheckedChange={(checked) => toggle(value, checked === true)}
+                            onSelect={(e) => e.preventDefault()} // keep menu open for multi-pick
+                            className="cursor-pointer"
+                        >
+                            {value}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
+
+/**
+ * Filter text like "> 3.0", "<= -10", "!= 0" or a bare number (equals). Empty or unparseable
+ * text passes every row so the table doesn't blank out mid-typing.
+ */
+const NUMERIC_FILTER_RE = /^\s*(>=|<=|!=|>|<|=)?\s*(-?\d+(?:\.\d+)?)\s*$/;
+const numericCompareFilter: FilterFn<RegistrationView> = (row, columnId, filterValue: unknown) => {
+    const match = typeof filterValue === "string" ? NUMERIC_FILTER_RE.exec(filterValue) : null;
+    if (!match) return true;
+    const [, op = "=", num] = match;
+    const target = Number(num);
+    const value = Number(row.getValue(columnId));
+    switch (op) {
+        case ">":
+            return value > target;
+        case ">=":
+            return value >= target;
+        case "<":
+            return value < target;
+        case "<=":
+            return value <= target;
+        case "!=":
+            return value !== target;
+        default:
+            return value === target;
+    }
+};
+
+function TextInputFilter({
+    column,
+    placeholder = "Filter...",
+}: {
+    column: Column<RegistrationView>;
+    placeholder?: string;
+}): React.ReactNode {
+    const filterValue = (column.getFilterValue() as string) ?? "";
+    // Track which column value the input was last synced from so an external change
+    // (e.g. filters restored from sessionStorage) is reflected in the box.
+    const [state, setState] = useState({ input: filterValue, syncedFrom: filterValue });
+    if (state.syncedFrom !== filterValue) {
+        setState({ input: filterValue, syncedFrom: filterValue });
+    }
+    const inputValue = state.input;
 
     useEffect(() => {
+        if (inputValue === filterValue) return; // nothing to push (also skips the mount tick)
         const timer = setTimeout(() => {
             column.setFilterValue(inputValue);
         }, 200); // 200ms delay after user stops typing
 
         return () => clearTimeout(timer);
-    }, [inputValue, column]);
+    }, [inputValue, filterValue, column]);
 
     return (
         <input
             type="text"
-            placeholder="Filter..."
+            placeholder={placeholder}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => setState((s) => ({ ...s, input: e.target.value }))}
             className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
         />
     );
@@ -97,6 +217,7 @@ const REGISTRATION_CSV_HEADERS: ColumnHeader[] = [
     { key: "teachernamecn", displayLabel: "老师" },
     { key: "regdate", displayLabel: "DATE" },
     { key: "statusnamecn", displayLabel: "Status" },
+    { key: "balance", displayLabel: "Balance" },
     { key: "phone", displayLabel: "Phone" },
     { key: "email", displayLabel: "Email" },
 ];
@@ -150,7 +271,7 @@ const columns: ColumnDef<RegistrationView>[] = [
         header: ({ column }) => (
             <div>
                 Courses <br />
-                <SelectColumnFilter column={column} />
+                <SelectColumnFilter column={column} orderBy={(row) => row.classno} />
             </div>
         ),
         filterFn: "equalsString", // Use a built-in filter function
@@ -192,11 +313,33 @@ const columns: ColumnDef<RegistrationView>[] = [
         header: ({ column }) => (
             <div>
                 Status <br />
-                <SelectColumnFilter column={column} />
+                <MultiSelectColumnFilter column={column} />
             </div>
         ),
-        filterFn: "equalsString", // Use a built-in filter function
-        //filterFn: 'uniqueValueFilterFn', // Use a built-in filter function
+        filterFn: inSetFilter, // multi-pick: row matches any checked status
+        enableColumnFilter: true,
+    },
+
+    {
+        accessorKey: "balance",
+        header: ({ column }) => (
+            <div>
+                Balance <br />
+                <TextInputFilter column={column} placeholder="> 3.0" />
+            </div>
+        ),
+        cell: ({ getValue }) => {
+            const v = getValue<number>();
+            return (
+                <span
+                    className={v > 0 ? "text-green-600" : v < 0 ? "text-red-600" : "text-gray-600"}
+                >
+                    {v.toFixed(2)}
+                </span>
+            );
+        },
+        sortingFn: "basic", // numeric sort
+        filterFn: numericCompareFilter,
         enableColumnFilter: true,
     },
 
@@ -228,8 +371,48 @@ const columns: ColumnDef<RegistrationView>[] = [
     },
 ];
 
+// Filters/sorting survive a trip to /admin/management/[familyid] and back (per tab; cleared on close).
+const TABLE_STATE_KEY = "lisoc_semester_registrations_table_state";
+
+type PersistedTableState = { columnFilters: ColumnFiltersState; sorting: SortingState };
+
+function readPersistedTableState(): PersistedTableState | null {
+    try {
+        const raw = sessionStorage.getItem(TABLE_STATE_KEY);
+        if (!raw) return null;
+        const candidate = JSON.parse(raw);
+        if (!Array.isArray(candidate?.columnFilters) || !Array.isArray(candidate?.sorting)) {
+            return null;
+        }
+        return candidate as PersistedTableState;
+    } catch {
+        return null;
+    }
+}
+
 export function SemesterRegistrations({ registrations }: { registrations: RegistrationView[] }) {
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    // Don't persist until the restore has run, or the initial empty state would overwrite it.
+    const [restored, setRestored] = useState(false);
+
+    useEffect(() => {
+        const saved = readPersistedTableState();
+        if (saved) {
+            setColumnFilters(saved.columnFilters);
+            setSorting(saved.sorting);
+        }
+        setRestored(true);
+    }, []);
+
+    useEffect(() => {
+        if (!restored) return;
+        try {
+            sessionStorage.setItem(TABLE_STATE_KEY, JSON.stringify({ columnFilters, sorting }));
+        } catch {
+            // Storage unavailable (private mode, quota) - filters just won't persist.
+        }
+    }, [columnFilters, sorting, restored]);
 
     const table = useReactTable<RegistrationView>({
         data: registrations,
@@ -238,8 +421,10 @@ export function SemesterRegistrations({ registrations }: { registrations: Regist
         getSortedRowModel: getSortedRowModel(),
         enableSorting: true,
         onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
         state: {
             sorting,
+            columnFilters,
         },
         enableColumnFilters: true,
         getFacetedUniqueValues: getFacetedUniqueValues(), // Enable faceting

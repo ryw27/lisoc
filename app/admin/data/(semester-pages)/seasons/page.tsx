@@ -1,4 +1,6 @@
+import { inArray, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { familybalance } from "@/lib/db/schema";
 import fetchCurrentSeasons from "@/server/seasons/data";
 import { RegistrationView, SemesterRegistrations } from "./sem-registration";
 
@@ -24,6 +26,19 @@ export default async function SemestersPage() {
     const activeYear = seasons.year;
     const fall_season = seasons.fall;
     const spring_season = seasons.spring;
+    const seasonIds = [activeYear.seasonid, fall_season.seasonid, spring_season.seasonid];
+
+    // One grouped query: each family's academic-year balance (year + fall + spring rows summed).
+    // Families appear on several rows, so this is joined in memory rather than per row.
+    const balanceRows = await db
+        .select({
+            familyid: familybalance.familyid,
+            balance: sum(familybalance.totalamount).mapWith(Number),
+        })
+        .from(familybalance)
+        .where(inArray(familybalance.seasonid, seasonIds))
+        .groupBy(familybalance.familyid);
+    const balanceByFamily = new Map(balanceRows.map((r) => [r.familyid, r.balance ?? 0]));
 
     const classdetails = await db.query.arrangement.findMany({
         where: (a, { or, eq }) =>
@@ -37,6 +52,7 @@ export default async function SemestersPage() {
                 columns: {
                     classid: true,
                     classnamecn: true,
+                    classno: true,
                 },
             },
             season: {
@@ -59,6 +75,7 @@ export default async function SemestersPage() {
             const key = `${obj.season.seasonid}_${obj.class.classid}`;
             acc[key] = {
                 classnamecn: obj.class.classnamecn,
+                classno: Number(obj.class.classno),
                 seasonnamecn: obj.season.seasonnamecn,
                 teacherid: obj.teacher.teacherid,
                 teachernamecn: obj.teacher.namecn,
@@ -70,6 +87,7 @@ export default async function SemestersPage() {
             string,
             {
                 classnamecn: string;
+                classno: number | null;
                 seasonnamecn: string;
                 teacherid: number;
                 teachernamecn: string;
@@ -135,6 +153,7 @@ export default async function SemestersPage() {
             const classKey = `${reg.seasonid}_${reg.classid}`;
             const classInfo = classinfos[classKey] ?? {
                 classnamecn: "N/A",
+                classno: null,
                 seasonnamecn: "N/A",
                 teacherid: 0,
                 teachernamecn: "N/A",
@@ -143,6 +162,7 @@ export default async function SemestersPage() {
             return {
                 studentid: reg.student.studentid,
                 familyid: reg.family.familyid,
+                balance: balanceByFamily.get(reg.family.familyid) ?? 0,
                 regid: reg.regid,
                 studentnameen: `${reg.student.namefirsten} ${reg.student.namelasten}`,
                 studentnamecn: reg.student.namecn,
@@ -154,6 +174,7 @@ export default async function SemestersPage() {
 
                 arrangeid: classInfo.arrangeid,
                 classnamecn: classInfo.classnamecn ?? "N/A",
+                classno: classInfo.classno,
                 seasonnamecn: classInfo.seasonnamecn ?? "N/A",
                 teachernamecn: classInfo.teachernamecn ?? "N/A",
                 regdate: reg.registerdate.split(" ")[0], // Format date as YYYY-MM-DD

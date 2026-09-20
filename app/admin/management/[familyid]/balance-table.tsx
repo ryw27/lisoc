@@ -58,6 +58,10 @@ const columns: ColumnDef<balanceTypes>[] = [
         accessorKey: "balanceid",
     },
     {
+        header: "Applied ID",
+        accessorKey: "appliedid",
+    },
+    {
         header: "Registration Date",
         accessorKey: "regdate",
     },

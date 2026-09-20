@@ -119,6 +119,7 @@ export type IdMaps = {
 
 export type balanceTypes = {
     balanceid: number;
+    appliedid?: number; // familybalance.appliedid; admin view only
     regdate: string;
     semester: string;
     amount: number;

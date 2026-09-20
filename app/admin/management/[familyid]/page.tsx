@@ -151,6 +151,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
             });
             return {
                 balanceid: balance.balanceid,
+                appliedid: balance.appliedid,
                 regdate: format(balance.registerdate, "yyyy-MM-dd"),
                 semester: season?.seasonnamecn || "N/A",
                 amount: Number(balance.totalamount),

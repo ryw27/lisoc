@@ -10,6 +10,7 @@ import FamilyRegistrationTable, { adminFamilyRegView } from "./registration-tabl
 interface BalanceTabsProps {
     balanceData: {
         balanceid: number;
+        appliedid?: number;
         regdate: string;
         semester: string;
         amount: number;
