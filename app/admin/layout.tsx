@@ -12,6 +12,7 @@ import {
     School,
     Search,
     Users,
+    Wrench,
 } from "lucide-react";
 import { FaChalkboardTeacher, FaMoneyCheck } from "react-icons/fa";
 import { requireRole } from "@/server/auth/actions";
@@ -141,6 +142,12 @@ const navItems = [
                 href: [`${beginlink}/other/site-guide`],
                 icon: <Book className="h-4 w-4" />,
                 tip: "网站指南",
+            },
+            {
+                label: "Tools",
+                href: [`${beginlink}/other/tools`],
+                icon: <Wrench className="h-4 w-4" />,
+                tip: "管理工具",
             },
             {
                 label: "Logout",
