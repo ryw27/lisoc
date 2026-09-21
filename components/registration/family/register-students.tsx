@@ -175,14 +175,26 @@ export default function RegisterStudent({
     // derive family balance ids from registrations prop as a Set
     useEffect(() => {
         const ids = new Set<number>();
+        const all_ids = new Set<number>();
+        const all_new_ids = new Set<number>();
+        registrations.map((r) => r.familybalanceid);
         registrations.forEach((r) => {
+            const familyBalanceId = r.familybalanceid == null ? 0 : Number(r.familybalanceid);
+            const newBalanceId = r.newbalanceid == null ? 0 : Number(r.newbalanceid);
+            if (familyBalanceId > 0) all_ids.add(familyBalanceId);
+            if (newBalanceId > 0) all_new_ids.add(newBalanceId);
             if (r.statusid == 1) {
-                const v = r.familybalanceid;
-                const n = v === undefined || v === null ? 0 : Number(v);
-                if (n > 0) ids.add(n);
+                if (familyBalanceId > 0) ids.add(familyBalanceId);
             }
         });
-        setFamilyBalanceIdSet(ids);
+        // waterfall ids first, if empty then use all_new_ids, if still empty then use all_ids
+        if (ids.size > 0) {
+            setFamilyBalanceIdSet(ids);
+        } else if (all_new_ids.size > 0) {
+            setFamilyBalanceIdSet(all_new_ids);
+        } else {
+            setFamilyBalanceIdSet(all_ids);
+        }
     }, [registrations]);
 
     const getValidClasses = (idx: 0 | 1 | 2) => {

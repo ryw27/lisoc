@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { ClientTable } from "@/components/client-table";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportRowsToCsv } from "@/lib/export-csv";
+import { toESTString } from "@/lib/utils";
 import {
     Column,
     ColumnDef,
@@ -16,18 +26,8 @@ import {
 } from "@tanstack/react-table";
 import { type ColumnHeader } from "export-to-csv";
 import { Download, Filter, TableIcon } from "lucide-react";
-import { exportRowsToCsv } from "@/lib/export-csv";
-import { toESTString } from "@/lib/utils";
-import { ClientTable } from "@/components/client-table";
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export type RegistrationView = {
     studentid: number;
@@ -325,7 +325,7 @@ const columns: ColumnDef<RegistrationView>[] = [
         header: ({ column }) => (
             <div>
                 Balance <br />
-                <TextInputFilter column={column} placeholder="> 3.0" />
+                <TextInputFilter column={column} placeholder="> 0.0" />
             </div>
         ),
         cell: ({ getValue }) => {
