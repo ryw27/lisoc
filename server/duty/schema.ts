@@ -31,6 +31,8 @@ export const autoDistributeSchema = z.object({
 export const updateDutyAssignmentSchema = z.object({
     dutyassignid: z.number().int().positive(),
     dutystatus: z.number().int().min(1).max(5),
+    /** `YYYY-MM-DD`, taken from the duty date dropdown. */
+    dutydate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a duty date"),
     note: z.string().max(150).nullable(),
 });
 

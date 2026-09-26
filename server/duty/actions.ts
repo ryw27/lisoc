@@ -147,12 +147,18 @@ export const autoDistributeDuty = safeAction(
 /** Updates the two editable columns of one duty assignment row. */
 export const updateDutyAssignment = safeAction(
     updateDutyAssignmentSchema,
-    async ({ dutyassignid, dutystatus, note }) => {
+    async ({ dutyassignid, dutystatus, dutydate, note }) => {
         await requireRole(["ADMIN"], { redirect: false });
 
         const [updated] = await db
             .update(dutyassignment)
-            .set({ dutystatus, note: note?.trim() ? note.trim() : null, lastmodify: nowStamp() })
+            .set({
+                dutystatus,
+                // Stored at midnight, the same shape dutyRowValues writes on creation.
+                dutydate: `${dutydate} 00:00:00`,
+                note: note?.trim() ? note.trim() : null,
+                lastmodify: nowStamp(),
+            })
             .where(eq(dutyassignment.dutyassignid, dutyassignid))
             .returning({ dutyassignid: dutyassignment.dutyassignid });
 

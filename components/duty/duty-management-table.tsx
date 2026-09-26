@@ -48,8 +48,10 @@ const FILTER_COLUMNS = [
 type FilterKey = (typeof FILTER_COLUMNS)[number]["key"];
 type ColumnFilters = Partial<Record<FilterKey, string>>;
 
-/** The two editable columns. */
+/** The editable columns. */
 interface RowEdit {
+    /** `YYYY-MM-DD`, chosen from the same options as the duty date filter. */
+    dutydate: string;
     dutystatus: number;
     note: string;
 }
@@ -115,7 +117,11 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     /** What the row shows: its draft while editing, else the last saved value. */
     const valuesOf = (row: DutyAssignmentRow): RowEdit =>
         drafts[row.dutyassignid] ??
-        saved[row.dutyassignid] ?? { dutystatus: row.dutystatus, note: row.note };
+        saved[row.dutyassignid] ?? {
+            dutydate: row.dutydate,
+            dutystatus: row.dutystatus,
+            note: row.note,
+        };
 
     const visibleRows = useMemo(
         () =>
@@ -123,12 +129,18 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                 if (deleted.has(row.dutyassignid)) return false;
 
                 const current = drafts[row.dutyassignid] ??
-                    saved[row.dutyassignid] ?? { dutystatus: row.dutystatus, note: row.note };
+                    saved[row.dutyassignid] ?? {
+                        dutydate: row.dutydate,
+                        dutystatus: row.dutystatus,
+                        note: row.note,
+                    };
 
                 if (statusFilter !== ALL_STATUSES && String(current.dutystatus) !== statusFilter) {
                     return false;
                 }
-                if (dateFilter !== ALL_DATES && row.dutydate !== dateFilter) return false;
+                // Like the note filter, this matches what the row shows, so a pending or
+                // just-saved date change is reflected straight away.
+                if (dateFilter !== ALL_DATES && current.dutydate !== dateFilter) return false;
 
                 return FILTER_COLUMNS.every(({ key }) => {
                     const filter = filters[key]?.trim().toLowerCase();
@@ -144,12 +156,14 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     // `YYYY-MM-DD` sorts lexicographically, so plain string compare is chronological.
     const sortedRows = useMemo(() => {
         if (!dateSort) return visibleRows;
+        const dateOf = (row: DutyAssignmentRow) =>
+            drafts[row.dutyassignid]?.dutydate ?? saved[row.dutyassignid]?.dutydate ?? row.dutydate;
         return [...visibleRows].sort((a, b) =>
             dateSort === "asc"
-                ? a.dutydate.localeCompare(b.dutydate)
-                : b.dutydate.localeCompare(a.dutydate)
+                ? dateOf(a).localeCompare(dateOf(b))
+                : dateOf(b).localeCompare(dateOf(a))
         );
-    }, [visibleRows, dateSort]);
+    }, [visibleRows, dateSort, drafts, saved]);
 
     const hasFilters =
         statusFilter !== ALL_STATUSES ||
@@ -184,6 +198,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
             const result = await updateDutyAssignment({
                 dutyassignid,
                 dutystatus: draft.dutystatus,
+                dutydate: draft.dutydate,
                 note: draft.note.trim() ? draft.note.trim() : null,
             });
             setSavingId(null);
@@ -230,7 +245,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                     studentname: row.studentname,
                     mothername: row.mothername,
                     fathername: row.fathername,
-                    dutydate: formatDutyDate(row.dutydate),
+                    dutydate: formatDutyDate(current.dutydate),
                     dutystatus:
                         DUTY_STATUSES.find((s) => s.id === current.dutystatus)?.label ??
                         String(current.dutystatus),
@@ -458,7 +473,26 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                         <TableCell>{row.studentname}</TableCell>
                                         <TableCell>{row.mothername}</TableCell>
                                         <TableCell>{row.fathername}</TableCell>
-                                        <TableCell>{formatDutyDate(row.dutydate)}</TableCell>
+                                        <TableCell>
+                                            <Select
+                                                value={values.dutydate}
+                                                disabled={!isEditing || rowSaving}
+                                                onValueChange={(value) =>
+                                                    updateDraft(id, { dutydate: value })
+                                                }
+                                            >
+                                                <SelectTrigger className="w-40" size="sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {dateOptions.map((date) => (
+                                                        <SelectItem key={date} value={date}>
+                                                            {formatDutyDate(date)}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
                                         <TableCell>
                                             <Select
                                                 value={String(values.dutystatus)}
