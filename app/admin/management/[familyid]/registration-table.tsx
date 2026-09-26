@@ -142,7 +142,7 @@ export default function FamilyRegistrationTable({
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Family Registration /注册记录</h1>
             </div>
-            <ClientTable table={table} />
+            <ClientTable table={table} maxHeight="22rem" />
         </div>
     );
 }

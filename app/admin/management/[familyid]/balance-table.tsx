@@ -209,7 +209,7 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
                     </div>
                 </div>
             </div>
-            <ClientTable table={table} />
+            <ClientTable table={table} maxHeight="22rem" />
         </>
     );
 }

@@ -15,10 +15,21 @@ import { cn } from "@/lib/utils";
 //     return [abbrev + " " + day, dateObj.getFullYear()];
 // };
 
-export function ClientTable<RowShape>({ table }: { table: Table<RowShape> }) {
+export function ClientTable<RowShape>({
+    table,
+    maxHeight,
+}: {
+    table: Table<RowShape>;
+    // A CSS length (e.g. "32rem"). When set, the rows scroll vertically inside this
+    // height and the header sticks to the top of the box. That also keeps the
+    // horizontal scrollbar on screen: without a cap, a long table pushes it below the
+    // fold, so reading a wide row means scrolling to the bottom of the page and back.
+    // Short tables are unaffected — the box only scrolls once the rows exceed it.
+    maxHeight?: string;
+}) {
     return (
         <div className="border-primary/20 bg-background w-full overflow-hidden rounded-xs border">
-            <div className="w-full overflow-x-auto overflow-y-auto">
+            <div className="w-full overflow-x-auto overflow-y-auto" style={{ maxHeight }}>
                 <table className="relative min-w-full table-fixed text-sm">
                     {/* Header */}
                     <thead className="bg-muted border-primary/20 text-primary border-b-2 font-bold tracking-widest uppercase">
@@ -29,13 +40,22 @@ export function ClientTable<RowShape>({ table }: { table: Table<RowShape> }) {
                                         key={header.id}
                                         className={cn(
                                             "px-4 py-3 text-left text-xs whitespace-nowrap",
+                                            // Stay put while the rows scroll under it. The
+                                            // background has to be on the cell (the thead's
+                                            // scrolls away) and has to be bg-background, not
+                                            // bg-muted: --color-muted is missing from the
+                                            // @theme block in globals.css, so bg-muted emits
+                                            // no rule at all and the rows show through.
+                                            "bg-background border-primary/20 sticky top-0 z-20 border-b-2",
                                             // Column Sizing
                                             header.id === "select" && "w-12",
-                                            // Sticky Logic: Borders instead of shadows for tangibility
+                                            // Sticky Logic: Borders instead of shadows for tangibility.
+                                            // z above the pinned body cells (z-10) so a pinned column
+                                            // scrolls under, not over, its own header.
                                             header.column.getIsPinned() === "left" &&
-                                                "bg-muted border-primary/10 sticky left-0 z-10 border-r",
+                                                "border-primary/10 sticky left-0 z-30 border-r",
                                             header.column.getIsPinned() === "right" &&
-                                                "bg-muted border-primary/10 sticky right-0 z-10 border-l"
+                                                "border-primary/10 sticky right-0 z-30 border-l"
                                         )}
                                         onClick={header.column.getToggleSortingHandler()}
                                         aria-sort={
