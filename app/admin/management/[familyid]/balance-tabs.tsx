@@ -17,6 +17,7 @@ interface BalanceTabsProps {
         check_no: string;
         paiddate: string;
         note: string;
+        userid?: string;
     }[];
     hasRegistrations: boolean;
     family: familyObj;

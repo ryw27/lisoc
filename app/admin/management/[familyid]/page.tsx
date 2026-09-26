@@ -93,6 +93,7 @@ const fetchRegistration = async (
                 seasonid: undefined,
                 teacherid: undefined,
                 statusid: undefined,
+                userid: undefined,
             };
         }
         const regClass = await db.query.classes.findFirst({
@@ -116,6 +117,7 @@ const fetchRegistration = async (
                 arr.teacher.namecn ??
                 `${arr.teacher.namefirsten ?? ""} ${arr.teacher.namelasten ?? ""}`.trim(),
             statusid: regStatusMap[reg.statusid as keyof typeof regStatusMap] ?? "Unknown/未知",
+            userid: reg.userid ?? "",
         };
 
         return detailArrObj;
@@ -158,6 +160,7 @@ const FamilyDetails: FC<{ familyid: number }> = async ({ familyid }) => {
                 check_no: balance.checkno || "N/A",
                 paiddate: balance.paiddate ? format(balance.paiddate, "yyyy-MM-dd") : "",
                 note: balance.notes || "",
+                userid: balance.userid ?? "",
             };
         })
     );

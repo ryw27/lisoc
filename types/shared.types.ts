@@ -126,6 +126,7 @@ export type balanceTypes = {
     check_no: string;
     paiddate: string;
     note: string;
+    userid?: string; // familybalance.userid; admin view only
 };
 
 export type teacherClassStudentView = {

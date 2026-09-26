@@ -24,6 +24,7 @@ export type adminFamilyRegView = {
     seasonid: string;
     teacherid: string;
     statusid: string;
+    userid: string;
 };
 
 function SelectColumnFilter({ column }: { column: Column<adminFamilyRegView> }): React.ReactNode {
@@ -90,6 +91,10 @@ const columns: ColumnDef<adminFamilyRegView>[] = [
         accessorKey: "statusid",
         header: "Status/状态",
     },
+    {
+        accessorKey: "userid",
+        header: "Entered By/操作人",
+    },
 ];
 
 const deleteColumn: ColumnDef<adminFamilyRegView>[] = [
@@ -126,6 +131,10 @@ export default function FamilyRegistrationTable({
         enableColumnFilters: true,
         getFacetedUniqueValues: getFacetedUniqueValues(), // Enable faceting
         getFilteredRowModel: getFilteredRowModel(),
+        // No pagination row model here, so there is no page index to reset. Left on, the
+        // row-model getters queue a resetPageIndex() that lands as a setState during
+        // render (see balance-table.tsx for the full trace).
+        autoResetPageIndex: false,
     });
 
     return (

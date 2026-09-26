@@ -111,6 +111,10 @@ const columns: ColumnDef<balanceTypes>[] = [
         header: "Note",
         accessorKey: "note",
     },
+    {
+        header: "Entered By",
+        accessorKey: "userid",
+    },
 ];
 
 type balanceTableProps = {
@@ -145,19 +149,25 @@ export default function BalanceTable({ balanceData }: balanceTableProps) {
         getFacetedUniqueValues: getFacetedUniqueValues(), // Enable faceting
         getFilteredRowModel: getFilteredRowModel(),
         state: { sorting },
+        // This table renders every row (there is no pagination row model), so there is no
+        // page index to reset. Left on, the row-model getters queue a resetPageIndex(),
+        // which lands as a setState while this component is still rendering — React then
+        // warns about a state update on a component that hasn't mounted yet.
+        autoResetPageIndex: false,
     });
 
-    // Calculate the sum of the 'amount' column
-    const rows = table.getCoreRowModel().rows;
-    const totalBalance = useMemo(() => {
-        // Use if you want only sum filter then use tale.getFilteredRowModel().rows to sum
-        // otherwise using all rows
-        return table.getCoreRowModel().rows.reduce((total, row) => {
-            const value = row.getValue("amount"); // Replace 'visits' with your accessorKey
-            // Ensure value is a number before adding
-            return total + (typeof value === "number" ? value : Number(value) || 0);
-        }, 0);
-    }, [rows]); // Recalculate if table state (like filtering) changes
+    // Sum the 'amount' column straight from the data rather than from the table's row
+    // model: reading a row model during render is what triggers the auto-reset above.
+    // This is the unfiltered total, same as the core row model gave.
+    const totalBalance = useMemo(
+        () =>
+            balanceData.reduce((total, balance) => {
+                const value = balance.amount;
+                // Ensure value is a number before adding
+                return total + (typeof value === "number" ? value : Number(value) || 0);
+            }, 0),
+        [balanceData]
+    );
     return (
         <>
             <div className="mb-2">

@@ -239,6 +239,10 @@ function RecycleTable<T>({
         enableSorting: true,
         onSortingChange: setSorting,
         state: { sorting },
+        // No pagination row model here, so there is no page index to reset. Left on, the
+        // row-model getters queue a resetPageIndex() that lands as a setState during
+        // render (see balance-table.tsx for the full trace).
+        autoResetPageIndex: false,
     });
 
     if (data.length === 0) {

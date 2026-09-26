@@ -429,6 +429,10 @@ export function SemesterRegistrations({ registrations }: { registrations: Regist
         enableColumnFilters: true,
         getFacetedUniqueValues: getFacetedUniqueValues(), // Enable faceting
         getFilteredRowModel: getFilteredRowModel(), // Required for filtering
+        // No pagination row model here, so there is no page index to reset. Left on, the
+        // row-model getters queue a resetPageIndex() that lands as a setState during
+        // render (see balance-table.tsx for the full trace).
+        autoResetPageIndex: false,
     });
 
     const handleExport = (option: "all" | "filtered") => {
