@@ -271,7 +271,7 @@ export async function ensureTimeline(
 }
 
 // Ensures the class still has an open seat. Returns true if registration is allowed, false otherwise.
-// A null or 0 seatlimit means unlimited, matching checkCapacity in adminDistribute.
+// A null or 0 seatlimit means unlimited.
 export async function ensureSeats(
     tx: Transaction,
     arrData: uiClasses,

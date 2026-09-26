@@ -8,6 +8,7 @@ import {
     FAMILYBALANCE_TYPE_DROPOUT,
     //FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_TRANSFER,
+    operatorUserid,
     REGSTATUS_DROPOUT,
     REGSTATUS_REGISTERED,
     REGSTATUS_TRANSFERRED,
@@ -32,6 +33,8 @@ export async function adminApproveRequest(
     // TODO: Parse
     // 1. Auth check
     const user = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(user.user);
 
     try {
         // because of foregin key order needs to be regchangerequest balance class registration
@@ -150,6 +153,7 @@ export async function adminApproveRequest(
                         familyid: oldReg.familyid,
                         statusid: oldReg.statusid, // it will inherit old values regardless
                         notes: `transfer of student ${oldReg.studentid} from request ${requestid}`,
+                        userid: userid,
                     })
                     .returning();
 
@@ -184,6 +188,7 @@ export async function adminApproveRequest(
                         statusid: FAMILYBALANCE_STATUS_PENDING,
                         registerdate: now,
                         notes: `Requested transfer, new balance from ${requestid}`,
+                        userid: userid,
                     } satisfies famBalanceInsert;
 
                     const [newRegBal] = await tx
@@ -305,6 +310,7 @@ export async function adminApproveRequest(
                     statusid: FAMILYBALANCE_STATUS_PENDING,
                     registerdate: toESTString(new Date()),
                     notes: `Requested drop old balance ${requestid}`,
+                    userid: userid,
                 } satisfies famBalanceInsert;
 
                 const [newRegBal] = await tx.insert(familybalance).values(dropBalVals).returning();
@@ -325,6 +331,7 @@ export async function adminApproveRequest(
                         statusid: FAMILYBALANCE_STATUS_PENDING,
                         registerdate: toESTString(new Date()),
                         notes: `Requested drop extra fee ${requestid}`,
+                        userid: userid,
                     } satisfies famBalanceInsert;
 
                     await tx.insert(familybalance).values(extraBalVals);

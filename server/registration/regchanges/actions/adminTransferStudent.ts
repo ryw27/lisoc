@@ -9,6 +9,7 @@ import {
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
     FAMILYBALANCE_TYPE_TRANSFER,
+    operatorUserid,
     REGISTRATION_FEE,
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
@@ -28,7 +29,9 @@ export async function adminTransferStudent(
     override: boolean,
     type: "intraTransfer" | "classTransfer"
 ) {
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(session.user);
     // TODO: Parse data
     return await db.transaction(async (tx) => {
         // 1. Get old registration
@@ -130,6 +133,7 @@ export async function adminTransferStudent(
             typeid: FAMILYBALANCE_TYPE_TRANSFER,
             statusid: FAMILYBALANCE_STATUS_PENDING,
             notes: "Admin transfer student out, subtract old class fees",
+            userid: userid,
         } satisfies famBalanceInsert;
 
         const [removeOldPrice] = await tx
@@ -156,6 +160,7 @@ export async function adminTransferStudent(
                 typeid: FAMILYBALANCE_TYPE_PAYMENT, // TODO: Check this
                 statusid: FAMILYBALANCE_STATUS_PROCESSED,
                 notes: "Admin transfer student out, refund family reg fee",
+                userid: userid,
             } satisfies famBalanceInsert;
 
             await tx.insert(familybalance).values(payFamValues);
@@ -177,6 +182,7 @@ export async function adminTransferStudent(
                 familyid: familyid,
                 byadmin: true,
                 notes: `Admin transfer student to ${newArrange.arrangeid} from ${oldReg.arrangeid}`,
+                userid: userid,
             })
             .returning();
         // 9. Insert new family balance with registration prices
@@ -206,6 +212,7 @@ export async function adminTransferStudent(
             typeid: FAMILYBALANCE_TYPE_TRANSFER,
             registerdate: now,
             notes: "Admin transferred student, new balance",
+            userid: userid,
         } satisfies famBalanceInsert;
 
         const [newRegBal] = await tx.insert(familybalance).values(newBalVals).returning();
@@ -242,7 +249,9 @@ export async function adminTransferStudent2(
     familyid: number,
     newArrange: uiClasses
 ) {
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(session.user);
     // TODO: Parse data
     return await db.transaction(async (tx) => {
         // 1. Get old registration
@@ -333,6 +342,7 @@ export async function adminTransferStudent2(
                 familybalanceid: oldReg.familybalanceid,
                 byadmin: true,
                 notes: `Admin transfer student to ${newArrange.arrangeid} from ${oldReg.arrangeid}`,
+                userid: userid,
             })
             .returning();
         // 9. Insert new family balance with registration prices
@@ -358,6 +368,7 @@ export async function adminTransferStudent2(
                     typeid: FAMILYBALANCE_TYPE_TRANSFER,
                     registerdate: now,
                     notes: "Admin transferred student,  balance difference",
+                    userid: userid,
                 } satisfies famBalanceInsert;
 
                 const [newRegBal] = await tx.insert(familybalance).values(newBalVals).returning();

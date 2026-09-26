@@ -5,6 +5,7 @@ import { classregistration, familybalance } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_TUITION,
+    operatorUserid,
     REGSTATUS_SUBMITTED,
     toESTString,
 } from "@/lib/utils";
@@ -38,13 +39,15 @@ export async function familyRegister(
     // 1. Auth: caller must be a FAMILY user, and the family they're operating
     //    on must be their own. Never trust the client-supplied family object —
     //    re-derive the family from the session and compare.
-    const { family: userFamily } = await requireFamily();
+    const { session, family: userFamily } = await requireFamily();
     if (userFamily.familyid !== family.familyid) {
         throw new Error("Forbidden");
     }
     // Use the server-derived family from here on. This shadows the parameter
     // so any downstream code can't accidentally trust the client's version.
     family = userFamily as typeof family;
+    // Audit stamp for every row this action writes: the family's own login.
+    const userid = operatorUserid(session.user);
 
     try {
         return await db.transaction(async (tx) => {
@@ -210,6 +213,7 @@ export async function familyRegister(
                     typeid: FAMILYBALANCE_TYPE_TUITION,
                     statusid: FAMILYBALANCE_STATUS_PENDING, // Pending
                     notes: "",
+                    userid: userid,
                     tuition: classPrice.toString(),
                     totalamount: (
                         classPrice +
@@ -244,6 +248,7 @@ export async function familyRegister(
                     familybalanceid: balanceObj.balanceid,
                     lastmodify: toESTString(new Date()),
                     byadmin: false,
+                    userid: userid,
                 })
                 .returning();
 

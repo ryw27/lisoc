@@ -6,6 +6,7 @@ import { arrangement, classregistration, familybalance } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_TYPE_OTHER,
+    operatorUserid,
     REGISTRATION_FEE,
 } from "@/lib/utils";
 import { type Transaction } from "@/types/server.types";
@@ -15,7 +16,8 @@ import { getTotalPrice } from "@/server/registration/data";
 async function deleteAllRegistrations(
     tx: Transaction,
     registrations: classRegObj[],
-    classData: uiClasses
+    classData: uiClasses,
+    userid: string
 ) {
     const totalPrice = await getTotalPrice(tx, classData);
     for (const reg of registrations) {
@@ -38,6 +40,7 @@ async function deleteAllRegistrations(
             typeid: FAMILYBALANCE_TYPE_OTHER, // Otherfee
             statusid: FAMILYBALANCE_STATUS_PENDING,
             notes: "Admin delete whole class and corresponding registrations",
+            userid: userid,
         } satisfies famBalanceInsert;
 
         await tx.insert(familybalance).values(fbvalues);
@@ -48,7 +51,9 @@ import { requireRole } from "@/server/auth/actions";
 
 // TODO: Change based on new format
 export async function deleteArrangement(classData: uiClasses, override: boolean) {
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(session.user);
     return await db.transaction(async (tx) => {
         if (typeof classData.arrangeid !== "number" || isNaN(classData.arrangeid)) {
             throw new Error("Update data does not contain a valid arrange ID identifier");
@@ -68,7 +73,7 @@ export async function deleteArrangement(classData: uiClasses, override: boolean)
             if (!override) {
                 throw new Error("This class has existing registrations");
             }
-            deleteAllRegistrations(tx, registrations, classData);
+            await deleteAllRegistrations(tx, registrations, classData, userid);
         }
 
         // Then delete the arrangement

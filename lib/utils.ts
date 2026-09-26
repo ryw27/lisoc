@@ -227,3 +227,22 @@ export const classTypeMap = {
     4: { typenameen: "Culture (Child)", typenamecn: "少儿文体课" },
     5: { typenameen: "English(1)", typenamecn: "双语班" },
 } satisfies Record<number, { typenameen: string; typenamecn: string }>;
+
+// ----------------------------------------------------------------
+// AUDIT USERID
+// ----------------------------------------------------------------
+
+// Stamped on rows that no signed-in operator created: PayPal captures, webhooks,
+// migrations. Matches the historical `familybalance.userid` column default.
+export const SYSTEM_USERID = "app";
+
+// Value for the `userid` audit column on classregistration / familybalance.
+// Prefers the operator's login name (`users.name`, what they type at the login
+// prompt — this is what the legacy ASP app stored), falls back to their email,
+// then to SYSTEM_USERID. Clamped to the column width (varchar(100)).
+export function operatorUserid(
+    user?: { name?: string | null; email?: string | null } | null
+): string {
+    const label = user?.name?.trim() || user?.email?.trim() || SYSTEM_USERID;
+    return label.slice(0, 100);
+}

@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientIp, enforceRateLimit, RateLimitError } from "@/lib/rateLimit";
-import { FAMILYBALANCE_TYPE_PAYMENT } from "@/lib/utils";
+import { FAMILYBALANCE_TYPE_PAYMENT, SYSTEM_USERID } from "@/lib/utils";
 import { sendPaymentEmail } from "@/server/auth/data";
-import { applyCheck } from "@/server/payments/actions";
+import { applyPaymentToBalance } from "@/server/payments/applyPayment";
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 
@@ -313,7 +313,10 @@ export async function POST(request: Request) {
     // 8. Record the credit. Bubble up any failure — never silently swallow:
     //    the customer's money has already been taken at this point.
     try {
-        await applyCheck(
+        // The caller was authorized and the family verified in step 4; this row is
+        // written by the PayPal capture handler, not by a human operator, so it is
+        // stamped SYSTEM_USERID ("app") rather than the signed-in user's login.
+        await applyPaymentToBalance(
             {
                 balanceid: balanceId,
                 amount: amountNumber,
@@ -323,7 +326,8 @@ export async function POST(request: Request) {
                 feeTypeId: FAMILYBALANCE_TYPE_PAYMENT,
                 note: `PayPal Capture ID: ${captureData.id}`,
             },
-            target.familyid
+            target.familyid,
+            { userid: SYSTEM_USERID, fromAdmin: false }
         );
     } catch (err) {
         // Critical: PayPal took the money but we failed to record the credit.

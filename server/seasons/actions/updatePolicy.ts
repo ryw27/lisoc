@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
-import { threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
+import { threeSeasons } from "@/types/seasons.types";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import fetchCurrentSeasons from "../data";
 
 export async function updatePolicy(data: string) {

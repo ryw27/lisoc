@@ -7,6 +7,7 @@ import { classregistration, familybalance, regchangerequest } from "@/lib/db/sch
 import {
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
+    operatorUserid,
     REGISTRATION_FEE,
     REGSTATUS_REGISTERED,
     REGSTATUS_SUBMITTED,
@@ -22,7 +23,8 @@ import { canTransferOutandIn, getArrSeason, getTotalPrice, type Transaction } fr
 async function createRemoveFamBalanceVals(
     tx: Transaction,
     oldReg: InferSelectModel<typeof classregistration>,
-    oldArr: uiClasses
+    oldArr: uiClasses,
+    userid: string
 ) {
     // TODO: Use a drop specific getPrice which uses getTotalPrice instead
     const oldTotalPrice = await getTotalPrice(tx, oldArr);
@@ -39,6 +41,7 @@ async function createRemoveFamBalanceVals(
         typeid: FAMILYBALANCE_TYPE_PAYMENT,
         statusid: FAMILYBALANCE_STATUS_PROCESSED, // TODO: This is because of where it is. Move this to helpers and make more extensible, or come up with a better function
         notes: "Admin transfer student, subtract old class fees",
+        userid: userid,
     } satisfies famBalanceInsert;
 
     return removeFamBalValues;
@@ -55,10 +58,12 @@ export async function familyRequestTransfer(
     notes: string
 ) {
     try {
-        const { family: userFamily } = await requireFamily();
+        const { session, family: userFamily } = await requireFamily();
         if (userFamily.familyid !== familyid) {
             throw new Error("Forbidden");
         }
+        // Audit stamp for every row this action writes: the family's own login.
+        const userid = operatorUserid(session.user);
         const txResult = await db.transaction(async (tx) => {
             // 1. Get old registration
             const oldReg = await tx.query.classregistration.findFirst({
@@ -109,7 +114,12 @@ export async function familyRequestTransfer(
                 // Client should prevent getting here
                 await tx.delete(classregistration).where(eq(classregistration.regid, oldReg.regid));
 
-                const removeFamBalValues = await createRemoveFamBalanceVals(tx, oldReg, oldArr);
+                const removeFamBalValues = await createRemoveFamBalanceVals(
+                    tx,
+                    oldReg,
+                    oldArr,
+                    userid
+                );
                 await tx.insert(familybalance).values(removeFamBalValues);
                 revalidatePath("/dashboard/classes");
                 revalidatePath("/admin/management/regchangerequests");

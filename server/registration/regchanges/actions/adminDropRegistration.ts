@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, InferSelectModel } from "drizzle-orm";
+import { and, eq, InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
     FAMILYBALANCE_STATUS_PENDING,
     FAMILYBALANCE_STATUS_PROCESSED,
     FAMILYBALANCE_TYPE_PAYMENT,
+    operatorUserid,
     REGISTRATION_FEE,
     REGSTATUS_DROPOUT,
     REGSTATUS_REGISTERED,
@@ -21,7 +22,8 @@ async function createRemoveFamBalanceVals(
     tx: Transaction,
     oldReg: InferSelectModel<typeof classregistration>,
     oldArr: uiClasses,
-    deleteReg: boolean
+    deleteReg: boolean,
+    userid: string
 ) {
     // TODO: Use a drop specific getPrice which uses getTotalPrice instead
     const oldTotalPrice = await getTotalPrice(tx, oldArr);
@@ -38,6 +40,7 @@ async function createRemoveFamBalanceVals(
         typeid: FAMILYBALANCE_TYPE_PAYMENT,
         statusid: deleteReg ? FAMILYBALANCE_STATUS_PROCESSED : FAMILYBALANCE_STATUS_PENDING,
         notes: "Admin drop student, subtract old class fees",
+        userid: userid,
     } satisfies famBalanceInsert;
 
     return removeFamBalValues;
@@ -46,7 +49,9 @@ async function createRemoveFamBalanceVals(
 import { requireRole } from "@/server/auth/actions";
 
 export async function adminDropRegistration(regid: number, studentid: number, override: boolean) {
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(session.user);
     await db.transaction(async (tx) => {
         // 1. Get old registration
         const oldReg = await tx.query.classregistration.findFirst({
@@ -90,7 +95,8 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
                 tx,
                 oldReg,
                 oldArr,
-                deleteReg
+                deleteReg,
+                userid
             );
             await tx.insert(familybalance).values(removeFamBalValues);
 
@@ -105,14 +111,23 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
             throw new Error("Cannot drop this registration");
         }
 
-        // 6. Set old registrations as dropped out
-        await tx.update(classregistration).set({
-            previousstatusid: oldReg.statusid,
-            statusid: REGSTATUS_DROPOUT,
-            lastmodify: toESTString(new Date()),
-            byadmin: true,
-            notes: "Dropped by admin",
-        });
+        // 6. Set old registration as dropped out. The where clause is load-bearing:
+        // without it this marks every row in classregistration as dropped.
+        await tx
+            .update(classregistration)
+            .set({
+                previousstatusid: oldReg.statusid,
+                statusid: REGSTATUS_DROPOUT,
+                lastmodify: toESTString(new Date()),
+                byadmin: true,
+                notes: "Dropped by admin",
+            })
+            .where(
+                and(
+                    eq(classregistration.regid, oldReg.regid),
+                    eq(classregistration.studentid, studentid)
+                )
+            );
 
         // 7. Remove the tuition of the old class if paid
         if (oldReg.statusid === REGSTATUS_REGISTERED) {
@@ -122,7 +137,8 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
                 tx,
                 oldReg,
                 oldArr,
-                deleteReg
+                deleteReg,
+                userid
             );
             const [removeOldPrice] = await tx
                 .insert(familybalance)
@@ -148,6 +164,7 @@ export async function adminDropRegistration(regid: number, studentid: number, ov
                 typeid: FAMILYBALANCE_TYPE_PAYMENT, // TODO: Check this
                 statusid: FAMILYBALANCE_STATUS_PROCESSED,
                 notes: "Admin drop student, refund family reg fee",
+                userid: userid,
             } satisfies famBalanceInsert;
 
             await tx.insert(familybalance).values(payFamValues);

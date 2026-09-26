@@ -8,6 +8,7 @@ import {
     EARLY_REG_DISCOUNT,
     LATE_REG_FEE_1,
     LATE_REG_FEE_2,
+    operatorUserid,
     REGISTRATION_FEE,
     REGSTATUS_SUBMITTED,
     toESTString,
@@ -33,7 +34,9 @@ export async function adminRegister(
     override: boolean
 ) {
     // 1. Auth check — admin only.
-    await requireRole(["ADMIN"]);
+    const session = await requireRole(["ADMIN"]);
+    // Audit stamp for every row this action writes: the admin's login.
+    const userid = operatorUserid(session.user);
     return await db.transaction(async (tx) => {
         // 2. Check other active registrations and ensure timeline is correct
         // TODO: Find a more efficient way of doing this
@@ -75,6 +78,7 @@ export async function adminRegister(
                 byadmin: true,
                 lastmodify: toESTString(new Date()),
                 notes: "Admin register",
+                userid: userid,
             })
             .returning();
 
@@ -97,6 +101,7 @@ export async function adminRegister(
             lastmodify: toESTString(new Date()),
             tuition: classPrice.toString(),
             totalamount: classPrice.toString(),
+            userid: userid,
         };
 
         const [newBal] = await tx.insert(familybalance).values(familyBalanceData).returning();
