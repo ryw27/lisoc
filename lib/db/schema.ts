@@ -559,6 +559,13 @@ export const dutyassignment = pgTable(
     },
     (table) => [
         index("dutyassignid").using("btree", table.dutyassignid.asc().nullsLast().op("int4_ops")),
+        // One duty per student per season. The real index is NULLS NOT DISTINCT, which Drizzle's
+        // index builder can't express; see drizzle/sql/0002_dutyassignment_unique_student.sql.
+        uniqueIndex("dutyassignment_season_family_student_uidx").on(
+            table.seasonid,
+            table.familyid,
+            table.studentid
+        ),
         foreignKey({
             columns: [table.familyid],
             foreignColumns: [family.familyid],

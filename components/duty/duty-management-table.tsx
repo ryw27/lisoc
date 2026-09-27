@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
     ChevronDown,
@@ -105,6 +105,9 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     const [isSaving, startSave] = useTransition();
 
     const [filters, setFilters] = useState<ColumnFilters>({});
+    // The inputs show `filters` immediately; the row filtering trails behind on the deferred
+    // copy, so typing stays responsive with hundreds of rows.
+    const deferredFilters = useDeferredValue(filters);
     const [statusFilter, setStatusFilter] = useState(ALL_STATUSES);
     const [dateFilter, setDateFilter] = useState(ALL_DATES);
     const [dateSort, setDateSort] = useState<"asc" | "desc" | null>(null);
@@ -145,14 +148,14 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                 if (dateFilter !== ALL_DATES && current.dutydate !== dateFilter) return false;
 
                 return FILTER_COLUMNS.every(({ key }) => {
-                    const filter = filters[key]?.trim().toLowerCase();
+                    const filter = deferredFilters[key]?.trim().toLowerCase();
                     if (!filter) return true;
                     // Notes filter on what's shown, which is the saved edit when there is one.
                     const value = key === "note" ? current.note : row[key];
                     return String(value).toLowerCase().includes(filter);
                 });
             }),
-        [rows, filters, statusFilter, dateFilter, drafts, saved, deleted]
+        [rows, deferredFilters, statusFilter, dateFilter, drafts, saved, deleted]
     );
 
     // `YYYY-MM-DD` sorts lexicographically, so plain string compare is chronological.
@@ -477,62 +480,84 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                         <TableCell>{row.mothername}</TableCell>
                                         <TableCell>{row.fathername}</TableCell>
                                         <TableCell>
-                                            <Select
-                                                value={values.dutydate}
-                                                disabled={!isEditing || rowSaving}
-                                                onValueChange={(value) =>
-                                                    updateDraft(id, { dutydate: value })
-                                                }
-                                            >
-                                                <SelectTrigger className="w-40" size="sm">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {dateOptions.map((date) => (
-                                                        <SelectItem key={date} value={date}>
-                                                            {formatDutyDate(date)}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            {!isEditing ? (
+                                                <span className="inline-block w-40 px-3 text-sm">
+                                                    {formatDutyDate(values.dutydate)}
+                                                </span>
+                                            ) : (
+                                                <Select
+                                                    value={values.dutydate}
+                                                    disabled={rowSaving}
+                                                    onValueChange={(value) =>
+                                                        updateDraft(id, { dutydate: value })
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-40" size="sm">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {dateOptions.map((date) => (
+                                                            <SelectItem key={date} value={date}>
+                                                                {formatDutyDate(date)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </TableCell>
                                         <TableCell>
-                                            <Select
-                                                value={String(values.dutystatus)}
-                                                disabled={!isEditing || rowSaving}
-                                                onValueChange={(value) =>
-                                                    updateDraft(id, { dutystatus: Number(value) })
-                                                }
-                                            >
-                                                <SelectTrigger className="w-36" size="sm">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {DUTY_STATUSES.map((status) => (
-                                                        <SelectItem
-                                                            key={status.id}
-                                                            value={String(status.id)}
-                                                        >
-                                                            {status.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            {!isEditing ? (
+                                                <span className="inline-block w-36 px-3 text-sm">
+                                                    {DUTY_STATUSES.find(
+                                                        (s) => s.id === values.dutystatus
+                                                    )?.label ?? values.dutystatus}
+                                                </span>
+                                            ) : (
+                                                <Select
+                                                    value={String(values.dutystatus)}
+                                                    disabled={rowSaving}
+                                                    onValueChange={(value) =>
+                                                        updateDraft(id, {
+                                                            dutystatus: Number(value),
+                                                        })
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-36" size="sm">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {DUTY_STATUSES.map((status) => (
+                                                            <SelectItem
+                                                                key={status.id}
+                                                                value={String(status.id)}
+                                                            >
+                                                                {status.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </TableCell>
                                         <TableCell>{row.phone}</TableCell>
                                         <TableCell>{row.email}</TableCell>
                                         <TableCell>{row.address}</TableCell>
                                         <TableCell>
-                                            <Input
-                                                value={values.note}
-                                                disabled={!isEditing || rowSaving}
-                                                onChange={(e) =>
-                                                    updateDraft(id, { note: e.target.value })
-                                                }
-                                                placeholder="Note"
-                                                aria-label={`Note for duty ${id}`}
-                                                className="h-8 w-48"
-                                            />
+                                            {!isEditing ? (
+                                                <span className="inline-block w-48 px-3 text-sm break-words">
+                                                    {values.note}
+                                                </span>
+                                            ) : (
+                                                <Input
+                                                    value={values.note}
+                                                    disabled={rowSaving}
+                                                    onChange={(e) =>
+                                                        updateDraft(id, { note: e.target.value })
+                                                    }
+                                                    placeholder="Note"
+                                                    aria-label={`Note for duty ${id}`}
+                                                    className="h-8 w-48"
+                                                />
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 );

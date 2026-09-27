@@ -1,6 +1,14 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import {
+    type Dispatch,
+    memo,
+    type SetStateAction,
+    useCallback,
+    useDeferredValue,
+    useMemo,
+    useState,
+} from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,6 +58,44 @@ const COLUMN_COUNT = COLUMNS.length + 1; // + the select checkbox column
 /** Same columns, in the same order, for the CSV export. */
 const CSV_HEADERS = COLUMNS.map(({ key, label }) => ({ key, displayLabel: label }));
 
+/**
+ * One Available row. Memoized so ticking a checkbox or typing a filter re-renders only the
+ * rows whose props changed, not all of them — every prop passed in must be stable.
+ */
+const RosterRow = memo(function RosterRow({
+    row,
+    rowId,
+    isSelected,
+    onToggle,
+    onRowDragStart,
+}: {
+    row: DutyRosterRow;
+    rowId: string;
+    isSelected: boolean;
+    onToggle: (key: string) => void;
+    onRowDragStart: ListDnd["onRowDragStart"];
+}) {
+    return (
+        <TableRow
+            data-state={isSelected && "selected"}
+            draggable
+            onDragStart={(event) => onRowDragStart(row)(event)}
+            className="cursor-grab active:cursor-grabbing"
+        >
+            <TableCell>
+                <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onToggle(rowId)}
+                    aria-label={`Select family ${row.familyid} student ${row.studentname} class ${row.classname}`}
+                />
+            </TableCell>
+            {COLUMNS.map(({ key }) => (
+                <TableCell key={key}>{row[key]}</TableCell>
+            ))}
+        </TableRow>
+    );
+});
+
 interface DutyRosterTableProps {
     rows: DutyRosterRow[];
     /** Keys (see `rowKey`) of the checked rows, owned by the parent so Apply can read them. */
@@ -65,6 +111,9 @@ export default function DutyRosterTable({
     dnd,
 }: DutyRosterTableProps) {
     const [filters, setFilters] = useState<ColumnFilters>({});
+    // The inputs show `filters` immediately; the row filtering trails behind on the deferred
+    // copy, so typing stays responsive with hundreds of rows.
+    const deferredFilters = useDeferredValue(filters);
     const [classFilter, setClassFilter] = useState(ALL_CLASSES);
 
     const classOptions = useMemo(
@@ -81,11 +130,11 @@ export default function DutyRosterTable({
                 if (classFilter !== ALL_CLASSES && row.classname !== classFilter) return false;
                 return COLUMNS.every(({ key }) => {
                     if (key === "classname") return true; // Handled by the dropdown
-                    const filter = filters[key]?.trim().toLowerCase();
+                    const filter = deferredFilters[key]?.trim().toLowerCase();
                     return !filter || String(row[key]).toLowerCase().includes(filter);
                 });
             }),
-        [rows, filters, classFilter]
+        [rows, deferredFilters, classFilter]
     );
 
     const visibleKeys = visibleRows.map(rowKey);
@@ -93,17 +142,20 @@ export default function DutyRosterTable({
     const someSelected = !allSelected && visibleKeys.some((key) => selected.has(key));
     const hasFilters = classFilter !== ALL_CLASSES || Object.values(filters).some((v) => v?.trim());
 
-    const toggleRow = (key: string) => {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (next.has(key)) {
-                next.delete(key);
-            } else {
-                next.add(key);
-            }
-            return next;
-        });
-    };
+    const toggleRow = useCallback(
+        (key: string) => {
+            setSelected((prev) => {
+                const next = new Set(prev);
+                if (next.has(key)) {
+                    next.delete(key);
+                } else {
+                    next.add(key);
+                }
+                return next;
+            });
+        },
+        [setSelected]
+    );
 
     // Select-all only covers the rows currently passing the column filters.
     const toggleAll = () => {
@@ -238,24 +290,14 @@ export default function DutyRosterTable({
                             visibleRows.map((row) => {
                                 const key = rowKey(row);
                                 return (
-                                    <TableRow
+                                    <RosterRow
                                         key={key}
-                                        data-state={selected.has(key) && "selected"}
-                                        draggable
-                                        onDragStart={dnd.onRowDragStart(row)}
-                                        className="cursor-grab active:cursor-grabbing"
-                                    >
-                                        <TableCell>
-                                            <Checkbox
-                                                checked={selected.has(key)}
-                                                onCheckedChange={() => toggleRow(key)}
-                                                aria-label={`Select family ${row.familyid} student ${row.studentname} class ${row.classname}`}
-                                            />
-                                        </TableCell>
-                                        {COLUMNS.map(({ key: columnKey }) => (
-                                            <TableCell key={columnKey}>{row[columnKey]}</TableCell>
-                                        ))}
-                                    </TableRow>
+                                        row={row}
+                                        rowId={key}
+                                        isSelected={selected.has(key)}
+                                        onToggle={toggleRow}
+                                        onRowDragStart={dnd.onRowDragStart}
+                                    />
                                 );
                             })
                         )}

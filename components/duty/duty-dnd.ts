@@ -1,6 +1,6 @@
 "use client";
 
-import { type DragEvent, useState } from "react";
+import { type DragEvent, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { type DutyRosterRow } from "@/types/duty.types";
 
 export type DutyList = "available" | "assigned";
@@ -43,14 +43,27 @@ export function useListDnd(
 ): ListDnd {
     const [isOver, setIsOver] = useState(false);
 
-    return {
-        onRowDragStart: (row) => (event) => {
-            const payload: DragPayload = { keys: keysForDrag(row), from: list };
+    // The callbacks change every render (they close over the current lists and selection).
+    // Reading them through refs keeps the handlers below stable, so memoized rows receiving
+    // `onRowDragStart` don't all re-render whenever the parent does.
+    const keysForDragRef = useRef(keysForDrag);
+    const onDropRowsRef = useRef(onDropRows);
+    useLayoutEffect(() => {
+        keysForDragRef.current = keysForDrag;
+        onDropRowsRef.current = onDropRows;
+    });
+
+    const onRowDragStart = useCallback(
+        (row: DutyRosterRow) => (event: DragEvent<HTMLElement>) => {
+            const payload: DragPayload = { keys: keysForDragRef.current(row), from: list };
             event.dataTransfer.setData("text/plain", JSON.stringify(payload));
             event.dataTransfer.effectAllowed = "move";
         },
-        isOver,
-        dropProps: {
+        [list]
+    );
+
+    const dropProps = useMemo<ListDnd["dropProps"]>(
+        () => ({
             // The payload can't be read during dragover, so accept and validate on drop.
             onDragOver: (event) => {
                 event.preventDefault();
@@ -67,9 +80,12 @@ export function useListDnd(
                 setIsOver(false);
                 const payload = readPayload(event);
                 if (payload && payload.from !== list && payload.keys.length > 0) {
-                    onDropRows(payload.keys);
+                    onDropRowsRef.current(payload.keys);
                 }
             },
-        },
-    };
+        }),
+        [list]
+    );
+
+    return { onRowDragStart, isOver, dropProps };
 }

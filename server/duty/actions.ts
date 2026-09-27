@@ -42,6 +42,14 @@ function dutyRowValues(seasonid: number, dutydate: string, student: DutyStudent)
     };
 }
 
+/**
+ * The available list is one row per class registration, but duty is one row per student, so
+ * a student in two classes arrives twice. Collapse to one entry per family/student.
+ */
+function uniqueStudents<T extends DutyStudent>(rows: T[]): T[] {
+    return [...new Map(rows.map((row) => [`${row.familyid}-${row.studentid}`, row])).values()];
+}
+
 async function hasDuty(tx: dbClient, seasonid: number, student: DutyStudent) {
     const existing = await tx.query.dutyassignment.findFirst({
         where: (da, { and, eq }) =>
@@ -69,6 +77,8 @@ export const confirmDutyAssignments = safeAction(
     async ({ seasonid, dutydate, rows }) => {
         await requireRole(["ADMIN"], { redirect: false });
 
+        const students = uniqueStudents(rows);
+
         return await db.transaction(async (tx) => {
             const existing = await tx
                 .select({
@@ -81,13 +91,15 @@ export const confirmDutyAssignments = safeAction(
                         eq(dutyassignment.seasonid, seasonid),
                         inArray(
                             dutyassignment.studentid,
-                            rows.map((row) => row.studentid)
+                            students.map((row) => row.studentid)
                         )
                     )
                 );
 
             const taken = new Set(existing.map((row) => `${row.familyid}-${row.studentid}`));
-            const toInsert = rows.filter((row) => !taken.has(`${row.familyid}-${row.studentid}`));
+            const toInsert = students.filter(
+                (row) => !taken.has(`${row.familyid}-${row.studentid}`)
+            );
 
             if (toInsert.length === 0) {
                 throw new Error("These students already have a duty assignment this season");
@@ -97,7 +109,8 @@ export const confirmDutyAssignments = safeAction(
                 .insert(dutyassignment)
                 .values(toInsert.map((row) => dutyRowValues(seasonid, dutydate, row)));
 
-            return { inserted: toInsert.length, skipped: rows.length - toInsert.length };
+            // `skipped` counts students already on duty, not extra class rows collapsed above.
+            return { inserted: toInsert.length, skipped: students.length - toInsert.length };
         });
     }
 );
@@ -112,10 +125,9 @@ export const autoDistributeDuty = safeAction(
     async ({ seasonid, dutydates, rows }) => {
         await requireRole(["ADMIN"], { redirect: false });
 
-        // The available list is one row per class registration; duty is one row per student.
-        const students = [...new Map(rows.map((row) => [`${row.familyid}-${row.studentid}`, row]))]
-            .map(([, row]) => row)
-            .sort((a, b) => a.familyid - b.familyid || a.studentid - b.studentid);
+        const students = uniqueStudents(rows).sort(
+            (a, b) => a.familyid - b.familyid || a.studentid - b.studentid
+        );
 
         let inserted = 0;
         const failed: DutyFailure[] = [];
