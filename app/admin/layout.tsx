@@ -2,7 +2,6 @@ import React from "react";
 import {
     Book,
     Calendar,
-    CalendarCheck,
     ClipboardList,
     CreditCard,
     Home,
@@ -109,12 +108,6 @@ const navItems = [
     {
         header: "Duty Maintance",
         items: [
-            {
-                label: "Arrange Duty",
-                href: [`${beginlink}/duty/arrange-duty`],
-                icon: <CalendarCheck className="h-4 w-4" />,
-                tip: "安排值日",
-            },
             {
                 label: "Duty Management",
                 href: [`${beginlink}/duty/duty-management`],

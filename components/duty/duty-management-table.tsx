@@ -127,25 +127,27 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
         () =>
             rows.filter((row) => {
                 if (deleted.has(row.dutyassignid)) return false;
+                // A row open for editing ignores the filters, so changing its date/status/note
+                // doesn't make it vanish mid-edit. The filters apply again once saved or cancelled.
+                if (drafts[row.dutyassignid]) return true;
 
-                const current = drafts[row.dutyassignid] ??
-                    saved[row.dutyassignid] ?? {
-                        dutydate: row.dutydate,
-                        dutystatus: row.dutystatus,
-                        note: row.note,
-                    };
+                const current = saved[row.dutyassignid] ?? {
+                    dutydate: row.dutydate,
+                    dutystatus: row.dutystatus,
+                    note: row.note,
+                };
 
                 if (statusFilter !== ALL_STATUSES && String(current.dutystatus) !== statusFilter) {
                     return false;
                 }
-                // Like the note filter, this matches what the row shows, so a pending or
-                // just-saved date change is reflected straight away.
+                // Like the note filter, this matches what the row shows, so a just-saved date
+                // change is reflected straight away.
                 if (dateFilter !== ALL_DATES && current.dutydate !== dateFilter) return false;
 
                 return FILTER_COLUMNS.every(({ key }) => {
                     const filter = filters[key]?.trim().toLowerCase();
                     if (!filter) return true;
-                    // Notes filter on what's shown, which is the pending edit when there is one.
+                    // Notes filter on what's shown, which is the saved edit when there is one.
                     const value = key === "note" ? current.note : row[key];
                     return String(value).toLowerCase().includes(filter);
                 });
@@ -156,14 +158,15 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     // `YYYY-MM-DD` sorts lexicographically, so plain string compare is chronological.
     const sortedRows = useMemo(() => {
         if (!dateSort) return visibleRows;
+        // Sorts on the saved date, not the draft, so a row doesn't jump around while edited.
         const dateOf = (row: DutyAssignmentRow) =>
-            drafts[row.dutyassignid]?.dutydate ?? saved[row.dutyassignid]?.dutydate ?? row.dutydate;
+            saved[row.dutyassignid]?.dutydate ?? row.dutydate;
         return [...visibleRows].sort((a, b) =>
             dateSort === "asc"
                 ? dateOf(a).localeCompare(dateOf(b))
                 : dateOf(b).localeCompare(dateOf(a))
         );
-    }, [visibleRows, dateSort, drafts, saved]);
+    }, [visibleRows, dateSort, saved]);
 
     const hasFilters =
         statusFilter !== ALL_STATUSES ||

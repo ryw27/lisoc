@@ -1,14 +1,21 @@
+import ArrangeDutyView from "@/components/duty/arrange-duty-view";
 import DutyManagementTable from "@/components/duty/duty-management-table";
 import DutySeasonFilter from "@/components/duty/duty-season-filter";
+import DutyTabs, { type DutyTab } from "@/components/duty/duty-tabs";
 import { type DutyTerm } from "@/types/duty.types";
-import { fetchDutyAssignments, fetchSeasonFilterOptions } from "@/server/duty/data";
+import {
+    fetchDutyAssignments,
+    fetchDutyDates,
+    fetchDutyRoster,
+    fetchSeasonFilterOptions,
+} from "@/server/duty/data";
 
 export default async function DutyManagementPage({
     searchParams,
 }: {
-    searchParams: Promise<{ year?: string; term?: string }>;
+    searchParams: Promise<{ year?: string; term?: string; tab?: string }>;
 }) {
-    const { year, term } = await searchParams;
+    const { year, term, tab } = await searchParams;
     const { years, currentBeginSeasonId } = await fetchSeasonFilterOptions();
 
     // Default to the academic year holding the active season (newest otherwise) and Fall.
@@ -19,12 +26,17 @@ export default async function DutyManagementPage({
         years[0]?.beginseasonid ??
         null;
     const selectedTerm: DutyTerm = term === "spring" ? "spring" : "fall";
+    const activeTab: DutyTab = tab === "management" ? "management" : "assign";
 
     const yearOption = years.find((y) => y.beginseasonid === selectedYear);
     const seasonid =
         (selectedTerm === "spring" ? yearOption?.springseasonid : yearOption?.fallseasonid) ?? null;
 
-    const { seasonname, rows } = await fetchDutyAssignments(seasonid);
+    const [roster, dutydates, assignments] = await Promise.all([
+        fetchDutyRoster(seasonid),
+        fetchDutyDates(selectedYear),
+        fetchDutyAssignments(seasonid),
+    ]);
 
     return (
         <div className="p-4">
@@ -36,13 +48,41 @@ export default async function DutyManagementPage({
                 selectedTerm={selectedTerm}
             />
 
-            <p className="text-muted-foreground mb-4 text-sm">
-                {seasonname
-                    ? `${seasonname} — ${rows.length} duty assignment${rows.length === 1 ? "" : "s"}`
-                    : "No semester found for this selection"}
-            </p>
-
-            <DutyManagementTable key={`table-${seasonid ?? "none"}`} rows={rows} />
+            <DutyTabs
+                activeTab={activeTab}
+                assign={
+                    <>
+                        <p className="text-muted-foreground mb-4 text-sm">
+                            {roster.seasonname
+                                ? `${roster.seasonname} — ${roster.rows.length} registration${
+                                      roster.rows.length === 1 ? "" : "s"
+                                  } available · ${roster.assignedcount} assigned`
+                                : "No semester found for this selection"}
+                        </p>
+                        <ArrangeDutyView
+                            key={`view-${seasonid ?? "none"}`}
+                            seasonid={seasonid}
+                            dutydates={dutydates}
+                            rows={roster.rows}
+                        />
+                    </>
+                }
+                management={
+                    <>
+                        <p className="text-muted-foreground mb-4 text-sm">
+                            {assignments.seasonname
+                                ? `${assignments.seasonname} — ${assignments.rows.length} duty assignment${
+                                      assignments.rows.length === 1 ? "" : "s"
+                                  }`
+                                : "No semester found for this selection"}
+                        </p>
+                        <DutyManagementTable
+                            key={`table-${seasonid ?? "none"}`}
+                            rows={assignments.rows}
+                        />
+                    </>
+                }
+            />
         </div>
     );
 }
