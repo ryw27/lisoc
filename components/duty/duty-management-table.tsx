@@ -6,6 +6,7 @@ import {
     ChevronDown,
     ChevronsUpDown,
     ChevronUp,
+    Copy,
     Download,
     Pencil,
     PencilOff,
@@ -103,6 +104,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     const router = useRouter();
     const [error, setError] = useState("");
     const [isSaving, startSave] = useTransition();
+    const [copyMessage, setCopyMessage] = useState("");
 
     const [filters, setFilters] = useState<ColumnFilters>({});
     // The inputs show `filters` immediately; the row filtering trails behind on the deferred
@@ -269,6 +271,22 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
         );
     };
 
+    // Copies the emails of the rows passing the filters (not every row), de-duplicated since
+    // siblings share a family email, joined with "; " so they paste straight into To/Bcc.
+    const copyEmails = async () => {
+        const emails = [...new Set(sortedRows.map((row) => row.email.trim()).filter(Boolean))];
+        if (emails.length === 0) {
+            setCopyMessage("No emails to copy");
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(emails.join("; "));
+            setCopyMessage(`Copied ${emails.length} email${emails.length === 1 ? "" : "s"}`);
+        } catch {
+            setCopyMessage("Could not copy to clipboard");
+        }
+    };
+
     const filterCell = (key: FilterKey) => {
         const column = FILTER_COLUMNS.find((c) => c.key === key)!;
         return (
@@ -313,6 +331,18 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                 >
                     <Download size={16} />
                     Export to CSV
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyEmails}
+                    disabled={sortedRows.length === 0}
+                    onMouseLeave={() => setCopyMessage("")}
+                    title={copyMessage || "Copy the emails of the filtered rows"}
+                >
+                    <Copy size={16} />
+                    {copyMessage || "Copy Emails"}
                 </Button>
             </div>
 
