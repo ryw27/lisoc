@@ -88,9 +88,21 @@ type EmailMatch = {
 export default async function FindFamily({
     searchParams,
 }: {
-    searchParams?: Promise<{ studentname?: string | string[]; email?: string | string[] }>;
+    searchParams?: Promise<{
+        familyid?: string | string[];
+        studentname?: string | string[];
+        email?: string | string[];
+    }>;
 }) {
     const params = searchParams ? await searchParams : {};
+
+    // Linkable family-id search (e.g. from the billing ledger), same result as the form
+    const rawFamilyId = params.familyid;
+    const familyid = Number(Array.isArray(rawFamilyId) ? rawFamilyId[0] : rawFamilyId);
+    if (Number.isInteger(familyid) && familyid > 0) {
+        redirect(`/admin/management/${familyid}`);
+    }
+
     const rawName = params.studentname;
     const name = (Array.isArray(rawName) ? rawName[0] : rawName)?.trim();
     const rawEmail = params.email;

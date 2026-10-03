@@ -327,7 +327,7 @@ export async function POST(request: Request) {
                 note: `PayPal Capture ID: ${captureData.id}`,
             },
             target.familyid,
-            { userid: SYSTEM_USERID, fromAdmin: false }
+            { userid: SYSTEM_USERID, fromAdmin: false, isOnlinePayment: true }
         );
     } catch (err) {
         // Critical: PayPal took the money but we failed to record the credit.

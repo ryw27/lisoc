@@ -1,5 +1,49 @@
-export default function BillingPage() {
-    return <div>In Progress</div>;
+import { getBalanceRecords, getBalanceTypeTotals, getLedgerSeasons } from "@/server/billing/data";
+import FinancialLedger from "@/components/billing/financial-ledger";
+
+const firstParam = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
+
+export default async function BillingPage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ season?: string | string[]; type?: string | string[] }>;
+}) {
+    const params = searchParams ? await searchParams : {};
+    const { seasons, defaultSeason } = await getLedgerSeasons();
+
+    // Selection comes from the URL so it survives back/forward navigation
+    const seasonParam = Number(firstParam(params.season));
+    const season = seasons.find((s) => s.seasonid === seasonParam) ?? defaultSeason;
+
+    if (!season) {
+        return (
+            <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8">
+                <div className="mx-auto max-w-7xl space-y-8">
+                    <span className="text-2xl">No seasons currently available</span>
+                </div>
+            </div>
+        );
+    }
+
+    const totals = await getBalanceTypeTotals(season.seasonid);
+
+    const typeParam = firstParam(params.type);
+    const selectedType = totals.find((t) => t.key === typeParam) ?? null;
+    const records = selectedType
+        ? await getBalanceRecords(season.seasonid, selectedType.typeid, selectedType.online)
+        : [];
+
+    return (
+        <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8">
+            <FinancialLedger
+                season={season}
+                seasons={seasons}
+                totals={totals}
+                selectedKey={selectedType?.key ?? null}
+                records={records}
+            />
+        </div>
+    );
 }
 // "use client";
 

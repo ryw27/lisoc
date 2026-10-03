@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { download, generateCsv, mkConfig } from "export-to-csv";
-import { CheckSquare, ChevronDown, Download, FileText, Loader2, TableIcon } from "lucide-react";
+import { CheckSquare, Download, FileText, Loader2, TableIcon } from "lucide-react";
 import { cn, monthAbbrevMap, toESTString } from "@/lib/utils";
 import { type BillingRow, type FamilyRow } from "@/types/billing.types";
 import { getLedgerAction } from "@/server/billing/actions";
@@ -15,6 +15,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import BillingTable from "./billing-table";
+import SeasonTitle, { type BillingSeasonInfo } from "./season-title";
 
 const csvConfig = mkConfig({
     fieldSeparator: ",",
@@ -47,16 +48,8 @@ type BillingLedgerProps = {
         family: FamilyRow[];
         global: BillingRow[];
     };
-    defaultSeason: billingSeasonInfo;
-    seasons: billingSeasonInfo[];
-};
-
-type billingSeasonInfo = {
-    seasonid: number;
-    seasonnamecn: string;
-    seasonnameeng: string;
-    earlyregdate: string;
-    enddate: string;
+    defaultSeason: BillingSeasonInfo;
+    seasons: BillingSeasonInfo[];
 };
 
 export type TableExportType = {
@@ -64,7 +57,7 @@ export type TableExportType = {
 };
 
 export default function BillingLedger({ initialData, defaultSeason, seasons }: BillingLedgerProps) {
-    const [selectedSeason, setSelectedSeason] = useState<billingSeasonInfo>(defaultSeason);
+    const [selectedSeason, setSelectedSeason] = useState<BillingSeasonInfo>(defaultSeason);
 
     const [familyData, setFamilyData] = useState<FamilyRow[]>(initialData.family);
     const [globalData, setGlobalData] = useState<BillingRow[]>(initialData.global);
@@ -74,7 +67,7 @@ export default function BillingLedger({ initialData, defaultSeason, seasons }: B
 
     const [pending, start] = useTransition();
 
-    const changeSeason = async (season: billingSeasonInfo) => {
+    const changeSeason = async (season: BillingSeasonInfo) => {
         start(async () => {
             const newData = await getLedgerAction(season.seasonid);
 
@@ -93,59 +86,13 @@ export default function BillingLedger({ initialData, defaultSeason, seasons }: B
         <div className="mx-auto max-w-7xl space-y-8">
             <header className="border-primary/10 flex flex-col justify-between gap-6 border-b pb-6 md:flex-row md:items-end">
                 <div className="space-y-2">
-                    <div className="flex items-baseline gap-4">
-                        <h1 className="text-primary text-3xl font-bold tracking-tight uppercase md:text-4xl">
-                            Latest Transactions
-                        </h1>
-                        <span className="text-muted-foreground/40 hidden text-3xl font-light italic md:inline">
-                            /
-                        </span>
-                        <div className="group relative">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild disabled={pending}>
-                                    <button
-                                        className={cn(
-                                            "flex items-center gap-2 text-3xl font-normal tracking-tight transition-all outline-none md:text-3xl",
-                                            // Color logic: Primary when active, muted when pending
-                                            pending
-                                                ? "text-muted-foreground cursor-wait"
-                                                : "text-secondary hover:opacity-80"
-                                        )}
-                                    >
-                                        {selectedSeason.seasonnameeng}
-
-                                        {/* Swap Chevron for Spinner */}
-                                        {pending ? (
-                                            <Loader2
-                                                size={24}
-                                                className="mt-1 animate-spin opacity-50"
-                                            />
-                                        ) : (
-                                            <ChevronDown
-                                                size={24}
-                                                className="mt-1 stroke-[3] opacity-50"
-                                            />
-                                        )}
-                                    </button>
-                                </DropdownMenuTrigger>
-
-                                <DropdownMenuContent
-                                    align="start"
-                                    className="bg-background max-h-[300px] w-[200px] overflow-y-auto"
-                                >
-                                    {seasons.map((season) => (
-                                        <DropdownMenuItem
-                                            key={season.seasonid}
-                                            onClick={() => changeSeason(season)}
-                                            className="cursor-pointer text-lg"
-                                        >
-                                            {season.seasonnamecn}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
+                    <SeasonTitle
+                        title="Latest Transactions"
+                        seasons={seasons}
+                        selectedSeason={selectedSeason}
+                        pending={pending}
+                        onSelect={changeSeason}
+                    />
 
                     <p className="text-muted-foreground text-sm tracking-wide uppercase">
                         Record Period:{" "}

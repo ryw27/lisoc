@@ -1,5 +1,9 @@
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { family, familybalance, familybalancestatus, familybalancetype } from "@/lib/db/schema";
 import { billingJoin, BillingRow, BillingSummary, FamilyRow } from "@/types/billing.types";
+import { FAMILYBALANCE_TYPE_PAYMENT } from "@/lib/utils";
+import fetchCurrentSeasons from "@/server/seasons/data";
 
 export function selectFamilyName(names: {
     fatherlasten: string | null;
@@ -27,6 +31,150 @@ export function selectFamilyName(names: {
         .join("-");
 
     return enName.trim() ?? "Unknown";
+}
+
+const seasonColumns = {
+    seasonid: true,
+    seasonnamecn: true,
+    seasonnameeng: true,
+    earlyregdate: true,
+    enddate: true,
+} as const;
+
+/**
+ * Seasons for the accounting season dropdowns, newest first, plus the default selection:
+ * the active fall/spring season, falling back to the latest season.
+ */
+export async function getLedgerSeasons() {
+    const seasons = await db.query.seasons.findMany({
+        columns: seasonColumns,
+        orderBy: (s, { desc }) => desc(s.seasonid),
+    });
+
+    let defaultSeasonId: number | undefined;
+    try {
+        const current = await fetchCurrentSeasons();
+        defaultSeasonId =
+            current.fall.status === "Active" ? current.fall.seasonid : current.spring.seasonid;
+    } catch {
+        defaultSeasonId = seasons[0]?.seasonid;
+    }
+
+    const defaultSeason = seasons.find((s) => s.seasonid === defaultSeasonId) ?? seasons[0];
+    return { seasons, defaultSeason };
+}
+
+export type BalanceTypeTotal = {
+    key: string; // typeid, plus "-online"/"-offline" for the split Payment type
+    typeid: number;
+    online: boolean | null; // null = not split by online/offline
+    label: string;
+    total: number;
+};
+
+// Payments are split into online (PayPal) and offline (check/cash) rows
+const onlineGroup = sql<
+    boolean | null
+>`case when ${familybalance.typeid} = ${sql.raw(String(FAMILYBALANCE_TYPE_PAYMENT))} then coalesce(${familybalance.isonlinepayment}, false) end`;
+
+// Sum of familybalance.totalamount per balance type for one season
+export async function getBalanceTypeTotals(seasonid: number): Promise<BalanceTypeTotal[]> {
+    const rows = await db
+        .select({
+            typeid: familybalancetype.typeid,
+            typenameen: familybalancetype.typenameen,
+            online: onlineGroup,
+            total: sql<string>`coalesce(sum(${familybalance.totalamount}), 0)`,
+        })
+        .from(familybalance)
+        .innerJoin(familybalancetype, eq(familybalance.typeid, familybalancetype.typeid))
+        .where(eq(familybalance.seasonid, seasonid))
+        .groupBy(familybalancetype.typeid, familybalancetype.typenameen, onlineGroup)
+        .orderBy(familybalancetype.typeid, desc(onlineGroup));
+
+    return rows.map((r) => {
+        const name = r.typenameen ?? `Type ${r.typeid}`;
+        const suffix = r.online === null ? "" : r.online ? "online" : "offline";
+        return {
+            key: suffix ? `${r.typeid}-${suffix}` : String(r.typeid),
+            typeid: r.typeid,
+            online: r.online,
+            label: suffix ? `${name} (${r.online ? "Online" : "Offline"})` : name,
+            total: Number(r.total),
+        };
+    });
+}
+
+export type BalanceRecord = {
+    balanceid: number;
+    familyid: number;
+    familyname: string;
+    registerdate: string;
+    paiddate: string;
+    totalamount: number;
+    status: string | null;
+    checkno: string | null;
+    transactionno: string | null;
+    reference: string | null;
+    notes: string | null;
+    userid: string | null;
+};
+
+// All familybalance rows of one balance type for one season, newest first
+// `online` narrows the split Payment type; null means any
+export async function getBalanceRecords(
+    seasonid: number,
+    typeid: number,
+    online: boolean | null = null
+): Promise<BalanceRecord[]> {
+    const rows = await db
+        .select({
+            balanceid: familybalance.balanceid,
+            familyid: familybalance.familyid,
+            fatherlasten: family.fatherlasten,
+            fatherfirsten: family.fatherfirsten,
+            motherlasten: family.motherlasten,
+            motherfirsten: family.motherfirsten,
+            fathernamecn: family.fathernamecn,
+            mothernamecn: family.mothernamecn,
+            registerdate: familybalance.registerdate,
+            paiddate: familybalance.paiddate,
+            totalamount: familybalance.totalamount,
+            status: familybalancestatus.statusen,
+            checkno: familybalance.checkno,
+            transactionno: familybalance.transactionno,
+            reference: familybalance.reference,
+            notes: familybalance.notes,
+            userid: familybalance.userid,
+        })
+        .from(familybalance)
+        .leftJoin(family, eq(familybalance.familyid, family.familyid))
+        .leftJoin(familybalancestatus, eq(familybalance.statusid, familybalancestatus.statusid))
+        .where(
+            and(
+                eq(familybalance.seasonid, seasonid),
+                eq(familybalance.typeid, typeid),
+                online === null
+                    ? undefined
+                    : sql`coalesce(${familybalance.isonlinepayment}, false) = ${online}`
+            )
+        )
+        .orderBy(desc(familybalance.registerdate), desc(familybalance.balanceid));
+
+    return rows.map((r) => ({
+        balanceid: r.balanceid,
+        familyid: r.familyid,
+        familyname: selectFamilyName(r),
+        registerdate: r.registerdate,
+        paiddate: r.paiddate,
+        totalamount: Number(r.totalamount),
+        status: r.status,
+        checkno: r.checkno,
+        transactionno: r.transactionno,
+        reference: r.reference,
+        notes: r.notes,
+        userid: r.userid,
+    }));
 }
 
 export async function getLedgerData(sid: number): Promise<{

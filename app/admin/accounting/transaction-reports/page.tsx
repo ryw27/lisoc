@@ -1,24 +1,10 @@
-import { InferSelectModel } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { seasons } from "@/lib/db/schema";
-import { getLedgerData } from "@/server/billing/data";
-import fetchCurrentSeasons from "@/server/seasons/data";
+import { getLedgerData, getLedgerSeasons } from "@/server/billing/data";
 import BillingLedger from "@/components/billing/billing-ledger";
 
-// TODO: Should we have a record page?
 export default async function TransactionReportsPage() {
-    let lastSeason: InferSelectModel<typeof seasons> | undefined;
-    try {
-        const seasons = await fetchCurrentSeasons();
+    const { seasons, defaultSeason } = await getLedgerSeasons();
 
-        lastSeason = seasons.fall.status === "Active" ? seasons.fall : seasons.spring;
-    } catch {
-        lastSeason = await db.query.seasons.findFirst({
-            orderBy: (s, { desc }) => desc(s.seasonid),
-        });
-    }
-
-    if (!lastSeason) {
+    if (!defaultSeason) {
         return (
             <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8">
                 <div className="mx-auto max-w-7xl space-y-8">
@@ -28,31 +14,14 @@ export default async function TransactionReportsPage() {
         );
     }
 
-    const ledgerData = await getLedgerData(lastSeason.seasonid);
-
-    const allSeasons = await db.query.seasons.findMany({
-        columns: {
-            seasonid: true,
-            seasonnamecn: true,
-            seasonnameeng: true,
-            earlyregdate: true,
-            enddate: true,
-        },
-        orderBy: (s, { desc }) => desc(s.seasonid),
-    });
+    const ledgerData = await getLedgerData(defaultSeason.seasonid);
 
     return (
         <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8">
             <BillingLedger
                 initialData={{ family: ledgerData.familyRows, global: ledgerData.globalRows }}
-                defaultSeason={{
-                    seasonid: lastSeason.seasonid,
-                    seasonnamecn: lastSeason.seasonnamecn,
-                    seasonnameeng: lastSeason.seasonnameeng,
-                    earlyregdate: lastSeason.earlyregdate,
-                    enddate: lastSeason.enddate,
-                }}
-                seasons={allSeasons}
+                defaultSeason={defaultSeason}
+                seasons={seasons}
             />
             <div className="text-muted-foreground/20 py-8 text-center text-xs font-normal tracking-[0.2em] uppercase">
                 Confidential Financial Record • Do Not Distribute

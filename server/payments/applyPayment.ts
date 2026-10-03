@@ -6,6 +6,7 @@
 // callers authorize themselves and decide the stamp:
 //   - `applyCheck` (server action)  -> the signed-in operator's login
 //   - the PayPal capture route      -> SYSTEM_USERID ("app"), no human operator
+// Likewise `isOnlinePayment` is only set by the PayPal capture route.
 import { db } from "@/lib/db";
 import { classregistration, familybalance } from "@/lib/db/schema";
 import {
@@ -23,7 +24,11 @@ import { z } from "zod/v4";
 export async function applyPaymentToBalance(
     data: z.infer<typeof checkApplySchema>,
     familyid: number,
-    { userid, fromAdmin }: { userid: string; fromAdmin: boolean }
+    {
+        userid,
+        fromAdmin,
+        isOnlinePayment = false,
+    }: { userid: string; fromAdmin: boolean; isOnlinePayment?: boolean }
 ) {
     const parsed = checkApplySchema.parse(data);
 
@@ -56,6 +61,7 @@ export async function applyPaymentToBalance(
             typeid: data.feeTypeId,
             statusid: FAMILYBALANCE_STATUS_PAID, // Because we're applying a payment
             checkno: parsed.checkNo,
+            isonlinepayment: isOnlinePayment,
             totalamount: (parsed.amount * feeTyepeSign).toString(),
             paiddate: toESTString(parsed.paidDate),
             tuition: "0",

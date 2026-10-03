@@ -1,18 +1,9 @@
 import Link from "next/link";
-import { and, asc, between, countDistinct, desc, eq, gt, ne, sum } from "drizzle-orm";
-import {
-    Activity,
-    ArrowRight,
-    CreditCard,
-    DollarSign,
-    FileText,
-    GraduationCap,
-    Plus,
-    Users,
-} from "lucide-react";
+import { and, asc, between, countDistinct, desc, eq, ne } from "drizzle-orm";
+import { Activity, ArrowRight, FileText, GraduationCap, Plus, Users } from "lucide-react";
 import { DefaultSession } from "next-auth";
 import { db } from "@/lib/db";
-import { classes, classregistration, familybalance } from "@/lib/db/schema";
+import { classes, classregistration } from "@/lib/db/schema";
 import {
     formatCurrency,
     HIGHEST_GRADE,
@@ -25,6 +16,7 @@ import { threeSeasons } from "@/types/seasons.types";
 import { requireRole } from "@/server/auth/actions";
 import { selectFamilyName } from "@/server/billing/data";
 import fetchCurrentSeasons from "@/server/seasons/data";
+import GradeDistribution from "@/components/admin/grade-distribution";
 import Logo from "@/components/logo";
 
 const formatBillingDate = (date: string) => {
@@ -164,19 +156,6 @@ export default async function HomePage() {
 
     const isSpring = lastSeason.spring.status === "Active";
 
-    // Collected
-    const result = await db
-        .select({ total: sum(familybalance.totalamount) })
-        .from(familybalance)
-        .where(
-            and(
-                eq(familybalance.seasonid, active_season.seasonid),
-                gt(familybalance.totalamount, "0")
-            )
-        );
-
-    const collectedRevenue = Number(result[0].total ?? 0);
-
     return (
         <div className="bg-background text-foreground min-h-screen w-full p-6 md:p-10">
             <div className="mx-auto max-w-7xl space-y-10">
@@ -241,30 +220,6 @@ export default async function HomePage() {
                             </span>
                         </div>
                     </div>
-
-                    {/* Revenue */}
-                    <div className="group border-border border-t-accent bg-card relative overflow-hidden rounded-none border border-t-4 p-6 shadow-sm transition-shadow hover:shadow-md">
-                        <div className="mb-4 flex items-start justify-between">
-                            <div className="text-secondary flex items-center gap-2">
-                                <CreditCard size={18} />
-                                <span className="text-xs font-bold tracking-widest uppercase">
-                                    Revenue Collected
-                                </span>
-                            </div>
-                            <DollarSign
-                                className="text-accent opacity-40 transition-transform duration-500 group-hover:scale-110"
-                                size={48}
-                            />
-                        </div>
-                        <div>
-                            <span className="text-primary block text-6xl font-medium tracking-tighter tabular-nums">
-                                {formatCurrency(collectedRevenue).replace(".00", "")}
-                            </span>
-                            <span className="text-muted-foreground mt-1 block text-sm">
-                                Net collection year-to-date
-                            </span>
-                        </div>
-                    </div>
                 </section>
 
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
@@ -287,25 +242,11 @@ export default async function HomePage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                            {finalCount.map((item, index) => (
-                                <div
-                                    key={index}
-                                    className="group border-border bg-card hover:border-accent rounded-none border p-4 transition-all duration-200 hover:shadow-sm"
-                                >
-                                    <div className="flex h-full flex-col justify-between">
-                                        <span className="text-primary group-hover:text-secondary mb-2 text-2xl font-medium transition-colors">
-                                            {gradeToDisplay[item.grade]}
-                                        </span>
-                                        <div className="space-y-2">
-                                            <span className="text-muted-foreground text-xs font-medium">
-                                                {item.count} Students
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {/* Grades with no enrolled students are left out */}
+                        <GradeDistribution
+                            counts={finalCount.filter((item) => item.count > 0)}
+                            gradeLabels={gradeToDisplay}
+                        />
                     </div>
 
                     {/* Ledger */}
