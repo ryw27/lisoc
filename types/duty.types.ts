@@ -54,6 +54,8 @@ export interface DutyAssignmentRow {
     email: string;
     address: string;
     note: string;
+    /** Status of the student's latest class registration in the season, e.g. `R/注册`. */
+    regstatus: string;
 }
 
 export interface DutyAssignments {

@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { type DutyAssignmentRow } from "@/types/duty.types";
 import { exportRowsToCsv } from "@/lib/export-csv";
-import { DUTY_STATUSES, toESTString } from "@/lib/utils";
+import { DUTY_STATUSES, regStatusMap, toESTString } from "@/lib/utils";
 import { deleteDutyAssignment, updateDutyAssignment } from "@/server/duty/actions";
 
 /** Columns with a partial-match filter box, in display order. */
@@ -62,6 +62,9 @@ const DUTY_STATUS_DONE = 2;
 
 const ALL_STATUSES = "__all__";
 const ALL_DATES = "__all__";
+const ALL_REG_STATUSES = "__all__";
+/** Reg status filter options: every status label, plus "None" for students with no registration. */
+const REG_STATUS_OPTIONS = [...Object.values(regStatusMap), "None"];
 const COLUMN_COUNT = 13;
 
 /** Data columns of the CSV, in table order; the Delete/Edit controls are left out. */
@@ -73,10 +76,11 @@ const CSV_HEADERS = [
     { key: "fathername", displayLabel: "Father" },
     { key: "dutydate", displayLabel: "Duty Date" },
     { key: "dutystatus", displayLabel: "Status" },
+    { key: "regstatus", displayLabel: "Reg Status" },
+    { key: "note", displayLabel: "Note" },
     { key: "phone", displayLabel: "Phone" },
     { key: "email", displayLabel: "Email" },
     { key: "address", displayLabel: "Address" },
-    { key: "note", displayLabel: "Note" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -112,6 +116,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     const deferredFilters = useDeferredValue(filters);
     const [statusFilter, setStatusFilter] = useState(ALL_STATUSES);
     const [dateFilter, setDateFilter] = useState(ALL_DATES);
+    const [regStatusFilter, setRegStatusFilter] = useState(ALL_REG_STATUSES);
     const [dateSort, setDateSort] = useState<"asc" | "desc" | null>(null);
 
     const dateOptions = useMemo(
@@ -148,6 +153,9 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                 // Like the note filter, this matches what the row shows, so a just-saved date
                 // change is reflected straight away.
                 if (dateFilter !== ALL_DATES && current.dutydate !== dateFilter) return false;
+                if (regStatusFilter !== ALL_REG_STATUSES && row.regstatus !== regStatusFilter) {
+                    return false;
+                }
 
                 return FILTER_COLUMNS.every(({ key }) => {
                     const filter = deferredFilters[key]?.trim().toLowerCase();
@@ -157,7 +165,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                     return String(value).toLowerCase().includes(filter);
                 });
             }),
-        [rows, deferredFilters, statusFilter, dateFilter, drafts, saved, deleted]
+        [rows, deferredFilters, statusFilter, dateFilter, regStatusFilter, drafts, saved, deleted]
     );
 
     // `YYYY-MM-DD` sorts lexicographically, so plain string compare is chronological.
@@ -176,6 +184,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
     const hasFilters =
         statusFilter !== ALL_STATUSES ||
         dateFilter !== ALL_DATES ||
+        regStatusFilter !== ALL_REG_STATUSES ||
         Object.values(filters).some((value) => value?.trim());
 
     const startEdit = (row: DutyAssignmentRow) => {
@@ -257,6 +266,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                     dutystatus:
                         DUTY_STATUSES.find((s) => s.id === current.dutystatus)?.label ??
                         String(current.dutystatus),
+                    regstatus: row.regstatus,
                     phone: row.phone,
                     email: row.email,
                     address: row.address,
@@ -315,6 +325,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                             setFilters({});
                             setStatusFilter(ALL_STATUSES);
                             setDateFilter(ALL_DATES);
+                            setRegStatusFilter(ALL_REG_STATUSES);
                         }}
                     >
                         Clear filters
@@ -352,7 +363,6 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                         <TableRow>
                             <TableHead className="w-12">Delete</TableHead>
                             <TableHead className="w-24">Edit</TableHead>
-                            <TableHead>D_ID</TableHead>
                             <TableHead>Family ID</TableHead>
                             <TableHead>Student Name</TableHead>
                             <TableHead>Mother</TableHead>
@@ -377,13 +387,13 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                 </button>
                             </TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Reg Status</TableHead>
+                            <TableHead>Note</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Address</TableHead>
-                            <TableHead>Note</TableHead>
                         </TableRow>
                         <TableRow className="hover:bg-transparent">
-                            <TableHead />
                             <TableHead />
                             <TableHead />
                             <TableHead className="py-2">{filterCell("familyid")}</TableHead>
@@ -420,10 +430,27 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                     </SelectContent>
                                 </Select>
                             </TableHead>
+                            <TableHead className="py-2">
+                                <Select value={regStatusFilter} onValueChange={setRegStatusFilter}>
+                                    <SelectTrigger className="h-8 w-36" size="sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={ALL_REG_STATUSES}>
+                                            All statuses
+                                        </SelectItem>
+                                        {REG_STATUS_OPTIONS.map((label) => (
+                                            <SelectItem key={label} value={label}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </TableHead>
+                            <TableHead className="py-2">{filterCell("note")}</TableHead>
                             <TableHead className="py-2">{filterCell("phone")}</TableHead>
                             <TableHead className="py-2">{filterCell("email")}</TableHead>
                             <TableHead className="py-2">{filterCell("address")}</TableHead>
-                            <TableHead className="py-2">{filterCell("note")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -504,7 +531,6 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                                 </Button>
                                             )}
                                         </TableCell>
-                                        <TableCell>{id}</TableCell>
                                         <TableCell>{row.familyid}</TableCell>
                                         <TableCell>{row.studentname}</TableCell>
                                         <TableCell>{row.mothername}</TableCell>
@@ -568,9 +594,7 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                                 </Select>
                                             )}
                                         </TableCell>
-                                        <TableCell>{row.phone}</TableCell>
-                                        <TableCell>{row.email}</TableCell>
-                                        <TableCell>{row.address}</TableCell>
+                                        <TableCell>{row.regstatus}</TableCell>
                                         <TableCell>
                                             {!isEditing ? (
                                                 <span className="inline-block w-48 px-3 text-sm break-words">
@@ -589,6 +613,9 @@ export default function DutyManagementTable({ rows }: { rows: DutyAssignmentRow[
                                                 />
                                             )}
                                         </TableCell>
+                                        <TableCell>{row.phone}</TableCell>
+                                        <TableCell>{row.email}</TableCell>
+                                        <TableCell>{row.address}</TableCell>
                                     </TableRow>
                                 );
                             })

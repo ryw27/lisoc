@@ -9,7 +9,7 @@ import {
     student,
     users,
 } from "@/lib/db/schema";
-import { REGSTATUS_REGISTERED } from "@/lib/utils";
+import { REGSTATUS_REGISTERED, regStatusMap } from "@/lib/utils";
 import {
     type DutyAssignmentRow,
     type FamilyDutyRow,
@@ -60,6 +60,12 @@ function sundaysBetween(start: string, end: string): DutyDateOption[] {
 /** Chinese name if one was filled in, otherwise the English "first last". */
 function displayName(namecn: string | null, firsten: string | null, lasten: string | null) {
     return namecn?.trim() || [firsten, lasten].filter(Boolean).join(" ");
+}
+
+/** A reg status id as e.g. `R/注册`; a student with no registration in the season shows "None". */
+function regStatusLabel(statusid: number | null) {
+    if (statusid === null) return "None";
+    return regStatusMap[statusid as keyof typeof regStatusMap] ?? String(statusid);
 }
 
 /**
@@ -264,6 +270,16 @@ export async function fetchDutyAssignments(seasonid: number | null): Promise<Dut
             phone: users.phone,
             email: users.email,
             address: users.address,
+            // Status of the student's latest (largest regid) class registration in the
+            // duty's season.
+            regstatusid: sql<number | null>`(
+                select ${classregistration.statusid}::int
+                from ${classregistration}
+                where ${classregistration.seasonid} = ${dutyassignment.seasonid}
+                    and ${classregistration.studentid} = ${dutyassignment.studentid}
+                order by ${classregistration.regid} desc
+                limit 1
+            )`,
         })
         .from(dutyassignment)
         .innerJoin(family, eq(family.familyid, dutyassignment.familyid))
@@ -288,6 +304,7 @@ export async function fetchDutyAssignments(seasonid: number | null): Promise<Dut
                 email: r.email ?? "",
                 address: r.address ?? "",
                 note: r.note ?? "",
+                regstatus: regStatusLabel(r.regstatusid),
             })
         ),
     };
