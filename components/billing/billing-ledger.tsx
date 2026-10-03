@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 import { CheckSquare, ChevronDown, Download, FileText, Loader2, TableIcon } from "lucide-react";
 import { cn, monthAbbrevMap, toESTString } from "@/lib/utils";
-import { type BillingRow, type BillingSummary, type FamilyRow } from "@/types/billing.types";
+import { type BillingRow, type FamilyRow } from "@/types/billing.types";
 import { getLedgerAction } from "@/server/billing/actions";
 import {
     DropdownMenu,
@@ -14,7 +14,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import BillingCards from "./billing-cards";
 import BillingTable from "./billing-table";
 
 const csvConfig = mkConfig({
@@ -48,7 +47,6 @@ type BillingLedgerProps = {
         family: FamilyRow[];
         global: BillingRow[];
     };
-    initialSummary: BillingSummary;
     defaultSeason: billingSeasonInfo;
     seasons: billingSeasonInfo[];
 };
@@ -65,17 +63,11 @@ export type TableExportType = {
     triggerExport: (option: "all" | "page" | "selected") => void;
 };
 
-export default function BillingLedger({
-    initialData,
-    initialSummary,
-    defaultSeason,
-    seasons,
-}: BillingLedgerProps) {
+export default function BillingLedger({ initialData, defaultSeason, seasons }: BillingLedgerProps) {
     const [selectedSeason, setSelectedSeason] = useState<billingSeasonInfo>(defaultSeason);
 
     const [familyData, setFamilyData] = useState<FamilyRow[]>(initialData.family);
     const [globalData, setGlobalData] = useState<BillingRow[]>(initialData.global);
-    const [summary, setSummary] = useState<BillingSummary>(initialSummary);
 
     // Export all rows (from filter), all rows on a page, or selected rows
     const selectRowsRef = useRef<TableExportType>(null);
@@ -87,7 +79,6 @@ export default function BillingLedger({
             const newData = await getLedgerAction(season.seasonid);
 
             setSelectedSeason(season);
-            setSummary(newData.summary);
             setFamilyData(newData.familyRows);
             setGlobalData(newData.globalRows);
         });
@@ -104,7 +95,7 @@ export default function BillingLedger({
                 <div className="space-y-2">
                     <div className="flex items-baseline gap-4">
                         <h1 className="text-primary text-3xl font-bold tracking-tight uppercase md:text-4xl">
-                            Financial Ledger
+                            Latest Transactions
                         </h1>
                         <span className="text-muted-foreground/40 hidden text-3xl font-light italic md:inline">
                             /
@@ -157,7 +148,7 @@ export default function BillingLedger({
                     </div>
 
                     <p className="text-muted-foreground text-sm tracking-wide uppercase">
-                        Billing Period:{" "}
+                        Record Period:{" "}
                         <span className="text-foreground font-semibold">
                             {formattedBillingDate}{" "}
                         </span>
@@ -236,10 +227,7 @@ export default function BillingLedger({
                         : "scale-100 opacity-100"
                 )}
             >
-                {/* 2. Card Digests */}
-                <BillingCards summary={summary} />
-
-                {/* 3. Billing Table */}
+                {/* Billing Table */}
                 <BillingTable
                     families={familyData}
                     globalActivity={globalData}

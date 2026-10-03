@@ -318,7 +318,7 @@ export default async function HomePage() {
                                 </h2>
                             </div>
                             <Link
-                                href="/admin/accounting/billing"
+                                href="/admin/accounting/transaction-reports"
                                 className="text-secondary hover:text-primary text-[10px] font-bold tracking-widest uppercase underline-offset-4 transition-colors hover:underline"
                             >
                                 View All
