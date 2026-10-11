@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { family, familybalance, familybalancestatus, familybalancetype } from "@/lib/db/schema";
 import { billingJoin, BillingRow, BillingSummary, FamilyRow } from "@/types/billing.types";
@@ -93,20 +93,25 @@ export async function getBalanceTypeTotals(seasonid: number): Promise<BalanceTyp
         .orderBy(familybalancetype.typeid, desc(onlineGroup));
 
     return rows.map((r) => {
-        const name = r.typenameen ?? `Type ${r.typeid}`;
         const suffix = r.online === null ? "" : r.online ? "online" : "offline";
         return {
             key: suffix ? `${r.typeid}-${suffix}` : String(r.typeid),
             typeid: r.typeid,
             online: r.online,
-            label: suffix ? `${name} (${r.online ? "Online" : "Offline"})` : name,
+            label: balanceTypeLabel(r.typeid, r.typenameen, r.online),
             total: Number(r.total),
         };
     });
 }
 
+function balanceTypeLabel(typeid: number, typenameen: string | null, online: boolean | null) {
+    const name = typenameen ?? `Type ${typeid}`;
+    return online === null ? name : `${name} (${online ? "Online" : "Offline"})`;
+}
+
 export type BalanceRecord = {
     balanceid: number;
+    typelabel: string;
     familyid: number;
     familyname: string;
     registerdate: string;
@@ -120,16 +125,20 @@ export type BalanceRecord = {
     userid: string | null;
 };
 
-// All familybalance rows of one balance type for one season, newest first
+// familybalance rows of one balance type (or every type when typeid is null) for one
+// season, ordered by family id, then newest first.
 // `online` narrows the split Payment type; null means any
 export async function getBalanceRecords(
     seasonid: number,
-    typeid: number,
+    typeid: number | null,
     online: boolean | null = null
 ): Promise<BalanceRecord[]> {
     const rows = await db
         .select({
             balanceid: familybalance.balanceid,
+            typeid: familybalancetype.typeid,
+            typenameen: familybalancetype.typenameen,
+            online: onlineGroup,
             familyid: familybalance.familyid,
             fatherlasten: family.fatherlasten,
             fatherfirsten: family.fatherfirsten,
@@ -148,21 +157,28 @@ export async function getBalanceRecords(
             userid: familybalance.userid,
         })
         .from(familybalance)
+        // Inner join matches getBalanceTypeTotals so the records add up to the net total
+        .innerJoin(familybalancetype, eq(familybalance.typeid, familybalancetype.typeid))
         .leftJoin(family, eq(familybalance.familyid, family.familyid))
         .leftJoin(familybalancestatus, eq(familybalance.statusid, familybalancestatus.statusid))
         .where(
             and(
                 eq(familybalance.seasonid, seasonid),
-                eq(familybalance.typeid, typeid),
+                typeid === null ? undefined : eq(familybalance.typeid, typeid),
                 online === null
                     ? undefined
                     : sql`coalesce(${familybalance.isonlinepayment}, false) = ${online}`
             )
         )
-        .orderBy(desc(familybalance.registerdate), desc(familybalance.balanceid));
+        .orderBy(
+            asc(familybalance.familyid),
+            desc(familybalance.registerdate),
+            desc(familybalance.balanceid)
+        );
 
     return rows.map((r) => ({
         balanceid: r.balanceid,
+        typelabel: balanceTypeLabel(r.typeid, r.typenameen, r.online),
         familyid: r.familyid,
         familyname: selectFamilyName(r),
         registerdate: r.registerdate,

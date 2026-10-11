@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 import { ChevronRight, Download, Loader2 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, LEDGER_ALL_TYPES_KEY } from "@/lib/utils";
 import { type BalanceRecord, type BalanceTypeTotal } from "@/server/billing/data";
 import {
     Table,
@@ -69,25 +69,32 @@ export default function FinancialLedger({
         });
     };
 
-    const selectType = (type: BalanceTypeTotal) => {
-        const typeKey = optimisticKey === type.key ? null : type.key;
+    // Clicking the open selection again closes it
+    const toggleKey = (key: string) => {
+        const typeKey = optimisticKey === key ? null : key;
         startRecords(() => {
             setOptimisticKey(typeKey);
             navigate(season.seasonid, typeKey);
         });
     };
+    const selectType = (type: BalanceTypeTotal) => toggleKey(type.key);
 
-    const selectedType = totals.find((t) => t.key === optimisticKey) ?? null;
+    const netTotal = totals.reduce((acc, t) => acc + t.total, 0);
+    const showAll = optimisticKey === LEDGER_ALL_TYPES_KEY;
+    const selectedLabel = showAll
+        ? "All Types"
+        : (totals.find((t) => t.key === optimisticKey)?.label ?? null);
     // Records still belong to the previous type until navigation finishes
     const shownRecords = optimisticKey === selectedKey ? records : [];
 
     const exportRecords = () => {
-        if (!selectedType || shownRecords.length === 0) return;
+        if (!selectedLabel || shownRecords.length === 0) return;
         const slug = (v: string) => v.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
         const config = mkConfig({
-            filename: `lisoc_${slug(season.seasonnameeng)}_${slug(selectedType.label)}`,
+            filename: `lisoc_${slug(season.seasonnameeng)}_${slug(selectedLabel)}`,
             columnHeaders: [
                 "Balance ID",
+                "Type",
                 "Family ID",
                 "Family",
                 "Register Date",
@@ -102,6 +109,7 @@ export default function FinancialLedger({
         });
         const rows = shownRecords.map((r) => ({
             "Balance ID": r.balanceid,
+            Type: r.typelabel,
             "Family ID": r.familyid,
             Family: r.familyname,
             "Register Date": formatDate(r.registerdate),
@@ -115,8 +123,6 @@ export default function FinancialLedger({
         }));
         download(config)(generateCsv(config)(rows));
     };
-
-    const netTotal = totals.reduce((acc, t) => acc + t.total, 0);
 
     return (
         <div className="mx-auto max-w-7xl space-y-8">
@@ -204,8 +210,36 @@ export default function FinancialLedger({
                         </TableBody>
                         {totals.length > 0 && (
                             <TableFooter>
-                                <TableRow>
-                                    <TableCell className="font-bold">Net Total</TableCell>
+                                <TableRow
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-expanded={showAll}
+                                    onClick={() => toggleKey(LEDGER_ALL_TYPES_KEY)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            toggleKey(LEDGER_ALL_TYPES_KEY);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "cursor-pointer",
+                                        showAll && "bg-primary/10 hover:bg-primary/10"
+                                    )}
+                                >
+                                    <TableCell>
+                                        <span className="text-primary flex items-center gap-1 font-medium">
+                                            <ChevronRight
+                                                size={14}
+                                                className={cn(
+                                                    "transition-transform",
+                                                    showAll && "rotate-90"
+                                                )}
+                                            />
+                                            <span className="font-bold text-blue-700 underline underline-offset-4 dark:text-blue-400">
+                                                Net Total
+                                            </span>
+                                        </span>
+                                    </TableCell>
                                     <TableCell
                                         className={cn(
                                             "text-right font-mono font-bold tabular-nums",
@@ -227,11 +261,11 @@ export default function FinancialLedger({
                 />
             </div>
 
-            {selectedType && (
+            {selectedLabel && (
                 <section className="space-y-3">
                     <div className="flex items-center justify-between gap-4">
                         <h2 className="text-primary flex items-center gap-2 text-lg font-bold tracking-wider uppercase">
-                            {selectedType.label} Records
+                            {selectedLabel} Records
                             {recordsPending ? (
                                 <Loader2 size={16} className="animate-spin opacity-50" />
                             ) : (
@@ -261,6 +295,7 @@ export default function FinancialLedger({
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Balance ID</TableHead>
+                                    {showAll && <TableHead>Type</TableHead>}
                                     <TableHead>Family ID</TableHead>
                                     <TableHead>Family</TableHead>
                                     <TableHead>Register Date</TableHead>
@@ -277,7 +312,7 @@ export default function FinancialLedger({
                                 {!recordsPending && shownRecords.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={11}
+                                            colSpan={showAll ? 12 : 11}
                                             className="text-muted-foreground text-center"
                                         >
                                             No records
@@ -289,6 +324,7 @@ export default function FinancialLedger({
                                             <TableCell className="font-mono">
                                                 {r.balanceid}
                                             </TableCell>
+                                            {showAll && <TableCell>{r.typelabel}</TableCell>}
                                             <TableCell className="font-mono">
                                                 <Link
                                                     href={`/admin/other/find-family?familyid=${r.familyid}`}

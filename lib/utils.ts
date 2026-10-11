@@ -165,6 +165,8 @@ export const FAMILYBALANCE_TYPE_DROPOUT = 9;
 export const FAMILYBALANCE_TYPE_CREDIT_MANAGEFEE = 10;
 export const FAMILYBALANCE_TYPE_CREDIT_DUTY = 11;
 export const FAMILYBALANCE_TYPE_DUTY_DEPOSIT = 12;
+// Financial ledger ?type= value that lists every balance type (the Net Total row)
+export const LEDGER_ALL_TYPES_KEY = "all";
 
 // Family balance status
 export const FAMILYBALANCE_STATUS_PENDING = 2;

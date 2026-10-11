@@ -1,4 +1,5 @@
 import { getBalanceRecords, getBalanceTypeTotals, getLedgerSeasons } from "@/server/billing/data";
+import { LEDGER_ALL_TYPES_KEY } from "@/lib/utils";
 import FinancialLedger from "@/components/billing/financial-ledger";
 
 const firstParam = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
@@ -28,10 +29,13 @@ export default async function BillingPage({
     const totals = await getBalanceTypeTotals(season.seasonid);
 
     const typeParam = firstParam(params.type);
+    const showAll = typeParam === LEDGER_ALL_TYPES_KEY && totals.length > 0;
     const selectedType = totals.find((t) => t.key === typeParam) ?? null;
-    const records = selectedType
-        ? await getBalanceRecords(season.seasonid, selectedType.typeid, selectedType.online)
-        : [];
+    const records = showAll
+        ? await getBalanceRecords(season.seasonid, null)
+        : selectedType
+          ? await getBalanceRecords(season.seasonid, selectedType.typeid, selectedType.online)
+          : [];
 
     return (
         <div className="bg-background text-foreground selection:bg-primary selection:text-primary-foreground min-h-screen w-full p-8">
@@ -39,7 +43,7 @@ export default async function BillingPage({
                 season={season}
                 seasons={seasons}
                 totals={totals}
-                selectedKey={selectedType?.key ?? null}
+                selectedKey={showAll ? LEDGER_ALL_TYPES_KEY : (selectedType?.key ?? null)}
                 records={records}
             />
         </div>
