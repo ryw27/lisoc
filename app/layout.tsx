@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     description: "LISOC Website",
     icons: {
         icon: "/lisoc.png",
+        apple: "/apple-touch-icon.png",
     },
 };
 

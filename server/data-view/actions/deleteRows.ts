@@ -24,10 +24,19 @@ export async function deleteRows(entity: keyof Registry, ids: number[]) {
         return { ok: true, data: result };
     } catch (error) {
         console.error(error);
-        return {
-            ok: false,
-            message:
-                error instanceof Error ? error.message : "Server error. Please try again later.",
-        };
+        return { ok: false, message: deleteErrorMessage(error) };
     }
+}
+
+// Drizzle wraps the pg error as `cause`. A foreign-key violation (23503) means other
+// records still point at the row; say which table instead of dumping the failed SQL.
+function deleteErrorMessage(error: unknown) {
+    const pgError = (error instanceof Error ? error.cause : undefined) as
+        | { code?: string; table?: string }
+        | undefined;
+    if (pgError?.code === "23503") {
+        const usedBy = pgError.table ? ` in "${pgError.table}"` : "";
+        return `Cannot delete: still used by other records${usedBy}. Remove or reassign those first. / 无法删除：仍被其他记录引用${usedBy}，请先删除或重新分配这些记录。`;
+    }
+    return error instanceof Error ? error.message : "Server error. Please try again later.";
 }

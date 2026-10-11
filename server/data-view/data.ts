@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, gt, gte, lt, lte, or, SQL } from "drizzle-orm";
+import { and, eq, getTableColumns, gt, gte, lt, lte, ne, or, SQL } from "drizzle-orm";
 import { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 import { msSendEmail } from "@/lib/nodemailer";
 import { SITE_LINK, toESTString } from "@/lib/utils";
@@ -24,6 +24,8 @@ export function buildSQL<T extends Table>(
             switch (filter.op) {
                 case "eq":
                     return eq(col, value);
+                case "ne":
+                    return ne(col, value);
                 case "lt":
                     return lt(col, value);
                 case "gt":

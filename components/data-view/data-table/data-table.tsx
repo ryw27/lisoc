@@ -186,11 +186,13 @@ export default function DataTable<T extends Table, TData>({
     );
 
     const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const handleDelete = async (selectedRow?: Row<TData>) => {
         if (isDeleting) return; // Prevent multiple simultaneous delete operations
 
         setIsDeleting(true);
+        setDeleteError(null);
 
         try {
             if (selectedRow) {
@@ -213,7 +215,11 @@ export default function DataTable<T extends Table, TData>({
                 return id as number;
             });
 
-            await deleteRows(entity, ids);
+            const result = await deleteRows(entity, ids);
+            if (!result.ok) {
+                setDeleteError(result.message ?? "Delete failed");
+                return;
+            }
 
             // Reset selection after successful deletion
             dataTable.resetRowSelection();
@@ -330,6 +336,21 @@ export default function DataTable<T extends Table, TData>({
 
     return (
         <div className="flex flex-col gap-2 p-2">
+            {deleteError && (
+                <div
+                    role="alert"
+                    className="flex items-center justify-between gap-4 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+                >
+                    <p>{deleteError}</p>
+                    <button
+                        type="button"
+                        onClick={() => setDeleteError(null)}
+                        className="cursor-pointer rounded px-2 py-1 font-medium hover:bg-red-100"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
             {Object.keys(rowSelection).length > 0 && (
                 <div className="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
                     <p>

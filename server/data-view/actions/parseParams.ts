@@ -46,7 +46,7 @@ function parseFilters(params: Record<string, string | undefined>) {
         if (rawKey == "sortBy" || rawKey == "sortOrder") return;
         let field = rawKey;
         let op: ParsedFilter["op"] = "eq";
-        const reg = rawKey.match(/^(.+)\[(gte|lte|gt|lt)\]$/);
+        const reg = rawKey.match(/^(.+)\[(gte|lte|gt|lt|ne)\]$/);
         if (reg) {
             field = reg[1];
             op = reg[2] as ParsedFilter["op"];

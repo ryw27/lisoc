@@ -10,8 +10,7 @@ import {
 import { ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { InferSelectModel } from "drizzle-orm";
 import { MoreHorizontal, PencilIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { RefObject, useImperativeHandle, useRef, useState } from "react";
 //import { useRouter } from 'next/navigation';
 import { ClientTable } from "@/components/client-table";
 //import { request } from "http";
@@ -179,6 +178,52 @@ function NumericTextInput({ onValueChange }: handleFunction) {
     );
 }
 
+type ActionStatusHandle = {
+    start: () => void;
+    fail: (message: string) => void;
+};
+
+// Owns the "processing" overlay and the error dialog. It lives outside the table on
+// purpose: the table's cells are defined inline, so any state change in
+// ProcessRegChange remounts them (closing the popover and resetting the memo, fee and
+// balance-type inputs). Keeping this state here means the table never re-renders.
+function ActionStatus({ ref }: { ref: RefObject<ActionStatusHandle | null> }) {
+    const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        start: () => setPending(true),
+        fail: (message) => {
+            setPending(false);
+            setError(message);
+        },
+    }));
+
+    return (
+        <>
+            {pending && (
+                // Also blocks clicks, so the action can't be sent twice
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+                    <div className="rounded-md bg-white px-6 py-4 text-sm font-medium shadow-lg">
+                        Processing... / 处理中...
+                    </div>
+                </div>
+            )}
+            <AlertDialog open={error !== null} onOpenChange={(open) => !open && setError(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Action Failed / 操作失败</AlertDialogTitle>
+                        <AlertDialogDescription>{error}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setError(null)}>Close</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
+
 export default function ProcessRegChange({
     requestId,
     regId,
@@ -191,31 +236,34 @@ export default function ProcessRegChange({
     classMap,
     feeMap,
 }: processRegChangeProps) {
-    const router = useRouter();
-
     const extraFeeRef = useRef<string>("");
     const adminMemoRef = useRef<HTMLTextAreaElement>(null);
     const balanceTypeRef = useRef<HTMLSelectElement>(null);
-    const [validationOpen, setValidationOpen] = useState(false);
-    const [validationError, setValidationError] = useState<string | null>(null);
-    const [pending, setPending] = useState(false);
+    const statusRef = useRef<ActionStatusHandle>(null);
+    // A ref, not state: state here would remount the table cells (see ActionStatus)
+    const pendingRef = useRef(false);
 
     // Wait for the action: only leave the page once it succeeded, otherwise show why
     const runAction = async (action: () => Promise<{ ok: boolean; errormsg?: string }>) => {
-        if (pending) return;
-        setPending(true);
+        if (pendingRef.current) return;
+        pendingRef.current = true;
+        statusRef.current?.start();
+        let message: string;
         try {
             const result = await action();
             if (result.ok) {
-                router.push("/admin/management/regchangerequests/");
+                // A full load rather than router.push: a client navigation issued right
+                // after a server action that revalidates can be dropped, leaving the
+                // page stuck. This also guarantees the list shows the new status.
+                window.location.assign("/admin/management/regchangerequests/");
                 return;
             }
-            setValidationError(result.errormsg ?? "Unknown error");
+            message = result.errormsg ?? "Unknown error";
         } catch (error) {
-            setValidationError(error instanceof Error ? error.message : "Unknown error");
+            message = error instanceof Error ? error.message : "Unknown error";
         }
-        setValidationOpen(true);
-        setPending(false);
+        pendingRef.current = false;
+        statusRef.current?.fail(message);
     };
 
     //const canEdit = status === 1 ; // pending
@@ -261,13 +309,12 @@ export default function ProcessRegChange({
                             {status == REQUEST_STATUS_PENDING ? (
                                 <>
                                     <button
-                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                pending
+                                                false
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-blue-500 hover:text-blue-600"
                                             )
@@ -298,13 +345,12 @@ export default function ProcessRegChange({
                                         Approve
                                     </button>
                                     <button
-                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                pending
+                                                false
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-red-500 hover:text-red-600"
                                             )
@@ -330,13 +376,12 @@ export default function ProcessRegChange({
                             ) : (
                                 <>
                                     <button
-                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                pending
+                                                false
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-blue-500 hover:text-blue-600"
                                             )
@@ -353,19 +398,6 @@ export default function ProcessRegChange({
                             )}
                         </PopoverContent>
                     </Popover>
-                    <AlertDialog open={validationOpen} onOpenChange={setValidationOpen}>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Action Failed / 操作失败</AlertDialogTitle>
-                                <AlertDialogDescription>{validationError}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogAction onClick={() => setValidationOpen(false)}>
-                                    Close
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
                 </>
             );
         },
@@ -485,6 +517,7 @@ export default function ProcessRegChange({
     return (
         <>
             <ClientTable table={table} />
+            <ActionStatus ref={statusRef} />
         </>
     );
 }

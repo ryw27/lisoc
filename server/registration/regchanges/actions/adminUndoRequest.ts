@@ -135,7 +135,7 @@ export async function adminUndoRequest(requestid: number, familyid: number, stat
                     if (!linkedBalance) {
                         //if it is 0 it will throw error drop must have balance linked
                         throw new Error(
-                            `linked balance id relatedBalanceId, for requestid ${requestid} does not exist`
+                            `linked balance id ${relatedBalanceId}, for requestid ${requestid} does not exist`
                         );
                     }
 

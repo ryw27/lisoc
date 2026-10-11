@@ -52,7 +52,7 @@ export type Extras<T extends Table> = { [K in ColKey<T>]?: ColVal<T, K> };
 // Parsed filters only, not including page, pageSize, sortBy, sortOrder, match
 export type ParsedFilter = {
     field: string; // The column that is being filtered
-    op: "eq" | "lt" | "gt" | "gte" | "lte"; // Operation on column
+    op: "eq" | "ne" | "lt" | "gt" | "gte" | "lte"; // Operation on column
     value: z.infer<typeof primitive>; // Correctly coerce value into the correct JS type
 };
 // Helper zod to turn all query paramaters into the correct type

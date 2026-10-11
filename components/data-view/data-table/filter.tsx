@@ -37,7 +37,7 @@ export interface filterEntry {
 const modeToSuffix = (mode: filterMode): string | undefined => {
     const map: Record<filterMode, string | undefined> = {
         "=": undefined,
-        "≠": undefined, // handled by negate flag higher up the stack
+        "≠": "[ne]",
         ">": "[gt]",
         ">=": "[gte]",
         "<": "[lt]",
@@ -136,20 +136,9 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
     const initialDrafts = useMemo<filterEntry[]>(() => {
         const result: filterEntry[] = [];
         searchParams.forEach((rawVal, rawKey) => {
-            const match = rawKey.match(/^(.*?)(\[(?:gte|lte|gt|lt)\])?$/); // remove the suffixes if exists
+            const match = rawKey.match(/^(.*?)(\[(?:gte|lte|gt|lt|ne)\])?$/); // remove the suffixes if exists
             if (!match) console.error("No matching column found from search paramter parsing");
-            let [, baseCol, suffix] = match as [string, string, string];
-            // Checks if this is a true or false value
-            if (rawVal === "false" || rawVal === "true") {
-                const boolMatch = rawKey.split("_")[0];
-                if (!boolMatch) {
-                    console.error("No matching column found from boolean search parameter parsing");
-                    return;
-                }
-                baseCol = boolMatch;
-                suffix = "";
-                rawVal = rawKey.split("_")[1];
-            }
+            const [, baseCol, suffix] = match as [string, string, string];
             // Nothing to do with filtering
             if (
                 baseCol === "match" ||
@@ -178,6 +167,8 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                         return "<";
                     case "[lte]":
                         return "<=";
+                    case "[ne]":
+                        return "≠";
                     default:
                         return "=";
                 }
@@ -235,24 +226,10 @@ export default function Filter<TData>({ columns }: { columns: FilterableColumn<T
                 return;
             }
 
-            if (filter.mode === "≠" && col?.meta?.filter?.type === "number") {
-                if (Number.isNaN(Number(filter.val))) return;
-                params.set(`${filter.col_id}[gte]`, (Number(filter.val) + 1).toString());
-                params.set(`${filter.col_id}[lte]`, (Number(filter.val) - 1).toString());
+            // Enums go out as plain values (status=Active, status[ne]=Active) like any other
+            // column; drop anything that isn't one of the column's options
+            if (col?.meta?.filter?.type === "enum" && !col.meta.filter.options.includes(filter.val))
                 return;
-            }
-
-            if (filter.mode === "≠" && col?.meta?.filter?.type === "enum") {
-                if (col?.meta?.filter?.options.includes(filter.val)) return;
-                params.set(`${filter.col_id}_${filter.val}`, "false");
-                return;
-            }
-
-            if (filter.mode === "=" && col?.meta?.filter?.type === "enum") {
-                if (!col?.meta?.filter?.options.includes(filter.val)) return;
-                params.set(`${filter.col_id}_${filter.val}`, "true");
-                return;
-            }
 
             const key = modeToSuffix(filter.mode)
                 ? `${filter.col_id}${modeToSuffix(filter.mode)}`

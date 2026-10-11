@@ -60,5 +60,9 @@ export default auth((req: NextAuthRequest) => {
 });
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+    // Skip API routes, Next.js assets and static files in public/ (images, fonts): they
+    // need neither the auth gate nor the locale cookie, and every page load pulls several
+    matcher: [
+        "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpe?g|gif|svg|ico|webp|ttf|woff2?)$).*)",
+    ],
 };
