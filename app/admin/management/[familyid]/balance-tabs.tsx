@@ -1,9 +1,9 @@
 "use client";
 
 import ApplyButton from "@/app/admin/management/[familyid]/apply-button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { familyObj } from "@/types/shared.types";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BalanceTable from "./balance-table";
 import FamilyRegistrationTable, { adminFamilyRegView } from "./registration-table";
 
@@ -33,6 +33,7 @@ export default function BalanceTabs({
     registrations,
     feeTypeIdMap,
 }: BalanceTabsProps) {
+    console.log("hasRegistrations:", hasRegistrations);
     return (
         <Tabs defaultValue="balances" className="w-full">
             <TabsList>
@@ -53,11 +54,8 @@ export default function BalanceTabs({
                 value="balances"
                 className={cn("mt-4 rounded-md border-4 border-green-500 p-4")}
             >
-                {hasRegistrations ? (
-                    <BalanceTable balanceData={balanceData} />
-                ) : (
-                    <div className="text-gray-500">No class registrations found.</div>
-                )}
+                <BalanceTable balanceData={balanceData} />
+
                 <ApplyButton family={family} feeTypeIdMap={feeTypeIdMap} />
             </TabsContent>
             <TabsContent

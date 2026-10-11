@@ -247,9 +247,9 @@ export async function getLedgerData(sid: number): Promise<{
             outstanding: 0,
             progress: 0,
         };
-        const familyRec: Record<string, FamilyRow> = {};
+        // Keyed by familyid: different families can share a display name
+        const familyRec = new Map<number, FamilyRow>();
         const globalRows: BillingRow[] = [];
-        let unknownCount = 0;
         for (let i = 0; i < fbdata.length; i++) {
             const row = fbdata[i];
 
@@ -273,16 +273,11 @@ export async function getLedgerData(sid: number): Promise<{
             };
             globalRows.push(billingRow);
 
-            if (billingRow.family === "Unknown") {
-                // Make sure separation doesn't get lost
-                billingRow.family = "Unknown " + `${unknownCount}`;
-                unknownCount += 1;
-            }
-            const familyName = billingRow.family;
-            if (!familyRec[familyName]) {
-                familyRec[familyName] = {
+            const rec = familyRec.get(row.familyid);
+            if (!rec) {
+                familyRec.set(row.familyid, {
                     fid: row.familyid,
-                    family: familyName,
+                    family: billingRow.family,
                     students: row.family.students.map((studentObj) => {
                         return {
                             namecn: studentObj.namecn.trim(),
@@ -295,9 +290,8 @@ export async function getLedgerData(sid: number): Promise<{
                     status: "paid", // Calculate after loop
                     lastActive: row.lastmodify,
                     lastActivity: [billingRow],
-                };
+                });
             } else {
-                const rec = familyRec[familyName];
                 rec.billed += amtBilled;
                 rec.paid += amtPaid;
 
@@ -310,9 +304,17 @@ export async function getLedgerData(sid: number): Promise<{
             }
         }
 
-        Object.values(familyRec).forEach((rec) => {
-            if (rec.paid >= rec.billed) {
+        // Status follows the net balance (sum of signed amounts; charges are positive,
+        // payments and credits negative). Within a cent either way counts as settled
+        // (rounding leftovers); below that the family paid more than billed. Anything
+        // still owed is partial if the family has paid or been credited something,
+        // otherwise unpaid.
+        familyRec.forEach((rec) => {
+            const netCents = Math.round((rec.billed - rec.paid) * 100);
+            if (Math.abs(netCents) <= 1) {
                 rec.status = "paid";
+            } else if (netCents < 0) {
+                rec.status = "overpaid";
             } else if (rec.paid > 0) {
                 rec.status = "partial";
             } else {
@@ -322,7 +324,7 @@ export async function getLedgerData(sid: number): Promise<{
 
         summary.progress = summary.billed === 0 ? 100 : (summary.collected / summary.billed) * 100;
 
-        const familyRows = Object.values(familyRec);
+        const familyRows = Array.from(familyRec.values());
         return {
             familyRows,
             globalRows,

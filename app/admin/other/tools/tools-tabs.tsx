@@ -251,7 +251,8 @@ function RecycleTable<T>({
     return (
         <>
             <div className="text-muted-foreground mb-2 text-sm">{data.length} record(s)</div>
-            <ClientTable table={table} />
+            {/* Past ~10 rows, scroll inside the box so the horizontal scrollbar stays on screen */}
+            <ClientTable table={table} maxHeight={data.length > 10 ? "33rem" : undefined} />
         </>
     );
 }

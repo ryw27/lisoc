@@ -2,11 +2,14 @@
 
 import React, { RefObject, useImperativeHandle, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
     ColumnDef,
+    ColumnFiltersState,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
+    OnChangeFn,
     Row,
     RowSelectionState,
     Table,
@@ -33,6 +36,46 @@ type BillingTableProps = {
     globalActivity: BillingRow[];
     rowRef: RefObject<TableExportType | null>;
 };
+
+// The view (tab, search, filters) lives in the URL so it survives opening a family's
+// full record and coming back. history.replaceState updates it without a server
+// round trip; Next.js keeps useSearchParams in sync with it.
+function setQuery(updates: Record<string, string | string[] | null>) {
+    const params = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(updates)) {
+        params.delete(key);
+        for (const v of [value ?? []].flat()) if (v) params.append(key, v);
+    }
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+}
+
+// Search text plus one multi-select column filter, initialised from and mirrored to
+// the URL params `searchKey` and `filterKey`
+function useUrlFilters(columnId: string, filterKey: string, searchKey: string) {
+    const searchParams = useSearchParams();
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+        const values = searchParams.getAll(filterKey);
+        return values.length ? [{ id: columnId, value: values }] : [];
+    });
+    const [globalFilter, setGlobalFilter] = useState<string>(
+        () => searchParams.get(searchKey) ?? ""
+    );
+
+    const onColumnFiltersChange: OnChangeFn<ColumnFiltersState> = (updater) => {
+        const next = typeof updater === "function" ? updater(columnFilters) : updater;
+        setColumnFilters(next);
+        const values = next.find((f) => f.id === columnId)?.value as string[] | undefined;
+        setQuery({ [filterKey]: values ?? null });
+    };
+    const onGlobalFilterChange: OnChangeFn<string> = (updater) => {
+        const next = typeof updater === "function" ? updater(globalFilter) : updater;
+        setGlobalFilter(next);
+        setQuery({ [searchKey]: next || null });
+    };
+
+    return { columnFilters, globalFilter, onColumnFiltersChange, onGlobalFilterChange };
+}
 
 const billingColumns: ColumnDef<BillingRow>[] = [
     {
@@ -77,7 +120,8 @@ function GlobalTable({
     const [filterOpen, setFilterOpen] = useState<boolean>(false);
     const [selectMode, setSelectMode] = useState<boolean>(false);
 
-    const [globalFilter, setGlobalFilter] = useState<string>("");
+    const { columnFilters, globalFilter, onColumnFiltersChange, onGlobalFilterChange } =
+        useUrlFilters("desc", "type", "aq");
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
     const handleFilterCheck = (option: string, checked: boolean) => {
@@ -122,11 +166,13 @@ function GlobalTable({
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         state: {
+            columnFilters,
             globalFilter,
             rowSelection,
         },
         onRowSelectionChange: setRowSelection,
-        onGlobalFilterChange: setGlobalFilter,
+        onColumnFiltersChange,
+        onGlobalFilterChange,
         initialState: {
             pagination: {
                 pageSize: 20,
@@ -152,7 +198,7 @@ function GlobalTable({
                     <input
                         type="text"
                         value={globalFilter ?? ""}
-                        onChange={(e) => setGlobalFilter(e.target.value)}
+                        onChange={(e) => onGlobalFilterChange(e.target.value)}
                         placeholder={"Search..."}
                         className="bg-muted/30 focus:bg-card focus:border-ring text-foreground placeholder:text-muted-foreground focus:ring-ring/20 w-full rounded border border-transparent py-2 pr-4 pl-9 text-sm font-medium transition-all focus:ring-2 focus:outline-none"
                     />
@@ -377,7 +423,8 @@ function FamilyTable({
 
     const [selectMode, setSelectMode] = useState<boolean>(false);
 
-    const [globalFilter, setGlobalFilter] = useState<string>();
+    const { columnFilters, globalFilter, onColumnFiltersChange, onGlobalFilterChange } =
+        useUrlFilters("status", "status", "fq");
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
     const toggleRow = (row: Row<FamilyRow>) => {
@@ -449,11 +496,13 @@ function FamilyTable({
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         state: {
+            columnFilters,
             globalFilter,
             rowSelection,
         },
         onRowSelectionChange: setRowSelection,
-        onGlobalFilterChange: setGlobalFilter,
+        onColumnFiltersChange,
+        onGlobalFilterChange,
         initialState: {
             pagination: {
                 pageSize: 20,
@@ -475,7 +524,7 @@ function FamilyTable({
                     <input
                         type="text"
                         value={globalFilter ?? ""}
-                        onChange={(e) => setGlobalFilter(e.target.value)}
+                        onChange={(e) => onGlobalFilterChange(e.target.value)}
                         placeholder={"Search..."}
                         className="bg-muted/30 focus:bg-card focus:border-ring text-foreground placeholder:text-muted-foreground focus:ring-ring/20 w-full rounded border border-transparent py-2 pr-4 pl-9 text-sm font-medium transition-all focus:ring-2 focus:outline-none"
                     />
@@ -522,7 +571,7 @@ function FamilyTable({
                             </div>
                             {/* Scrollable List Area: Constraints height to avoid long page scrolls */}
                             <div className="max-h-[240px] space-y-0.5 overflow-y-auto p-1.5">
-                                {["Paid", "Partial", "Unpaid"].map((option) => (
+                                {["Paid", "Overpaid", "Partial", "Unpaid"].map((option) => (
                                     <label
                                         key={option}
                                         className="hover:bg-secondary/10 group flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors"
@@ -645,6 +694,18 @@ function FamilyTable({
                                                         className="text-[#D4AF37]"
                                                     />
                                                     Paid
+                                                </span>
+                                            )}
+                                            {row.original.status === "overpaid" && (
+                                                <span className="flex flex-col items-end gap-1">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300">
+                                                        Overpaid
+                                                    </span>
+                                                    <span className="text-xs font-medium text-emerald-700 tabular-nums dark:text-emerald-400">
+                                                        {formatCurrency(
+                                                            row.original.paid - row.original.billed
+                                                        )}
+                                                    </span>
                                                 </span>
                                             )}
                                             {row.original.status === "partial" && (
@@ -816,7 +877,14 @@ function PaginationControls<T>({ table }: { table: Table<T> }) {
 }
 
 export default function BillingTable({ families, globalActivity, rowRef }: BillingTableProps) {
-    const [view, setView] = useState<"family" | "activity">("family");
+    const searchParams = useSearchParams();
+    const [view, setViewState] = useState<"family" | "activity">(() =>
+        searchParams.get("view") === "activity" ? "activity" : "family"
+    );
+    const setView = (next: "family" | "activity") => {
+        setViewState(next);
+        setQuery({ view: next === "activity" ? next : null });
+    };
     return (
         <section className="bg-card border-border relative z-10 flex min-h-[200px] flex-col overflow-visible rounded-none border shadow-sm">
             {/* TABS */}

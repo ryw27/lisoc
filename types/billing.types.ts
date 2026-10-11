@@ -28,7 +28,7 @@ export type FamilyRow = {
 
     billed: number; // how much they are billed this sem
     paid: number; // how much they paid
-    status: "paid" | "unpaid" | "partial" | "overdue"; // status
+    status: "paid" | "overpaid" | "unpaid" | "partial"; // status
 
     lastActive: string;
     lastActivity: BillingRow[];

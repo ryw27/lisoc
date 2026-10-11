@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useOptimistic, useRef, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 import { CheckSquare, Download, FileText, Loader2, TableIcon } from "lucide-react";
 import { cn, monthAbbrevMap, toESTString } from "@/lib/utils";
 import { type BillingRow, type FamilyRow } from "@/types/billing.types";
-import { getLedgerAction } from "@/server/billing/actions";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -48,7 +48,7 @@ type BillingLedgerProps = {
         family: FamilyRow[];
         global: BillingRow[];
     };
-    defaultSeason: BillingSeasonInfo;
+    season: BillingSeasonInfo;
     seasons: BillingSeasonInfo[];
 };
 
@@ -56,24 +56,25 @@ export type TableExportType = {
     triggerExport: (option: "all" | "page" | "selected") => void;
 };
 
-export default function BillingLedger({ initialData, defaultSeason, seasons }: BillingLedgerProps) {
-    const [selectedSeason, setSelectedSeason] = useState<BillingSeasonInfo>(defaultSeason);
-
-    const [familyData, setFamilyData] = useState<FamilyRow[]>(initialData.family);
-    const [globalData, setGlobalData] = useState<BillingRow[]>(initialData.global);
+// The season lives in the URL (?season=) alongside the table's view params, so the page
+// comes back as it was after visiting a family's full record
+export default function BillingLedger({ initialData, season, seasons }: BillingLedgerProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const [selectedSeason, setSelectedSeason] = useOptimistic(season);
 
     // Export all rows (from filter), all rows on a page, or selected rows
     const selectRowsRef = useRef<TableExportType>(null);
 
     const [pending, start] = useTransition();
 
-    const changeSeason = async (season: BillingSeasonInfo) => {
-        start(async () => {
-            const newData = await getLedgerAction(season.seasonid);
-
-            setSelectedSeason(season);
-            setFamilyData(newData.familyRows);
-            setGlobalData(newData.globalRows);
+    const changeSeason = (next: BillingSeasonInfo) => {
+        start(() => {
+            setSelectedSeason(next);
+            // Keep the tab, search and filter params
+            const params = new URLSearchParams(window.location.search);
+            params.set("season", String(next.seasonid));
+            router.replace(`${pathname}?${params}`, { scroll: false });
         });
     };
 
@@ -176,8 +177,8 @@ export default function BillingLedger({ initialData, defaultSeason, seasons }: B
             >
                 {/* Billing Table */}
                 <BillingTable
-                    families={familyData}
-                    globalActivity={globalData}
+                    families={initialData.family}
+                    globalActivity={initialData.global}
                     rowRef={selectRowsRef}
                 />
             </div>
