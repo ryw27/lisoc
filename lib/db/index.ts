@@ -41,4 +41,12 @@ export const pool = new Pool({
     ssl: resolveSsl(),
 });
 
+// An idle pooled client can lose its connection (Neon closes idle connections, network
+// blips). pg then emits "error" on the pool; with no listener Node treats it as an
+// uncaught exception and kills the function instance along with its in-flight requests.
+// The pool already discards the broken client and opens a new one on demand, so log only.
+pool.on("error", (err) => {
+    console.error("pg pool idle client error:", err.message);
+});
+
 export const db = drizzle({ client: pool, schema: { ...schema, ...relations } });

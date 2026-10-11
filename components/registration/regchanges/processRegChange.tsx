@@ -132,10 +132,9 @@ async function handleDropTransfer(
     action: string
 ) {
     if (action == "A") {
-        adminApproveRequest(requestId, regId, adminMemo, balanceType, extraFee);
-    } else if (action == "R") {
-        adminRejectRequest(requestId, regId, adminMemo);
+        return adminApproveRequest(requestId, regId, adminMemo, balanceType, extraFee);
     }
+    return adminRejectRequest(requestId, regId, adminMemo);
 }
 
 type handleFunction = {
@@ -198,7 +197,26 @@ export default function ProcessRegChange({
     const adminMemoRef = useRef<HTMLTextAreaElement>(null);
     const balanceTypeRef = useRef<HTMLSelectElement>(null);
     const [validationOpen, setValidationOpen] = useState(false);
-    //const [validationError, setValidationError] = useState<string | null>(null);
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const [pending, setPending] = useState(false);
+
+    // Wait for the action: only leave the page once it succeeded, otherwise show why
+    const runAction = async (action: () => Promise<{ ok: boolean; errormsg?: string }>) => {
+        if (pending) return;
+        setPending(true);
+        try {
+            const result = await action();
+            if (result.ok) {
+                router.push("/admin/management/regchangerequests/");
+                return;
+            }
+            setValidationError(result.errormsg ?? "Unknown error");
+        } catch (error) {
+            setValidationError(error instanceof Error ? error.message : "Unknown error");
+        }
+        setValidationOpen(true);
+        setPending(false);
+    };
 
     //const canEdit = status === 1 ; // pending
 
@@ -243,12 +261,13 @@ export default function ProcessRegChange({
                             {status == REQUEST_STATUS_PENDING ? (
                                 <>
                                     <button
+                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                false
+                                                pending
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-blue-500 hover:text-blue-600"
                                             )
@@ -263,42 +282,45 @@ export default function ProcessRegChange({
                                             if (extraFeeStr.length != 0) {
                                                 extraFee = parseFloat(extraFeeStr);
                                             }
-                                            handleDropTransfer(
-                                                requestId,
-                                                regId,
-                                                adminMemo,
-                                                parseInt(balanceTypeStr),
-                                                extraFee,
-                                                "A"
+                                            runAction(() =>
+                                                handleDropTransfer(
+                                                    requestId,
+                                                    regId,
+                                                    adminMemo,
+                                                    parseInt(balanceTypeStr),
+                                                    extraFee,
+                                                    "A"
+                                                )
                                             );
-                                            router.push("/admin/management/regchangerequests/");
                                         }}
                                     >
                                         <PencilIcon className="h-4 w-4" />
                                         Approve
                                     </button>
                                     <button
+                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                false
+                                                pending
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-red-500 hover:text-red-600"
                                             )
                                         )}
                                         onClick={() => {
                                             const adminMemo = adminMemoRef.current?.value || "";
-                                            handleDropTransfer(
-                                                requestId,
-                                                regId,
-                                                adminMemo,
-                                                6,
-                                                0.0,
-                                                "R"
+                                            runAction(() =>
+                                                handleDropTransfer(
+                                                    requestId,
+                                                    regId,
+                                                    adminMemo,
+                                                    6,
+                                                    0.0,
+                                                    "R"
+                                                )
                                             );
-                                            router.push("/admin/management/regchangerequests/");
                                         }}
                                     >
                                         <PencilIcon className="h-4 w-4" />
@@ -308,22 +330,21 @@ export default function ProcessRegChange({
                             ) : (
                                 <>
                                     <button
+                                        disabled={pending}
                                         className={cn(
                                             cn(
                                                 "flex items-center self-start text-left text-sm whitespace-nowrap hover:bg-gray-100",
                                                 "w-full cursor-pointer gap-1 rounded-sm p-1 transition-colors duration-200",
                                                 "focus:bg-gray-100 focus:outline-none",
-                                                false
+                                                pending
                                                     ? "cursor-not-allowed text-gray-300"
                                                     : "cursor-pointer text-blue-500 hover:text-blue-600"
                                             )
                                         )}
                                         onClick={() => {
-                                            // handle undo
-
-                                            adminUndoRequest(requestId, familyId, status);
-
-                                            router.push("/admin/management/regchangerequests/");
+                                            runAction(() =>
+                                                adminUndoRequest(requestId, familyId, status)
+                                            );
                                         }}
                                     >
                                         <PencilIcon className="h-4 w-4" /> UNDO
@@ -335,10 +356,8 @@ export default function ProcessRegChange({
                     <AlertDialog open={validationOpen} onOpenChange={setValidationOpen}>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Validation Failed</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    {"validation Error"}
-                                </AlertDialogDescription>
+                                <AlertDialogTitle>Action Failed / 操作失败</AlertDialogTitle>
+                                <AlertDialogDescription>{validationError}</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogAction onClick={() => setValidationOpen(false)}>

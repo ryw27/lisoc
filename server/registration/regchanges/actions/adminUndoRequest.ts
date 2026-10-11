@@ -247,9 +247,11 @@ export async function adminUndoRequest(requestid: number, familyid: number, stat
                 throw new Error(" status is no reject or approve should never come here ");
             }
         });
+        return { ok: true };
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Server error. Please try again later.";
         console.error("adminUndoRequest error", message);
+        return { ok: false, errormsg: message };
     }
 }

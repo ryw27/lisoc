@@ -19,7 +19,6 @@ import {
 import { requireRole } from "@/server/auth/actions";
 import { type famBalanceInsert } from "@/types/shared.types";
 import { and, eq, ne, or, sum } from "drizzle-orm";
-import { request } from "http";
 import { revalidatePath } from "next/cache";
 import { getArrSeason, getTotalPrice } from "../../data";
 
@@ -79,7 +78,7 @@ export async function adminApproveRequest(
                     .delete(regchangerequest)
                     .where(eq(regchangerequest.requestid, requestid));*/
                 throw new Error(
-                    `request id = ${request}, regid = ${registerid} is not in registered status , someone else may have change it`
+                    `request id = ${requestid}, regid = ${registerid} is not in registered status , someone else may have change it`
                 );
             }
 
@@ -354,12 +353,14 @@ export async function adminApproveRequest(
                     .where(eq(regchangerequest.requestid, orgReq.requestid));
             }
         });
+        revalidatePath("/dashboard/classes");
+        revalidatePath("/admin/management/semester");
+        return { ok: true };
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Server error. Please try again later.";
-        console.error("adminRejectRequest error", message);
-
-        revalidatePath("/dashboard/classes");
-        revalidatePath("/admin/management/semester");
+        console.error("adminApproveRequest error", message);
+        // Report the failure: the caller must not treat a rolled-back approval as done
+        return { ok: false, errormsg: message };
     }
 }
